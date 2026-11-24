@@ -91,6 +91,24 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/main.js`, `src/menu.js`, `src/ui.js` | Menü, Steuerung, Multiplayer, Fenster |
 | `src/newleaf.js`, `src/zones.js` | Bürgermeister-Update: Rathaus, Verordnungen, Wohnwert, Bummelgasse & Tropeninsel (Logik und 3D) |
 | `src/net.js`, `src/audio.js` | Netzwerk, Klang |
+| `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |
+
+### Grafik aus Blender
+
+Alle Modelle und Texturen werden in Blender gebaut (Skripte in `blender/`) und liegen fertig in `assets/models/*.glb` (Draco-komprimiert) und `assets/tex/*.webp`. Fehlt eine Datei, zeichnet das Spiel die alten, einfachen Formen.
+
+| Skript | Ergebnis |
+|---|---|
+| `blender/kit.py` | Bausteine (weiche Kugeln, Polster, Dächer, Türen …), Animations-Loops, Export |
+| `buildings.py` | `buildings.glb`: Rathaus (Uhr zeigt die Spielzeit), Häuser, Läden, Nachbarhäuser, Bummelgasse, Tropeninsel |
+| `nature.py` | `nature.glb`: Bäume je Jahreszeit, Palmen, Obst, Felsen, Muscheln, Unkraut, Wald, Gras, Wildblumen |
+| `crops.py`, `place.py`, `furniture.py` | `crops.glb`, `place.glb`, `furniture.glb`: Beete, Deko & Bauprojekte, 41 Möbel |
+| `shapes.py` + `shapes_data.py` | `characters.glb`: Avatar-Teile (Schlüsselfarben, im Spiel umgefärbt), Haustiere, Nachbarn, Nutztiere, Bodenkram, Brücken, Zimmerfenster |
+| `sky.py` | `sky.glb`: Wolken, Regenbogen, Sonne & Mond, Schmetterlingsflügel, Fischschatten, Wimpelkette |
+| `textures.py` | `assets/tex`: Rasen, Wege, Kopfstein, Wasser-Glitzern, 8 Böden, 8 Tapeten |
+| `icons.py` | `assets/ui`: die Symbole der Oberfläche |
+
+`node tools/dump-shapes.mjs` schreibt `blender/shapes_data.py` neu, wenn sich die Formen der Figuren in `src/` ändern. Ein Skript läuft in Blenders Python-Konsole nach `kit.py`; die Ergebnisse landen im Ordner `kuschel3d` und werden nach `assets/` kopiert.
 
 ### Veröffentlichen
 
