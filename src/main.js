@@ -468,7 +468,7 @@ function updateHand(me, now) {
   if (!o) { G.hand = null; return; }
   const d = Math.hypot(o.x - me.x, o.z - me.z);
   if (d > 8) { G.hand = null; toast('👋 Ihr habt euch losgelassen.'); return; }
-  if (d > 1.25 && !me.m && !G.goal && !busy()) G.goal = { player: o.id, last: { x: me.x, z: me.z, t: now } };
+  if (d > 1.25 && !me.m && !G.goal && !busy()) G.goal = { player: o.id, follow: true, last: { x: me.x, z: me.z, t: now } };
   if (now > (G.handFx || 0)) { G.handFx = now + 1800; world.float((o.x + me.x) / 2, (o.z + me.z) / 2, '💗', 1.6, { life: 1.2, rise: 0.5 }); }
 }
 function animate(kind) {
@@ -1372,7 +1372,7 @@ function arrive(me, at, act) {
   const g = G.goal;
   G.goal = null;
   if (Math.hypot(at.x - me.x, at.z - me.z) > 0.05) me.ry = Math.atan2(at.x - me.x, at.z - me.z);
-  if (!act) return;
+  if (!act || g.follow) return;
   if (g.npc) { openTalk(g.npc); return; }
   const r = g.player ? context(me, null) : context(me, at);
   if (g.player && r.hug !== g.player) return;
@@ -1907,4 +1907,4 @@ function demoFarm() {
 
 showMenu(joinParam ? 'join' : 'title');
 requestAnimationFrame(frame);
-window.__game = { get G() { return G; }, world, S, profile, settings, openTalk }; // für Tests & Fehlersuche
+window.__game = { get G() { return G; }, world, S, profile, settings, openTalk, social };  // für Tests & Fehlersuche
