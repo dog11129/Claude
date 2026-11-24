@@ -2,6 +2,7 @@
 // Beide liegen weit weg von der Insel (wie das Zuhause), die Kamera springt beim Ortswechsel mit.
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
+import * as N from './nature.js';
 import { building } from './buildings.js';
 import { placeable } from './plants.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT, TROPIC_TREES, TOURS, TOUR_ICON, shopOpen, concertNow } from './newleaf.js';
@@ -95,7 +96,7 @@ function buildTropic() {
   put(g, building('hut', 1, 'summer'), X + (TROPIC_HUT.x0 + TROPIC_HUT.x1) / 2, Z + (TROPIC_HUT.z0 + TROPIC_HUT.z1) / 2);
   put(g, building('dock', 1, 'summer'), X, Z);
   for (const [x, z] of [[-8, -3], [8, -4], [-7.4, 5.5], [7.6, 5], [-3, -8.3], [4.5, -7.8], [-8.6, 1.5], [8.7, 0.5]]) {
-    const m = M.wild('palm', 'summer', 3, 'kokosnuss', true);
+    const m = N.wild('palm', 'summer', 3, 'kokosnuss', true);
     put(g, m, X + x, Z + z, x * 0.7);
   }
   for (const [x, z] of [[-1.5, 8.3], [1.5, 8.3], [-3, -4.2], [3, -4.2]]) put(g, placeable('tikifackel'), X + x, Z + z);

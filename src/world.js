@@ -25,6 +25,7 @@ const FINISH = {
     }`,
 };
 import * as M from './models.js';
+import * as N from './nature.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS } from './npc.js';
 import { makeAnimal } from './animals.js';
@@ -920,10 +921,10 @@ export class World {
       if (e && e.sig !== sig) { this.scene.remove(e.m); e = null; }
       if (!e) {
         const [x, z] = k.split(',').map(Number);
-        const m = M.wild(kind, this.season, left, TREE_FRUIT[k], ready);
+        const m = N.wild(kind, this.season, left, TREE_FRUIT[k], ready);
         m.position.set(x, 0, z);
         m.rotation.y = (x * 3 + z) % 6;
-        if (kind !== 'rock') m.children[0].material = WIND_TREE;
+        if (kind !== 'rock' && !m.userData.asset) m.children[0].material = WIND_TREE;
         this.scene.add(m);
         e = { m, sig, x, z };
         this.wildM.set(k, e);
@@ -935,7 +936,7 @@ export class World {
     const seen = new Set(s.digs || []);
     for (const k of seen) {
       if (this.digM.has(k)) continue;
-      const [x, z] = k.split(',').map(Number), m = M.digMark();
+      const [x, z] = k.split(',').map(Number), m = N.digMark();
       m.position.set(x, 0, z);
       this.scene.add(m);
       this.digM.set(k, { m, x, z });
@@ -950,10 +951,10 @@ export class World {
       const e = this.pickM.get(k);
       if (e && e.v === v) continue;
       if (e) this.scene.remove(e.m);
-      const [x, z] = k.split(',').map(Number), m = v === 'w' ? M.weed() : M.shell(v.slice(1));
+      const [x, z] = k.split(',').map(Number), m = v === 'w' ? N.weed() : N.shell(v.slice(1));
       m.position.set(x + ((x * 7) % 3) * 0.08, 0.01, z + ((z * 5) % 3) * 0.08);
       m.rotation.y = x * 1.7 + z;
-      if (v === 'w') m.children[0].material = WIND_CROP;
+      if (v === 'w' && !m.userData.asset) m.children[0].material = WIND_CROP;
       this.scene.add(m);
       this.pickM.set(k, { m, v, x, z });
     }
