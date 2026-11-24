@@ -1,6 +1,8 @@
 // Fenster-Inhalte (Laden, Lager, Aufträge, Freunde, Einstellungen). Reines HTML, Klicks gehen an Callbacks.
 import { CROPS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SHELLS, SEA, SOCIAL, STORY, DAILY, MUSEUM, MUSEUM_ALL, isFlower, PAVE, WEEKDAYS, weekday, TURNIP_STACK, DIY_IDS, FESTS, BIRTHDAYS, NPC_DATA } from './data.js';
 import { settingsHtml } from './menu.js';
+import { boxCap, AREAS } from './state.js';
+import { itemIcon, fillIcons } from './icons.js';
 import { price, upgradeInfo, seasonOf, hearts, halfDay, turnipSeller, turnipPrice, festOf, birthdayOf, contestOpen, daySea } from './state.js';
 import { NPCS, letter, requestLine } from './npc.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
@@ -20,15 +22,17 @@ const time = s => s >= 60 ? `${Math.round(s / 6) / 10} Min` : `${s} s`;
 export const TABS = {
   shop: [['seeds', '🌷 Samen'], ['trees', '🌳 Bäume'], ['food', '🥛 Zutaten'], ['furn', '🛋️ Möbel'], ['deco', '🏮 Deko'], ['farm', '🏡 Haus'], ['tools', '🛠️ Werkzeug'], ['goods', '💎 Preise']],
   orders: [['quests', '📜 Quests'], ['orders', '💬 Wünsche'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Insel']],
-  mayor: [['projects', '🏗️ Projekte'], ['ords', '📜 Verordnungen'], ['house', '🏡 Haus & Kredit'], ['hha', '🛋️ Wohnwert'], ['stars', '⭐ Inselbewertung']],
+  mayor: [['projects', '🏗️ Projekte'], ['areas', '🗺️ Erweiterungen'], ['ords', '📜 Verordnungen'], ['house', '🏡 Haus & Kredit'], ['hha', '🛋️ Wohnwert'], ['stars', '⭐ Inselbewertung']],
   garden: [['seeds', '🌱 Samen'], ['plants', '🌳 Pflanzen']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
 };
-const TITLES = { mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
+const TITLES = { chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
 }
+// Gegenstand als Kachel mit eigenem Bild (wird von icons.js nachgeladen)
+const itemCell = (id, n, buttons) => `<div class="icell" title="${esc(ITEMS[id].name)}">${itemIcon(id)}<b>${esc(ITEMS[id].name)}</b><span class="icn">${n}×</span><div class="ib">${buttons}</div></div>`;
 const btn = (label, data, cls = '', dis = false) => `<button class="btn small ${cls}" data-act='${JSON.stringify(data)}' ${dis ? 'disabled' : ''}>${label}</button>`;
 
 function upgradeRow(s, id) {
@@ -52,7 +56,7 @@ const SHOP = {
     const sea = seasonOf(s.day);
     let h = `<div class="note">Samen kaufen ➜ unten in der Leiste wählen ➜ irgendwo auf den Rasen pflanzen ➜ gießen 💧 (gegossen wachsen sie dreimal so schnell). Blumen blühen nach dem Pflücken immer wieder nach. Jetzt ist ${SEASONS[sea][1]} ${SEASONS[sea][0]}.</div>`;
     for (const [k, c] of Object.entries(CROPS)) {
-      if (c.garden) continue;
+      if (c.garden || c.wild) continue;
       if (k === 'weizen') h += '<h3>🥕 Gemüse</h3>';
       const id = 's_' + k, locked = c.lvl > s.level, have = s.inv[id] || 0, ok = c.sea.includes(sea);
       const sub = `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · Wächst in ${time(c.grow)}${c.regrow ? (isFlower(k) ? ' · blüht immer wieder' : ' · trägt immer wieder') : ''}${c.yield ? ` · ${c.yield}× Ernte` : ''} · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`;
@@ -93,7 +97,7 @@ const SHOP = {
   },
   furn(s) {
     const cats = { sitzen: '🪑 Sitzen', tische: '🍽️ Tische', betten: '🛏️ Schlafen & Schränke', licht: '💡 Licht', kueche: '🍳 Küche', teppiche: '🟫 Teppiche', pflanzen: '🪴 Pflanzen', deko: '🧸 Deko', wand: '🖼️ Wand' };
-    let h = '<div class="note">Möbel fürs Haus: kaufen ➜ ins Haus gehen 🚪 ➜ in der Leiste wählen ➜ hinstellen (zeigt zu dir). Mit der Hand ✋ wieder aufheben. Manche Möbel könnt ihr auch an der Werkbank bauen.</div>';
+    let h = '<div class="note">Möbel fürs Haus: kaufen ➜ ins Haus gehen 🚪 ➜ 🔨 Baumodus öffnen ➜ Möbel wählen ➜ aufs Feld tippen. „Abbauen“ packt sie wieder ein. Manche Möbel gibt es nur an der Werkbank.</div>';
     const sw = (kind, list) => `<div class="swatches">${list.map(([id, l, c]) => `<button title="${l}" style="background:${c};width:44px;height:44px;border-radius:12px" data-act='${JSON.stringify({ t: 'hstyle', kind, id })}' class="${s.home[kind] === id ? 'on' : ''}"></button>`).join('')}</div>`;
     h += `<div class="row"><div class="ic">🖌️</div><div class="tx"><b>Tapete <span class="lv">🪙 350</span></b><small>${WALLS.find(w => w[0] === s.home.wall)?.[1] || ''}</small>${sw('wall', WALLS)}</div></div>`;
     h += `<div class="row"><div class="ic">🪵</div><div class="tx"><b>Boden <span class="lv">🪙 350</span></b><small>${FLOORS.find(w => w[0] === s.home.floor)?.[1] || ''}</small>${sw('floor', FLOORS)}</div></div>`;
@@ -102,8 +106,8 @@ const SHOP = {
       for (const [id, f] of Object.entries(FURNITURE)) {
         if (f.cat !== c) continue;
         const locked = f.lvl > s.level, have = s.inv[id] || 0;
-        h += row(f.icon, f.name + (locked ? lvTag(f.lvl) : ''), `${f.w}×${f.d}${f.sit ? ' · zum Sitzen' : ''}${f.bed ? ' · zum Schlafen' : ''}${f.craft ? ' · auch an der Werkbank' : ''}${have ? ` · <b>${have}× im Lager</b>` : ''}`,
-          btn(`🪙 ${f.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < f.buy), locked);
+        h += row(itemIcon(id), f.name + (locked ? lvTag(f.lvl) : ''), `${f.w}×${f.d}${f.sit ? ' · zum Sitzen' : ''}${f.bed ? ' · zum Schlafen' : ''}${f.store ? ' · Lagerkiste für alle' : ''}${f.craft ? (f.buy ? ' · auch an der Werkbank' : ' · nur an der Werkbank') : ''}${have ? ` · <b>${have}× in der Tasche</b>` : ''}`,
+          f.buy ? btn(`🪙 ${f.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < f.buy) : '<span class="lv">🔨</span>', locked);
       }
     }
     return h;
@@ -123,12 +127,12 @@ const PANELS = {
     let h = sellable.length ? `<div class="row"><div class="ic">💰</div><div class="tx"><b>Alles verkaufen</b><small>${sellable.length} Sorten</small></div><div class="bt">${btn(`+🪙 ${total}`, { t: 'sellAll' }, 'pink')}</div></div>` : '<div class="note">Noch nichts zu verkaufen. Schüttelt Bäume, sammelt Muscheln, angelt! 🍎🐚🎣</div>';
     for (const [id, n] of sellable) {
       const p = price(s, id);
-      h += row(ITEMS[id].icon, `${ITEMS[id].name} <span class="lv">${n}×</span>`, `je ${money(p)}`, btn('1', { t: 'sell', id, n: 1 }, 'white') + btn(`Alle +${p * n}`, { t: 'sell', id, n }));
+      h += row(itemIcon(id), `${ITEMS[id].name} <span class="lv">${n}×</span>`, `je ${money(p)}`, btn('1', { t: 'sell', id, n: 1 }, 'white') + btn(`Alle +${p * n}`, { t: 'sell', id, n }));
     }
     const rest = Object.entries(s.inv).filter(([id, n]) => n > 0 && !(price(s, id) > 0) && ITEMS[id]);
     if (rest.length) {
       h += '<h3>Behalten</h3>';
-      for (const [id, n] of rest) h += row(ITEMS[id].icon, `${ITEMS[id].name} <span class="lv">${n}×</span>`, ITEMS[id].seed ? 'Samen' : ITEMS[id].place ? 'Zum Aufstellen' : ITEMS[id].furn ? 'Möbel fürs Haus' : ITEMS[id].turnip ? 'Heute kauft der Laden keine Rüben (sonntags nie)' : id === 'faule_ruebe' ? 'Leider verfault …' : 'Zutat', '');
+      for (const [id, n] of rest) h += row(itemIcon(id), `${ITEMS[id].name} <span class="lv">${n}×</span>`, ITEMS[id].seed ? 'Samen' : ITEMS[id].place ? 'Zum Aufstellen' : ITEMS[id].furn ? 'Möbel fürs Haus' : ITEMS[id].turnip ? 'Heute kauft der Laden keine Rüben (sonntags nie)' : id === 'faule_ruebe' ? 'Leider verfault …' : 'Zutat', '');
     }
     return h;
   },
@@ -168,16 +172,16 @@ const PANELS = {
       return h;
     }
     if (tab === 'album') {
-      const n = Object.keys(s.album).filter(k => !['flaschenpost', 'schatz', 'sternsplitter'].includes(k)).length, all = ALBUM.fish.length + ALBUM.sea.length + ALBUM.bug.length + ALBUM.fossil.length + ALBUM.shell.length;
+      const n = Object.keys(s.album).filter(k => !['flaschenpost', 'schatz', 'sternsplitter'].includes(k)).length, all = ALBUM.fish.length + ALBUM.sea.length + ALBUM.bug.length + ALBUM.fossil.length + ALBUM.shell.length + ALBUM.gem.length + ALBUM.mush.length;
       const where = { river: '🏞️ Fluss', sea: '🌊 Meer', pond: '🪷 Teich' };
       const info = { ...Object.fromEntries(FISH.map(f => [f[0], `${where[f[6]]} ${(f[5] || []).map(x => SEASONS[x][1]).join('') || ''}`])), ...Object.fromEntries(SHELLS.map(f => [f[0], '🏖️ Strand'])), ...Object.fromEntries(SEA.map(f => [f[0], '🤿 Tauchen'])),
         ...Object.fromEntries(BUGS.map(b => [b[0], b[5] === 'tropic' ? '🏝️ Tropeninsel' : b[4].map(x => SEASONS[x][1]).join('') + (b[5] === 'night' ? ' 🌙' : b[5] === 'day' ? ' ☀️' : '')])),
-        ...Object.fromEntries(FOSSILS.map(f => [f[0], 'Ausgraben'])) };
+        ...Object.fromEntries(FOSSILS.map(f => [f[0], 'Ausgraben'])), ...Object.fromEntries(ALBUM.gem.map(k => [k, k === 'goldnugget' ? 'Felsen & Höhle' : '💎 Kristallhöhle'])), ...Object.fromEntries(ALBUM.mush.map(k => [k, '🌲 Kiefernwald'])) };
       const sec = (t, ids) => `<h3>${t}</h3><div class="album">${ids.map(id => s.album[id]
-        ? `<div class="got" title="${ITEMS[id].name}"><span>${ITEMS[id].icon}</span><small>${ITEMS[id].name}</small><i>${s.album[id]}×</i></div>`
+        ? `<div class="got" title="${ITEMS[id].name}"><span>${itemIcon(id)}</span><small>${ITEMS[id].name}</small><i>${s.album[id]}×</i></div>`
         : `<div title="${info[id] || ''}"><span>❔</span><small>${info[id] || '???'}</small></div>`).join('')}</div>`;
       return `<div class="note">Alles, was ihr fangt und ausgrabt, wird hier eingetragen. Gesammelt: <b>${n}/${all}</b></div><div class="bar"><i style="width:${n / all * 100}%"></i></div>` +
-        sec('🎣 Fische', ALBUM.fish) + sec('🤿 Meerestiere', ALBUM.sea) + sec('🦋 Insekten', ALBUM.bug) + sec('🦴 Funde', ALBUM.fossil) + sec('🐚 Muscheln', ALBUM.shell);
+        sec('🎣 Fische', ALBUM.fish) + sec('🤿 Meerestiere', ALBUM.sea) + sec('🦋 Insekten', ALBUM.bug) + sec('🦴 Funde', ALBUM.fossil) + sec('🐚 Muscheln', ALBUM.shell) + sec('💎 Edelsteine', ALBUM.gem) + sec('🍄 Pilze', ALBUM.mush);
     }
     if (tab === 'stats') {
       const st = s.stats, pct = Math.round(s.xp / needXp(s.level) * 100);
@@ -201,10 +205,29 @@ const PANELS = {
       : `<div class="note">${g.role === 'host' ? '⏳ Einladen gerade nicht möglich (keine Verbindung zum Vermittlungs-Server). Spielen geht trotzdem!' : ''}</div>`;
     h += `<input type="hidden" id="invlink" value="${esc(link)}">`;
     for (const p of Object.values(g.players)) {
-      const kick = (p.id !== g.me ? btn('Hinbeamen ✨', { ui: 'goto', id: p.id }) : '') + (g.role === 'host' && p.id !== g.me ? btn('Entfernen', { ui: 'kick', id: p.id }, 'white') : '');
+      const kick = (p.id !== g.me ? btn('🎁 Geben', { ui: 'give', id: p.id }, 'pink') + btn('Hinbeamen ✨', { ui: 'goto', id: p.id }) : '') + (g.role === 'host' && p.id !== g.me ? btn('Entfernen', { ui: 'kick', id: p.id }, 'white') : '');
       h += row(`<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:${esc(p.look?.topColor || '#ccc')};border:3px solid ${esc(p.look?.hairColor || '#fff')}"></span>`, esc(p.name) + (p.id === 'h' ? ' 👑' : '') + (p.id === g.me ? ' (du)' : ''), p.id === 'h' ? 'Host – die Insel wird auf diesem Gerät gespeichert' : 'Gast – bekommt automatisch eine Kopie der Insel', kick);
     }
-    h += '<div class="note">Alles ist geteilt: Taler, Taschen, Museum und Fortschritt. Jede/r bekommt eine Sicherheitskopie und kann die Insel später auch selbst hosten.</div>';
+    h += '<div class="note">Jede/r hat eine eigene Tasche – mit „🎁 Geben“ schenkt ihr euch Sachen, oder ihr legt sie in die 🧰 Lagerkiste im Haus. Geteilt sind Taler, Museum und Fortschritt. Jede/r bekommt eine Sicherheitskopie und kann die Insel später auch selbst hosten.</div>';
+    return h;
+  },
+  chest(s) {
+    const cap = boxCap(s), used = Object.keys(s.box || {}).length;
+    let h = `<div class="note">🧰 Die Kiste gehört allen auf der Insel – praktisch zum Tauschen. Platz: <b>${used}/${cap}</b> Sorten (jede weitere Kiste im Haus = 40 mehr).</div>`;
+    const inBox = Object.entries(s.box || {}).filter(([id, n]) => n > 0 && ITEMS[id]);
+    h += '<h3>In der Kiste</h3>';
+    h += inBox.length ? `<div class="itemgrid">${inBox.map(([id, n]) => itemCell(id, n, btn('1', { t: 'unstash', item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'unstash', item: id, n }) : ''))).join('')}</div>` : '<div class="note">Noch leer.</div>';
+    const mine = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id]);
+    h += '<h3>Deine Tasche</h3>';
+    h += mine.length ? `<div class="itemgrid">${mine.map(([id, n]) => itemCell(id, n, btn('1', { t: 'stash', item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'stash', item: id, n }) : ''))).join('')}</div>` : '<div class="note">Deine Tasche ist leer.</div>';
+    return h;
+  },
+  give(s, g) {
+    const p = g.players[g.giveTo];
+    if (!p) return '<div class="note">Dein Lieblingsmensch ist gerade nicht auf der Insel.</div>';
+    const mine = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id]);
+    let h = `<div class="note">Was möchtest du <b>${esc(p.name)}</b> schenken? Es landet sofort in ihrer/seiner Tasche.</div>`;
+    h += mine.length ? `<div class="itemgrid">${mine.map(([id, n]) => itemCell(id, n, btn('1', { t: 'give', to: p.id, item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'give', to: p.id, item: id, n }, 'pink') : ''))).join('')}</div>` : '<div class="note">Deine Tasche ist leer.</div>';
     return h;
   },
   emotes() {
@@ -220,7 +243,7 @@ const PANELS = {
     const canMuseum = MUSEUM_ALL.filter(id => !s.museum?.[id] && s.inv[id] > 0).length;
     const apps = [['map', '🗺️', 'Karte', '#7fd3a8'], ['shop', '🛍️', 'Bestellen', '#ffb36b'], ['sell', '🎒', 'Taschen', '#f7a8c4'], ['quests', '📜', 'Inselbuch', '#ffd66b', ready],
       ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
-      ['designer', '🧱', 'Designer', '#f4a582'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
+      ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
       ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
     const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
     return `<div class="phone-top"><b>${s.real ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : `${hh}:${String(mm).padStart(2, '0')}`}</b><span>${WEEKDAYS[weekday(s.day)]} · ${esc(s.name)}</span></div>
@@ -270,16 +293,16 @@ const PANELS = {
   },
   museum(s) {
     const n = Object.keys(s.museum || {}).length;
-    let h = `<div class="note">Hier stellt ihr eure Fische 🐟, Meerestiere 🤿, Insekten 🦋 und Fossilien 🦴 aus – jedes Stück einmal. Ausgestellt: <b>${n}/${MUSEUM_ALL.length}</b></div><div class="bar"><i style="width:${n / MUSEUM_ALL.length * 100}%"></i></div>`;
+    let h = `<div class="note">Hier stellt ihr eure Fische 🐟, Meerestiere 🤿, Insekten 🦋, Fossilien 🦴 und Edelsteine 💎 aus – jedes Stück einmal. Ausgestellt: <b>${n}/${MUSEUM_ALL.length}</b></div><div class="bar"><i style="width:${n / MUSEUM_ALL.length * 100}%"></i></div>`;
     const can = MUSEUM_ALL.filter(id => !s.museum?.[id] && s.inv[id] > 0);
     if (can.length) {
       h += '<h3>🎁 Kann ausgestellt werden</h3>';
-      for (const id of can) h += row(ITEMS[id].icon, ITEMS[id].name, `${s.inv[id]}× in der Tasche · Wert ${money(price(s, id))}`, btn('Ausstellen', { t: 'donate', id }, 'pink'));
+      for (const id of can) h += row(itemIcon(id), ITEMS[id].name, `${s.inv[id]}× in der Tasche · Wert ${money(price(s, id))}`, btn('Ausstellen', { t: 'donate', id }, 'pink'));
     } else h += '<div class="note">Gerade habt ihr nichts Neues dabei. Angelt, fangt Insekten oder grabt an den Stern-Rissen ✨!</div>';
     const sec = (t, ids) => `<h3>${t} <span class="lv">${ids.filter(id => s.museum?.[id]).length}/${ids.length}</span></h3><div class="album">${ids.map(id => s.museum?.[id]
-      ? `<div class="got" title="${ITEMS[id].name}"><span>${ITEMS[id].icon}</span><small>${ITEMS[id].name}</small></div>`
+      ? `<div class="got" title="${ITEMS[id].name}"><span>${itemIcon(id)}</span><small>${ITEMS[id].name}</small></div>`
       : `<div><span>❔</span><small>???</small></div>`).join('')}</div>`;
-    return h + sec('🐟 Aquarium', MUSEUM.fish) + sec('🤿 Meeresbecken', MUSEUM.sea) + sec('🦋 Insektenhaus', MUSEUM.bug) + sec('🦴 Fossilienhalle', MUSEUM.fossil);
+    return h + sec('🐟 Aquarium', MUSEUM.fish) + sec('🤿 Meeresbecken', MUSEUM.sea) + sec('🦋 Insektenhaus', MUSEUM.bug) + sec('🦴 Fossilienhalle', MUSEUM.fossil) + sec('💎 Edelsteinhalle', MUSEUM.gem);
   },
   craft: (s, g) => recipes(s, 'craft'),
   cook: (s, g) => recipes(s, 'cook'),
@@ -366,9 +389,20 @@ const closed = (s, id) => `<div class="note">🔒 Gerade geschlossen. Öffnungsz
 Object.assign(PANELS, {
   mayor(s, g, tab) {
     let h = '';
+    if (tab === 'areas') {
+      h += hero('🦌 Rosi, Rathaus', 'Insel-Erweiterungen', 'Hinter der Klippe, am Strand und tief im Fels gibt es noch viel zu entdecken! Schaltet neue Gebiete frei – die Taler kommen aus der Inselkasse, das Material aus deiner Tasche. Jedes Gebiet hat ein Tor auf der Insel (siehe Karte).');
+      for (const [id, A] of Object.entries(AREAS)) {
+        const open = s.areas?.[id], locked = A.lvl > s.level;
+        const mats = Object.entries(A.mats).map(([m, n]) => `${(s.inv[m] || 0) >= n ? '✅' : '▫️'} ${n}× ${ITEMS[m].icon} ${ITEMS[m].name}`).join(' · ');
+        const can = !open && !locked && s.money >= A.cost && Object.entries(A.mats).every(([m, n]) => (s.inv[m] || 0) >= n);
+        h += `<div class="row${open ? ' done' : locked ? ' locked' : ''}"><div class="ic">${A.icon}</div><div class="tx"><b>${A.name}${locked ? lvTag(A.lvl) : ''}</b><small>${A.desc}</small>${open ? `<small>✅ Offen seit Tag ${open.open} · Eingang: ${A.gateName}</small>` : `<small>${money(A.cost)} · ${mats}</small>`}</div>
+          <div class="bt">${open ? '<span class="lv">offen</span>' : btn('Freischalten', { t: 'expand', id }, 'pink', !can)}</div></div>`;
+      }
+      return h;
+    }
     if (tab === 'projects') {
       const site = siteOf(s);
-      h += hero('🦌 Rosi, Rathaus', 'Inselprojekte', 'Als Bürgermeister bestimmt ihr, was auf der Insel gebaut wird! Projekt aussuchen ➜ Bauplatz-Pflock 🚩 aus der Leiste auf freien Rasen stecken (mit einer Kachel Platz drumherum) ➜ am Schild Taler spenden ➜ am nächsten Morgen wird eingeweiht.');
+      h += hero('🦌 Rosi, Rathaus', 'Inselprojekte', 'Als Bürgermeister bestimmt ihr, was auf der Insel gebaut wird! Projekt aussuchen ➜ 🔨 Baumodus ➜ „Projekte“ ➜ Bauplatz-Pflock 🚩 auf freien Rasen stecken (mit einer Kachel Platz drumherum) ➜ am Schild Taler spenden ➜ am nächsten Morgen wird eingeweiht. Fertige Projekte könnt ihr im Baumodus unter „Abbauen“ wieder einpacken und woanders aufstellen.');
       if (site) {
         const [, o] = site, P = PROJECTS[o.p], paid = o.paid || 0;
         h += row(P.icon, `Baustelle: ${P.name}`, `${money(paid)} von ${money(P.cost)}<div class="bar"><i style="width:${Math.min(1, paid / P.cost) * 100}%"></i></div>${paid >= P.cost ? '✅ Bezahlt – morgen früh steht es!' : 'Spenden könnt ihr direkt am Bauschild.'}`, '');
@@ -541,6 +575,7 @@ export class Panels {
     this.sigOpen = this.open;
     const body = $('pbody'), y = body.scrollTop;
     body.innerHTML = PANELS[this.open](s, g, this.tab);
+    fillIcons(body);
     body.scrollTop = y;
     $('pmoney').textContent = s.money.toLocaleString('de-DE');
     for (const b of $('ptabs').children) b.classList.toggle('on', b.dataset.tab === this.tab);
@@ -560,15 +595,14 @@ const TOOLS = {
   pave: [icon('pave'), 'Insel-Designer: Wege legen (nochmal antippen = Wegart wählen)'],
 };
 export function hotbarItems(s) {
-  const items = ['hand', 'net', 'shovel', 'axe', 'can', 'sling', 'pave'];
+  // Aufstellen, Einrichten und Wege legen geht jetzt im 🔨 Baumodus
+  const items = ['hand', 'net', 'shovel', 'axe', 'can', 'sling'];
   for (const k of Object.keys(CROPS)) if (s.inv['s_' + k] > 0) items.push('s_' + k);
-  for (const k of Object.keys(PLACE)) if (s.inv[k] > 0) items.push(k);
-  for (const k of Object.keys(FURNITURE)) if (s.inv[k] > 0) items.push(k);
   return items;
 }
 export function slotHtml(s, id, i, sel) {
   const tool = TOOLS[id];
-  const icon = tool ? tool[0] : ITEMS[id].icon, title = tool ? tool[1] : ITEMS[id].name;
+  const icon = tool ? tool[0] : itemIcon(id), title = tool ? tool[1] : ITEMS[id].name;
   const n = tool ? '' : `<span class="n">${s.inv[id]}</span>`;
   return `<button class="slot${id === sel ? ' sel' : ''}" data-id="${id}" title="${title}">${i < 9 ? `<span class="k">${i + 1}</span>` : ''}${icon}${ITEMS[id]?.seed ? '<span class="seed">🫘</span>' : ''}${n}</button>`;
 }

@@ -8,6 +8,8 @@ import {
 } from './data.js';
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
+import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
+export { AREAS, NODES, areaOf };
 import {
   PROJECTS, STREET, TROPIC, zoneOf, STREET_SHOPS, streetWalk, streetShopAt, TROPIC_HUT, TROPIC_TREES, onDock, tropicWalk, tropicTree,
   ORDS, ORD_PRICE, ord, awakeHours, sellFactor, buyPrice, WARDROBE, SONGS, TOURS, tourTargets, MEDAL_SHOP, BOAT_PRICE, concertNow, shopOpen,
@@ -21,20 +23,53 @@ export const inSeason = (s, k) => CROPS[k].sea.includes(seasonOf(s.day));
 const rnd = n => Math.floor(Math.random() * n);
 const pick = arr => arr[rnd(arr.length)];
 
+// ---------- Eigene Taschen je Spieler ----------
+// s.pinv[Schlüssel] = Inventar eines Spielers ('host' = wer die Insel gerade öffnet, 'u_…' = Gäste).
+// s.inv zeigt immer auf die Tasche des Spielers, der gerade handelt (bzw. auf dem Gerät spielt) –
+// so bleibt der restliche Code unverändert. s.inv und s._who werden nicht mitgespeichert.
+export const PKEY = /^(host|u_[a-z0-9]{6,16}|n_[^\s]{1,16})$/;
+export function bindInv(s, who = 'host') {
+  s.pinv ||= {};
+  Object.defineProperty(s, '_who', { value: who, writable: true, configurable: true, enumerable: false });
+  if (!Object.getOwnPropertyDescriptor(s, 'inv')?.get) {
+    Object.defineProperty(s, 'inv', {
+      get() { return (this.pinv[this._who] ||= {}); },
+      set(v) { this.pinv[this._who] = v; },
+      configurable: true, enumerable: false,
+    });
+  }
+  return s;
+}
+// Taschen tauschen, wenn jemand anderes die (kopierte) Insel öffnet: der neue Gastgeber bekommt "host"
+// Nur tauschen, wenn man auf dieser Insel schon als Gast eine eigene Tasche hatte (z. B. die Sicherheitskopie
+// einer Freundin selbst öffnen). Wer seine eigene Insel auf einem neuen Gerät öffnet, behält "host".
+export function claimHost(s, uid) {
+  if (!uid || !PKEY.test('u_' + uid)) return;
+  const mine = s.pinv['u_' + uid];
+  if (mine && s.owner !== uid) {
+    s.pinv[s.owner ? 'u_' + s.owner : 'n_Gastgeber'] = s.pinv.host || {};
+    s.pinv.host = mine;
+    delete s.pinv['u_' + uid];
+    s.owner = uid;
+  }
+  s.owner ||= uid;
+}
+
 export function newFarm(name = 'Kuschelinsel') {
   const s = {
     v: 2, id: Math.random().toString(36).slice(2, 10), name, code: null,
     time: 0, day: 1, dayTime: 0.04, weather: 'sun',
     money: 800, xp: 0, level: 1,
-    inv: { s_tulpe: 4 },
+    pinv: { host: { s_tulpe: 4 } }, box: {}, owner: null, areas: {}, anode: {},
     up: {}, tiles: {}, obj: {}, animals: [], orders: [], nextId: 1, ach: {},
     album: {}, res: {}, shook: {}, digs: [], mail: [], npc: {},
     shells: {}, weeds: {}, fruit: {}, museum: {}, rock: null, paths: {}, balloon: null, wishes: 0, starNight: false, turnip: null, real: false, ground: {}, dives: [], recipes: Object.fromEntries(STARTER_DIY.map(k => [k, 1])),
     home: { wall: 'vanille', floor: 'dielen', items: {}, rugs: {}, walls: {} },
     quest: { i: 0, p: 0 }, daily: [], met: {},
     mayor: { ord: 'none', free: 1, plan: null, built: 0 }, loan: 0, wardrobe: {}, songs: {}, concert: 0, medals: 0, tropic: { picked: {} }, tour: null, hha: { best: 0 }, stars: 1,
-    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0, dives: 0, donated: 0, tours: 0, trips: 0, repaid: 0 },
+    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0, dives: 0, donated: 0, tours: 0, trips: 0, repaid: 0, mush: 0, honey: 0, ore: 0, berry: 0 },
   };
+  bindInv(s);
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
   // ein paar wilde Blumen blühen schon auf der Insel
   const r = rng(77), wild = ['tulpe', 'kosmee', 'stiefmuetterchen', 'rose'];
@@ -95,8 +130,11 @@ export function npcPos(id, t, dayTime = 0.3) {
 export const npcAwake = s => { const h = 6 + s.dayTime * 18, [a, b] = awakeHours(s); return h >= a && h < b; };
 
 // ---------- Quests ----------
+// Aufgaben für neue Gebiete nur, wenn das Gebiet schon offen ist
+const DAILY_NEEDS = { mush: ['wald'], ore: ['hoehle'], honey: ['wiese'], berry: ['wald', 'wiese'] };
 function newDailies(s) {
-  const pool = DAILY.map((d, i) => i).sort(() => Math.random() - 0.5).slice(0, 3);
+  const ok = i => !DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a]);
+  const pool = DAILY.map((d, i) => i).filter(ok).sort(() => Math.random() - 0.5).slice(0, 3);
   s.daily = pool.map(i => ({ i, p: 0 }));
 }
 // Etwas ist passiert (gegossen, geerntet, …): Fortschritt für Geschichte und Tagesaufgaben
@@ -186,6 +224,19 @@ function learn(s, out) {
 export function migrate(s) {
   const fresh = !s.digs || !s.res || !s.shells;
   const base = newFarm(s.name);
+  const own = Object.getOwnPropertyDescriptor(s, 'inv');
+  if (own && 'value' in own) { // alter Stand: eine Tasche für alle – wird die Tasche des Gastgebers, nichts geht verloren
+    const old = own.value && typeof own.value === 'object' ? own.value : {};
+    delete s.inv;
+    if (!s.pinv || typeof s.pinv !== 'object') s.pinv = { host: old };
+    else { const h = (s.pinv.host ||= {}); for (const [id, n] of Object.entries(old)) if (Number.isFinite(n) && n > (h[id] || 0)) h[id] = n; }
+  }
+  if (!s.pinv || typeof s.pinv !== 'object') s.pinv = { host: {} };
+  for (const k of Object.keys(s.pinv)) if (!PKEY.test(k) || !s.pinv[k] || typeof s.pinv[k] !== 'object') delete s.pinv[k];
+  s.pinv.host ||= {};
+  if (!s.box || typeof s.box !== 'object') s.box = {};
+  if (s.recipes && typeof s.recipes === 'object') s.recipes.f_kiste ||= 1; // Lagerkiste kann jede Insel bauen
+  bindInv(s, s._who || 'host');
   for (const k of Object.keys(base)) if (s[k] === undefined) s[k] = base[k];
   for (const k of Object.keys(UPGRADES)) if (s.up[k] === undefined) s.up[k] = UPGRADES[k].start;
   for (const k of Object.keys(base.stats)) if (s.stats[k] === undefined) s.stats[k] = 0;
@@ -220,9 +271,10 @@ export function buildingAt(x, z) {
 
 export const inPond = pondAt;
 
+export const boxCap = s => Object.values(s.home?.items || {}).filter(o => o?.k === 'kiste').length * 40;
 export function canPlace(s, x, z) {
   const k = key(x, z);
-  return grass(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k] && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k];
+  return grass(x, z) && !gateAt(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k] && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k];
 }
 
 // ---------- Zuhause (Innenraum liegt weit weg bei x = HOME_X, damit es eine eigene Welt ist) ----------
@@ -282,6 +334,14 @@ export function blocked(s, x, z, swim) {
     if (tx >= TROPIC_HUT.x0 && tx <= TROPIC_HUT.x1 && tz >= TROPIC_HUT.z0 && tz <= TROPIC_HUT.z1) return true;
     return tropicTree(tx, tz) >= 0;
   }
+  if (x < -150) { // Insel-Erweiterungen
+    const id = areaOf({ x, z }), A = AREAS[id], lx = x - A.x, lz = z - A.z;
+    if (areaExit(id, lx, lz) && lz <= A.d + 1.2) return false;
+    if (!inArea(id, lx, lz)) return true;
+    const n = nodeAt(id, Math.round(lx), Math.round(lz));
+    return !!(n && SOLID.includes(n.kind));
+  }
+  if (gateAt(Math.round(x), Math.round(z))) return true;
   if (swim && swimmable(x, z)) return Math.abs(x - PIER.x) < PIER.w + 0.3 && z > PIER.z0 && z < PIER.z1; // unter dem Steg durch geht nicht
   if (!walkable(x, z)) return true;
   const tx = Math.round(x), tz = Math.round(z);
@@ -517,7 +577,7 @@ function newDay(s) {
   s.wishes = 0;
   s.starNight = s.weather === 'sun' && Math.random() < 0.3;
   if (weekday(s.day) === 0) { // neue Woche: Rüben verfaulen, neue Preise
-    if (s.inv.ruebe) { addInv(s, 'faule_ruebe', s.inv.ruebe); delete s.inv.ruebe; }
+    for (const inv of [...Object.values(s.pinv), s.box]) if (inv.ruebe) { inv.faule_ruebe = (inv.faule_ruebe || 0) + inv.ruebe; delete inv.ruebe; }
     newTurnips(s);
   }
   newDailies(s);
@@ -566,6 +626,11 @@ function weighted(list, w) {
   let r = Math.random() * total;
   for (const x of list) if ((r -= w(x)) < 0) return x;
   return list[0];
+}
+function learnOrMoney(s, out) { // kleine Überraschung beim Schütteln
+  const n = 100 + Math.floor(Math.random() * 400);
+  s.money += n;
+  out.msg = `Ein Säckchen mit ${n} Talern ist mit heruntergefallen!`;
 }
 function collect(s, id, out) { // ins Sammelbuch eintragen
   if (!s.album[id]) out.newAlbum = id;
@@ -690,6 +755,7 @@ const ACTIONS = {
       if (!PROJECTS[s.mayor.plan]) { out.msg = 'Sucht euch erst im Rathaus ein Projekt aus.'; return false; }
       if (!siteFree(s, a.x, a.z)) { out.msg = '🚩 Ein Inselprojekt braucht rundherum eine Kachel Platz.'; return false; }
     }
+    if (PLACE[a.item].kind === 'project' && !siteFree(s, a.x, a.z)) { out.msg = '🏗️ Ein Inselprojekt braucht rundherum eine Kachel Platz.'; return false; }
     if (!takeInv(s, a.item, 1)) return false;
     const o = { k: a.item, r: [0, 1, 2, 3].includes(a.r) ? a.r : 0 };
     if (PLACE[a.item].kind === 'producer') o.t = 0;
@@ -701,11 +767,11 @@ const ACTIONS = {
   },
   pickup(s, a, out) {
     const k = key(a.x, a.z), o = s.obj[k];
-    if (!o || PLACE[o.k]?.kind === 'project') return false;
+    if (!o || !PLACE[o.k]) return false;
     if (o.k === 'baustelle') {
-      if (o.paid > 0) { out.msg = 'Für diese Baustelle wurde schon gespendet – sie bleibt stehen.'; return false; }
+      if (o.paid > 0) { s.money += o.paid; out.msg = `🚩 Baustelle abgebaut – ${o.paid} Taler Spenden zurück in die Inselkasse. Ihr könnt sie im Baumodus neu abstecken.`; }
       s.mayor.plan = o.p;
-    }
+    } else if (PLACE[o.k].kind === 'project') out.msg = `🏗️ ${PLACE[o.k].name} abgebaut! Es liegt in deiner Tasche – im Baumodus kannst du es woanders neu aufstellen.`;
     delete s.obj[k];
     addInv(s, o.k, 1);
     fx(out, a.x, a.z, '', 'dust');
@@ -1108,6 +1174,101 @@ const ACTIONS = {
     out.snd = 'place';
     return true;
   },
+  // Insel-Erweiterung im Rathaus freischalten (Taler aus der Inselkasse, Material aus der eigenen Tasche)
+  expand(s, a, out) {
+    const A = AREAS[a.id];
+    if (!A || !has(AREAS, a.id) || s.areas[a.id]) return false;
+    if (s.level < A.lvl) { out.msg = `Erst ab Insel-Level ${A.lvl}.`; return false; }
+    if (s.money < A.cost) { out.msg = 'Nicht genug Taler in der Inselkasse.'; return false; }
+    if (Object.entries(A.mats).some(([id, n]) => (s.inv[id] || 0) < n)) { out.msg = 'Dafür fehlt noch Material in deiner Tasche.'; return false; }
+    for (const [id, n] of Object.entries(A.mats)) takeInv(s, id, n);
+    s.money -= A.cost;
+    s.areas[a.id] = { open: s.day };
+    out.msg = `${A.icon} ${A.name} ist offen! Eingang auf der Insel: ${A.gateName} (siehe Karte).`;
+    out.snd = 'level';
+    questEvent(s, 'expand', 1, out);
+    if (AREA_IDS.every(id => s.areas[id])) questEvent(s, 'expand_all', 1, out);
+    addXp(s, 40, out);
+    return true;
+  },
+  // In einem Gebiet: Kiefer hacken/schütteln, Pilze & Beeren pflücken, Honig ernten, Blumensamen sammeln, Erz hauen
+  aact(s, a, out) {
+    const A = AREAS[a.area], n = A && has(AREAS, a.area) && NODES[a.area][a.i];
+    if (!n || !s.areas[a.area]) return false;
+    const k = a.area + ':' + n.i, st = s.anode[k]?.d === s.day ? s.anode[k] : (s.anode[k] = { d: s.day, u: 0 });
+    const today = nodeToday(a.area, n, s.day), got = (id, c = 1) => { addInv(s, id, c); fx(out, A.x + n.x, A.z + n.z, `+${c} ${ITEMS[id].icon}`, 'leaf'); };
+    if (!today) return false;
+    const use = a.how;
+    if (n.kind === 'pine') {
+      if (use === 'chop') {
+        if (st.u >= nodeUses(n)) { out.msg = '🌲 Für heute ist hier genug gehackt.'; return false; }
+        st.u++;
+        got(Math.random() < 0.25 ? 'harz' : 'holz');
+        s.stats.wood = (s.stats.wood || 0) + 1;
+        questEvent(s, 'chop', 1, out);
+        out.snd = 'chop';
+      } else {
+        if (st.shook) { out.msg = '🌲 Heute fällt nichts mehr herunter.'; return false; }
+        st.shook = 1;
+        got('kiefernzapfen', 1 + Math.floor(Math.random() * 2));
+        questEvent(s, 'forage', 1, out);
+        if (Math.random() < 0.15) { learnOrMoney(s, out); }
+        out.snd = 'shake';
+      }
+    } else if (n.kind === 'ore') {
+      if (use !== 'mine') { out.msg = '🪨 Mit der Schaufel draufhauen!'; return false; }
+      if (st.u >= nodeUses(n)) { out.msg = '💎 Diese Ader ist für heute leer.'; return false; }
+      st.u++;
+      const [id] = weighted(GEMS, g => g[1]);
+      got(id);
+      if (['amethyst', 'rubin', 'saphir', 'opal', 'kristall'].includes(id)) { collect(s, id, out); questEvent(s, 'gem', 1, out); }
+      s.stats.ore = (s.stats.ore || 0) + 1;
+      questEvent(s, 'ore', 1, out);
+      out.snd = 'mine';
+    } else {
+      if (st.u >= 1) { out.msg = 'Hier ist heute schon geerntet.'; return false; }
+      st.u = 1;
+      if (n.kind === 'mush') { got(today); collect(s, today, out); s.stats.mush = (s.stats.mush || 0) + 1; questEvent(s, 'mush', 1, out); questEvent(s, 'forage', 1, out); }
+      else if (n.kind === 'berry') { const c = 2 + Math.floor(Math.random() * 3); got(today, c); s.stats.berry = (s.stats.berry || 0) + c; questEvent(s, 'berry', c, out); questEvent(s, 'forage', 1, out); }
+      else if (n.kind === 'hive') { got('honig', 1 + (Math.random() < 0.3 ? 1 : 0)); s.stats.honey = (s.stats.honey || 0) + 1; questEvent(s, 'honey', 1, out); }
+      else if (n.kind === 'bloom') { got('s_' + today, 1); got(today, 1); questEvent(s, 'forage', 1, out); }
+      out.snd = 'harvest';
+    }
+    addXp(s, 2, out);
+    return true;
+  },
+  // Etwas aus der eigenen Tasche einem anderen Spieler geben (a.to = sein Schlüssel, vom Gastgeber eingesetzt)
+  give(s, a, out) {
+    const n = Math.floor(a.n);
+    if (!has(ITEMS, a.item) || !(n >= 1 && n <= 999) || typeof a.to !== 'string' || !PKEY.test(a.to) || a.to === s._who) return false;
+    if (!takeInv(s, a.item, n)) { out.msg = 'So viele hast du nicht.'; return false; }
+    const inv = (s.pinv[a.to] ||= {});
+    inv[a.item] = (inv[a.item] || 0) + n;
+    out.msg = `🎁 ${n}× ${ITEMS[a.item].icon} ${ITEMS[a.item].name} verschenkt!`;
+    out.gave = { item: a.item, n, to: a.to };
+    out.snd = 'love';
+    return true;
+  },
+  // Lagerkiste im Haus: Platz = 40 Sorten je aufgestellter Kiste
+  stash(s, a, out) {
+    const n = Math.floor(a.n), cap = boxCap(s);
+    if (!has(ITEMS, a.item) || !(n >= 1 && n <= 9999)) return false;
+    if (!cap) { out.msg = 'Stellt erst eine Kiste ins Haus.'; return false; }
+    if (!s.box[a.item] && Object.keys(s.box).length >= cap) { out.msg = `Die Kiste ist voll (${cap} Sorten). Noch eine Kiste aufstellen!`; return false; }
+    if (!takeInv(s, a.item, n)) return false;
+    s.box[a.item] = (s.box[a.item] || 0) + n;
+    out.snd = 'place';
+    return true;
+  },
+  unstash(s, a, out) {
+    const n = Math.floor(a.n);
+    if (!has(ITEMS, a.item) || !(n >= 1 && n <= 9999) || !((s.box[a.item] || 0) >= n)) return false;
+    s.box[a.item] -= n;
+    if (!s.box[a.item]) delete s.box[a.item];
+    addInv(s, a.item, n);
+    out.snd = 'place';
+    return true;
+  },
   hstyle(s, a, out) {
     const list = a.kind === 'wall' ? WALLS : a.kind === 'floor' ? FLOORS : null;
     if (!list?.some(w => w[0] === a.id)) return false;
@@ -1392,9 +1553,14 @@ Object.assign(ACTIONS, {
 });
 
 // Führt eine Spieler-Aktion aus. Eingaben kommen evtl. übers Netz, darum wird alles geprüft.
-export function act(s, a) {
+export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
+  if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
+    const before = s._who;
+    bindInv(s, who);
+    try { return act(s, a); } finally { s._who = before; }
+  }
   const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave', 'fund'].includes(a.t);
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
   if (a.t === 'water' && !isDir(a.dx, a.dz)) return out;
@@ -1431,25 +1597,64 @@ function resolveHome(s, me, sel, at) {
   if (h) {
     const f = FURNITURE[h.o.k], tiles = footprint(h.o.k, h.x, h.z, h.o.r).map(W);
     const cx = h.x + ((h.o.r % 2 ? f.d : f.w) - 1) / 2 + HOME_X, cz = h.z + ((h.o.r % 2 ? f.w : f.d) - 1) / 2;
-    if (sel === 'hand') return { ...base, a: { t: 'hpick', x, z }, label: '✋ Aufheben', tiles };
     if (f.sit) return { ...base, sit: { x: cx, z: cz, r: h.o.r }, label: '🪑 Hinsetzen', tiles };
     if (f.bed) return { ...base, sleep: { x: cx, z: cz, r: h.o.r, wide: f.w > 1 }, label: '😴 Schlafen gehen', tiles };
     if (h.o.k === 'herd') return { ...base, ui: 'cook', label: '🍳 Kochen', tiles };
+    if (f.store) return { ...base, ui: 'chest', label: '🧰 Kiste öffnen', tiles };
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
   }
-  if (rug && sel === 'hand') return { ...base, a: { t: 'hpick', x, z }, label: '✋ Teppich aufheben', tiles: footprint(rug.o.k, rug.x, rug.z, rug.o.r).map(W) };
-  if (ITEMS[sel]?.furn) {
-    const f = FURNITURE[sel], r = f.wall ? wallRot(s, x, z) : (Math.round(me.ry / (Math.PI / 2)) + 2 + 400) % 4; // schaut zu dir
-    const ok = r >= 0 && canFurnish(s, sel, x, z, r);
-    return { ...base, ...(ok ? { a: { t: 'hplace', x, z, item: sel, r }, label: '📍 Hinstellen' } : { label: f.wall ? 'Nur an eine Wand' : 'Hier ist kein Platz' }), tiles: r >= 0 ? footprint(sel, x, z, r).map(W) : one };
-  }
+  if (ITEMS[sel]?.furn) return { ...base, label: '🔨 Einrichten geht im Baumodus', tiles: one };
   if (PLACE[sel] || ITEMS[sel]?.seed) return { ...base, label: 'Das gehört nach draußen', tiles: one };
   return { ...base, label: '', tiles: one };
 }
 
 
+// ---------- Baumodus: was passiert, wenn man auf Feld (x, z) tippt? ----------
+// b = { inside, mode: 'place' | 'remove' | 'pave', item, r, path }; drinnen sind x/z Zimmer-Kacheln (ohne HOME_X)
+export function resolveBuild(s, b, x, z) {
+  const one = b.inside ? [[x + HOME_X, z]] : [[x, z]];
+  if (b.inside) {
+    const W = ([i, j]) => [i + HOME_X, j];
+    if (b.mode === 'remove') {
+      const h = homeAt(s, x, z) || homeAt(s, x, z, 'walls') || homeAt(s, x, z, true);
+      if (!h) return { label: 'Hier steht nichts', tiles: one, bad: true };
+      const f = FURNITURE[h.o.k];
+      return { a: { t: 'hpick', x, z }, label: `✋ ${f.icon} ${f.name} einpacken`, tiles: footprint(h.o.k, h.x, h.z, h.o.r).map(W) };
+    }
+    const f = FURNITURE[b.item];
+    if (!f || !(s.inv[b.item] > 0)) return { label: 'Wähle unten ein Möbelstück', tiles: one, bad: true };
+    const r = f.wall ? wallRot(s, x, z) : (((b.r | 0) % 4) + 4) % 4;
+    const ok = r >= 0 && canFurnish(s, b.item, x, z, r) && !layer(s, f)[key(x, z)];
+    return { ...(ok ? { a: { t: 'hplace', x, z, item: b.item, r }, label: `📍 ${f.icon} ${f.name} hinstellen` } : { label: f.wall ? 'Nur an eine Wand' : 'Hier ist kein Platz', bad: true }), tiles: r >= 0 ? footprint(b.item, x, z, r).map(W) : one, r };
+  }
+  const k = key(x, z);
+  if (b.mode === 'remove') {
+    const o = s.obj[k];
+    if (o && PLACE[o.k]) {
+      const p = PLACE[o.k];
+      const label = o.k === 'baustelle' ? (o.paid ? `🚩 Baustelle abbauen (+${o.paid} Taler zurück)` : '🚩 Bauplatz abbauen') : p.kind === 'project' ? `🏗️ ${p.name} abbauen` : `✋ ${p.icon} ${p.name} einpacken`;
+      return { a: { t: 'pickup', x, z }, label, tiles: one, project: p.kind === 'project' || o.k === 'baustelle' };
+    }
+    if (s.paths?.[k]) return { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one };
+    return { label: 'Hier steht nichts', tiles: one, bad: true };
+  }
+  if (b.mode === 'pave') {
+    const type = b.path || 'erde';
+    if (type === 'none' || s.paths?.[k] === type) return s.paths?.[k] ? { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one } : { label: 'Hier ist kein Weg', tiles: one, bad: true };
+    if (PAVE[type] && pavable(s, x, z)) return { a: { t: 'pave', x, z, k: type }, label: `${PAVE[type].icon} ${PAVE[type].name}`, tiles: one };
+    return { label: 'Hier geht kein Weg', tiles: one, bad: true };
+  }
+  const p = PLACE[b.item];
+  if (!p || !(s.inv[b.item] > 0)) return { label: 'Wähle unten etwas zum Aufstellen', tiles: one, bad: true };
+  const big = p.kind === 'project' || b.item === 'baustelle';
+  const ok = canPlace(s, x, z) && (!big || siteFree(s, x, z)) && (b.item !== 'baustelle' || PROJECTS[s.mayor.plan]);
+  const why = !canPlace(s, x, z) ? 'Hier ist kein Platz' : b.item === 'baustelle' && !PROJECTS[s.mayor.plan] ? 'Erst im Rathaus ein Projekt wählen' : 'Projekte brauchen rundherum Platz';
+  return { ...(ok ? { a: { t: 'place', x, z, item: b.item, r: (((b.r | 0) % 4) + 4) % 4 }, label: `📍 ${p.icon} ${p.name} aufstellen` } : { label: why, bad: true }), tiles: big ? [-1, 0, 1].flatMap(i => [-1, 0, 1].map(j => [x + i, z + j])) : one };
+}
+
 export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
+  if (me.x < -150) return resolveArea(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
   if (me.z > 150) return resolveTropic(s, me, sel, at);
   if (me.sw) { // schwimmt: tauchen
@@ -1462,6 +1667,8 @@ export function resolve(s, me, sel, at) {
   const [dx, dz] = facing(toward);
   const one = [[x, z]];
 
+  const gid = !s.obj[k] && !s.tiles[k] && gateAt(x, z);
+  if (gid) return s.areas?.[gid] ? { go: gid, label: `${AREAS[gid].icon} Zum ${AREAS[gid].name}`.replace('Zum Blütenwiese', 'Zur Blütenwiese').replace('Zum Kristallhöhle', 'Zur Kristallhöhle'), tiles: one } : { ui: 'mayor', label: `🔒 ${AREAS[gid].gateName} · im Rathaus freischalten`, tiles: one };
   const b = buildingAt(x, z);
   if (b === 'house') return { enter: true, label: '🚪 Hineingehen', tiles: one };
   if (b === 'gate') return { go: 'street', label: '🛍️ Zur Bummelgasse', tiles: one };
@@ -1511,9 +1718,8 @@ export function resolve(s, me, sel, at) {
   const o = s.obj[k];
   if (o) {
     const p = PLACE[o.k];
-    if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { a: { t: 'pickup', x, z }, label: '✋ Aufheben', tiles: one };
+    if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { label: '🚩 Bauplatz (im 🔨 Baumodus abbauen)', tiles: one };
     if (p.kind === 'project') return p.sit ? { sit: { x, z, r: o.r }, label: '🧺 Hinsetzen', tiles: one } : { label: `${p.icon} ${p.name}`, tiles: one };
-    if (sel === 'hand') return { a: { t: 'pickup', x, z }, label: '✋ Aufheben', tiles: one };
     if (p.kind === 'producer') return { a: { t: 'use', x, z }, label: `${ITEMS[p.item].icon} Pflücken`, tiles: one };
     if (o.k === 'bank' || p.sit) return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
     if (o.k === 'kirschbaum') return { petals: { x, z }, label: '🌸 Schütteln', tiles: one };
@@ -1535,10 +1741,27 @@ export function resolve(s, me, sel, at) {
   }
   if (t && t.c && stage(t.c) === 3) return { a: { t: 'harvest', x, z }, label: `${CROPS[t.c.k].icon} ${isFlower(t.c.k) ? 'Pflücken' : 'Ernten'}`, tiles: one };
   if (ITEMS[sel]?.seed) return canPlace(s, x, z) ? { a: { t: 'plant', x, z, item: sel }, label: `${ITEMS[sel].icon} Pflanzen`, tiles: one } : { label: 'Hier kann man nichts pflanzen', tiles: one };
-  if (PLACE[sel]) return canPlace(s, x, z)
-    ? { a: { t: 'place', x, z, item: sel, r: (Math.round(me.ry / (Math.PI / 2)) % 4 + 4) % 4 }, label: '📍 Aufstellen', tiles: one }
-    : { label: 'Hier ist kein Platz', tiles: one };
+  if (PLACE[sel]) return { label: '🔨 Aufstellen geht im Baumodus', tiles: one };
   return { label: '', tiles: one };
+}
+
+// Insel-Erweiterungen: Kiefern, Pilze, Beeren, Bienenstöcke, Blumen, Erzadern; im Süden geht es zurück
+function resolveArea(s, me, sel, at) {
+  const id = areaOf(me), A = AREAS[id];
+  const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
+  const lx = Math.round(px - A.x), lz = Math.round(pz - A.z), tiles = [[lx + A.x, lz + A.z]];
+  if (areaExit(id, px - A.x, pz - A.z) || (lz >= A.d && Math.abs(lx) <= 1)) return { go: 'island', label: '🏝️ Zurück zur Insel', tiles };
+  const n = nodeAt(id, lx, lz);
+  if (!n) return { label: '', tiles: [] };
+  const today = nodeToday(id, n, s.day), st = s.anode[id + ':' + n.i], used = st?.d === s.day ? st : null, a = how => ({ t: 'aact', area: id, i: n.i, how, x: lx, z: lz });
+  if (n.kind === 'pine') {
+    if (sel === 'axe') return (used?.u || 0) < nodeUses(n) ? { a: a('chop'), label: '🪓 Holz hacken', tiles } : { label: '🌲 Morgen wieder', tiles };
+    return used?.shook ? { label: '🌲 Kiefer', tiles } : { a: a('shake'), label: '🌰 Schütteln', tiles };
+  }
+  if (n.kind === 'ore') return sel === 'shovel' ? ((used?.u || 0) < nodeUses(n) ? { a: a('mine'), label: '⛏️ Auf die Erzader hauen', tiles } : { label: '💎 Morgen wieder', tiles }) : { label: '💎 Erzader · mit der Schaufel draufhauen', tiles };
+  if (!today || used) return { label: '', tiles: [] };
+  const lbl = { mush: `${ITEMS[today]?.icon || '🍄'} ${ITEMS[today]?.name || 'Pilz'} pflücken`, berry: `${ITEMS[today].icon} Beeren pflücken`, hive: '🍯 Honig ernten', bloom: `🌸 ${CROPS[today]?.name} pflücken (Samen!)` }[n.kind];
+  return { a: a('pick'), label: lbl, tiles };
 }
 
 // Bummelgasse: Läden im Norden, Tor im Süden

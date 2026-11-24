@@ -911,7 +911,68 @@ function assetName(id, level, season) {
   if (id === 'plazatree') return 'plazatree_' + (['spring', 'summer', 'autumn', 'winter'].includes(season) ? season : 'summer');
   return id;
 }
+// Dein Haus Stufe 4 und 5: Grundform von Stufe 3 (Turm links, Anbau), neu eingefärbt und vergrößert,
+// dazu eine richtig sitzende Dachgaube, Blumenbalkon, Veranda und ein zweiter Turm vorne rechts.
+const HOUSE_LOOK = { 4: { hue: 0.94, roof: 0xe77ba0, wall: 0xffe6f0, trim: 0xffffff, scale: 1.07 }, 5: { hue: 0.075, roof: 0xf2a15a, wall: 0xfff3e4, trim: 0xffffff, scale: 1.13 } };
+const variantGeo = new Map();
+function recolored(geo, hue) {
+  const g = geo.clone(), a = g.getAttribute('color');
+  if (!a) return g;
+  const c = new THREE.Color(), hsl = {};
+  for (let i = 0; i < a.count; i++) {
+    c.setRGB(a.getX(i), a.getY(i), a.getZ(i));
+    c.getHSL(hsl);
+    if (hsl.h > 0.5 && hsl.h < 0.72 && hsl.s > 0.12) { c.setHSL(hue, hsl.s * 0.92, hsl.l); a.setXYZ(i, c.r, c.g, c.b); }
+  }
+  a.needsUpdate = true;
+  return g;
+}
+function houseExtras(l, L) {
+  const P = [], G = [], W = L.wall, R = L.roof;
+  // Vorgarten: zwei Blumenbeete mit Holzrand und zwei Laternen
+  for (const x of [-1.55, 1.45]) {
+    P.push(box(0.95, 0.14, 0.42, WOODD, x, 0.07, 1.78), box(0.85, 0.08, 0.32, 0x7a5a3a, x, 0.15, 1.78));
+    for (let i = 0; i < 4; i++) P.push(ball(0.075, [ROSE, BRASS, LILA, PINK][(i + (x > 0 ? 2 : 0)) % 4], x - 0.3 + i * 0.2, 0.25, 1.78 + (i % 2 ? 0.06 : -0.06)), cyl(0.012, 0.012, 0.12, LEAF, x - 0.3 + i * 0.2, 0.17, 1.78, 4));
+  }
+  for (const x of [-2.25, 2.0]) { P.push(cyl(0.04, 0.05, 1.1, DARK, x, 0.55, 2.05, 8), box(0.16, 0.06, 0.16, DARK, x, 1.13, 2.05)); G.push(box(0.12, 0.16, 0.12, 0, x, 1.22, 2.05)); P.push(cone(0.13, 0.12, DARK, x, 1.36, 2.05, 4, 0, PI / 4)); }
+  if (l >= 5) {
+    // Veranda mit Säulen vor der Tür
+    for (const x of [-1.25, 0.05]) P.push(cyl(0.07, 0.09, 1.45, L.trim, x, 0.98, 1.72, 12), cyl(0.12, 0.12, 0.08, L.trim, x, 0.3, 1.72, 12));
+    P.push(box(1.65, 0.12, 0.85, R, -0.6, 1.72, 1.45), box(1.75, 0.06, 0.95, L.trim, -0.6, 1.64, 1.45));
+    // zweiter Turm vorne rechts – mit sichtbarem Körper und Kuppel
+    const tx = 2.15, tz = 0.85;
+    P.push(cyl(0.48, 0.52, 2.75, W, tx, 1.38, tz, 22), cyl(0.56, 0.56, 0.12, STONE, tx, 0.06, tz, 22));
+    P.push(ball(0.64, R, tx, 2.76, tz, 1, 1.35, 1, 18), cyl(0.6, 0.6, 0.1, L.trim, tx, 2.76, tz, 22));
+    P.push(cyl(0.02, 0.02, 0.6, DARK, tx, 3.85, tz, 6), ball(0.08, BRASS, tx, 4.15, tz));
+    P.push(cyl(0.18, 0.18, 0.05, L.trim, tx, 1.75, tz + 0.5, 14, H));
+    G.push(cyl(0.14, 0.14, 0.06, 0, tx, 1.75, tz + 0.51, 14, H));
+    for (let i = 0; i < 4; i++) P.push(ball(0.07, [ROSE, BRASS, LILA, PINK][i], tx - 0.3 + i * 0.2, 0.18, tz + 0.55));
+  }
+  return [P, G];
+}
+function houseVariant(l) {
+  const base = model('house_3');
+  if (!base) return null;
+  const L = HOUSE_LOOK[l];
+  base.traverse(o => {
+    if (!o.isMesh || o.name.includes('__glow') || o.parent?.name?.includes('__glow')) return;
+    const k = l + '|' + o.name;
+    if (!variantGeo.has(k)) variantGeo.set(k, recolored(o.geometry, L.hue));
+    o.geometry = variantGeo.get(k);
+  });
+  const k = 'x' + l;
+  if (!variantGeo.has(k)) { const [P, G] = houseExtras(l, L); variantGeo.set(k, [merge(P), G.length ? merge(G) : null]); }
+  const [geo, glow] = variantGeo.get(k), ex = new THREE.Mesh(geo, MAT);
+  ex.castShadow = ex.receiveShadow = true;
+  base.add(ex);
+  if (glow) base.add(new THREE.Mesh(glow, GLOW));
+  base.scale.setScalar(L.scale);
+  base.userData.asset = 'house_' + l;
+  return base;
+}
+
 export function building(id, level = 1, season = 'summer') {
+  if (id === 'house' && level >= 4) { const v = houseVariant(Math.min(5, level)); if (v) return v; }
   const a = model(assetName(id, level, season));
   if (a) return a;
   if (season !== 'winter' && !FLOWERS[season]) season = 'summer';

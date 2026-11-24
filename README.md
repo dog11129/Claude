@@ -27,7 +27,8 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | Laufen / Rennen | WASD / Pfeiltasten, Shift = rennen | links wischen (weit = rennen) |
 | Benutzen | Auf Baum, Muschel, Haus, Nachbarn … zeigen und klicken (oder E) – nah dran sofort, sonst läuft die Figur hin | drauf tippen |
 | Aktion vor der Figur | E / Leertaste (halten = wiederholen) | großer rosa Knopf |
-| Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne, Schleuder, Designer) | unten antippen |
+| Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne, Schleuder) | unten antippen |
+| Baumodus (aufstellen, einrichten, Wege, abbauen) | G, R = drehen, Esc = fertig | 🔨 |
 | Kamera | Mausrad = Zoom, rechte Maustaste ziehen oder Z/C = drehen | zwei Finger = Zoom & drehen, 🔄 |
 | Chat / Emotes | Enter / Q | 💬 / 😊 |
 | Inselhandy, Karte, Taschen, Inselbuch, Freunde | H, M, I, O, F | 📱 und Knöpfe oben rechts |
@@ -36,7 +37,18 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🎉 Neu: Feste-Update
+### 🔨 Neu: Bau- & Erweiterungs-Update
+- **Baumodus (🔨 / G):** Aufstellen, Einrichten, Wege legen und Abbauen geht nur noch hier – draußen mit den Kategorien Deko, Garten, Projekte, Wege und Abbauen, im Haus nach Möbel-Art. Eine halb durchsichtige Vorschau zeigt, wo es landet (rot = geht nicht), 🔄 dreht.
+- **Inselprojekte abbauen:** Fertige Projekte vom Rathaus lassen sich im Baumodus einpacken und woanders neu aufstellen. Baustellen geben beim Abbauen die Spenden zurück.
+- **Eigene Taschen:** Jede/r hat ein eigenes Inventar. In 👥 Freunde gibt es „🎁 Geben“, um Sachen zu verschenken. Taler, Museum und Fortschritt bleiben gemeinsam.
+- **Lagerkiste 🧰:** Im Haus aufstellen (Krämerladen oder Werkbank) – eine gemeinsame Kiste für alle, 40 Sorten je Kiste.
+- **Eigene Bilder für jeden Gegenstand:** Taschen, Kiste, Museum, Sammelbuch und Baumodus zeigen kleine 3D-Bilder statt Emojis.
+- **Insel-Erweiterungen (Rathaus ➜ 🗺️ Erweiterungen):** 🌲 Kiefernwald (Harz, Zapfen, Pilze, Blaubeeren), 🌼 Blütenwiese (Honig, Himbeeren, vier seltene Blumen zum Samen-Sammeln) und 💎 Kristallhöhle (Eisen, Gold, Amethyst, Rubin, Saphir, Opal). Eingänge: Waldtreppe, Blumentor, Höhleneingang.
+- **Mehr zu tun:** neue Rezepte (Pilzpfanne, Beerenkuchen, Honigbrot, Waldtee), neue Möbel und Deko (Kristalllampe, Pilzlampe, Edelsteinvitrine, Zapfenkranz, Honigregal, Baumstumpf-Tisch, Bienenstock, Blaubeerstrauch, Kristallfels, Pilzlaterne), Edelsteinhalle im Museum, Pilze & Edelsteine im Sammelbuch, 4 neue Kapitel, neue Tagesaufgaben und Erfolge.
+- **Repariert:** Dein Haus sieht in Stufe 4 und 5 jetzt richtig aus (Türme, Vorgarten, Veranda), und in der Bummelgasse stehen die Läden auf gepflastertem Gehweg.
+- **Spielstände:** Alte Inseln laufen unverändert weiter – die bisherige gemeinsame Tasche wird die Tasche des Gastgebers (Test mit einem Spielstand der Vorgängerversion in `test/compat.test.mjs`).
+
+### 🎉 Feste-Update
 - **Antippen & Anklicken** trifft jetzt die Dinge selbst (Baumkrone, Dach, Nachbarn, Möbel). Nah genug dran wird sofort benutzt, sonst läuft die Figur hin. Mit der Maus zeigt eine Blase, was passiert; E benutzt das, worauf die Maus zeigt.
 - **Feste im Jahreskreis:** 🥚 Eiersuche (10 versteckte Eier ➜ Eiernest), 🎆 Sommerfeuerwerk (ab 19 Uhr, am schönsten mit 🔭), 🎃 Kürbisfest (Bonbons von allen Nachbarn ➜ Kürbislaterne), 🎄 Lichterfest (Lichterbaum, Schneemann, Geschenke im Briefkasten). Alles im **🎉 Festkalender** im Inselhandy.
 - **Turniere:** 🎣 Angeln und 🦋 Krabbeltiere – am Turnierstand auf dem Dorfplatz anmelden, 3 Minuten fangen, Bronze/Silber/Gold und ein Pokal für den Garten.
@@ -48,7 +60,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 - **Sichern:** 💾 Insel als Datei speichern/laden und automatische Zwischenstände (⏪) im Browser.
 - **App fürs Handy** mit eigenem Symbol aus Blender und Offline-Speicher.
 
-### 🏛️ Neu: Bürgermeister-Update
+### 🏛️ Bürgermeister-Update
 - **Rathaus** (früher Inselbüro): Ihr seid die Bürgermeister! Rosi 🦌 hilft euch bei allem.
   - **Inselprojekte:** Gaslaterne, Sonnenuhr, Picknickplatz, Blumentor, Fernrohr, Kuschelstatue, Musikpavillon, Großer Springbrunnen, Windmühle, Glockenturm und Leuchtturm. Projekt planen ➜ Bauplatz-Pflock 🚩 auf freien Rasen stecken ➜ gemeinsam am Bauschild spenden ➜ am nächsten Morgen wird eingeweiht.
   - **Verordnungen:** Frühaufsteher 🐓, Nachteule 🦉, Schöne Insel 🌷 (kein Unkraut, Blumen wachsen fast von selbst) oder Wohlstand 💰 (+20 % beim Verkaufen und Kaufen). Die erste ist gratis.
@@ -76,7 +88,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 - **Musik zu jeder Stunde:** Für jede Stunde komponiert das Spiel ein eigenes Stück – morgens Flöte, mittags Holzklang, abends E-Piano, nachts Glöckchen. Bei Regen wird es ruhiger, zur vollen Stunde klingt ein Glockenspiel.
 - **Fundstücke hochhalten:** Neue Funde hält deine Figur kurz stolz in die Luft.
 - **Inselhandy:** 15 Apps – Live-Karte (antippen = hinlaufen, mit Wegsuche über die Brücken), Bestellen, Taschen, Inselbuch, Sammelbuch, Museum, Rezepte, Rübenkurs, Designer, Freunde, Erfolge, Gefühle, Kamera, Himmel, Optionen.
-- **Insel-Designer:** Eigene Wege verlegen – Erde, Steinpflaster, Ziegel, Holzdielen, Sand.
+- **Wege:** Im Baumodus unter „Wege“ – Erde, Steinpflaster, Ziegel, Holzdielen, Sand.
 - **Geschenkballons:** Schweben tagsüber über die Insel – mit der Schleuder abschießen (Taler, Möbel, Deko, Eisen, Gold …).
 - **Sternschnuppen-Nächte:** 🔭 in den Himmel schauen und wünschen – am Morgen liegen Sternsplitter am Strand, daraus wird eine Sternenlampe. Nach Regentagen gibt's einen Regenbogen.
 - **Rübenbörse:** Sonntagmorgens verkauft Hoppel Rüben, der Krämerladen zahlt zweimal am Tag einen neuen Preis – mit Kurs-Diagramm im Handy. Nach einer Woche verfaulen sie.

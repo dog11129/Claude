@@ -849,6 +849,28 @@ export class World {
   }
 
   // Bildschirmpunkt -> Punkt auf dem Boden
+  // Baumodus: halb durchsichtige Vorschau des Teils, das gleich aufgestellt wird (rot = geht hier nicht)
+  setGhost(g) {
+    const k = g ? `${g.kind}|${g.id}` : '';
+    if (k !== this.ghostK) {
+      if (this.ghost) this.scene.remove(this.ghost);
+      this.ghost = null;
+      this.ghostK = k;
+      if (g) {
+        const m = g.kind === 'furn' ? (model(g.id) || makeFurniture(g.id)) : placeable(g.id, true);
+        this.ghostMat ||= new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.6, depthWrite: false });
+        m.traverse(o => { if (o.isMesh) { o.material = this.ghostMat; o.castShadow = false; o.receiveShadow = false; o.renderOrder = 3; } });
+        this.ghost = m;
+        this.scene.add(m);
+      }
+    }
+    if (!this.ghost) return;
+    this.ghost.position.set(g.x, (g.y || 0) + 0.02 + Math.sin(this.time * 5) * 0.02, g.z);
+    this.ghost.rotation.y = (g.r || 0) * Math.PI / 2;
+    this.ghostMat.color.set(g.ok ? 0xffffff : 0xff6b6b);
+    this.ghostMat.opacity = g.ok ? 0.62 : 0.4;
+  }
+
   pick(cx, cy) {
     this.ray.setFromCamera(new THREE.Vector2(cx / this.w * 2 - 1, -(cy / this.h) * 2 + 1), this.camera);
     const { origin: o, direction: d } = this.ray.ray;

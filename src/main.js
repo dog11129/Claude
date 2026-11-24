@@ -6,13 +6,14 @@ const FOSSIL_IDS = FOSSILS.map(f => f[0]);
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience, speak, musicTick } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
+import { fillIcons, itemIcon } from './icons.js';
 import { Editor, settingsHtml, setOwnedHats, PRESETS, SETTING_DEFAULTS } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
 import { NPCS, npcLine, giftReply, festLine } from './npc.js';
 import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, inPond, onPier, PATHS, PLAZA } from './island.js';
 import { zoneOf, clampPos, STREET, TROPIC, TOURS, BOAT_PRICE, shopOpen, concertNow } from './newleaf.js';
 import { loadAssets, loadTextures } from './assets.js';
-import { FLOORS, WALLS } from './furni-data.js';
+import { FLOORS, WALLS, FURNITURE } from './furni-data.js';
 import * as backup from './backup.js';
 
 const $ = id => document.getElementById(id);
@@ -27,8 +28,9 @@ document.body.classList.toggle('touch', touch);
 
 // Profil: Name + Aussehen (ältere Profile {color, hat} werden übernommen)
 const oldProfile = store.get('kh.profile', null);
-const profile = { name: String(oldProfile?.name || '').slice(0, 16), look: oldProfile ? cleanLook(oldProfile.look || oldProfile) : randomLook(), owned: Array.isArray(oldProfile?.owned) ? oldProfile.owned.filter(x => typeof x === 'string') : [] };
+const profile = { uid: /^[a-z0-9]{8,16}$/.test(oldProfile?.uid || '') ? oldProfile.uid : Math.random().toString(36).slice(2, 12).padEnd(10, '0'), name: String(oldProfile?.name || '').slice(0, 16), look: oldProfile ? cleanLook(oldProfile.look || oldProfile) : randomLook(), owned: Array.isArray(oldProfile?.owned) ? oldProfile.owned.filter(x => typeof x === 'string') : [] };
 const saveProfile = () => store.set('kh.profile', profile);
+if (oldProfile && oldProfile.uid !== profile.uid) saveProfile(); // feste Spieler-ID einmal merken
 
 const settings = { quality: touch ? 'mid' : 'high', sound: 0.8, music: 0.5, landscape: false, names: true, fullscreen: touch, ...store.get('kh.settings', {}) };
 if (typeof settings.sound !== 'number') settings.sound = settings.sound === false ? 0 : 0.8;
@@ -85,7 +87,9 @@ $('coverbtn').onclick = () => leave();
 
 // ---------- Spieler & Sitzung ----------
 const cleanProfile = p => ({ name: String(p?.name || '').trim().slice(0, 16) || 'Gast', look: cleanLook(p?.look || p) });
-const newPlayer = (id, p) => ({ id, ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: null, pose: null, fishing: false, run: false, sw: false });
+// Fester Schlüssel für die eigene Tasche (bleibt gleich, auch wenn man später wiederkommt)
+const keyOf = (id, p) => id === 'h' ? 'host' : /^[a-z0-9]{8,16}$/.test(p?.uid || '') ? 'u_' + p.uid : 'n_' + (String(p?.name || 'gast').replace(/\s/g, '').slice(0, 16) || 'gast');
+const newPlayer = (id, p) => ({ id, key: keyOf(id, p), ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: null, pose: null, fishing: false, run: false, sw: false });
 const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hand', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0, get myName() { return profile.name; } });
 
 // Gast-Kopien liegen unter eigenem Schlüssel, damit sie nie die eigene Farm überschreiben.
@@ -109,6 +113,8 @@ function wakeLock() { navigator.wakeLock?.request('screen').then(l => { if (G) G
 async function startHost(s, key = s.id, copyOf) {
   unlock();
   const g = G = session('host', S.migrate(s), 'h');
+  S.claimHost(g.s, profile.uid);
+  S.bindInv(g.s, 'host');
   g.key = key;
   g.copyOf = copyOf;
   g.players.h = newPlayer('h', profile);
@@ -184,7 +190,19 @@ function handleAct(id, a) {
     if (t - last < (a.t === 'bug' ? 1200 : 2500)) return;
     G.lastCatch[id] = t;
   }
-  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a);
+  if (a?.t === 'give') { // Empfänger muss gerade da sein
+    const to = G.players[a.to];
+    if (!to || a.to === id) return;
+    a = { ...a, to: to.key };
+  }
+  const who = G.players[id]?.key || 'host';
+  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
+  S.bindInv(G.s, 'host');
+  if (out.gave) { // dem Empfänger Bescheid sagen
+    const rid = Object.keys(G.players).find(k => G.players[k].key === out.gave.to), it = ITEMS[out.gave.item];
+    const text = `🎁 ${G.players[id]?.name} hat dir ${out.gave.n}× ${it.icon} ${it.name} geschenkt!`;
+    if (rid === G.me) { toast(text); play('love'); } else if (rid) G.net?.send(rid, { t: 'toast', text, snd: 'love' });
+  }
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
   const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday };
@@ -272,7 +290,7 @@ function guestData(d) {
       if (!d.s || typeof d.s !== 'object' || !d.players?.[d.id]) return;
       const old = G.players[G.me];
       G.me = d.id;
-      G.s = S.migrate(d.s);
+      G.s = S.bindInv(S.migrate(d.s), 'u_' + profile.uid);
       G.players = normPlayers(d.players);
       if (old) Object.assign(G.players[G.me], { x: old.x, z: old.z, ry: old.ry });
       G.code = d.code;
@@ -283,7 +301,7 @@ function guestData(d) {
       saveFarm();
       break;
     }
-    case 's': if (G.s && d.s && typeof d.s === 'object') G.s = S.migrate(d.s); break;
+    case 's': if (G.s && d.s && typeof d.s === 'object') G.s = S.bindInv(S.migrate(d.s), 'u_' + profile.uid); break;
     case 'p': {
       if (!d.p || typeof d.p !== 'object') return;
       const me = G.players[G.me];
@@ -887,7 +905,9 @@ const panels = new Panels({
   act: a => send(a),
   ui(kind, d) {
     if (kind === 'app') openApp(d.app);
-    if (kind === 'pave') { G.pathType = d.k; select('pave', true); panels.close(); toast(d.k === 'none' ? '🧹 Designer: Wege entfernen' : `${PAVE[d.k].icon} Designer: ${PAVE[d.k].name} – tippe auf Rasen oder Sand`); }
+    if (kind === 'give' && G.players[d.id]) { G.giveTo = d.id; panels.show('give'); }
+    if (kind === 'pave') { G.pathType = d.k; openBuild('wege'); if (G.build) { G.build.path = d.k; setBuildCat('wege'); renderBuild(); } }
+    if (kind === 'build') openBuild(d.cat);
     if (kind === 'emote') { sendEmote(d.e); panels.close(); }
     if (kind === 'write') panels.show('letter');
     if (kind === 'sendletter') {
@@ -943,11 +963,13 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    designer: ['designer'], friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'] }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'] }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
   if (app === 'sky') toggleSky();
+  if (app === 'designer') openBuild('wege');
+  if (app === 'build') openBuild();
 }
 function toggleSky(on = !G.skyView) {
   if (!G?.ready) return;
@@ -1023,6 +1045,7 @@ addEventListener('keydown', e => {
   if (!G?.ready) return;
   const k = e.key.toLowerCase();
   if (k === 'escape') {
+    if (G.build) { closeBuild(); return; }
     if (G.talk) closeTalk();
     else if (G.photo) setPhoto(false);
     else if (editor.isOpen) $('edcancel').click();
@@ -1033,6 +1056,8 @@ addEventListener('keydown', e => {
   if (k === 'p') { setPhoto(!G.photo); return; }
   if (k === 'z' || k === 'c') { keys.add(k); return; } // gedrückt halten = gleichmäßig drehen
   if (G.photo) return;
+  if (k === 'g') { if (G.build) closeBuild(); else openBuild(); return; }
+  if (G.build && k === 'r') { G.build.r = (G.build.r + 1) % 4; return; }
   if (k === 'k') { toggleSky(); return; }
   if (k === 'h' || k === 'tab') { togglePanel('phone'); e.preventDefault(); return; }
   const hot = { b: 'shop', i: 'sell', o: 'orders', f: 'friends', q: 'emotes', m: 'map' }[k];
@@ -1152,6 +1177,132 @@ function select(id, quiet) {
   if (G.fishing) stopFishing();
 }
 
+// ---------- Baumodus ----------
+// Aufstellen, Einrichten, Wege legen und Abbauen geht nur hier: unten eine Leiste mit Kategorien und den Sachen aus der Tasche,
+// auf dem Feld eine Vorschau. Draußen auch Inselprojekte (die man jetzt wieder abbauen und versetzen kann).
+const OUT_CATS = [['deko', '🏮 Deko'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['abbauen', '✋ Abbauen']];
+const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['abbauen', '✋ Abbauen']];
+function buildList(b) {
+  const inv = G.s.inv;
+  if (b.inside) return Object.keys(FURNITURE).filter(id => inv[id] > 0 && (b.cat === 'alle' || FURNITURE[id].cat === b.cat));
+  const kind = id => PLACE[id]?.kind;
+  if (b.cat === 'projekte') return Object.keys(PLACE).filter(id => inv[id] > 0 && (kind(id) === 'project' || kind(id) === 'site'));
+  if (b.cat === 'garten') return Object.keys(PLACE).filter(id => inv[id] > 0 && (kind(id) === 'producer' || PLACE[id].garden));
+  return Object.keys(PLACE).filter(id => inv[id] > 0 && !['project', 'site', 'producer'].includes(kind(id)) && !PLACE[id].garden);
+}
+function openBuild(cat) {
+  if (!G?.ready) return;
+  const me = G.players[G.me], zone = zoneOf(me);
+  if (zone !== 'island' && zone !== 'home') { toast('🔨 Bauen geht nur auf eurer Insel und im Haus.'); return; }
+  if (me.sw) { toast('🔨 Erst an Land schwimmen.'); return; }
+  interrupt();
+  panels.close();
+  if (me.pose) standUp(me);
+  const inside = zone === 'home';
+  G.build = { inside, cat: cat || (inside ? 'alle' : 'deko'), item: null, r: 0, mode: 'place', path: G.pathType || 'erde', zoom: world.zoom };
+  world.zoom = Math.max(world.zoom, inside ? 1.15 : 1.45);
+  document.body.classList.add('building');
+  $('buildbar').classList.remove('hidden');
+  G.buildSig = null;
+  renderBuild();
+  play('click');
+  if (!store.get('ki.buildTip', false)) { store.set('ki.buildTip', true); toast('🔨 Baumodus: unten etwas auswählen, dann aufs Feld tippen. „Abbauen“ packt Sachen wieder ein.'); }
+}
+function closeBuild() {
+  if (!G?.build) return;
+  world.zoom = G.build.zoom;
+  G.build = null;
+  world.setGhost(null);
+  document.body.classList.remove('building');
+  $('buildbar').classList.add('hidden');
+  G.hotSig = null;
+}
+function setBuildCat(cat) {
+  const b = G.build;
+  b.cat = cat;
+  b.mode = cat === 'abbauen' ? 'remove' : cat === 'wege' ? 'pave' : 'place';
+  if (b.mode === 'place' && !buildList(b).includes(b.item)) b.item = null;
+  G.buildSig = null;
+}
+function renderBuild() {
+  const b = G.build;
+  if (!b) return;
+  const list = b.mode === 'place' ? buildList(b) : [];
+  if (b.mode === 'place' && !b.item && list.length) b.item = list[0];
+  if (b.mode === 'place' && b.item && !list.includes(b.item)) b.item = list[0] || null;
+  const sig = JSON.stringify([b.cat, b.item, b.path, b.mode, list.map(id => [id, G.s.inv[id]])]);
+  if (sig === G.buildSig) return;
+  G.buildSig = sig;
+  $('btitle').textContent = b.inside ? '🔨 Einrichten' : '🔨 Baumodus';
+  $('bcats').innerHTML = (b.inside ? IN_CATS : OUT_CATS).map(([id, l]) => `<button data-cat="${id}" class="${id === b.cat ? 'on' : ''}">${l}</button>`).join('');
+  let h = '';
+  if (b.mode === 'remove') h = `<div class="bnote">✋ Tippe auf etwas, um es einzupacken. ${b.inside ? 'Möbel kommen in deine Tasche.' : 'Deko kommt in deine Tasche, Inselprojekte auch – so kannst du sie woanders neu aufstellen. Baustellen geben die Spenden zurück.'}</div>`;
+  else if (b.mode === 'pave') h = Object.entries(PAVE).map(([k, p]) => `<button data-path="${k}" class="${b.path === k ? 'on' : ''}"><span class="iic emo" style="color:${p.col ? '#' + p.col.toString(16).padStart(6, '0') : ''}">${p.icon}</span><small>${p.name}</small></button>`).join('') + `<button data-path="none" class="${b.path === 'none' ? 'on' : ''}"><span class="iic emo">🧹</span><small>Weg entfernen</small></button>`;
+  else if (!list.length) h = `<div class="bnote">${b.inside ? 'Keine Möbel in deiner Tasche. Kauft welche im Krämerladen 🛒 oder baut sie an der Werkbank 🔨.' : b.cat === 'projekte' ? 'Wählt im 🏛️ Rathaus ein Projekt – dann liegt hier der Bauplatz-Pflock. Abgebaute Projekte landen auch hier.' : 'Hier ist gerade nichts in deiner Tasche. Deko gibt es im Krämerladen 🛒 und an der Werkbank 🔨.'}</div>`;
+  else h = list.map(id => `<button data-item="${id}" class="${b.item === id ? 'on' : ''}" title="${esc(ITEMS[id].name)}">${itemIcon(id)}<small>${esc(ITEMS[id].name)}</small><span class="n">${G.s.inv[id]}</span></button>`).join('');
+  $('bitems').innerHTML = h;
+  fillIcons($('bitems'));
+}
+$('buildbtn').onclick = () => { if (G?.build) closeBuild(); else openBuild(); };
+$('bdone').onclick = () => closeBuild();
+$('brot').onclick = () => { if (G?.build) { G.build.r = (G.build.r + 1) % 4; play('click'); } };
+$('bcats').onclick = e => { const t = e.target.closest('button'); if (t && G?.build) { setBuildCat(t.dataset.cat); renderBuild(); play('click'); } };
+$('bitems').onclick = e => {
+  const t = e.target.closest('button');
+  if (!t || !G?.build) return;
+  if (t.dataset.item) G.build.item = t.dataset.item;
+  if (t.dataset.path) G.build.path = G.pathType = t.dataset.path;
+  G.buildSig = null;
+  renderBuild();
+  play('click');
+};
+// Welches Feld zeigt Maus/Finger an – oder das Feld vor der Figur?
+function buildTile(at) {
+  const me = G.players[G.me], b = G.build;
+  const p = at || { x: me.x + Math.sin(me.ry) * 1.2, z: me.z + Math.cos(me.ry) * 1.2 };
+  return b.inside ? [Math.round(p.x - S.HOME_X), Math.round(p.z)] : [Math.round(p.x), Math.round(p.z)];
+}
+function buildCtx(at) {
+  const b = G.build, [x, z] = buildTile(at);
+  const r = S.resolveBuild(G.s, b, x, z);
+  return { ...r, bx: x, bz: z };
+}
+function buildTap(cx, cy) {
+  const p = world.pick(cx, cy);
+  if (!p) return;
+  buildDo(buildCtx(p));
+}
+function buildDo(r) {
+  if (!r) return;
+  if (!r.a) { if (r.label) toast(r.label); play('fail'); return; }
+  // Inselprojekte nur nach zweitem Antippen abbauen
+  if (r.project && r.a.t === 'pickup') {
+    const k = r.bx + ',' + r.bz;
+    if (G.build.confirm !== k) { G.build.confirm = k; toast(`${r.label}? Nochmal antippen zum Bestätigen.`); play('click'); return; }
+    G.build.confirm = null;
+  }
+  send(r.a);
+  world.burst(r.a.x + (G.build.inside ? S.HOME_X : 0), r.a.z, 'sparkle', 0.2);
+}
+// Pro Bild: Vorschau, Markierung und Hinweis
+function updateBuild() {
+  const b = G.build;
+  if (!b) return null;
+  const me = G.players[G.me], zone = zoneOf(me);
+  if ((b.inside && zone !== 'home') || (!b.inside && zone !== 'island')) { closeBuild(); return null; }
+  renderBuild();
+  const r = buildCtx(G.hover ? world.pick(G.hover.cx, G.hover.cy) : null);
+  $('bhint').textContent = r.label || '';
+  if (b.mode === 'place' && b.item) {
+    const f = FURNITURE[b.item], rr = r.r ?? b.r;
+    if (b.inside && f) {
+      const [fw, fd] = rr % 2 ? [f.d, f.w] : [f.w, f.d];
+      world.setGhost({ kind: 'furn', id: b.item, x: S.HOME_X + r.bx + (fw - 1) / 2, z: r.bz + (fd - 1) / 2, y: f.rug ? 0.005 : 0, r: rr, ok: !!r.a });
+    } else world.setGhost({ kind: 'place', id: b.item, x: r.bx, z: r.bz, r: b.r, ok: !!r.a });
+  } else world.setGhost(null);
+  return { label: r.label, tiles: r.tiles, a: r.a, build: true, bad: !r.a };
+}
+
 // ---------- Aktionen ----------
 // Was passiert am Punkt "at" (oder vor der Figur)? Andere Spieler kann man umarmen.
 function context(me, at) {
@@ -1169,6 +1320,7 @@ function context(me, at) {
 }
 
 function pressAction() {
+  if (G?.build) { buildDo(buildCtx(G.hover ? world.pick(G.hover.cx, G.hover.cy) : null)); return; }
   if (busy()) return;
   actHeld = true;
   nextAct = performance.now() + 380;
@@ -1276,6 +1428,7 @@ function standUp(me) {
 }
 
 function tapAt(cx, cy) {
+  if (G?.build) { buildTap(cx, cy); return; }
   if (busy()) return;
   const me = G.players[G.me];
   if (G.fishing) { reelIn(); return; }
@@ -1313,17 +1466,27 @@ function aimAt(cx, cy) {
 }
 
 // Ortswechsel: Bummelgasse, Tropeninsel (mit dem Boot) und zurück
+// Insel-Erweiterungen: hinein (am Südrand ankommen) und zurück vors Tor auf der Insel
+function areaTravel(where, me) {
+  const A = S.AREAS[where];
+  if (A) return [A.x, A.z + A.d - 0.6, Math.PI, `${A.icon} ${A.name}${A.cave ? ' – Schaufel bereithalten, die Erzadern glitzern!' : ' – schau dich um!'}`, 'door'];
+  if (where === 'island' && me.x < -150) {
+    const B = S.AREAS[S.areaOf(me)];
+    return [B.gate[0], B.gate[1] + 1.3, 0, '', 'door'];
+  }
+  return null;
+}
 function travel(where) {
   const me = G.players[G.me];
   interrupt();
   panels.close();
   fade();
-  const to = {
+  const to = me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
     pier: [-9, 22.6, Math.PI, '⛵ Zurück auf eurer Insel.', 'splash'],
-  }[where];
+  }[where] || areaTravel(where, me);
   if (!to) return;
   Object.assign(me, { x: to[0], z: to[1], ry: to[2], pose: null });
   world.yawT = world.yaw = 0;
@@ -1727,6 +1890,7 @@ function drawMap() {
     g.fillText(ic, X(B.cx), X(B.cz) + 1);
   }
   g.font = `${sc * 1.6}px sans-serif`;
+  for (const A of Object.values(S.AREAS)) { g.globalAlpha = s.areas?.[Object.keys(S.AREAS).find(k => S.AREAS[k] === A)] ? 1 : 0.45; g.fillText(A.icon, X(A.gate[0]), X(A.gate[1])); g.globalAlpha = 1; }
   for (const [id, e] of world.npcM || []) if (e.awake) g.fillText(NPCS[id].icon, X(e.x), X(e.z));
   const t = performance.now() / 300;
   for (const p of Object.values(G.players)) {
@@ -1813,6 +1977,7 @@ function gameFrame(dt, now) {
     if (G.fishing) stopFishing();
     if (S.inside(me) && me.z > S.roomSize(s)[1] / 2 + 0.25) execute({ exit: true }, true); // durch die Tür hinaus
     if (zoneOf(me) === 'street' && me.z - STREET.z > STREET.d + 0.5) travel('island'); // durchs Tor zurück
+    if (me.x < -150) { const A = S.AREAS[S.areaOf(me)]; if (me.z - A.z > A.d + 0.7) travel('island'); }
   } else me.run = false;
   const wasSw = me.sw;
   me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit';
@@ -1821,9 +1986,9 @@ function gameFrame(dt, now) {
 
   // Ziel: Maus (wenn gerade bewegt), sonst Feld vor der Figur
   // Maus zeigt auf etwas: das wird zum Ziel (E / Klick), solange man nicht mit der Tastatur weiterläuft
-  const aim = G.hover && G.hover.t > (G.keyWalk || 0) && !busy() && !G.fishing && !G.skyView ? aimAt(G.hover.cx, G.hover.cy) : null;
+  const aim = G.hover && G.hover.t > (G.keyWalk || 0) && !busy() && !G.fishing && !G.skyView && !G.build ? aimAt(G.hover.cx, G.hover.cy) : null;
   G.aim = aim;
-  G.ctx = G.fishing || busy() ? null : aim?.near ? aim.r : context(me, null);
+  G.ctx = G.build ? updateBuild() : G.fishing || busy() ? null : aim?.near ? aim.r : context(me, null);
   const shown = aim && usable(aim.r) ? aim.r : G.ctx;
   const aimM = aim && usable(aim.r) ? aim.hit.m || null : null;
   if (aimM !== G.aimM) {
@@ -1854,7 +2019,7 @@ function gameFrame(dt, now) {
   updateRiddle(me);
 
   let prompt = null;
-  if (shown && !G.fishing) {
+  if (shown && !G.fishing && !G.build) {
     const info = shown.npc || shown.hug ? '' : infoAt(shown), lbl = shown.label || '';
     const can = usable(shown), far = aim && shown === aim.r && !aim.near;
     if (can || info) {
@@ -1868,7 +2033,7 @@ function gameFrame(dt, now) {
   const ps = {};
   for (const [id, p] of Object.entries(G.players)) ps[id] = G.social[id] ? { ...p, ...G.social[id] } : p;
   const info = world.render(s, ps, G.me, dt, {
-    tiles: G.photo || editor.isOpen ? [] : shown?.tiles, hlOn: usable(shown), hlBad: shown && !shown.a && !shown.ui && !shown.fish && !shown.sit && /kein|Nur|Erst/.test(shown.label || ''),
+    tiles: G.photo || editor.isOpen ? [] : G.build ? G.ctx?.tiles : shown?.tiles, hlOn: G.build ? !!G.ctx?.a : usable(shown), hlBad: G.build ? !G.ctx?.a : shown && !shown.a && !shown.ui && !shown.fish && !shown.sit && /kein|Nur|Erst/.test(shown.label || ''),
     prompt: G.photo || editor.isOpen ? null : prompt, photo: G.photo, hideNames: G.photo || !settings.names,
     bobber: G.fishing && { x: G.fishing.x, z: G.fishing.z, bite: G.fishing.phase === 'bite', nib: G.fishing.nib > 0 },
     preview: editor.isOpen ? previewCam(me.x, me.z) : null, sky: G.skyView,
@@ -1923,6 +2088,7 @@ function gameFrame(dt, now) {
     G.hotSig = sig;
     G.hot = items;
     $('hotbar').innerHTML = items.map((id, i) => slotHtml(s, id, i, G.sel)).join('');
+    fillIcons($('hotbar'));
     if (G.popSel) { bump($('hotbar').querySelector(`[data-id="${G.popSel}"]`), 'pop'); G.popSel = null; }
   }
   if (!uiPress) panels.update(s, G);

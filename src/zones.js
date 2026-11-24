@@ -5,8 +5,11 @@ import * as M from './models.js';
 import * as N from './nature.js';
 import { building } from './buildings.js';
 import { placeable } from './nature.js';
-import { tex, model } from './assets.js';
+import { tex, model, GLOW_VC } from './assets.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT, TROPIC_TREES, TOURS, TOUR_ICON, shopOpen, concertNow } from './newleaf.js';
+import { AREAS, NODES, nodeToday, nodeUses } from './areas.js';
+import { cropModel } from './nature.js';
+import { crop } from './plants.js';
 
 function canvasTex(w, h, paint, rep) {
   const c = document.createElement('canvas');
@@ -35,12 +38,26 @@ function buildStreet() {
   }, [14, 4]);
   const road = new THREE.Mesh(new THREE.PlaneGeometry(29, 8.2), new THREE.MeshLambertMaterial({ map: cobble }));
   road.rotation.x = -Math.PI / 2; road.position.set(X, 0.005, Z); road.receiveShadow = true; g.add(road);
-  const walk = new THREE.Mesh(new THREE.BoxGeometry(29, 0.12, 1.2), new THREE.MeshLambertMaterial({ color: 0xe3d6c4 }));
-  walk.position.set(X, 0.04, Z - 3.6); walk.receiveShadow = true; g.add(walk);
+  // Gehweg vor und unter den Läden (Steinplatten), mit Bordstein zur Straße und Beeten dahinter
+  const slabs = tex('floor_stein', 29 / 1.6, 5 / 1.6);
+  const walk = new THREE.Mesh(new THREE.PlaneGeometry(29, 5, 29, 5), new THREE.MeshLambertMaterial(slabs ? { map: slabs, color: 0xfff6ea } : { color: 0xe3d6c4 }));
+  walk.rotation.x = -Math.PI / 2; walk.position.set(X, 0.045, Z - 5.5); walk.receiveShadow = true; g.add(walk);
+  const curb = new THREE.Mesh(new THREE.BoxGeometry(29.2, 0.12, 0.22), new THREE.MeshLambertMaterial({ color: 0xd9cfc2 }));
+  curb.position.set(X, 0.06, Z - 3.0); curb.receiveShadow = curb.castShadow = true; g.add(curb);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(29.2, 0.28, 0.5), new THREE.MeshLambertMaterial({ color: 0xb98a5c }));
+  back.position.set(X, 0.14, Z - 8.1); back.receiveShadow = back.castShadow = true; g.add(back);
+  const soil = new THREE.Mesh(new THREE.BoxGeometry(28.8, 0.06, 0.36), new THREE.MeshLambertMaterial({ color: 0x7a5a3a }));
+  soil.position.set(X, 0.29, Z - 8.1); g.add(soil);
+  for (let x = -14; x <= 14; x += 1.15) put(g, placeable(Math.round(x * 3) % 2 ? 'buchsbaum' : 'hortensie'), X + x, Z - 8.35);
   // Läden (Fronten zeigen nach Süden zur Straße)
   for (const [id, B] of Object.entries(STREET_SHOPS)) put(g, building(id, 1, 'summer'), X + (B.x0 + B.x1) / 2, Z + (B.z0 + B.z1) / 2 - 0.2);
   // Lücken zwischen den Läden: Hecken und Bäume
-  for (const x of [-13.2, -4, 4, 13.2]) { put(g, placeable('buchsbaum'), X + x, Z - 4.6); put(g, placeable('kirschbaum'), X + x, Z - 5.8); }
+  for (const x of [-13.2, -4, 4, 13.2]) {
+    put(g, placeable('buchsbaum'), X + x, Z - 4.4);
+    const tub = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.52, 0.42, 18), new THREE.MeshLambertMaterial({ color: 0xc9946a }));
+    tub.position.set(X + x, 0.21, Z - 5.9); tub.castShadow = tub.receiveShadow = true; g.add(tub);
+    put(g, placeable('kirschbaum'), X + x, Z - 5.9).position.y = 0.36;
+  }
   // Südseite: Laternen, Bänke, Blumen, das Tor zurück zur Insel
   for (const x of [-12, -6, 6, 12]) put(g, placeable('laterne'), X + x, Z + 3.9);
   for (const x of [-9, 9]) put(g, placeable('bank'), X + x, Z + 4.1, Math.PI);
@@ -113,6 +130,96 @@ function buildTropic() {
   return g;
 }
 
+
+// ---------- Insel-Erweiterungen ----------
+// Leuchtteile mit eigener Farbe (Kristalle), nachts heller
+const glowModel = (p, g) => { const m = M.model(p, g); if (m.children[1]) m.children[1].material = GLOW_VC; return m; };
+function hive() {
+  const p = [M.box(0.7, 0.12, 0.7, 0x9a6b44, 0, 0.06, 0)];
+  for (let i = 0; i < 4; i++) p.push(M.box(0.62 - i * 0.02, 0.18, 0.62 - i * 0.02, i % 2 ? 0xffd23f : 0xf2b632, 0, 0.21 + i * 0.18, 0));
+  p.push(M.cone(0.5, 0.32, 0xc99260, 0, 1.02, 0, 4, 0, Math.PI / 4), M.box(0.16, 0.06, 0.04, 0x4a3a2a, 0, 0.3, 0.32));
+  return M.model(p);
+}
+function oreRock(seed) {
+  const p = [M.ball(0.6, 0x8a8094, 0, 0.34, 0, 1.25, 0.8, 1.05, 8), M.ball(0.38, 0x9a90a4, 0.36, 0.24, 0.24, 1, 0.8, 1, 7), M.ball(0.3, 0x7a7084, -0.4, 0.2, -0.2, 1, 0.8, 1, 7)], g = [];
+  const cols = [0xc9a8ff, 0xff7a9a, 0x7ac4ff, 0xffd96a];
+  for (let i = 0; i < 6; i++) {
+    const a = seed * 1.7 + i * 1.05, c = cols[(seed + i) % 4], r = 0.3 + (i % 2) * 0.12, h = 0.38 + (i % 3) * 0.14;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r * 0.8, tilt = 0.35 + (i % 2) * 0.25;
+    g.push(M.cyl(0.08, 0.08, h, c, x, 0.6 + h / 2 - 0.1, z, 6, Math.sin(a) * tilt, 0, -Math.cos(a) * tilt));
+    g.push(M.cone(0.08, 0.16, c, x + Math.cos(a) * Math.sin(tilt) * h * 0.55, 0.62 + h - 0.06, z + Math.sin(a) * Math.sin(tilt) * h * 0.45, 6, Math.sin(a) * tilt, 0, -Math.cos(a) * tilt));
+  }
+  return glowModel(p, g);
+}
+function berryBush(col) {
+  const p = [M.ball(0.42, 0x4f9f44, 0, 0.36, 0, 1.1, 0.85, 1, 9), M.ball(0.3, 0x5fb84a, 0.22, 0.48, 0.1, 1, 0.9, 1, 8)];
+  return [M.model(p), M.model(Array.from({ length: 9 }, (_, i) => M.ball(0.06, col, Math.cos(i * 2.4) * 0.38, 0.36 + Math.sin(i * 1.3) * 0.22, Math.sin(i * 2.4) * 0.3 + 0.12, 1, 1, 1, 6)), [], false)];
+}
+function mushroom(kind) {
+  const c = { steinpilz: [0x9a5a2a, 0xfff2dc], pfifferling: [0xffb02a, 0xffd27a], morchel: [0x8a6a4a, 0xe8d8b8], fliegenpilz: [0xe8302a, 0xfff6ee] }[kind] || [0x9a5a2a, 0xfff2dc];
+  const p = [M.cyl(0.07, 0.09, 0.22, c[1], 0, 0.11, 0, 8), M.ball(0.2, c[0], 0, 0.26, 0, 1, 0.6, 1, 10)];
+  if (kind === 'fliegenpilz') for (let i = 0; i < 5; i++) p.push(M.ball(0.035, 0xffffff, Math.cos(i * 1.3) * 0.12, 0.34, Math.sin(i * 1.3) * 0.12));
+  return M.model(p, [], false);
+}
+function buildArea(id) {
+  const A = AREAS[id], g = new THREE.Group(), X = A.x, Z = A.z, W = A.w, D = A.d;
+  const stoneT = tex('floor_stein', (W * 2 + 18) / 2.2, (D * 2 + 18) / 2.2);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W * 2 + 18, D * 2 + 18), new THREE.MeshLambertMaterial(A.cave ? { color: 0x8a7f9a, map: stoneT } : { color: A.ground, map: tex('grass', W + 9, D + 9) }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(X, -0.02, Z); floor.receiveShadow = true; g.add(floor);
+  // Weg vom Eingang (Süden) in die Mitte
+  const path = new THREE.Mesh(new THREE.PlaneGeometry(2.2, D + 1.4), new THREE.MeshLambertMaterial(A.cave ? { color: 0x7a7088 } : { color: 0xf2deb0, map: tex('path', 1.2, (D + 1.4) / 2) }));
+  path.rotation.x = -Math.PI / 2; path.position.set(X, 0.01, Z + D / 2 + 0.7); path.receiveShadow = true; g.add(path);
+  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(id.length * 999 + 7);
+  if (A.cave) {
+    // Felswände rundherum, leuchtende Kristalle, ein kleiner See
+    const parts = [], glow = [];
+    for (let i = 0; i < 90; i++) {
+      const a = i / 90 * Math.PI * 2, rx = (W + 1.6) * Math.cos(a), rz = (D + 1.4) * Math.sin(a);
+      if (rz > D && Math.abs(rx) < 2.2) continue; // Ausgang
+      parts.push(M.ball(1.1 + rnd() * 0.9, rnd() < 0.5 ? 0x6e6478 : 0x7e748a, rx, 0.6 + rnd() * 1.4, rz, 1, 1.4 + rnd(), 1, 7));
+      if (i % 5 === 0) glow.push(M.cone(0.14, 0.7, [0xc9a8ff, 0x8fd4ff, 0xff9ad8][i % 3], rx * 0.93, 0.5 + rnd(), rz * 0.93, 5, (rnd() - 0.5) * 0.6, 0, (rnd() - 0.5) * 0.6));
+    }
+    for (let i = 0; i < 14; i++) glow.push(M.cone(0.06, 0.5 + rnd() * 0.5, 0xbfa8ff, (rnd() * 2 - 1) * W * 1.1, 2.6 + rnd(), (rnd() * 2 - 1) * D, 5, Math.PI));
+    // Tropfsteine und Leuchtpilze auf dem Boden
+    for (let i = 0; i < 26; i++) {
+      const x = (rnd() * 2 - 1) * (W - 0.5), z = (rnd() * 2 - 1) * (D - 0.5);
+      if (Math.abs(x) < 1.6 || NODES[id].some(n => Math.abs(n.x - x) < 1.4 && Math.abs(n.z - z) < 1.4)) continue;
+      if (i % 3) parts.push(M.cone(0.18 + rnd() * 0.12, 0.5 + rnd() * 0.8, 0x8e84a0, x, 0.3, z, 6));
+      else { glow.push(M.ball(0.12, 0x9ff0ff, x, 0.18, z, 1, 0.5, 1, 8)); parts.push(M.cyl(0.03, 0.04, 0.14, 0xe8e0f0, x, 0.07, z, 5)); }
+    }
+    // Laternen am Weg
+    for (const [lx, lz] of [[-1.5, D - 1], [1.5, D - 1], [-1.5, 1], [1.5, 1]]) { parts.push(M.cyl(0.05, 0.06, 1.2, 0x45332f, lx, 0.6, lz, 6)); glow.push(M.box(0.18, 0.22, 0.18, 0xffd27a, lx, 1.3, lz)); }
+    g.add(glowModel(parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
+    const lake = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), new THREE.MeshLambertMaterial({ color: 0x4f8fd8, transparent: true, opacity: 0.85 }));
+    lake.rotation.x = -Math.PI / 2; lake.position.set(X - W + 2.2, 0.02, Z - D + 2); g.add(lake);
+  } else {
+    // Rand: dichter Wald bzw. Hecken mit Blumen
+    for (let i = 0; i < 70; i++) {
+      const a = i / 70 * Math.PI * 2, r = 1 + rnd() * 0.6, rx = (W + 1.5) * r * Math.cos(a), rz = (D + 1.5) * r * Math.sin(a);
+      if (rz > D && Math.abs(rx) < 2.4) continue;
+      const m = id === 'wald' ? (model('pine') || N.wild('tree', 'summer', 3)) : N.wild('tree', 'spring', 3);
+      if (id !== 'wald' && i % 2) { put(g, placeable('hortensie'), X + rx * 0.9, Z + rz * 0.9); continue; }
+      m.scale.setScalar(1 + rnd() * 0.4);
+      put(g, m, X + rx, Z + rz, rnd() * 6);
+    }
+    if (id === 'wiese') for (let i = 0; i < 60; i++) { const m = model('wildflower_' + (i % 4)); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
+    if (id === 'wald') for (let i = 0; i < 30; i++) { const m = model('tuft'); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
+  }
+  // Feste Dinge: Kiefern, Erzadern, Bienenstöcke, Beerensträucher
+  const dyn = [];
+  for (const n of NODES[id]) {
+    const x = X + n.x, z = Z + n.z;
+    if (n.kind === 'pine') { const m = model('pine') || N.wild('tree', 'summer', 3); m.scale.setScalar(1.15); put(g, m, x, z, n.i); }
+    else if (n.kind === 'ore') put(g, oreRock(n.i), x, z, n.i * 0.7);
+    else if (n.kind === 'hive') put(g, hive(), x, z, n.i);
+    else if (n.kind === 'berry') { const [b, fr] = berryBush(id === 'wiese' ? 0xe8304a : 0x4a5aff); put(g, b, x, z, n.i); put(g, fr, x, z, n.i); dyn.push({ n, m: fr }); }
+    else dyn.push({ n, m: null, x, z });
+  }
+  g.userData.dyn = dyn;
+  g.userData.lights = A.cave ? NODES[id].filter((n, i) => i % 3 === 0).map(n => [X + n.x, Z + n.z]) : [];
+  return g;
+}
+
 export class Zones {
   constructor(scene) {
     this.scene = scene;
@@ -120,15 +227,59 @@ export class Zones {
     this.tropic = buildTropic();
     scene.add(this.street, this.tropic);
     this.trees = new Map();
+    this.areas = Object.fromEntries(Object.keys(AREAS).map(id => [id, null]));
+    this.gates = null;
+  }
+  // Gebiet erst bauen, wenn man hinkommt
+  area(id) {
+    if (!this.areas[id]) { this.areas[id] = buildArea(id); this.scene.add(this.areas[id]); }
+    return this.areas[id];
+  }
+  // Tore auf der Insel: Treppe, Blumentor, Höhleneingang – mit Schranke, solange es zu ist
+  syncGates(world, s) {
+    const sig = Object.keys(AREAS).map(id => (s.areas?.[id] ? 1 : 0)).join('');
+    if (this.gatesSig === sig) return;
+    this.gatesSig = sig;
+    if (this.gates) this.scene.remove(this.gates);
+    const g = this.gates = new THREE.Group();
+    for (const [id, A] of Object.entries(AREAS)) {
+      const [x, z] = A.gate, open = !!s.areas?.[id], P = [], G = [];
+      if (id === 'wald') { // Holztreppe die Klippe hinauf
+        for (let i = 0; i < 6; i++) P.push(M.box(1.3, 0.16, 0.5, 0xc99260, x, 0.1 + i * 0.42, z - 0.1 - i * 0.42));
+        for (const sx of [-0.7, 0.7]) { P.push(M.box(0.08, 0.08, 3.4, 0x8f603c, x + sx, 1.6, z - 1.15, 0, 0.78)); for (let i = 0; i < 4; i++) P.push(M.cyl(0.05, 0.05, 0.9, 0x8f603c, x + sx, 0.45 + i * 0.6, z + 0.1 - i * 0.62, 6)); }
+      } else if (id === 'hoehle') { // dunkler Bogen in der Felswand mit Laternen
+        P.push(M.ball(1.5, 0x7e748a, x, 1.0, z - 0.7, 1.4, 1.2, 0.8, 9), M.ball(0.85, 0x2a2430, x, 0.7, z - 0.35, 1, 1.1, 0.6, 10));
+        for (const sx of [-1.1, 1.1]) { P.push(M.cyl(0.05, 0.05, 1.3, 0x45332f, x + sx, 0.65, z + 0.3, 6)); G.push(M.box(0.18, 0.22, 0.18, 0, x + sx, 1.38, z + 0.3)); }
+      } else { // Blumentor
+        for (const sx of [-0.85, 0.85]) P.push(M.cyl(0.09, 0.11, 1.9, 0xfff3e4, x + sx, 0.95, z, 8));
+        P.push(M.box(2.0, 0.16, 0.3, 0xfff3e4, x, 1.95, z));
+        for (let i = 0; i < 12; i++) P.push(M.ball(0.13, [0xff9ab8, 0xffd23f, 0xc9a8ff, 0xffffff][i % 4], x - 1 + i * 0.18, 2.08 + Math.sin(i) * 0.05, z + 0.14, 1, 1, 1, 6));
+      }
+      if (!open) { // Schranke
+        P.push(M.box(1.6, 0.14, 0.08, 0xff8a8a, x, 0.75, z + 0.55), M.box(1.6, 0.14, 0.08, 0xffffff, x, 0.5, z + 0.55));
+        for (const sx of [-0.8, 0.8]) P.push(M.cyl(0.05, 0.05, 0.9, 0x8f603c, x + sx, 0.45, z + 0.55, 6));
+      }
+      g.add(M.model(P, G));
+    }
+    g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    this.scene.add(g);
   }
   // Pro Bild: Wasser, Obstbäume, Tour-Ziele und Ladenschilder
   update(world, s, t, night, target) {
     this.tropic.userData.u.t.value = t;
     this.tropic.userData.u.night.value = night;
-    const where = target.z < -150 ? 'street' : target.z > 150 ? 'tropic' : null;
+    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 150 ? 'tropic' : null;
     this.street.visible = where === 'street';
     this.tropic.visible = where === 'tropic';
-    if (!where) return;
+    let here = null;
+    if (where === 'area') { let bd = Infinity; for (const [id, A] of Object.entries(AREAS)) { const d = Math.abs(target.z - A.z); if (d < bd) { bd = d; here = id; } } }
+    for (const id of Object.keys(AREAS)) if (this.areas[id]) this.areas[id].visible = id === here;
+    if (!where) {
+      this.syncGates(world, s);
+      for (const [id, A] of Object.entries(AREAS)) if (Math.hypot(A.gate[0] - target.x, A.gate[1] - target.z) < 9) world.tag('gate' + id, `${A.icon} ${A.name}${s.areas?.[id] ? '' : ' · 🔒'}`, A.gate[0], 2.6, A.gate[1], 'name npc');
+      return;
+    }
+    if (where === 'area') { this.updateArea(world, s, here, t); return; }
     if (where === 'street') {
       for (const [id, B] of Object.entries(STREET_SHOPS)) {
         const open = shopOpen(s, id), extra = id === 'club' && concertNow(s) ? ' 🎸 Live!' : '';
@@ -161,7 +312,27 @@ export class Zones {
       });
     }
   }
+  // Pilze, Blumen und Beeren je nach Tag zeigen oder verstecken
+  updateArea(world, s, id, t) {
+    const g = this.area(id), A = AREAS[id];
+    world.tag('areaexit', '🏝️ Zur Insel', A.x, 2.2, A.z + A.d + 0.6, 'name npc');
+    const sig = s.day + '|' + JSON.stringify(Object.entries(s.anode || {}).filter(([k]) => k.startsWith(id + ':')));
+    if (g.userData.sig === sig) return;
+    g.userData.sig = sig;
+    for (const e of g.userData.dyn) {
+      const today = nodeToday(id, e.n, s.day), st = s.anode?.[id + ':' + e.n.i], used = st?.d === s.day && st.u >= nodeUses(e.n);
+      if (e.n.kind === 'berry') { e.m.visible = !used; continue; }
+      const want = !used && today ? today : null;
+      if (e.k === want) continue;
+      if (e.m) { g.remove(e.m); e.m = null; }
+      e.k = want;
+      if (!want) continue;
+      e.m = e.n.kind === 'mush' ? mushroom(want) : cropModel(want, 3, crop);
+      put(g, e.m, e.x, e.z, e.n.i);
+    }
+  }
   lights(target) {
+    if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
     return target.z < -150 ? this.street.userData.lights : target.z > 150 ? this.tropic.userData.lights : null;
   }
 }

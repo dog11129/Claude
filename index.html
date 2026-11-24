@@ -60,6 +60,17 @@ body:not(.touch) #fsbtn, body.standalone #fsbtn { display: none; }
 .floater.hold { font-size: 40px; filter: drop-shadow(0 3px 0 rgba(90,70,54,.25)); animation: holdpop 1.4s ease-out forwards; }
 @keyframes holdpop { 0% { scale: 0.2; } 18% { scale: 1.25; } 30% { scale: 1; } 100% { scale: 1; } }
 .floater.mini { font-size: 18px; text-shadow: 0 1px 3px rgba(90,70,54,.3); }
+.iic { width: 40px; height: 40px; object-fit: contain; display: inline-grid; place-items: center; vertical-align: middle; }
+.iic.emo { font-size: 28px; }
+.slot .iic { width: 46px; height: 46px; pointer-events: none; } .slot .iic.emo { font-size: 26px; }
+.row .ic .iic { width: 44px; height: 44px; }
+.itemgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin: 4px 0 10px; }
+.icell { background: #fff; border-radius: 16px; box-shadow: 0 2px 0 #efdcc6; padding: 6px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+.icell .iic { width: 64px; height: 64px; } .icell .iic.emo { font-size: 40px; }
+.icell b { font-size: 12px; text-align: center; line-height: 1.15; min-height: 2.3em; display: flex; align-items: center; }
+.icell .icn { position: absolute; top: 4px; right: 8px; font-size: 12px; font-weight: 700; color: #b0806a; }
+.icell .ib { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.icell .ib .btn.small { padding: 4px 9px; font-size: 12px; }
 .emogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
 .emogrid button { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: transform .1s; }
 .emogrid button:hover { transform: scale(1.06); border-color: var(--pink); }
@@ -68,6 +79,7 @@ body:not(.touch) #fsbtn, body.standalone #fsbtn { display: none; }
 .album { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin: 6px 0 12px; }
 .album div { background: #f6efe6; border-radius: 14px; padding: 6px 4px; text-align: center; position: relative; min-height: 70px; }
 .album div span { font-size: 28px; display: block; filter: grayscale(1) opacity(.35); }
+.album div span .iic { width: 36px; height: 36px; } .album div span .iic.emo { font-size: 28px; }
 .album div.got { background: #fff; border: 2px solid #cfeac2; }
 .album div.got span { filter: none; }
 .album small { font-size: 11px; color: var(--soft); display: block; line-height: 1.15; }
@@ -425,6 +437,24 @@ body:has(#panel:not(.hidden)) #toasts { top: auto; bottom: max(16px, var(--safe-
 .tchart .tb small { position: absolute; bottom: -18px; left: 0; right: 0; text-align: center; font-size: 9px; color: var(--soft); white-space: nowrap; }
 .tchart .tline { position: absolute; left: 6px; right: 6px; border-top: 2px dashed #b39cff; pointer-events: none; }
 body.skyview #skybtn { background: #7f8fd8; }
+
+/* Baumodus */
+#buildbar { position: absolute; left: 50%; bottom: max(8px, var(--safe-b)); transform: translateX(-50%); width: min(860px, calc(100vw - 16px)); background: rgba(255,248,238,.95); backdrop-filter: blur(8px); border-radius: 24px; box-shadow: 0 6px 0 rgba(160,120,90,.18), 0 10px 30px rgba(90,70,50,.18); padding: 8px 10px 10px; z-index: 6; }
+#bhead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#bhead b { font-size: 16px; white-space: nowrap; } #bhint { flex: 1; font-size: 13px; color: #8a6a58; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bcats { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+#bcats button { flex: 0 0 auto; border: 0; border-radius: 14px; padding: 6px 11px; background: #fff; box-shadow: 0 2px 0 #efdcc6; font: inherit; font-size: 13px; font-weight: 700; color: #6a4a3a; cursor: pointer; }
+#bcats button.on { background: #ffb3c8; color: #fff; box-shadow: 0 2px 0 #e88aa6; }
+#bitems { display: flex; gap: 6px; overflow-x: auto; min-height: 70px; align-items: stretch; scrollbar-width: thin; }
+#bitems button { flex: 0 0 auto; width: 74px; border: 3px solid #fff; border-radius: 16px; background: radial-gradient(circle at 40% 30%, #fff 0 45%, #fff6ec); box-shadow: 0 2px 0 #efdcc6; position: relative; padding: 2px 2px 4px; cursor: pointer; font: inherit; }
+#bitems button.on { border-color: #ff8fb1; transform: translateY(-3px); }
+#bitems button .iic { width: 48px; height: 48px; } #bitems button .iic.emo { font-size: 32px; }
+#bitems button small { display: block; font-size: 10px; line-height: 1.1; color: #6a4a3a; max-height: 2.2em; overflow: hidden; }
+#bitems button .n { position: absolute; top: 2px; right: 5px; font-size: 11px; font-weight: 700; color: #b0806a; }
+#bitems .bnote { align-self: center; font-size: 13px; color: #8a6a58; padding: 0 8px; }
+body.building #hotbar, body.building #actbtn, body.building #joyhint, body.building #hint, body.building #minibtns { display: none !important; }
+#buildbtn { font-size: 22px; }
+@media (max-width: 600px) { #buildbar { padding: 6px 7px 8px; border-radius: 20px; } #bhead b { display: none; } #bitems button { width: 64px; } #bitems button .iic { width: 40px; height: 40px; } }
 </style>
 </head>
 <body>
@@ -460,10 +490,15 @@ body.skyview #skybtn { background: #7f8fd8; }
   <div id="joy"><div id="joybase" class="hidden"></div><div id="joyknob" class="hidden"></div></div>
   <div id="actwrap">
     <div id="actlabel">…</div>
-    <div id="minibtns"><button class="round" id="chatbtn2"><img class="ico" src="assets/ui/chat.webp" alt="" draggable="false"></button><button class="round" data-open="emotes"><img class="ico" src="assets/ui/emote.webp" alt="" draggable="false"></button><button class="round" id="rotbtn" title="Kamera drehen"><img class="ico" src="assets/ui/rotate.webp" alt="" draggable="false"></button><button class="round" id="skybtn" title="In den Himmel schauen (K)"><img class="ico" src="assets/ui/sky.webp" alt="" draggable="false"></button></div>
+    <div id="minibtns"><button class="round" id="chatbtn2"><img class="ico" src="assets/ui/chat.webp" alt="" draggable="false"></button><button class="round" data-open="emotes"><img class="ico" src="assets/ui/emote.webp" alt="" draggable="false"></button><button class="round" id="rotbtn" title="Kamera drehen"><img class="ico" src="assets/ui/rotate.webp" alt="" draggable="false"></button><button class="round" id="skybtn" title="In den Himmel schauen (K)"><img class="ico" src="assets/ui/sky.webp" alt="" draggable="false"></button><button class="round" id="buildbtn" title="Baumodus: aufstellen, einrichten, abbauen (G)">🔨</button></div>
     <button id="actbtn"><img class="ico" src="assets/ui/hand.webp" alt=""></button>
   </div>
   <div id="hotbar"></div>
+  <div id="buildbar" class="hidden">
+    <div id="bhead"><b id="btitle">🔨 Baumodus</b><span id="bhint">Tippe auf ein Feld</span><button class="btn small white" id="brot" title="Drehen (R)">🔄 Drehen</button><button class="btn small pink" id="bdone" title="Fertig (G / Esc)">✔ Fertig</button></div>
+    <div id="bcats"></div>
+    <div id="bitems"></div>
+  </div>
 </div>
 
 <div id="menu" class="hidden">

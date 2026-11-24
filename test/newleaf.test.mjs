@@ -23,7 +23,12 @@ test('Inselprojekt: planen, abstecken, spenden, am Morgen fertig', () => {
   assert.equal(s.obj[x + ',' + z].p, 'sonnenuhr');
   assert.ok(act(s, { t: 'fund', x, z, n: 2000 }).ok);
   assert.equal(s.obj[x + ',' + z].paid, 2000);
-  assert.ok(!act(s, { t: 'pickup', x, z }).ok, 'nach Spenden bleibt die Baustelle');
+  // Baustelle wieder abbauen: Spenden zurück, Bauplatz-Pflock zurück in die Tasche, neu abstecken
+  const before = s.money;
+  assert.ok(act(s, { t: 'pickup', x, z }).ok, 'Baustelle abbauen');
+  assert.equal(s.money, before + 2000, 'Spenden zurück');
+  assert.equal(s.inv.baustelle, 1);
+  assert.ok(act(s, { t: 'place', x, z, item: 'baustelle', r: 0 }).ok, 'neu abstecken');
   assert.ok(act(s, { t: 'fund', x, z, n: 'rest' }).ok);
   assert.equal(s.obj[x + ',' + z].paid, PROJECTS.sonnenuhr.cost);
   const r = resolve(s, { x, z: z + 1, ry: Math.PI }, 'hand');
@@ -31,8 +36,12 @@ test('Inselprojekt: planen, abstecken, spenden, am Morgen fertig', () => {
   nextDay(s);
   assert.equal(s.obj[x + ',' + z].k, 'sonnenuhr', 'eingeweiht');
   assert.ok(s.mail.some(m => m.kind === 'note' && m.title.includes('Sonnenuhr')));
-  assert.ok(!act(s, { t: 'pickup', x, z }).ok, 'Projekte kann man nicht aufheben');
   assert.ok(act(s, { t: 'plan', id: 'picknick' }).ok, 'danach geht das nächste');
+  // Fertige Projekte lassen sich abbauen und woanders neu aufstellen
+  assert.ok(act(s, { t: 'pickup', x, z }).ok, 'Projekt abbauen');
+  assert.ok(!s.obj[x + ',' + z] && s.inv.sonnenuhr === 1);
+  assert.ok(act(s, { t: 'place', x, z, item: 'sonnenuhr', r: 0 }).ok, 'neu aufstellen');
+  assert.equal(s.obj[x + ',' + z].k, 'sonnenuhr');
 });
 
 test('Verordnungen: erste gratis, dann 20.000; Wohlstand, Schöne Insel, Nachteule', () => {

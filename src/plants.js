@@ -301,7 +301,7 @@ const CROP = {
 
 
 // ---------- Blumen (Tulpe, Kosmee, Stiefmütterchen, Rose, Hyazinthe) ----------
-const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff, lilie: 0xfff0f4, mohn: 0xff3b2f, kornblume: 0x4f7dff };
+const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff, lilie: 0xfff0f4, mohn: 0xff3b2f, kornblume: 0x4f7dff, lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff };
 function flowerPlant(k, st) {
   const c = FCOL[k], p = [];
   const n = st === 1 ? 4 : 6;
@@ -327,6 +327,10 @@ const trunk = () => [C(0.1, 0.15, 1.05, BARK, 0, 0.52, 0, 9), stick([0, 0.8, 0],
 const FLOWERS = [ROSE, 0xffe066, LILA, WHITE, 0xff9f6b, PINK];
 
 const PLACE = {
+  bienenstock: () => [box(0.7, 0.12, 0.7, 0x9a6b44, 0, 0.06, 0), ...[0, 1, 2, 3].map(i => box(0.62 - i * 0.02, 0.18, 0.62 - i * 0.02, i % 2 ? 0xffd23f : 0xf2b632, 0, 0.21 + i * 0.18, 0)), cone(0.5, 0.32, 0xc99260, 0, 1.02, 0, 4, 0, Math.PI / 4), box(0.16, 0.06, 0.04, 0x4a3a2a, 0, 0.3, 0.32), B(0.04, 0x2a2222, 0.3, 0.8, 0.3), B(0.04, 0xffd23f, 0.34, 0.82, 0.28)],
+  beerenstrauch: ready => [B(0.45, 0x4f9f44, 0, 0.42, 0, 1.1, 0.9, 1), B(0.3, 0x5fb84a, 0.22, 0.6, 0.12, 1, 0.9, 1), ...(ready ? Array.from({ length: 10 }, (_, i) => B(0.065, 0x4a5aff, Math.cos(i * 2.4) * 0.42, 0.42 + Math.sin(i * 1.3) * 0.24, Math.sin(i * 2.4) * 0.34 + 0.12)) : [])],
+  kristallfels: () => [[B(0.45, 0x8a8094, 0, 0.26, 0, 1.2, 0.7, 1), B(0.3, 0x9a90a4, 0.3, 0.2, 0.2), C(0.09, 0.09, 0.6, 0xc9a8ff, 0, 0.6, 0, 6), cone(0.09, 0.18, 0xd8c8ff, 0, 0.98, 0, 6), C(0.07, 0.07, 0.4, 0x8fd4ff, 0.22, 0.5, 0.05, 6, false, 0, 0, -0.4), C(0.07, 0.07, 0.38, 0xff9ad8, -0.22, 0.48, -0.02, 6, false, 0, 0, 0.45)], [B(0.08, 0, 0, 0.45, 0.12)]],
+  pilzlaterne: () => [[C(0.1, 0.13, 0.7, 0xfff6ee, 0, 0.35, 0, 12), B(0.38, 0xff5a4a, 0, 0.78, 0, 1, 0.55, 1), ...Array.from({ length: 6 }, (_, i) => B(0.05, 0xffffff, Math.cos(i) * 0.3, 0.86, Math.sin(i) * 0.3))], [B(0.3, 0, 0, 0.66, 0, 1, 0.2, 1)]],
   weg() {
     seed = 3;
     const p = [];
