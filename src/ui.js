@@ -88,6 +88,8 @@ const SHOP = {
     for (const [id, u] of Object.entries(UPGRADES)) if (u.tab === 'tools') h += upgradeRow(s, id);
     const ws = s.inv.neopren > 0;
     h += row('🤿', 'Neoprenanzug' + (ws ? ' <span class="lv">✓ gekauft</span>' : ''), 'Damit könnt ihr alle im Meer schwimmen und bei Luftblasen 🫧 nach Meerestieren tauchen.', ws ? '' : btn('🪙 3000', { t: 'buy', id: 'neopren', n: 1 }, 'pink', s.money < 3000));
+    const bs = s.inv.baumschaufel > 0, bl = s.level < 2;
+    h += row(itemIcon('baumschaufel'), 'Baumschaufel' + (bs ? ' <span class="lv">✓ gekauft</span>' : bl ? lvTag(2) : ''), 'Gräbt Bäume und Palmen samt Wurzelballen aus – in der Leiste wählen und woanders auf den Rasen (Palmen auch auf Sand) setzen.', bs ? '' : btn('🪙 2800', { t: 'buy', id: 'baumschaufel', n: 1 }, 'pink', bl || s.money < 2800), bl && !bs);
     return h;
   },
   goods(s) {
@@ -594,14 +596,18 @@ const TOOLS = {
   sling: [icon('sling'), 'Schleuder: Geschenkballons abschießen'],
   pave: [icon('pave'), 'Insel-Designer: Wege legen (nochmal antippen = Wegart wählen)'],
 };
+// Werkzeuge ohne eigenes Blender-Bild bekommen das gerenderte Item-Bild
+const TOOL_ITEM = { spade: ['baumschaufel', 'Baumschaufel: Bäume & Palmen ausgraben und woanders einpflanzen'] };
 export function hotbarItems(s) {
   // Aufstellen, Einrichten und Wege legen geht jetzt im 🔨 Baumodus
   const items = ['hand', 'net', 'shovel', 'axe', 'can', 'sling'];
+  if (s.inv.baumschaufel > 0) items.push('spade');
   for (const k of Object.keys(CROPS)) if (s.inv['s_' + k] > 0) items.push('s_' + k);
+  for (const [id, it] of Object.entries(ITEMS)) if (it.sapling && s.inv[id] > 0) items.push(id);
   return items;
 }
 export function slotHtml(s, id, i, sel) {
-  const tool = TOOLS[id];
+  const ti = TOOL_ITEM[id], tool = TOOLS[id] || (ti && [itemIcon(ti[0]), ti[1]]);
   const icon = tool ? tool[0] : itemIcon(id), title = tool ? tool[1] : ITEMS[id].name;
   const n = tool ? '' : `<span class="n">${s.inv[id]}</span>`;
   return `<button class="slot${id === sel ? ' sel' : ''}" data-id="${id}" title="${title}">${i < 9 ? `<span class="k">${i + 1}</span>` : ''}${icon}${ITEMS[id]?.seed ? '<span class="seed">🫘</span>' : ''}${n}</button>`;

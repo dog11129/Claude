@@ -154,7 +154,7 @@ export function questEvent(s, ev, n = 1, out) {
 // Morgens: Bäume & Felsen auffüllen, neue Grabstellen, Muscheln und Unkraut verteilen
 const randTile = () => [rnd(2 * MAP + 1) - MAP, rnd(2 * MAP + 1) - MAP];
 function refill(s) {
-  for (const k of Object.keys(RES_SPOTS)) s.res[k] = 3;
+  for (const k of Object.keys(spots(s))) s.res[k] = 3;
   s.shook = {};
   s.digs = [];
   s.shells = {};
@@ -167,7 +167,7 @@ function refill(s) {
   }
   for (let t = 0, n = 0; n < SHELLS_PER_DAY && t < 400; t++) {
     const [x, z] = randTile(), k = key(x, z);
-    if (!sand(x, z) || s.shells[k] || s.obj[k] || RES_SPOTS[k]) continue;
+    if (!sand(x, z) || s.shells[k] || s.obj[k] || resAt(s, k)) continue;
     s.shells[k] = weighted(SHELLS, f => f[4])[0];
     n++;
   }
@@ -175,21 +175,21 @@ function refill(s) {
     const [x, z] = randTile();
     if (free(x, z) && !s.weeds[key(x, z)]) { s.weeds[key(x, z)] = 1; n++; }
   }
-  const rocks = Object.keys(RES_SPOTS).filter(k => RES_SPOTS[k] === 'rock');
+  const rocks = Object.keys(RES_SPOTS).filter(k => resAt(s, k) === 'rock');
   s.rock = pick(rocks); // einer der Felsen spuckt heute Taler aus
   // jeden Morgen eine Flaschenpost mit Bauplan am Strand
   s.ground ||= {};
   for (const [k, g] of Object.entries(s.ground)) if (g.id === 'bottle') delete s.ground[k];
   for (let t = 0; t < 300; t++) {
     const [x, z] = randTile(), k = key(x, z);
-    if (sand(x, z) && coast(x, z) > -2 && !s.shells[k] && !s.obj[k] && !RES_SPOTS[k] && !s.ground[k]) { s.ground[k] = { id: 'bottle', n: 1 }; break; }
+    if (sand(x, z) && coast(x, z) > -2 && !s.shells[k] && !s.obj[k] && !resAt(s, k) && !s.ground[k]) { s.ground[k] = { id: 'bottle', n: 1 }; break; }
   }
   s.dives = [];
   while (s.dives.length < DIVES) newDive(s);
   s.drift = {}; // Treibholz am Strand
   for (let t = 0, n = 0; n < 3 && t < 400; t++) {
     const [x, z] = randTile(), k = key(x, z);
-    if (sand(x, z) && coast(x, z) > -2.5 && !s.shells[k] && !s.obj[k] && !RES_SPOTS[k] && !s.ground[k]) { s.drift[k] = 1; n++; }
+    if (sand(x, z) && coast(x, z) > -2.5 && !s.shells[k] && !s.obj[k] && !resAt(s, k) && !s.ground[k]) { s.drift[k] = 1; n++; }
   }
 }
 // Luftblasen im Meer: hier liegt ein Meerestier
@@ -200,7 +200,7 @@ function newDive(s) {
   }
 }
 // Etwas fällt auf den Boden (Obst vom Baum, Holz, Steine, Geschenke): auf eine freie Nachbarkachel, möglichst zur Spielerin hin
-const groundFree = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !RES_SPOTS[key(x, z)] && !s.ground[key(x, z)] && !s.obj[key(x, z)]?.k && !s.shells[key(x, z)];
+const groundFree = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !resAt(s, key(x, z)) && !s.ground[key(x, z)] && !s.obj[key(x, z)]?.k && !s.shells[key(x, z)];
 function drop(s, x, z, item, out, toward) {
   s.ground ||= {};
   const spots = [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2], [2, 0], [-2, 0], [0, -2]].map(([a, b]) => [x + a, z + b]).filter(([i, j]) => groundFree(s, i, j));
@@ -246,7 +246,7 @@ export function migrate(s) {
   for (const [k, o] of Object.entries(s.home.items)) if (FURNITURE[o?.k]?.wall) { s.home.walls[k] = o; delete s.home.items[k]; }
   for (const [k, o] of Object.entries(s.obj)) {
     const p = PLACE[o?.k], [x, z] = k.split(',').map(Number);
-    if (p && !buildingAt(x, z) && !RES_SPOTS[k] && grass(x, z)) continue;
+    if (p && !buildingAt(x, z) && !resAt(s, k) && grass(x, z)) continue;
     if (p) addInv(s, o.k, 1);
     delete s.obj[k];
   }
@@ -256,6 +256,10 @@ export function migrate(s) {
   if (fresh) refill(s);
   // Inselerweiterung: neue Bäume/Felsen sind sofort benutzbar; Tauchplätze, die jetzt an Land liegen, verschwinden
   for (const k of Object.keys(RES_SPOTS)) if (s.res[k] === undefined) s.res[k] = 3;
+  // Baumschaufel: nur gültige Einträge behalten
+  const tr = s.trees = s.trees && typeof s.trees === 'object' ? s.trees : {};
+  tr.rm = Object.fromEntries(Object.keys(tr.rm || {}).filter(k => RES_SPOTS[k] === 'tree' || RES_SPOTS[k] === 'palm').map(k => [k, 1]));
+  tr.add = Object.fromEntries(Object.entries(tr.add || {}).filter(([k, v]) => /^-?\d+,-?\d+$/.test(k) && (v?.kind === 'tree' || v?.kind === 'palm') && ITEMS[v.fruit]).map(([k, v]) => [k, { kind: v.kind, fruit: v.fruit }]));
   if (Array.isArray(s.dives)) s.dives = s.dives.filter(d => !d || !Number.isFinite(d.x) || swimmable(d.x, d.z));
   return s;
 }
@@ -277,7 +281,7 @@ export const inPond = pondAt;
 export const boxCap = s => Object.values(s.home?.items || {}).filter(o => o?.k === 'kiste').length * 40;
 export function canPlace(s, x, z) {
   const k = key(x, z);
-  return grass(x, z) && !gateAt(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k] && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k];
+  return grass(x, z) && !gateAt(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !resAt(s, k) && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k];
 }
 
 // ---------- Zuhause (Innenraum liegt weit weg bei x = HOME_X, damit es eine eigene Welt ist) ----------
@@ -348,7 +352,7 @@ export function blocked(s, x, z, swim) {
   if (swim && swimmable(x, z)) return Math.abs(x - PIER.x) < PIER.w + 0.3 && z > PIER.z0 && z < PIER.z1; // unter dem Steg durch geht nicht
   if (!walkable(x, z)) return true;
   const tx = Math.round(x), tz = Math.round(z);
-  if (buildingAt(tx, tz) || RES_SPOTS[key(tx, tz)]) return true;
+  if (buildingAt(tx, tz) || resAt(s, key(tx, tz))) return true;
   if (Math.abs(tx) <= 3 && tz >= -1 && tz <= 3) { // Dorfplatz: Turnierstand und Fest-Deko
     const f = festToday(s);
     if (f && ((tx === CONTEST_AT[0] && tz === CONTEST_AT[1] && FESTS[f].contest) || FEST_DECO[f]?.some(([, x, z]) => x === tx && z === tz))) return true;
@@ -483,7 +487,7 @@ function festMorning(s) {
   if (f === 'eier') {
     for (let t = 0, n = 0; n < EGGS && t < 600; t++) {
       const [x, z] = randTile(), k = key(x, z);
-      if (!walkable(x, z) || isWater(x, z) || onBridge(x, z) || onPier(x, z) || onPlaza(x, z, 0.5) || buildingAt(x, z) || RES_SPOTS[k] || s.obj[k] || s.tiles[k] || s.shells[k] || s.ground?.[k] || s.eggs[k]) continue;
+      if (!walkable(x, z) || isWater(x, z) || onBridge(x, z) || onPier(x, z) || onPlaza(x, z, 0.5) || buildingAt(x, z) || resAt(s, k) || s.obj[k] || s.tiles[k] || s.shells[k] || s.ground?.[k] || s.eggs[k]) continue;
       if (Object.keys(s.eggs).some(q => { const [a, b] = q.split(',').map(Number); return Math.hypot(a - x, b - z) < 4; })) continue; // schön verteilt
       s.eggs[k] = n % 5;
       n++;
@@ -575,7 +579,7 @@ function newDay(s) {
   // Wünsche der Nacht: Sternsplitter am Strand
   for (let t = 0, n = 0; n < Math.min(8, s.wishes || 0) && t < 300; t++) {
     const [x, z] = randTile(), k = key(x, z);
-    if (sand(x, z) && !s.shells[k] && !s.obj[k] && !RES_SPOTS[k]) { s.shells[k] = 'sternsplitter'; n++; }
+    if (sand(x, z) && !s.shells[k] && !s.obj[k] && !resAt(s, k)) { s.shells[k] = 'sternsplitter'; n++; }
   }
   s.wishes = 0;
   s.starNight = s.weather === 'sun' && Math.random() < 0.3;
@@ -663,11 +667,36 @@ export function balloonPos(b, t) {
   const dt = t - b.t0, x = b.x0 + b.dir * dt * 1.15;
   return { x, z: b.z + Math.sin(dt * 0.3) * 1.2, y: 3.3 + Math.sin(dt * 0.9) * 0.3 };
 }
-export const pavable = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !RES_SPOTS[key(x, z)] && !s.tiles[key(x, z)] && !s.digs?.includes(key(x, z));
+export const pavable = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !resAt(s, key(x, z)) && !s.tiles[key(x, z)] && !s.digs?.includes(key(x, z));
 
 // Wo wird geangelt? Fluss, Teich oder Meer
 export const waterKind = (x, z) => pondAt(x, z) ? 'pond' : inRiver(x, z) && !onBridge(x, z) ? 'river' : 'sea';
 export const fruitReady = (s, k) => !(s.fruit?.[k] > s.day);
+
+// ---------- Bäume, Palmen & Felsen ----------
+// Die festen Plätze stehen in RES_SPOTS. Mit der Baumschaufel ausgegrabene Bäume landen in s.trees.rm,
+// neu gepflanzte in s.trees.add – so bleibt die Grundverteilung alter Spielstände unangetastet.
+export const resAt = (s, k) => s.trees?.add?.[k]?.kind || (s.trees?.rm?.[k] ? null : RES_SPOTS[k] || null);
+export const fruitOf = (s, k) => s.trees?.add?.[k]?.fruit || TREE_FRUIT[k] || 'apfel';
+export function spots(s) {
+  const o = {};
+  for (const [k, v] of Object.entries(RES_SPOTS)) if (!s.trees?.rm?.[k]) o[k] = v;
+  for (const [k, v] of Object.entries(s.trees?.add || {})) o[k] = v.kind;
+  return o;
+}
+// Darf hier ein Baum (oder eine Palme) gepflanzt werden? Nicht direkt neben andere Bäume, Felsen oder Gebäude.
+export function treeSpotOk(s, x, z, palm) {
+  const k = key(x, z);
+  if (!(grass(x, z) || (palm && sand(x, z) && coast(x, z) < -1.2)) || onBridge(x, z) || onPier(x, z) || onPlaza(x, z, 1) || gateAt(x, z)) return false;
+  if (s.tiles[k] || s.obj[k] || s.paths?.[k] || s.digs?.includes(k) || s.ground?.[k] || s.shells?.[k] || s.weeds?.[k]) return false;
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+    if (buildingAt(x + i, z + j) || resAt(s, key(x + i, z + j))) return false;
+    const o = s.obj[key(x + i, z + j)];
+    if (o && PLACE[o.k]?.solid) return false;
+  }
+  return true;
+}
+export const SAPLING = { apfel: 'baum_apfel', kirsche: 'baum_kirsche', orange: 'baum_orange', pfirsich: 'baum_pfirsich', birne: 'baum_birne', kokosnuss: 'baum_palme' };
 
 // ---------- Wünsche der Nachbarn ----------
 
@@ -716,7 +745,7 @@ const isCount = v => Number.isInteger(v) && v > 0 && v <= 9999;
 const isDir = (dx, dz) => [-1, 0, 1].includes(dx) && [-1, 0, 1].includes(dz) && Math.abs(dx) + Math.abs(dz) === 1;
 const has = (o, k) => typeof k === 'string' && Object.hasOwn(o, k);
 const fx = (out, x, z, txt, k) => out.fx.push({ x, z, txt, k }); // k = Partikel-Art für die Grafik
-const isTree = k => RES_SPOTS[k] === 'tree' || RES_SPOTS[k] === 'palm';
+const isTree = (s, k) => resAt(s, k) === 'tree' || resAt(s, k) === 'palm';
 
 const ACTIONS = {
   water(s, a, out) {
@@ -899,7 +928,7 @@ const ACTIONS = {
   },
   chop(s, a, out) {
     const k = key(a.x, a.z);
-    if (!isTree(k)) return false;
+    if (!isTree(s, k)) return false;
     if (!(s.res[k] > 0)) { out.msg = 'Der Baum braucht eine Pause – morgen wieder!'; return false; }
     s.res[k]--;
     const n = Math.random() < 0.3 ? 2 : 1;
@@ -911,9 +940,41 @@ const ACTIONS = {
     out.snd = 'chop';
     return true;
   },
+  uproot(s, a, out) { // Baumschaufel: Baum mit Wurzelballen einpacken
+    const k = key(a.x, a.z), kind = resAt(s, k);
+    if ((kind !== 'tree' && kind !== 'palm') || !(s.inv.baumschaufel > 0)) return false;
+    const id = SAPLING[fruitOf(s, k)] || (kind === 'palm' ? 'baum_palme' : 'baum_apfel');
+    s.trees ||= { rm: {}, add: {} };
+    if (s.trees.add[k]) delete s.trees.add[k];
+    if (RES_SPOTS[k]) s.trees.rm[k] = 1;
+    delete s.res[k]; delete s.shook[k]; if (s.fruit) delete s.fruit[k];
+    addInv(s, id, 1);
+    s.stats.uprooted = (s.stats.uprooted || 0) + 1;
+    out.msg = `🪏 ${ITEMS[id].name.replace(' (Ballen)', '')} eingepackt – in der Leiste wählen und woanders einpflanzen.`;
+    out.got = id;
+    fx(out, a.x, a.z, '', 'dust');
+    out.snd = 'dig';
+    return true;
+  },
+  replant(s, a, out) {
+    const it = ITEMS[a.item];
+    if (!it?.sapling || !(s.inv[a.item] > 0) || !treeSpotOk(s, a.x, a.z, it.palm)) return false;
+    const k = key(a.x, a.z), kind = it.palm ? 'palm' : 'tree';
+    takeInv(s, a.item, 1);
+    s.trees ||= { rm: {}, add: {} };
+    if (RES_SPOTS[k] === kind && TREE_FRUIT[k] === it.sapling && s.trees.rm[k]) delete s.trees.rm[k]; // zurück an den alten Platz
+    else s.trees.add[k] = { kind, fruit: it.sapling };
+    s.res[k] = 3;
+    s.fruit ||= {};
+    s.fruit[k] = s.day + 1; // muss erst anwachsen
+    s.stats.replanted = (s.stats.replanted || 0) + 1;
+    fx(out, a.x, a.z, '🌱', 'leaf');
+    out.snd = 'place';
+    return true;
+  },
   mine(s, a, out) {
     const k = key(a.x, a.z);
-    if (RES_SPOTS[k] !== 'rock') return false;
+    if (resAt(s, k) !== 'rock') return false;
     if (!(s.res[k] > 0)) { out.msg = 'Der Felsen ist für heute leer.'; return false; }
     s.res[k]--;
     questEvent(s, 'mine', 1, out);
@@ -933,10 +994,10 @@ const ACTIONS = {
   },
   shake(s, a, out) {
     const k = key(a.x, a.z), me = Number.isFinite(a.px) && Number.isFinite(a.pz) ? [a.px, a.pz] : null;
-    if (!isTree(k)) return false;
+    if (!isTree(s, k)) return false;
     questEvent(s, 'shake', 1, out);
     if (fruitReady(s, k)) { // Obst fällt herunter und liegt dann vor dem Baum
-      const id = TREE_FRUIT[k] || 'apfel', n = id === 'kokosnuss' ? 2 : 3;
+      const id = fruitOf(s, k), n = id === 'kokosnuss' ? 2 : 3;
       s.fruit[k] = s.day + FRUIT_REGROW;
       for (let i = 0; i < n; i++) drop(s, a.x, a.z, { id, n: 1 }, out, me);
       fx(out, a.x, a.z, '', 'fruit');
@@ -1394,7 +1455,7 @@ const ACTIONS = {
 export function siteFree(s, x, z) {
   for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
     const k = key(x + i, z + j);
-    if (!(i === 0 && j === 0) && (!walkable(x + i, z + j) || buildingAt(x + i, z + j) || RES_SPOTS[k] || (s.obj[k] && PLACE[s.obj[k].k]?.solid))) return false;
+    if (!(i === 0 && j === 0) && (!walkable(x + i, z + j) || buildingAt(x + i, z + j) || resAt(s, k) || (s.obj[k] && PLACE[s.obj[k].k]?.solid))) return false;
   }
   return true;
 }
@@ -1564,7 +1625,7 @@ export function act(s, a, who) {
     bindInv(s, who);
     try { return act(s, a); } finally { s._who = before; }
   }
-  const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave', 'fund'].includes(a.t);
+  const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'uproot', 'replant', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave', 'fund'].includes(a.t);
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
   if (a.t === 'water' && !isDir(a.dx, a.dz)) return out;
   if ((a.t === 'order' || a.t === 'mail') && !Number.isInteger(a.i)) return out;
@@ -1689,10 +1750,11 @@ export function resolve(s, me, sel, at) {
     const it = ITEMS[g.id], label = g.id === 'bottle' ? '🍾 Flaschenpost aufheben' : g.id === 'diy' || g.box ? '🎁 Aufheben' : g.id === 'money' ? `💰 ${g.n} Taler aufheben` : it?.furn || it?.place ? '🍃 Aufheben' : `${it?.icon || ''} ${it?.name || ''} aufheben`;
     return { a: { t: 'pick', x, z }, label, tiles: one };
   }
-  const res = RES_SPOTS[k];
+  const res = resAt(s, k);
   if (res === 'tree' || res === 'palm') {
-    const fruit = TREE_FRUIT[k], ready = fruitReady(s, k), ic = ITEMS[fruit]?.icon || '🌳';
+    const fruit = fruitOf(s, k), ready = fruitReady(s, k), ic = ITEMS[fruit]?.icon || '🌳';
     if (sel === 'axe') return s.res[k] > 0 ? { a: { t: 'chop', x, z, px: Math.round(me.x), pz: Math.round(me.z) }, label: '🪓 Holz hacken', tiles: one } : { label: '🌳 Morgen wieder', tiles: one };
+    if (sel === 'spade') return { a: { t: 'uproot', x, z }, label: res === 'palm' ? '🪏 Palme ausgraben' : '🪏 Baum ausgraben', tiles: one };
     return { a: { t: 'shake', x, z, px: Math.round(me.x), pz: Math.round(me.z) }, label: ready ? `${ic} Schütteln` : '🌳 Schütteln', tiles: one };
   }
   if (res === 'rock') {
@@ -1743,6 +1805,8 @@ export function resolve(s, me, sel, at) {
     return tiles.some(([i, j]) => s.tiles[key(i, j)]) ? { a: { t: 'water', x, z, dx, dz }, label: '💧 Gießen', tiles } : { label: '', tiles: one };
   }
   if (t && t.c && stage(t.c) === 3) return { a: { t: 'harvest', x, z }, label: `${CROPS[t.c.k].icon} ${isFlower(t.c.k) ? 'Pflücken' : 'Ernten'}`, tiles: one };
+  if (ITEMS[sel]?.sapling) return treeSpotOk(s, x, z, ITEMS[sel].palm) ? { a: { t: 'replant', x, z, item: sel }, label: `${ITEMS[sel].icon} ${ITEMS[sel].name.replace(' (Ballen)', '')} einpflanzen`, tiles: one } : { label: ITEMS[sel].palm ? 'Hier ist kein Platz für eine Palme' : 'Hier ist kein Platz für einen Baum', tiles: one, bad: true };
+  if (sel === 'spade') return { label: '🪏 Vor einen Baum oder eine Palme stellen', tiles: one };
   if (ITEMS[sel]?.seed) return canPlace(s, x, z) ? { a: { t: 'plant', x, z, item: sel }, label: `${ITEMS[sel].icon} Pflanzen`, tiles: one } : { label: 'Hier kann man nichts pflanzen', tiles: one };
   if (PLACE[sel]) return { label: '🔨 Aufstellen geht im Baumodus', tiles: one };
   return { label: '', tiles: one };

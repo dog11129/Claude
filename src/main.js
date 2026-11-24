@@ -1811,8 +1811,8 @@ function infoAt(r) {
     return r.sit ? '' : 'Mit ✋ aufheben';
   }
   if (t) return t.w > 0 ? '💧 gegossen' : 'trocken';
-  const k = S.key(x, z), res = RES_SPOTS[k];
-  if (res === 'tree' || res === 'palm') { const f = ITEMS[TREE_FRUIT[k]]; return S.fruitReady(s, k) ? `${f.icon} ${f.name} hängen dran` : '🌱 Das Obst wächst nach'; }
+  const k = S.key(x, z), res = S.resAt(s, k);
+  if (res === 'tree' || res === 'palm') { const f = ITEMS[S.fruitOf(s, k)]; return S.fruitReady(s, k) ? `${f.icon} ${f.name} hängen dran` : '🌱 Das Obst wächst nach'; }
   if (s.digs.includes(k)) return '✨ Hier ist etwas vergraben – Schaufel!';
   return '';
 }
@@ -1820,6 +1820,8 @@ function infoAt(r) {
 function heldItem() {
   if (G.fishing) return 'rod';
   if (['can', 'net', 'shovel', 'axe'].includes(G.sel)) return G.sel;
+  if (G.sel === 'spade') return 'shovel';
+  if (ITEMS[G.sel]?.sapling) return 'box';
   if (ITEMS[G.sel]?.seed) return 'seeds';
   if (PLACE[G.sel]) return 'box';
   return null;
@@ -1876,7 +1878,7 @@ function drawMap() {
   mapImg ||= mapBase(W);
   g.drawImage(mapImg, 0, 0);
   for (const [k, t] of Object.entries(s.paths || {})) { const [x, z] = k.split(',').map(Number); g.fillStyle = PAVE[t]?.col || '#ccc'; g.fillRect(X(x - 0.5), X(z - 0.5), sc, sc); }
-  for (const [k, kind] of Object.entries(RES_SPOTS)) {
+  for (const [k, kind] of Object.entries(S.spots(s))) {
     const [x, z] = k.split(',').map(Number);
     g.fillStyle = kind === 'rock' ? '#9a958e' : kind === 'palm' ? '#3f9a46' : '#2f8a3e';
     g.beginPath(); g.arc(X(x), X(z), kind === 'rock' ? sc * 0.4 : sc * 0.6, 0, 7); g.fill();

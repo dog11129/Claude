@@ -199,6 +199,28 @@ const DISH_MODELS = {
   waldtee: () => [cyl(0.12, 0.1, 0.2, 0xffffff, 0, 0.1, 0, 16), cyl(0.11, 0.11, 0.01, 0x9a6a3a, 0, 0.19, 0, 16), torus(0.06, 0.018, 0xffffff, 0.14, 0.11, 0, 0, 0, 0), cyl(0.18, 0.16, 0.02, 0xfff2dc, 0, 0.01, 0, 18), ell(0.04, 0x8a5a36, -0.08, 0.2, 0.05, 1, 1.4, 1)],
 };
 
+// ---------- Werkzeuge & Ballen ----------
+const FRUIT_COL = { apfel: 0xe8302a, kirsche: 0xc8102c, orange: 0xff9a1a, pfirsich: 0xffa880, birne: 0xc8d83a, kokosnuss: 0x7a4e2e };
+const sapling = (fruit, palm) => {
+  const p = [ell(0.2, 0xc8a06a, 0, 0.12, 0, 1, 0.65, 1), torus(0.17, 0.025, 0x9a7040, 0, 0.17, 0, PI / 2), ...[0, 1, 2].map(i => box(0.02, 0.14, 0.02, 0xa8804a, Math.cos(i * 2.1) * 0.18, 0.12, Math.sin(i * 2.1) * 0.18, i))];
+  if (palm) {
+    p.push(cyl(0.035, 0.05, 0.42, 0xa8784a, 0.02, 0.38, 0, 7, 0, 0, -0.12));
+    for (let i = 0; i < 6; i++) { const a = i / 6 * PI * 2; p.push(ell(0.16, 0x4aa84a, Math.cos(a) * 0.14 + 0.04, 0.6, Math.sin(a) * 0.14, 1.6, 0.18, 0.5, 0, -a, -0.35)); }
+    p.push(ball(0.045, FRUIT_COL.kokosnuss, 0.06, 0.55, 0.04), ball(0.045, FRUIT_COL.kokosnuss, 0.0, 0.54, -0.05));
+  } else {
+    p.push(cyl(0.03, 0.045, 0.26, 0x8a5a36, 0, 0.3, 0, 7));
+    p.push(ball(0.2, 0x5fb84a, 0, 0.52, 0), ball(0.14, 0x6ec85a, 0.12, 0.6, 0.06), ball(0.13, 0x4aa040, -0.12, 0.58, -0.04));
+    for (let i = 0; i < 4; i++) { const a = i / 4 * PI * 2 + 0.4; p.push(ball(0.04, FRUIT_COL[fruit] || 0xe8302a, Math.cos(a) * 0.17, 0.48 + (i % 2) * 0.1, Math.sin(a) * 0.17)); }
+  }
+  return p;
+};
+const GEAR_MODELS = {
+  baumschaufel: () => [cyl(0.025, 0.025, 0.56, 0xb8864a, -0.06, 0.38, 0, 8, 0, 0, 0.5), box(0.14, 0.03, 0.04, 0x8a5a36, -0.2, 0.64, 0, 0, 0, 0.5), cyl(0.03, 0.03, 0.12, 0x5fb84a, -0.2, 0.64, 0, 8, PI / 2),
+    ell(0.15, 0x9aa8b8, 0.1, 0.12, 0, 0.85, 1.3, 0.25, 0, 0, 0.5), ell(0.1, 0xc8d4e0, 0.09, 0.15, 0.03, 0.7, 1, 0.15, 0, 0, 0.5), ell(0.05, 0x5fb84a, 0.08, 0.14, 0.05, 1, 1.4, 0.2, 0, 0, 0.9)],
+  baum_apfel: () => sapling('apfel'), baum_kirsche: () => sapling('kirsche'), baum_orange: () => sapling('orange'),
+  baum_pfirsich: () => sapling('pfirsich'), baum_birne: () => sapling('birne'), baum_palme: () => sapling('kokosnuss', true),
+};
+
 // ---------- Samentüten ----------
 const SEED_COL = { lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff, tulpe: 0xff6b8a, kosmee: 0xff9ad8, stiefmuetterchen: 0x9b7be0, rose: 0xe8304a, hyazinthe: 0x7a8aff, sonnenblume: 0xffd23f, lilie: 0xfff0f6, mohn: 0xff4a2a, kornblume: 0x4a7aff, weizen: 0xf0c860, karotte: 0xff8a2a, kartoffel: 0xc8965a, tomate: 0xf0402a, kuerbis: 0xff9a2a };
 function seedBag(k) {
@@ -216,9 +238,9 @@ export function itemModel(id) {
   let r = null;
   if (id.startsWith('s_')) r = seedBag(id.slice(2));
   else if (FISH_LOOK[id]) r = fish(id);
-  else r = (SEA_MODELS[id] || BUG_MODELS[id] || FOSSIL_MODELS[id] || DISH_MODELS[id])?.() || null;
+  else r = (SEA_MODELS[id] || BUG_MODELS[id] || FOSSIL_MODELS[id] || DISH_MODELS[id] || GEAR_MODELS[id])?.() || null;
   if (!r) return null;
   const [parts, glow] = Array.isArray(r[0]) ? r : [r, []];
   return model(parts.filter(Boolean), glow, false);
 }
-export const ITEM_MODEL_IDS = [...Object.keys(FISH_LOOK), ...Object.keys(SEA_MODELS), ...Object.keys(BUG_MODELS), ...Object.keys(FOSSIL_MODELS), ...Object.keys(DISH_MODELS)];
+export const ITEM_MODEL_IDS = [...Object.keys(FISH_LOOK), ...Object.keys(SEA_MODELS), ...Object.keys(BUG_MODELS), ...Object.keys(FOSSIL_MODELS), ...Object.keys(DISH_MODELS), ...Object.keys(GEAR_MODELS)];

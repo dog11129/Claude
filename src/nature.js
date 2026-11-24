@@ -112,6 +112,12 @@ export function scenery(isFree, h = () => 0, season = 'summer', plateau = () => 
   }
   for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; add('pondstone', -15 + Math.cos(a) * 2.45, 0.02, -4 + Math.sin(a) * 2.45, 0.85 + (i % 3) * 0.25, a); }
   add('lilypad', -14.2, -0.13, -3.4, 1); add('lilypad', -15.8, -0.13, -4.6, 0.85, 1.3);
+  for (let i = 0; i < (snow ? 0 : 520); i++) { // neue Landzungen (Inselerweiterung)
+    const x = (rand() - 0.5) * 72, z = (rand() - 0.5) * 72;
+    if ((Math.abs(x) < 22 && Math.abs(z) < 20) || !isFree(Math.round(x), Math.round(z))) continue;
+    if (rand() < 0.8) add('tuft', x, 0, z, 0.9 + rand() * 0.4, rand() * 6.28);
+    else add('wildflower_' + Math.floor(rand() * 4), x, 0, z, 1, rand() * 6.28);
+  }
   const g = new THREE.Group();
   for (const [name, mats] of Object.entries(L)) {
     const geo = flatGeometry(name);

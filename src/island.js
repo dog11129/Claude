@@ -30,7 +30,7 @@ export function coast(x, z) {
 // GLSL-Fassung für das Wasser (muss zu coast() passen)
 export const COAST_GLSL = `float coast0(vec2 p){ float r = pow(pow(abs(p.x),4.0)+pow(abs(p.y),4.0), 0.25); float a = atan(p.y, p.x); return r + sin(a*3.0+0.7)*0.8 + sin(a*5.0-1.2)*0.45 - 21.2; }
 float lobe(vec2 p, vec3 L){ vec2 d = p - L.xy; float a = atan(d.y, d.x); return length(d) - L.z + sin(a*3.0 + L.x)*0.5 + sin(a*5.0 - L.y)*0.3; }
-float coast(vec2 p){ float a = coast0(p); float b = min(min(lobe(p, vec3(${LOBES.map(L => `${L.x.toFixed(2)}, ${L.z.toFixed(2)}, ${L.r.toFixed(2)}`).join('), lobe(p, vec3(')}))); return -${K.toFixed(2)} * log(exp(-a / ${K.toFixed(2)}) + exp(-b / ${K.toFixed(2)})); }`;
+float coast(vec2 p){ float a = coast0(p); float b = ${LOBES.map(L => `lobe(p, vec3(${L.x.toFixed(2)}, ${L.z.toFixed(2)}, ${L.r.toFixed(2)}))`).reduce((m, l) => `min(${m}, ${l})`)}; return -${K.toFixed(2)} * log(exp(-a / ${K.toFixed(2)}) + exp(-b / ${K.toFixed(2)})); }`;
 // Klippenkante im Norden: dahinter liegt das hohe Plateau (Wald, Wasserfall)
 export const cliffZ = x => -16 + 0.8 * Math.sin(x * 0.35) + 0.5 * Math.sin(x * 0.9 + 1);
 export const CLIFF_H = 2.6;

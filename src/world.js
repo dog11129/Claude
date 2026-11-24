@@ -39,7 +39,7 @@ import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE, FEST_DECO, CONTEST_AT, FESTS } from './data.js';
 import { grass as onGrass } from './island.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
-import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
+import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
 import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng, COAST_GLSL } from './island.js';
 
 const C = h => new THREE.Color(h);
@@ -1085,13 +1085,16 @@ export class World {
   // Bäume, Felsen und Grabstellen
   syncNature(s) {
     this.wildM ||= new Map();
-    for (const [k, kind] of Object.entries(RES_SPOTS)) {
-      const left = s.res?.[k] ?? 3, ready = kind !== 'rock' && fruitReady(s, k), sig = kind + this.season + (left > 0) + ready;
+    const all = spots(s);
+    for (const [k, e] of this.wildM) if (!all[k]) { this.scene.remove(e.m); this.wildM.delete(k); } // ausgegraben
+    for (const [k, kind] of Object.entries(all)) {
+      const fr = kind === 'rock' ? '' : fruitOf(s, k);
+      const left = s.res?.[k] ?? 3, ready = kind !== 'rock' && fruitReady(s, k), sig = kind + fr + this.season + (left > 0) + ready;
       let e = this.wildM.get(k);
       if (e && e.sig !== sig) { this.scene.remove(e.m); e = null; }
       if (!e) {
         const [x, z] = k.split(',').map(Number);
-        const m = N.wild(kind, this.season, left, TREE_FRUIT[k], ready);
+        const m = N.wild(kind, this.season, left, fr, ready);
         m.position.set(x, 0, z);
         m.rotation.y = (x * 3 + z) % 6;
         if (kind !== 'rock' && !m.userData.asset) m.children[0].material = WIND_TREE;
@@ -1158,7 +1161,7 @@ export class World {
     const r = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
     for (let t = 0; t < 400 && this.puddles.length < 12; t++) {
       const x = Math.round((r() - 0.5) * 2 * (MAP - 2)), z = Math.round((r() - 0.5) * 2 * (MAP - 2)), k = key(x, z);
-      if (!onGrass(x, z) || buildingAt(x, z) || RES_SPOTS[k] || s.obj[k] || s.tiles[k] || this.puddles.some(p => Math.hypot(p.x - x, p.z - z) < 3)) continue;
+      if (!onGrass(x, z) || buildingAt(x, z) || resAt(s, k) || s.obj[k] || s.tiles[k] || this.puddles.some(p => Math.hypot(p.x - x, p.z - z) < 3)) continue;
       const m = model('puddle');
       if (!m) return;
       const px = x + (r() - 0.5) * 0.4, pz = z + (r() - 0.5) * 0.4;
