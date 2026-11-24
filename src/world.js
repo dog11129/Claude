@@ -750,7 +750,7 @@ export class World {
     el.textContent = txt;
     el.style.opacity = 0;
     this.labels.appendChild(el);
-    this.floaters.push({ el, x, y, z, age: -(o.delay || 0), vx: o.vx || 0, life: o.life || 1.6 });
+    this.floaters.push({ el, x, y, z, age: -(o.delay || 0), vx: o.vx || 0, life: o.life || 1.6, rise: o.rise ?? 1.2, follow: o.follow });
   }
 
   // Bildschirmpunkt -> Punkt auf dem Boden
@@ -1420,7 +1420,8 @@ export class World {
     this.floaters = this.floaters.filter(f => {
       f.age += dt;
       if (f.age < 0) return true;
-      const p = this.project(f.x + f.vx * f.age + Math.sin(f.age * 5) * 0.08 * (f.vx ? 1 : 0), f.y + f.age * 1.2, f.z);
+      if (f.follow) { const o = f.follow(); if (o) { f.x = o.x; f.z = o.z; } }
+      const p = this.project(f.x + f.vx * f.age + Math.sin(f.age * 5) * 0.08 * (f.vx ? 1 : 0), f.y + f.age * f.rise, f.z);
       if (f.age > f.life || !p) { f.el.remove(); return false; }
       f.el.style.transform = `translate(${p[0]}px, ${p[1]}px) translate(-50%, -100%) scale(${Math.min(1, f.age * 6)})`;
       f.el.style.opacity = Math.min(1, (f.life - f.age) * 1.6);

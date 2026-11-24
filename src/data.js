@@ -49,9 +49,12 @@ export const BUILDINGS = {
   vh_pippa: { x0: -5,  x1: -4,  z0: 12,  z1: 13,  use: 'visit',  name: 'Pippas Haus', npc: 'pippa' },
   vh_bruno: { x0: 12,  x1: 13,  z0: 8,   z1: 9,   use: 'visit',  name: 'Brunos Haus', npc: 'bruno' },
   vh_lio:   { x0: 15,  x1: 16,  z0: -1,  z1: 0,   use: 'visit',  name: 'Lios Haus', npc: 'lio' },
+  vh_kalle: { x0: -10, x1: -9,  z0: 8,   z1: 9,   use: 'visit',  name: 'Kalles Haus', npc: 'kalle' },
+  vh_wanda: { x0: 2,   x1: 3,   z0: 8,   z1: 9,   use: 'visit',  name: 'Wandas Haus', npc: 'wanda' },
 };
 for (const b of Object.values(BUILDINGS)) { b.cx = (b.x0 + b.x1) / 2; b.cz = (b.z0 + b.z1) / 2; }
-const nearBuilding = (x, z, m) => Object.values(BUILDINGS).some(b => x >= b.x0 - m && x <= b.x1 + m && z >= b.z0 - m && z <= b.z1 + m);
+// Nachbarhäuser bekommen mehr Platz drumherum (vor allem vor der Tür), damit kein Baum davorsteht
+const nearBuilding = (x, z, m) => Object.values(BUILDINGS).some(b => { const e = b.npc ? 1 : 0; return x >= b.x0 - m - e && x <= b.x1 + m + e && z >= b.z0 - m - e && z <= b.z1 + m + e * 2; });
 
 // Wilde Bäume (Obst, Holz), Palmen (Kokosnüsse) und Felsen (Stein, Eisen) – auf allen Geräten gleich verteilt
 export const FRUITS = ['apfel', 'kirsche', 'orange', 'pfirsich', 'birne'];
@@ -305,7 +308,7 @@ export const ACHIEVEMENTS = [
   ['holz', '🪓', 'Holzfäller', '50 Holz gesammelt', s => (s.stats.wood || 0) >= 50, 600],
   ['werk', '🔨', 'Selbstgemacht', 'Etwas an der Werkbank gebaut', s => (s.stats.crafted || 0) >= 1, 300],
   ['freund', '💛', 'Beste Nachbarn', 'Mit einem Nachbarn 5 Herzen erreicht', s => Object.values(s.npc || {}).some(n => n.f >= 500), 1500],
-  ['dorf', '🏘️', 'Die ganze Insel mag euch', 'Mit allen Nachbarn 3 Herzen erreicht', s => ['mira', 'bruno', 'pippa', 'lio'].every(k => (s.npc?.[k]?.f || 0) >= 300), 3000],
+  ['dorf', '🏘️', 'Die ganze Insel mag euch', 'Mit allen Nachbarn 3 Herzen erreicht', s => NPC_IDS.every(k => (s.npc?.[k]?.f || 0) >= 300), 3000],
   ['ballon', '🎈', 'Volltreffer!', '5 Geschenkballons abgeschossen', s => (s.stats.balloons || 0) >= 5, 800],
   ['wunsch', '🌠', 'Sternenkinder', '10 Wünsche an Sternschnuppen', s => (s.stats.wishes || 0) >= 10, 800],
   ['ruebe', '📈', 'Börsen-Profis', 'Mit Rüben 10.000 Taler Gewinn gemacht', s => (s.stats.turnipProfit || 0) >= 10000, 3000],
@@ -345,6 +348,8 @@ export const NPC_DATA = {
   bruno: { name: 'Bruno', icon: '🐻', likes: ['holz', 'apfel', 'brot', 'forelle'], loves: ['lachs', 'eintopf'], dislikes: ['stein', 'unkraut'], spot: [12.6, 4.6, 1.8, 1.3], gift: ['holz', 15] },
   pippa: { name: 'Pippa', icon: '🦆', likes: ['barsch', 'makrele', 'herzmuschel', 'weizen'], loves: ['kugelfisch', 'fischsuppe'], dislikes: ['ei', 'unkraut'], spot: [-6, 9.5, 2.6, 1.4], gift: ['makrele', 3] },
   lio: { name: 'Lio', icon: '🦊', likes: ['rose', 'koralle', 'pfirsich', 'saft'], loves: ['sonnenblume', 'bernstein'], dislikes: ['kartoffel', 'stein'], spot: [12.8, 2.3, 1.9, 0.9], gift: ['kirschbaum', 1] },
+  kalle: { name: 'Kalle', icon: '🫖', likes: ['orange', 'saft', 'tulpe', 'karotte'], loves: ['sorbet', 'kokosmilch'], dislikes: ['hai', 'krebs'], spot: [-12.3, -4, 0.4, 1.0], gift: ['orangenbaum', 1] },
+  wanda: { name: 'Wanda', icon: '🔬', likes: ['frosch', 'karpfen', 'seeanemone', 'kristall'], loves: ['goldfisch', 'perle'], dislikes: ['unkraut', 'kartoffel'], spot: [-15, -1.5, 0.8, 0.3], gift: ['neopren', 1] },
 };
 export const NPC_IDS = Object.keys(NPC_DATA);
 
@@ -360,7 +365,7 @@ export const STORY = [
   { title: 'Willkommen auf der Insel!', desc: 'Schüttelt 3 Bäume – mal sehen, was herunterfällt.', ev: 'shake', n: 3, money: 300, items: { s_tulpe: 4 } },
   { title: 'Obstkorb', desc: 'Sammelt 6 Stück Obst von den Bäumen.', ev: 'fruit', n: 6, money: 300 },
   { title: 'Blumenkinder', desc: 'Pflanzt 4 Blumensamen auf den Rasen.', ev: 'plant', n: 4, money: 200, items: { s_kosmee: 4 } },
-  { title: 'Hallo Nachbarn!', desc: 'Plaudert mit allen vier Nachbarn.', ev: 'met', n: 4, money: 400, items: { apfelkuchen: 1 } },
+  { title: 'Hallo Nachbarn!', desc: 'Plaudert mit vier verschiedenen Nachbarn.', ev: 'met', n: 4, money: 400, items: { apfelkuchen: 1 } },
   { title: 'Strandspaziergang', desc: 'Sammelt 5 Muscheln am Strand.', ev: 'shell', n: 5, money: 300 },
   { title: 'Kleine Händler', desc: 'Verdient 1.000 Taler im Krämerladen.', ev: 'sell', n: 1000, items: { blumen: 1, weg: 8 } },
   { title: 'Holzfäller', desc: 'Hackt 5 Holz mit der Axt.', ev: 'chop', n: 5, money: 300 },
@@ -413,6 +418,8 @@ export const NPC_PLAN = {
   pippa: [[6, -9, 19.5, 0.2, 2.6], [10, -4, 17, 2.6, 0.8], [13, -12.4, -1.6, 0.8, 0.8], [16, -4.6, 14.6, 1.1, 0.5], [19, -1.6, -1.4, 1, 0.4], [21, -4.6, 14.6, 1.1, 0.5]],
   bruno: [[6, 12.5, 10.6, 1, 0.5], [8, 10.8, 2, 0.4, 1.4], [11, -4.5, -9.4, 1, 0.3], [14, 1.6, 4.4, 1.2, 0.6], [17, 13, -5.2, 1.6, 0.4], [20, 12.5, 10.6, 1, 0.5]],
   lio:   [[6, 15.5, 1.7, 0.6, 0.4], [9, 13, -5.3, 1.7, 0.5], [12, 16.6, 7.5, 0.7, 2], [15, 2.6, 0.2, 0.6, 1.6], [18, 12.8, 2.3, 1.9, 0.9], [20.5, 15.5, 1.7, 0.6, 0.4]],
+  kalle: [[6, -9, 10.8, 1, 0.5], [8, -12.3, -4.2, 0.4, 1.0], [11, -1.6, -1.4, 1, 0.4], [14, -8, 4.6, 1.2, 0.5], [17, -12.3, -3.6, 0.4, 0.8], [20, -9, 10.8, 1, 0.5]],
+  wanda: [[6, 3, 10.8, 1, 0.5], [8.5, -15, -1.5, 0.8, 0.3], [11.5, 4.6, 4.4, 0.6, 1.0], [14.5, 13, -5.3, 1.5, 0.4], [17.5, -15, -1.5, 0.8, 0.3], [20, 3, 10.8, 1, 0.5]],
 };
 
 // ---------- Baupläne (DIY) ----------

@@ -340,6 +340,7 @@ export function makeAvatar(look) {
       case 'plant': t.y = -0.07 * e; t.lLx = -0.7 * e; t.lRx = 0.55 * e; t.tx = 0.55 * e; t.aLx = t.aRx = -0.75 * e; t.aLz = t.aRz = 0; t.hx = 0.25 * e; break;
       case 'pet': t.aLx = t.aRx = (-1.0 + Math.sin(T * 16) * 0.12) * e; t.aLz = t.aRz = -0.1 * e; t.tx = 0.45 * e; t.y = -0.03 * e; t.hx = 0.1 * e; break;
       case 'use': t.aRx = -1.4 * e; t.aRz = 0; break;
+      case 'lift': { const h = Math.min(1, e * 2.2); t.aLx = t.aRx = -2.75 * h; t.aLz = t.aRz = -0.12 * h; t.y = 0.06 * Math.max(0, Math.sin(Math.PI * cl(a * 2.5))); t.hx = -0.12 * h; eye = 1 - 0.85 * h; break; }
       case 'shake': t.aLx = t.aRx = -2.1 * Math.min(1, e * 2); t.aLz = t.aRz = -0.2; t.ty = Math.sin(T * 30) * 0.12 * e; t.tx = 0.15 * e; break;
       case 'highfive': { const h = Math.min(1, e * 2); t.aRx = -2.9 * h; t.aRz = -0.25 * h; t.tx = 0.1 * h; t.y = 0.05 * e; break; }
       case 'kiss': { const h = Math.min(1, e * 2); t.tx = 0.35 * h; t.hx = 0.15 * h; t.hz = 0.2 * h; t.aLx = t.aRx = -0.5 * h; t.aLz = t.aRz = 0.5 * h; t.lLx = 0.5 * h; break; }

@@ -563,6 +563,7 @@ const ACTIONS = {
       addInv(s, g.id, n);
       if (CROPS[g.id] === undefined && ITEMS[g.id].cat === 'fruit') { s.stats.fruit = (s.stats.fruit || 0) + n; questEvent(s, 'fruit', n, out); }
       fx(out, a.x, a.z, `+${n} ${ITEMS[g.id].icon}`, 'leaf');
+      out.got = g.id;
       if (g.box) out.msg = `🎁 Im Geschenk: ${n > 1 ? n + '× ' : ''}${ITEMS[g.id].icon} ${ITEMS[g.id].name}!`;
       else if (ITEMS[g.id].furn || ITEMS[g.id].place) out.msg = `🍃 ${ITEMS[g.id].icon} ${ITEMS[g.id].name} gefunden!`;
       out.snd = 'harvest';
@@ -577,6 +578,7 @@ const ACTIONS = {
       questEvent(s, 'shell', 1, out);
       addXp(s, 1, out);
       fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`, 'sparkle');
+      out.got = id;
       out.snd = 'harvest';
       return true;
     }

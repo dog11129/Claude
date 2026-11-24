@@ -37,6 +37,12 @@ export const FURNITURE = {
   bild:           { name: 'Gemälde',         icon: '🖼️', buy: 300,  lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true },
   wandregal:      { name: 'Wandregal',       icon: '🪵', buy: 150,  lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true, craft: { holz: 4 } },
   wanduhr:        { name: 'Wanduhr',         icon: '🕰️', buy: 380,  lvl: 2, cat: 'wand',     w: 1, d: 1, solid: false, wall: true },
+  // Neue eigene Möbel
+  teeservice:     { name: 'Teetablett',      icon: '🫖', buy: 340,  lvl: 1, cat: 'deko',     w: 1, d: 1, solid: true, craft: { holz: 4, lehm: 3 } },
+  forschertisch:  { name: 'Forschertisch',   icon: '🔬', buy: 980,  lvl: 3, cat: 'tische',   w: 1, d: 1, solid: true, craft: { holz: 8, eisen: 3 } },
+  muschellampe:   { name: 'Muschellampe',    icon: '🐚', buy: 460,  lvl: 2, cat: 'licht',    w: 1, d: 1, solid: true, glow: true },
+  badezuber:      { name: 'Badezuber',       icon: '🛁', buy: 720,  lvl: 2, cat: 'deko',     w: 1, d: 1, solid: true, craft: { holz: 14, eisen: 1 } },
+  wolkensofa:     { name: 'Wolkensofa',      icon: '☁️', buy: 1800, lvl: 4, cat: 'sitzen',   w: 2, d: 1, solid: true, sit: true },
 };
 
 // [id, Name, Grundfarbe, Muster, Akzentfarbe] – Grundfarbe taugt auch als Farbfeld in der Oberfläche.

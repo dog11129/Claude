@@ -56,6 +56,8 @@ body:not(.touch) #fsbtn, body.standalone #fsbtn { display: none; }
 .tag.prompt { background: rgba(255,253,249,.95); border-radius: 14px; padding: 4px 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); text-align: center; animation: pop .15s; }
 .tag.prompt small { display: block; font-weight: 500; font-size: 12px; color: var(--soft); }
 .tag.prompt kbd { background: var(--line); border-radius: 6px; padding: 0 5px; font-family: inherit; margin-right: 4px; }
+.floater.hold { font-size: 40px; filter: drop-shadow(0 3px 0 rgba(90,70,54,.25)); animation: holdpop 1.4s ease-out forwards; }
+@keyframes holdpop { 0% { scale: 0.2; } 18% { scale: 1.25; } 30% { scale: 1; } 100% { scale: 1; } }
 .floater.mini { font-size: 18px; text-shadow: 0 1px 3px rgba(90,70,54,.3); }
 .emogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
 .emogrid button { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: transform .1s; }
@@ -291,7 +293,9 @@ body.wantland.portrait.ingame #rotatehint { display: flex; }
 .dlg { background: #fffdf6; border-radius: 28px; padding: 26px 20px 14px; box-shadow: 0 6px 0 rgba(90,70,54,.15), 0 14px 34px rgba(90,70,54,.25); position: relative; border: 3px solid #f6e7d2; }
 .dlgname { position: absolute; top: -18px; left: 22px; color: #fff; font-weight: 700; font-size: 17px; padding: 5px 16px; border-radius: 999px; box-shadow: 0 3px 0 rgba(90,70,54,.18); transform: rotate(-2deg); }
 .dlgname small { opacity: .85; margin-left: 6px; font-weight: 600; }
-#dlgtext { font-size: 18px; line-height: 1.45; margin: 4px 2px 12px; min-height: 2.9em; }
+#dlgtext { font-size: 18px; line-height: 1.45; margin: 4px 2px 12px; min-height: 2.9em; white-space: pre-line; cursor: pointer; }
+.dlg.done #dlgtext::after { content: '▼'; display: inline-block; margin-left: 6px; font-size: 13px; color: #f0a35a; animation: dlgnext 0.9s ease-in-out infinite; }
+@keyframes dlgnext { 50% { transform: translateY(4px); } }
 .dlgbtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .dlgbtns .btn { flex: 1 1 auto; }
 #dlggifts { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; max-height: 34vh; overflow-y: auto; margin-bottom: 10px; touch-action: pan-y; }

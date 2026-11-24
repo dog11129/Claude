@@ -44,7 +44,10 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 - **Gegenstände am Boden:** Obst, Holz, Steine, Geschenke und Fundstücke landen vor dir auf der Wiese – hinlaufen und aufheben. Fällt etwas ins Wasser, ist es weg.
 - **Flaschenpost & Baupläne:** Jeden Morgen treibt eine Flaschenpost an den Strand. Baupläne gibt's auch aus Ballons und von Nachbarn – die Werkbank zeigt nur, was du schon gelernt hast.
 - **Schwimmen & Tauchen:** Mit dem Neoprenanzug (Krämerladen) ins Meer springen, bei Luftblasen abtauchen und Meerestiere fangen – Seestern, Auster, Krake, Hummer … und manchmal eine Perle.
-- **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin) und Lio (Fuchs-Künstler) haben eigene Häuschen. Plaudern, Geschenke, Freundschaft (10 Herzen), Briefe, Wünsche erfüllen.
+- **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin), Lio (Fuchs-Künstler), Kalle (Wasserschwein und Teemeister) und Wanda (Axolotl-Teichforscherin) haben eigene Häuschen. Plaudern, Geschenke, Freundschaft (10 Herzen), Briefe, Wünsche erfüllen.
+- **Tiersprache:** Jeder Nachbar plappert mit eigener Stimme, Tonlage und eigenem Tempo. Fragen gehen am Satzende hoch, der Text tippt sich in die Sprechblase (antippen = sofort ganz zeigen).
+- **Musik zu jeder Stunde:** Für jede Stunde komponiert das Spiel ein eigenes Stück – morgens Flöte, mittags Holzklang, abends E-Piano, nachts Glöckchen. Bei Regen wird es ruhiger, zur vollen Stunde klingt ein Glockenspiel.
+- **Fundstücke hochhalten:** Neue Funde hält deine Figur kurz stolz in die Luft.
 - **Inselhandy:** 15 Apps – Live-Karte (antippen = hinlaufen, mit Wegsuche über die Brücken), Bestellen, Taschen, Inselbuch, Sammelbuch, Museum, Rezepte, Rübenkurs, Designer, Freunde, Erfolge, Gefühle, Kamera, Himmel, Optionen.
 - **Insel-Designer:** Eigene Wege verlegen – Erde, Steinpflaster, Ziegel, Holzdielen, Sand.
 - **Geschenkballons:** Schweben tagsüber über die Insel – mit der Schleuder abschießen (Taler, Möbel, Deko, Eisen, Gold …).
@@ -52,7 +55,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 - **Rübenbörse:** Sonntagmorgens verkauft Hoppel Rüben, der Krämerladen zahlt zweimal am Tag einen neuen Preis – mit Kurs-Diagramm im Handy. Nach einer Woche verfaulen sie.
 - **Tagesabläufe:** Die Nachbarn gehen morgens aus dem Haus, treffen sich am Dorfplatz, besuchen Museum, Fluss, Strand und Werkbank und laufen dafür über die Brücken.
 - **Echte Uhrzeit:** auf Wunsch (⚙️ → Optionen) folgen Tag und Nacht der echten Uhr.
-- **Krämerladen, Inselbüro, Werkbank, Gartenküche:** Samen, Bäume, Zutaten, Möbel und Deko kaufen, verkaufen, heimwerken und kochen.
+- **Krämerladen, Inselbüro, Werkbank, Gartenküche:** Samen, Bäume, Zutaten, Möbel und Deko kaufen, verkaufen, heimwerken und kochen. Neu im Möbelkatalog: Teetablett, Forschertisch, Muschellampe, Badezuber und Wolkensofa.
 - **Zuhause:** Das Haus betreten und gemeinsam einrichten, im Bett schlafen (wenn alle schlafen, ist es Morgen).
 - **Quests:** Insel-Geschichte mit 21 Kapiteln und jeden Morgen drei Tagesaufgaben. Dazu 32 Erfolge und Insel-Level.
 - **Miteinander:** Einladungscode, bis zu 4 Spieler, Chat, 20 Emotes, Umarmen/Küsschen/High-Five/Tanzen, Hinbeamen, automatisches Neu-Verbinden.

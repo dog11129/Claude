@@ -38,7 +38,7 @@ export function setVolumes() {
   if (!ctx) return;
   sfxGain.gain.value = audio.sound * 0.6;
   ambGain.gain.value = audio.sound * 0.5;
-  musicGain.gain.value = audio.music * (musicBuf.day ? 0.35 : 0.07);
+  musicGain.gain.value = audio.music * (musicBuf.day ? 0.35 : 0.5);
 }
 
 function tone(f, t0, dur, type = 'sine', vol = 0.2, out = sfxGain, f2) {
@@ -135,12 +135,29 @@ export function musicFor(kind) {
   musicSrc = { src, g };
 }
 
-// Plapper-Stimme der Nachbarn: kurze, weiche Silben in eigener Tonlage
-export function blip(base) {
+// Plapper-Stimme der Nachbarn: eine kurze Silbe je Vokal, eigene Tonlage, Klangfarbe und Tempo je Figur.
+// Fragen gehen am Satzende hoch, Punkte runter – so klingt das Gebrabbel wie echte Sätze.
+const VOW = { a: [0, 1.0], e: [3, 1.5], i: [5, 2.1], o: [-2, 0.7], u: [-4, 0.5], ä: [2, 1.3], ö: [0, 0.9], ü: [3, 1.0], y: [4, 1.6] };
+export function speak(ch, v = {}, end = '') {
   if (!ctx || !audio.sound) return;
-  const t = ctx.currentTime + 0.005, f = base * (0.85 + Math.random() * 0.35);
-  tone(f, t, 0.07, 'triangle', 0.06, sfxGain, f * (0.9 + Math.random() * 0.25));
+  const [semi, bright] = VOW[ch] || VOW.a, t = ctx.currentTime + 0.005, dur = v.len || 0.075;
+  let f = (v.pitch || 500) * 2 ** ((semi * (v.range ?? 1) + (Math.random() - 0.5) * (v.wob ?? 2)) / 12);
+  if (end === '?') f *= 1.18; else if (end === '!') f *= 1.1; else if (end === '.') f *= 0.9;
+  const o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+  o.type = v.wave || 'triangle';
+  o.frequency.setValueAtTime(f * 1.05, t);
+  o.frequency.exponentialRampToValueAtTime(f * (end === '?' ? 1.16 : 0.92), t + dur);
+  lp.type = 'lowpass';
+  lp.frequency.value = Math.min(9000, f * 3 * bright * (v.bright || 1));
+  lp.Q.value = 4;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.16 * (v.vol || 1), t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(lp).connect(g).connect(sfxGain);
+  o.start(t);
+  o.stop(t + dur + 0.03);
 }
+export function blip(base) { speak('a', { pitch: base }); }
 
 export function play(name) {
   if (!ctx || !audio.sound) return;
@@ -168,9 +185,201 @@ export function ambience({ day, night, rain, walking }) {
   }
 }
 
-// Gemütliche Zufallsmelodie in Pentatonik
-const SCALE = [0, 2, 4, 7, 9, 12, 14, 16];
-const CHORDS = [[0, 4, 7], [-3, 0, 4], [5, 9, 12], [7, 11, 14]];
+// ---------- Eigene Musik: jede Stunde ein eigenes, im Browser komponiertes Stück ----------
+// Tonart, Tempo, Instrumente und Melodie werden aus der Stunde abgeleitet (immer gleich für dieselbe Stunde).
+let verb, musicBus, song = null, wantHour = -1, wantRain = false, sched = 0, step = 0;
+function hall() {
+  if (verb) return verb;
+  const len = Math.floor(ctx.sampleRate * 2.2), b = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3.4; }
+  verb = ctx.createConvolver();
+  verb.buffer = b;
+  const wet = ctx.createGain();
+  wet.gain.value = 0.32;
+  verb.connect(wet).connect(master);
+  return verb;
+}
+function bus() {
+  if (musicBus) return musicBus;
+  musicBus = ctx.createGain();
+  musicBus.gain.value = 1;
+  const send = ctx.createGain();
+  send.gain.value = 0.55;
+  musicBus.connect(musicGain);
+  musicBus.connect(send).connect(hall());
+  return musicBus;
+}
+const mhz = m => 440 * 2 ** ((m - 69) / 12);
+function env(g, t, a, peak, d, sus, rel, end) {
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + a);
+  g.gain.exponentialRampToValueAtTime(Math.max(peak * sus, 0.0002), t + a + d);
+  g.gain.setValueAtTime(Math.max(peak * sus, 0.0002), end);
+  g.gain.exponentialRampToValueAtTime(0.0001, end + rel);
+}
+function osc(type, f, t, stop, out, detune = 0) {
+  const o = ctx.createOscillator();
+  o.type = type;
+  o.frequency.setValueAtTime(f, t);
+  o.detune.value = detune;
+  o.connect(out);
+  o.start(t);
+  o.stop(stop);
+  return o;
+}
+// Kleine Instrumente aus Oszillatoren
+const INST = {
+  keys(f, t, d, v, out) { // weiches E-Piano
+    const g = ctx.createGain(); g.connect(out);
+    env(g, t, 0.006, v, 0.35, 0.28, 0.5, t + d);
+    osc('sine', f, t, t + d + 0.6, g);
+    const g2 = ctx.createGain(); g2.gain.value = 0.22; g2.connect(g);
+    osc('sine', f * 2, t, t + d + 0.6, g2, 3);
+    const g3 = ctx.createGain(); g3.connect(out); env(g3, t, 0.002, v * 0.18, 0.06, 0.01, 0.05, t + 0.07);
+    osc('triangle', f * 4, t, t + 0.2, g3);
+  },
+  mallet(f, t, d, v, out) { // Holzklangstäbe
+    const g = ctx.createGain(); g.connect(out);
+    env(g, t, 0.003, v, 0.42, 0.01, 0.1, t + 0.45);
+    osc('sine', f, t, t + 0.6, g);
+    const g2 = ctx.createGain(); g2.connect(out); env(g2, t, 0.002, v * 0.3, 0.05, 0.01, 0.03, t + 0.06);
+    osc('sine', f * 3.98, t, t + 0.15, g2);
+  },
+  bell(f, t, d, v, out) { // Glöckchen
+    const g = ctx.createGain(); g.connect(out);
+    env(g, t, 0.004, v, 1.4, 0.02, 0.4, t + 1.5);
+    osc('sine', f, t, t + 2, g);
+    const g2 = ctx.createGain(); g2.gain.value = 0.35; g2.connect(g);
+    osc('sine', f * 2.76, t, t + 2, g2);
+    const g3 = ctx.createGain(); g3.gain.value = 0.12; g3.connect(g);
+    osc('sine', f * 5.4, t, t + 2, g3);
+  },
+  pluck(f, t, d, v, out) { // gezupfte Saite
+    const g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.Q.value = 2;
+    lp.frequency.setValueAtTime(Math.min(f * 8, 5000), t);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(f * 1.2, 200), t + 0.25);
+    lp.connect(g).connect(out);
+    env(g, t, 0.003, v, 0.3, 0.05, 0.15, t + Math.min(d, 0.4));
+    osc('sawtooth', f, t, t + 0.7, lp);
+  },
+  flute(f, t, d, v, out) { // Flöte mit Vibrato
+    const g = ctx.createGain(); g.connect(out);
+    env(g, t, 0.07, v, 0.1, 0.8, 0.18, t + d);
+    const o = osc('sine', f, t, t + d + 0.3, g);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain();
+    lfo.frequency.value = 5.2; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.006, t + 0.25);
+    lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t + d + 0.3);
+    const g2 = ctx.createGain(); g2.gain.value = 0.08; g2.connect(g);
+    osc('triangle', f * 2, t, t + d + 0.3, g2);
+  },
+  pad(f, t, d, v, out) { // weiche Fläche
+    const g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 1300;
+    lp.connect(g).connect(out);
+    env(g, t, Math.min(0.8, d * 0.4), v, 0.2, 0.85, 1.2, t + d);
+    osc('triangle', f, t, t + d + 1.4, lp, -7);
+    osc('triangle', f, t, t + d + 1.4, lp, 7);
+  },
+  bass(f, t, d, v, out) {
+    const g = ctx.createGain(); g.connect(out);
+    env(g, t, 0.01, v, 0.3, 0.45, 0.12, t + d * 0.9);
+    osc('triangle', f, t, t + d + 0.3, g);
+    const g2 = ctx.createGain(); g2.gain.value = 0.5; g2.connect(g);
+    osc('sine', f / 2, t, t + d + 0.3, g2);
+  },
+  brush(f, t, d, v, out) { noise(t, 0.07, 7000, v, out, 0.7); },
+  shaker(f, t, d, v, out) { noise(t, 0.035, 9000, v, out, 1.2); },
+  thump(f, t, d, v, out) { tone(110, t, 0.16, 'sine', v, out, 48); },
+};
+// Stimmungen je Tageszeit
+const MOODS = [
+  { from: 0, tempo: [62, 70], modes: ['dorian', 'major'], lead: ['bell', 'keys'], comp: 'pad', drums: 0, dens: 0.32 },
+  { from: 5, tempo: [84, 94], modes: ['major', 'lydian'], lead: ['flute', 'keys'], comp: 'arp', drums: 1, dens: 0.42 },
+  { from: 9, tempo: [100, 112], modes: ['major', 'mixo'], lead: ['mallet', 'pluck'], comp: 'block', drums: 2, dens: 0.55 },
+  { from: 13, tempo: [94, 106], modes: ['major', 'lydian', 'mixo'], lead: ['keys', 'mallet', 'flute'], comp: 'arp', drums: 2, dens: 0.5 },
+  { from: 17, tempo: [82, 92], modes: ['mixo', 'major', 'dorian'], lead: ['keys', 'flute'], comp: 'block', drums: 1, dens: 0.42 },
+  { from: 20, tempo: [68, 78], modes: ['dorian', 'major'], lead: ['bell', 'keys'], comp: 'pad', drums: 0, dens: 0.34 },
+];
+const MODES = { major: [0, 2, 4, 5, 7, 9, 11], lydian: [0, 2, 4, 6, 7, 9, 11], mixo: [0, 2, 4, 5, 7, 9, 10], dorian: [0, 2, 3, 5, 7, 9, 10] };
+const PROGS = [[0, 5, 3, 4], [0, 3, 4, 0], [0, 4, 5, 3], [5, 3, 0, 4], [0, 2, 3, 4], [3, 4, 2, 5], [0, 3, 1, 4], [0, 5, 1, 4], [3, 0, 3, 4]];
+function srng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+export function composeHour(hour, rain = false) {
+  const r = srng(hour * 7919 + (rain ? 101 : 0) + 4242), pick = a => a[Math.floor(r() * a.length)];
+  const mood = [...MOODS].reverse().find(m => hour >= m.from);
+  const scale = MODES[pick(mood.modes)], root = 55 + Math.floor(r() * 9);
+  const tempo = (mood.tempo[0] + r() * (mood.tempo[1] - mood.tempo[0])) * (rain ? 0.9 : 1);
+  const lead = pick(mood.lead), progA = pick(PROGS), progB = pick(PROGS);
+  const deg = d => root + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7];
+  const chordOf = c => [c, c + 2, c + 4];
+  const near = (d, c) => { let best = d, bd = 99; for (const t of chordOf(c)) for (let o = -14; o <= 14; o += 7) { const x = t + o; if (Math.abs(x - d) < bd) { bd = Math.abs(x - d); best = x; } } return best; };
+  // Motiv: Rhythmus (8 Achtel) + Tonschritte
+  const motif = () => {
+    const on = [], pitches = [];
+    let d = 7 + Math.floor(r() * 4);
+    for (let i = 0; i < 8; i++) if (i === 0 || r() < mood.dens + (i % 2 ? -0.12 : 0.12)) on.push(i);
+    for (let k = 0; k < on.length; k++) { d += Math.round((r() - 0.5) * 4); d = Math.max(5, Math.min(14, d)); pitches.push(d); }
+    return { on, pitches };
+  };
+  const mA = motif(), mB = motif(), mC = motif();
+  const bars = [];
+  const phrase = (prog, motifs, vary) => prog.forEach((c, bi) => {
+    const ev = [], m = motifs[bi % motifs.length], last = bi === 3;
+    m.on.forEach((s, k) => {
+      if (last && s > 4) return;
+      let d = m.pitches[k] + (vary && r() < 0.25 ? (r() < 0.5 ? 1 : -1) : 0);
+      if (s % 4 === 0) d = near(d, c);
+      const next = m.on[k + 1] ?? 8;
+      ev.push({ s, len: last && s >= 4 ? 4 : next - s, m: deg(d), i: lead, v: 0.11 + (s % 4 === 0 ? 0.03 : 0) });
+    });
+    if (last) ev.push({ s: 4, len: 4, m: deg(near(7, c)), i: lead, v: 0.12 });
+    const ch = chordOf(c).map(x => deg(x));
+    if (mood.comp === 'pad' || rain) ch.forEach(n => ev.push({ s: 0, len: 8, m: n, i: 'pad', v: 0.045 }));
+    if (mood.comp === 'arp') [0, 1, 2, 1, 0, 1, 2, 1].forEach((x, s) => ev.push({ s, len: 1, m: ch[x] + (s >= 4 && x === 0 ? 12 : 0), i: 'mallet', v: 0.05 }));
+    if (mood.comp === 'block') [0, 3, 4, 6].forEach(s => ch.forEach(n => ev.push({ s, len: 1, m: n, i: 'keys', v: 0.04 })));
+    ev.push({ s: 0, len: 3, m: deg(c) - 12, i: 'bass', v: 0.14 }, { s: 4, len: 3, m: deg(c + (r() < 0.5 ? 4 : 0)) - 12, i: 'bass', v: 0.11 });
+    if (mood.drums && !rain) {
+      [2, 6].forEach(s => ev.push({ s, i: 'brush', v: 0.05 }));
+      if (mood.drums > 1) { [0, 4].forEach(s => ev.push({ s, i: 'thump', v: 0.12 })); [1, 3, 5, 7].forEach(s => ev.push({ s, i: 'shaker', v: 0.025 })); }
+    }
+    bars.push(ev);
+  });
+  phrase(progA, [mA, mB], false);
+  phrase(progA, [mA, mB], true);
+  phrase(progB, [mC, mA], false);
+  phrase(progA, [mA, mB], true);
+  return { hour, rain, slot: 30 / tempo, bars, root, lead };
+}
+// Glöckchen zur vollen Stunde
+function chime(root) {
+  const t = ctx.currentTime + 0.05, out = bus();
+  [0, 4, 7, 12].forEach((n, i) => INST.bell(mhz(root + 12 + n), t + i * 0.22, 0.5, 0.1, out));
+}
+function pump() {
+  if (!ctx || ctx.state !== 'running' || !audio.music || musicBuf.day || wantHour < 0) return;
+  const out = bus();
+  if (!song) { song = composeHour(wantHour, wantRain); step = 0; sched = ctx.currentTime + 0.1; }
+  if (sched < ctx.currentTime - 0.5) sched = ctx.currentTime + 0.05; // nach Pause nicht alles nachholen
+  while (sched < ctx.currentTime + 0.3) {
+    const bar = step >> 3, s = step & 7;
+    if (s === 0 && (song.hour !== wantHour || song.rain !== wantRain)) {
+      const changedHour = song.hour !== wantHour;
+      song = composeHour(wantHour, wantRain);
+      step = 0;
+      if (changedHour) { chime(song.root); sched += 1.4; }
+      continue;
+    }
+    for (const e of song.bars[bar % song.bars.length]) if (e.s === s) INST[e.i](mhz(e.m || 60), sched, (e.len || 1) * song.slot, e.v, out);
+    sched += song.slot;
+    step = (step + 1) % (song.bars.length * 8);
+  }
+}
+// Wird jedes Bild aufgerufen: welche Stunde gerade läuft
+export function musicTick(hour, rain) {
+  wantHour = Math.floor(hour) % 24;
+  wantRain = !!rain;
+  if (musicBuf.day) { musicFor(hour >= 20 || hour < 5 ? 'night' : 'day'); return; }
+}
 export function setMusic(vol) {
   audio.music = vol;
   setVolumes();
@@ -178,12 +387,8 @@ export function setMusic(vol) {
   if (!ctx) return;
   if (!vol && musicSrc) { musicSrc.src.stop(); musicSrc = null; musicKind = null; }
   if (!vol || musicBuf.day) return;
-  let step = 0;
-  musicTimer = setInterval(() => {
-    if (ctx.state !== 'running') return;
-    const t = ctx.currentTime + 0.05, chord = CHORDS[Math.floor(step / 8) % 4], hz = n => 261.6 * 2 ** (n / 12);
-    if (step % 8 === 0) chord.forEach(n => tone(hz(n - 12), t, 3.2, 'sine', 0.35, musicGain));
-    if (Math.random() < 0.6) tone(hz(SCALE[Math.floor(Math.random() * SCALE.length)] + (step % 16 < 8 ? 0 : 5)), t, 0.6, 'triangle', 0.5, musicGain);
-    step++;
-  }, 420);
+  song = null;
+  musicTimer = setInterval(pump, 60);
 }
+// Für Tests: läuft die Musik?
+export const musicState = () => ({ ctx: ctx?.state || null, hour: song?.hour ?? null, lead: song?.lead || null });

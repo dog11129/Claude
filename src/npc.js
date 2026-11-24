@@ -5,29 +5,46 @@ import { MAT, merge, box, cyl } from './models.js';
 
 export const NPCS = {
   mira: {
+    voice: { pitch: 610, wave: 'triangle', speed: 26, wob: 2 },
     name: 'Mira', species: 'Igel', icon: '🦔', role: 'Bäckerin', color: '#f08fa6',
     likes: ['apfel', 'kirsche', 'tulpe', 'weizen'], loves: ['kirschtorte', 'apfelkuchen'], dislikes: ['kugelfisch', 'krebs'],
     bio: 'Mira backt jeden Morgen die duftendsten Zimtschnecken im Dorf und hat für jeden ein warmes Wort und einen Keks übrig.',
   },
   bruno: {
+    voice: { pitch: 190, wave: 'square', bright: 0.5, speed: 36, gap: 110, len: 0.1, wob: 1 },
     name: 'Bruno', species: 'Bär', icon: '🐻', role: 'Schreiner', color: '#a0693f',
     likes: ['holz', 'apfel', 'brot', 'forelle'], loves: ['lachs', 'eintopf'], dislikes: ['stein', 'unkraut'],
     bio: 'Bruno ist der gemütlichste Schreiner weit und breit: Er redet langsam, hilft gern und baut dir alles – außer Hektik.',
   },
   pippa: {
+    voice: { pitch: 720, wave: 'square', bright: 0.7, speed: 24, wob: 3, vol: 0.7 },
     name: 'Pippa', species: 'Ente', icon: '🦆', role: 'Fischerin', color: '#f2b82e',
     likes: ['barsch', 'makrele', 'herzmuschel', 'weizen'], loves: ['kugelfisch', 'fischsuppe'], dislikes: ['ei', 'unkraut'],
     bio: 'Pippa steht bei jedem Wetter mit der Angel am Steg und hätte schon mindestens dreimal fast einen Hai gefangen.',
   },
   hoppel: {
+    voice: { pitch: 680, wave: 'triangle', speed: 25, wob: 3 },
     name: 'Hoppel', species: 'Hase', icon: '🐰', role: 'Rübenhändlerin', color: '#b39cff', visitor: true,
     likes: [], loves: [], dislikes: [],
     bio: 'Hoppel kommt jeden Sonntagmorgen mit ihrem Rübenkorb auf die Insel. Wer günstig kauft und im richtigen Moment verkauft, wird reich!',
   },
   lio: {
+    voice: { pitch: 430, wave: 'sawtooth', bright: 0.6, speed: 27, wob: 2.5, vol: 0.8 },
     name: 'Lio', species: 'Fuchs', icon: '🦊', role: 'Künstler & Florist', color: '#ef7d3a',
     likes: ['rose', 'koralle', 'pfirsich', 'saft'], loves: ['sonnenblume', 'bernstein'], dislikes: ['kartoffel', 'stein'],
     bio: 'Lio malt, bindet Blumensträuße und findet, dass das Leben ein Kunstwerk ist – am liebsten eins mit ihm in der Mitte.',
+  },
+  kalle: {
+    voice: { pitch: 150, wave: 'triangle', bright: 0.6, speed: 40, gap: 130, len: 0.12, wob: 1, range: 0.6 },
+    name: 'Kalle', species: 'Wasserschwein', icon: '🫖', role: 'Teemeister & Gärtner', color: '#c08a56',
+    likes: ['orange', 'saft', 'tulpe', 'karotte'], loves: ['sorbet', 'kokosmilch'], dislikes: ['hai', 'krebs'],
+    bio: 'Kalle ist der gelassenste Bewohner der Insel. Er trägt immer sein Handtuch auf dem Kopf, falls sich ein Bad ergibt, und hat für jede Lebenslage die passende Teesorte.',
+  },
+  wanda: {
+    voice: { pitch: 540, wave: 'sine', bright: 1.3, speed: 22, gap: 60, len: 0.065, wob: 4, range: 1.4 },
+    name: 'Wanda', species: 'Axolotl', icon: '🔬', role: 'Teichforscherin', color: '#f27fae',
+    likes: ['frosch', 'karpfen', 'seeanemone', 'kristall'], loves: ['goldfisch', 'perle'], dislikes: ['unkraut', 'kartoffel'],
+    bio: 'Wanda erforscht alles, was im Teich lebt, und schreibt es in ihr dickes Notizbuch. Wenn sie aufgeregt ist, wackeln ihre Kiemen – also eigentlich immer.',
   },
 };
 
@@ -218,6 +235,58 @@ SHAPES.hoppel = () => {
     eyes: eyes(0.1, 0.02, 0.23, 0.05, true), joy: joy(0.1, 0.02, 0.23, 0.05, 0.16, -0.06, 0.19),
     ears: [-1, 1].flatMap(s => [ell(0.07, FUR, 0.09 * s, 0.22, 0, 0.7, 2.6, 0.45, 0, 0, -0.12 * s), ell(0.04, PINKI, 0.09 * s, 0.22, 0.03, 0.6, 2.4, 0.3, 0, 0, -0.12 * s)]),
     tail: [ell(0.07, 0xffffff, 0, 0, 0)], tailAt: [0, 0.08, -0.24],
+  };
+};
+
+// Kalle: rundes Wasserschwein im Ringelhemd, Handtuch auf dem Kopf, Teetasse in der Pfote
+SHAPES.kalle = () => {
+  const FUR = 0xb88550, FURD = 0x8d6038, NOSE = 0x5a3b2a, SHIRT = 0x5fc2b0, STR = 0xfff6e6, TOW = 0xfffaf0, TOWS = 0x7cc0ee, CUP = 0xfff6ea, TEA = 0x9fd26e;
+  const stripe = y => { const f = Math.sqrt(Math.max(0, 1 - ((y - 0.2) / 0.27) ** 2)); return band(0.296 * f + 0.006, 0.282 * f + 0.006, 0.028, STR, y); };
+  const paw = [ell(0.078, SHIRT, 0, -0.04, 0, 1, 1.05, 1, 0, 0, 0, 12), ell(0.066, FUR, 0, -0.14, 0, 1, 1.2, 1, 0, 0, 0, 12)];
+  return {
+    hip: 0.2, legX: 0.13, armAt: [0.27, 0.3], neck: 0.42, headY: 0.2, eyeY: 0.07, earsAt: [0, 0.2, -0.06],
+    gait: { f: 5.5, leg: 0.42, arm: 0.22, bob: 0.018, roll: 0.07, lean: 0.02, twist: 0.06, flap: 0, tail: 0, tk: 0.5 },
+    leg: [cyl(0.078, 0.072, 0.13, FUR, 0, -0.06, 0, 10), ell(0.088, FURD, 0, -0.17, 0.04, 1, 0.5, 1.35)],
+    body: [ell(0.285, SHIRT, 0, 0.2, 0, 1.04, 0.95, 0.99, 0, 0, 0, 16), cyl(0.275, 0.3, 0.12, SHIRT, 0, 0.03, 0, 18), ...[0.1, 0.18, 0.26, 0.34].map(stripe),
+      ell(0.13, FUR, 0, 0.43, 0, 1.55, 0.55, 1.35)],
+    arm: paw,
+    armR: [...paw, cyl(0.048, 0.038, 0.07, CUP, 0, -0.21, 0.07, 12), cyl(0.042, 0.042, 0.008, TEA, 0, -0.176, 0.07, 12), ring(0.022, 0.007, CUP, 0.05, -0.21, 0.07, Math.PI * 2, 0, 0, 0, 8)],
+    head: [ell(0.25, FUR, 0, 0.03, -0.03, 1.0, 0.95, 1.0, 0, 0, 0, 16), ell(0.2, FUR, 0, -0.03, 0.13, 0.96, 0.86, 1.05, 0, 0, 0, 16),
+      ell(0.13, FURD, 0, 0.0, 0.3, 1.0, 0.72, 0.5), ...[-1, 1].map(sx => ell(0.02, NOSE, 0.05 * sx, 0.01, 0.36, 1.2, 0.6, 0.6, 0, 0, 0, 6)),
+      smile(-0.09, 0.33, 0.03), ...blush(0.165, -0.04, 0.22, 0.045),
+      // Handtuch, ordentlich gefaltet, mit blauem Streifen
+      box(0.27, 0.05, 0.19, TOW, 0, 0.255, -0.03, 0.15), box(0.275, 0.014, 0.195, TOWS, 0, 0.27, -0.03, 0.15), box(0.28, 0.035, 0.05, TOW, 0, 0.245, 0.05, 0.15)],
+    eyes: eyes(0.15, 0.07, 0.19, 0.034), joy: joy(0.15, 0.07, 0.19, 0.034, 0.165, -0.04, 0.22),
+    ears: [-1, 1].flatMap(sx => [ell(0.05, FURD, 0.165 * sx, 0.2, -0.1, 1, 1, 0.5, 0, 0.5 * sx), ell(0.028, 0x6e4a30, 0.17 * sx, 0.2, -0.084, 1, 1, 0.4, 0, 0.5 * sx)]),
+    tail: null,
+  };
+};
+
+// Wanda: rosa Axolotl mit Kiemenbüscheln, runder Brille, Forscherweste und Lupe
+SHAPES.wanda = () => {
+  const SK = 0xffb6cf, SKD = 0xf28fb3, GILL = 0xe9579b, GILLL = 0xff86bb, VEST = 0x9ab673, VESTD = 0x76935a, GLASS = 0x5a3b6b, BELLY = 0xffd9e7, GOLD = 0xd9a93f;
+  const hand = [ell(0.055, SK, 0, -0.06, 0, 1, 1.4, 1, 0, 0, 0, 12)];
+  return {
+    hip: 0.2, legX: 0.1, armAt: [0.21, 0.29], neck: 0.38, headY: 0.23, eyeY: 0.03, earsAt: [0, 0.03, -0.05],
+    gait: { f: 11, leg: 0.6, arm: 0.4, bob: 0.03, roll: 0.12, lean: 0.06, twist: 0.08, flap: 0, tail: 0.9, tk: 1.3 },
+    leg: [cyl(0.05, 0.05, 0.12, SK, 0, -0.06, 0, 10), ell(0.066, SK, 0, -0.16, 0.04, 1.25, 0.45, 1.4)],
+    body: [ell(0.23, SK, 0, 0.19, 0, 1, 1.02, 0.95, 0, 0, 0, 16), cyl(0.215, 0.25, 0.12, SK, 0, 0.03, 0, 18), ell(0.12, BELLY, 0, 0.17, 0.165, 1, 1.25, 0.4),
+      part(new THREE.CylinderGeometry(0.238, 0.262, 0.28, 18, 1, true, 0.55, Math.PI * 2 - 1.1), VEST, 0, 0.17, 0),
+      ...[-1, 1].flatMap(sx => [box(0.075, 0.07, 0.025, VESTD, 0.155 * sx, 0.11, 0.18, 0.65 * sx), box(0.08, 0.02, 0.028, VESTD, 0.155 * sx, 0.15, 0.18, 0.65 * sx)]),
+      cyl(0.008, 0.008, 0.08, 0xff6b8a, -0.155, 0.17, 0.19, 6)],
+    arm: hand,
+    armR: [...hand, cyl(0.012, 0.012, 0.1, 0x8a5a36, 0, -0.18, 0.02, 6), ring(0.05, 0.012, GOLD, 0, -0.27, 0.03, Math.PI * 2, 0, 0, 0, 14), cyl(0.044, 0.044, 0.006, 0xcdeeff, 0, -0.27, 0.03, 14, Math.PI / 2)],
+    head: [ell(0.26, SK, 0, 0, 0, 1.25, 0.9, 1.0, 0, 0, 0, 16), ell(0.12, BELLY, 0, -0.1, 0.16, 1.6, 0.6, 0.8),
+      ring(0.085, 0.011, MOUTH, 0, -0.06, 0.245, Math.PI, 0, 0, Math.PI, 12), ...blush(0.19, -0.05, 0.2, 0.045),
+      ...[-1, 1].map(sx => ring(0.058, 0.011, GLASS, 0.125 * sx, 0.03, 0.245, Math.PI * 2, 0, 0.3 * sx, 0, 14)), box(0.06, 0.012, 0.012, GLASS, 0, 0.045, 0.27)],
+    eyes: eyes(0.125, 0.03, 0.235, 0.036), joy: joy(0.125, 0.03, 0.235, 0.036, 0.19, -0.05, 0.2),
+    // drei Kiemenbüschel je Seite (wackeln mit den "Ohren")
+    ears: [-1, 1].flatMap(sx => [0, 1, 2].flatMap(k => {
+      const a = (0.55 - 0.42 * k) * sx, y = 0.1 - 0.075 * k, x = 0.3 * sx;
+      return [ell(0.055, k === 1 ? GILLL : GILL, x + Math.cos(a) * 0.06 * sx, y + Math.sin(Math.abs(a)) * 0.05, -0.03, 2.1, 0.55, 0.5, 0, 0, a),
+        ...[0.6, 1.2].map(f => ell(0.02, GILLL, x + Math.cos(a) * 0.06 * sx * (1 + f), y + 0.035 + Math.sin(Math.abs(a)) * 0.05 * (1 + f), -0.03, 1, 1.6, 0.5, 0, 0, a))];
+    })),
+    tail: [ell(0.1, SK, 0, 0.0, -0.12, 0.42, 1.0, 1.9, -0.25), ell(0.075, SKD, 0, 0.07, -0.2, 0.18, 1.0, 1.7, -0.25)], tailAt: [0, 0.07, -0.18],
   };
 };
 
@@ -558,6 +627,80 @@ const TEXT = {
     },
     request: ['Mon ami! Für mein nächstes Kunstwerk brauche ich {n}× {i}. Die Muse wartet nicht!',
       'Ich brauche {n}× {i}. Frag nicht, wofür – Kunst erklärt sich nicht. Bringst du sie mir?'],
+  },
+  kalle: {
+    morning: ['Mooorgen, {p}. ... Ich hab schon Tee aufgesetzt. Der Tag darf jetzt anfangen.', 'Ganz ruhig in den Tag starten. Erst Tee, dann alles andere. So lautet die Regel.'],
+    day: ['Hallo, {p}. Weißt du, was das Beste an Mittagspausen ist? Dass man sie verlängern kann.', 'Schön, dich zu sehen. Setz dich ruhig kurz. Die Insel läuft nicht weg.'],
+    evening: ['Abends schmeckt Kamillentee am besten. Und der Sonnenuntergang dazu ist umsonst.', 'Guten Abend, {p}. Heute war ein guter Tag zum Nichtstun. Hab ich voll ausgenutzt.'],
+    night: ['Psst... die Frösche im Teich singen gerade. Ich hör ihnen gern zu.', 'Noch wach? Ich auch. Mein Tee war wohl doch kein Schlaftee.'],
+    sun: ['Sonne auf dem Bauch und Füße im Wasser. Mehr brauch ich nicht.'],
+    rain: ['Regen? Herrlich. Dann ist die ganze Insel ein einziges Bad.', 'Bei Regen muss ich mein Handtuch gar nicht erst nass machen. Praktisch.'],
+    snow: ['Schnee ist nur sehr, sehr kalter Tee ohne Teebeutel. Sag ich jedenfalls immer.'],
+    spring: ['Im Frühling pflanze ich Kräuter für neuen Tee. Minze, Melisse... und ganz viel Geduld.'],
+    summer: ['Im Sommer bade ich zweimal am Tag im Teich. Wanda sagt, das stört ihre Forschung. Ich sag, ich bin die Forschung.'],
+    autumn: ['Herbstlaub ist schön weich zum Draufliegen. Probier das mal aus.'],
+    winter: ['Im Winter gibt es nichts Besseres als ein warmes Bad und danach eine Kanne Tee. Oder zwei.'],
+    tier: [
+      ['Oh. Hallo. Ich bin Kalle. ... Möchtest du einen Tee? Ich hab immer einen dabei.', 'Neu hier? Keine Eile. Hier hat niemand Eile. Außer vielleicht Pippa, wenn ein Fisch beißt.', 'Ich bin ziemlich langsam. Aber dafür komme ich immer gut gelaunt an.'],
+      ['{p}! Schön. Ich hab heute eine neue Teesorte gemischt. Sie heißt "Gemütlicher Nachmittag".', 'Weißt du, warum ich das Handtuch trage? Man weiß nie, wann sich ein Bad ergibt.', 'Du arbeitest viel, {p}. Vergiss das Ausruhen nicht. Das ist auch Arbeit. Wichtige Arbeit.'],
+      ['Mit dir ist sogar Warten schön, {p}. Und ich warte sehr gern.', 'Ich hab dir einen Platz am Teich freigehalten. Den mit der besten Aussicht.', 'Du bist wie lauwarmes Badewasser, {p}. Genau richtig.'],
+      ['{p}, du bist mein liebster Teegast. Und ich habe sehr viele Teegäste.', 'Wenn ich je eine Teesorte nach dir benenne, dann mit Honig. Viel Honig.', 'Weißt du was? Seit du da bist, ist mein Tee nie mehr kalt geworden. Ich glaube, das liegt an dir.'],
+    ],
+    partner: ['Du und {q}, ihr seid wie Tee und Keks. Geht auch allein, aber zusammen ist besser.', 'Ich hab {q} vorhin gesehen. Kommt doch zusammen auf einen Tee vorbei.'],
+    gossip: ['Wanda hat heute meinen Badeplatz vermessen. Ich glaube, ich bin jetzt Teil einer Studie.', 'Bruno hat mir eine Teekanne aus Holz geschnitzt. Sie ist undicht, aber wunderschön.', 'Mira hat mir Zimtschnecken gebracht. Ich hab ihr Tee gegeben. Ein guter Tausch.'],
+    tips: ['Kleiner Tipp: Wenn du rennst, siehst du weniger. Ab und zu einfach mal stehen bleiben.', 'Im Teich schwimmen andere Fische als im Meer. Wanda weiß das ganz genau. Frag sie mal.', 'Abends lohnt sich ein Blick in den Himmel. Manchmal fallen Sterne. Dann schnell was wünschen.'],
+    gift: {
+      love: ['{i}... für mich? Das ist so lieb, dass ich mich glatt beeilen würde. Fast.', 'Oh, {i}! Das trinke ich heute Abend im Bad. Danke, {i} macht mich sehr glücklich.'],
+      like: ['{i}. Schön. Danke dir, wirklich.', 'Danke! {i} passt gut zu meinem Tee.'],
+      neutral: ['Oh, {i}. Danke. Ich leg es neben meine Teekanne.', 'Danke. Ich weiß noch nicht, wofür {i} gut ist. Aber ich hab ja Zeit.'],
+      dislike: ['{i}... hm. Das macht mich ein kleines bisschen unruhig. Aber danke.', 'Oh. {i}. Das bringe ich lieber ganz langsam weit weg.'],
+    },
+    letters: {
+      2: ['Tee und Grüße', 'Hallo {p},\nschön, dass du hier bist. Wenn du mal eine Pause brauchst: Mein Teich hat Platz.\nKalle'],
+      4: ['Ein ruhiger Gruß', 'Hallo {p},\nich hab heute eine Stunde lang einer Wolke zugeschaut. Sie sah aus wie du beim Angeln. Sehr konzentriert.\nKalle'],
+      6: ['Für meinen Teegast', 'Liebe/r {p},\nfür dich steht ab jetzt immer eine Tasse bereit. Mit deinem Namen drauf. Fast fertig bemalt.\nDein Kalle'],
+      8: ['Langsam, aber ehrlich', '{p},\nich bin nicht gut mit Worten. Aber mit Tee. Und mit Tee sage ich: Du bist ein richtig guter Freund.\nDein Kalle'],
+      10: ['Beste Freunde', '{p},\nich hab lange nachgedacht. Sehr lange. Ergebnis: Du bist mein allerbester Freund auf der Insel.\nFür immer, Kalle'],
+      0: ['Ein Gruß', 'Hallo {p},\nheute ist ein guter Tag für ein Bad. Wollte ich nur sagen.\nKalle'],
+    },
+    request: ['Sag mal... hättest du {n}× {i} für mich? Ganz ohne Eile. Wirklich.', 'Ich mische eine neue Teesorte. Dafür bräuchte ich {n}× {i}. Bringst du sie mir irgendwann?'],
+  },
+  wanda: {
+    morning: ['Guten Morgen, {p}! Ich habe heute schon siebzehn Kaulquappen gezählt. Es könnten auch achtzehn sein, eine war sehr zappelig.', 'Morgens ist das Wasser am klarsten! Perfekte Bedingungen für die Wissenschaft!'],
+    day: ['Hallo, {p}! Wusstest du, dass manche Fische nur zu bestimmten Uhrzeiten auftauchen? Faszinierend!', 'Ah, {p}! Halt mal kurz still... Nein, doch nicht, ich dachte, auf dir sitzt ein seltener Käfer.'],
+    evening: ['Abends werden die Glühwürmchen wach. Ich schreibe alles auf. ALLES.', 'Guten Abend! Mein Notizbuch ist schon wieder voll. Das dritte diese Woche!'],
+    night: ['Nachts leuchten manche Insekten! Ich bin viel zu aufgeregt, um zu schlafen.', 'Pssst! Wenn wir ganz leise sind, kommen vielleicht die Nachtfalter.'],
+    sun: ['Bei Sonne sieht man die Fischschatten besonders gut. Schau mal genau hin!'],
+    rain: ['Regen! Regen bedeutet andere Fische! Und Schnecken! Und Frösche! Ich liebe Regen!', 'Bei Regen fühle ich mich wie zu Hause. Also, wie im Teich.'],
+    snow: ['Schnee ist eigentlich gefrorene Wolke. Ich hab das untersucht. Mit der Zunge.'],
+    spring: ['Im Frühling schlüpfen so viele Insekten! Ich komme mit dem Zählen kaum hinterher!'],
+    summer: ['Im Sommer kommen die großen Fische. Vielleicht sogar ein Hai! Im Meer natürlich, nicht im Teich. Hoffentlich.'],
+    autumn: ['Im Herbst wandern manche Fische. Ich wandere hinterher. Mit Notizbuch.'],
+    winter: ['Im Winter wird es im Teich ganz still. Ich forsche dann an meinen Notizen. Und an Keksen.'],
+    tier: [
+      ['Oh! Ein neues Gesicht! Ich bin Wanda, Teichforscherin! Darf ich dich vermessen? War ein Witz. Halb.', 'Hallo! Hast du schon das Museum besucht? Jeder Fund ist wichtig für die Forschung!', 'Entschuldige, meine Kiemen wackeln immer, wenn ich aufgeregt bin. Also eigentlich immer.'],
+      ['{p}! Ich hab heute eine neue Schneckenart entdeckt! Ach nein, war doch dieselbe. Aber von hinten!', 'Weißt du, was ich an dir mag? Du bringst immer so spannende Sachen mit!', 'Ich hab dich gestern angeln sehen. Gute Technik! Ich hab mir Notizen gemacht.'],
+      ['{p}, du bist meine liebste Mitforscherin. Oder Mitforscher. Auf jeden Fall die liebste Person!', 'In meinem Notizbuch hast du jetzt eine eigene Seite. Mit Zeichnung!', 'Mit dir macht sogar Unkrautzählen Spaß. Und das will was heißen.'],
+      ['{p}, ich hab eine Entdeckung gemacht: Du bist meine beste Freundin. Oder mein bester Freund. Wissenschaftlich bewiesen!', 'Wenn ich je eine neue Art entdecke, benenne ich sie nach dir. Versprochen!', 'Meine Kiemen wackeln, wenn du kommst. Das hat nichts mit Aufregung zu tun. Na gut, doch.'],
+    ],
+    partner: ['Du und {q}, ihr seid wie Frosch und Seerose. Gehört einfach zusammen!', 'Ich hab {q} gesehen! Ihr zwei solltet mal zusammen in den Teich schauen. Es gibt so viel zu entdecken!'],
+    gossip: ['Kalle badet jeden Tag in meinem Forschungsteich. Ich hab ihn jetzt als "großer, freundlicher Stein" eingetragen.', 'Pippa sagt, sie hat einen Hai im Teich gesehen. Das ist wissenschaftlich unmöglich. Glaube ich.', 'Lio hat mich gemalt! Er hat mir drei Kiemen zu viel gegeben. Oder zu wenig? Ich muss nachzählen.'],
+    tips: ['Forschungstipp: Große Fischschatten bedeuten große Fische! Kleine Schatten... kleine Fische. Logisch!', 'Bei Luftblasen im Meer kann man tauchen! Mit Neoprenanzug natürlich. Da unten wohnen tolle Tiere!', 'Bring deine Funde ins Museum! Jeder Fund macht die Sammlung vollständiger. Und mich glücklicher!'],
+    gift: {
+      love: ['{i}?! Das ist ja... das ist ja SENSATIONELL! Danke, danke, danke!', 'Oh! {i}! Davon habe ich schon in drei Büchern gelesen! Und jetzt hab ich es selbst!'],
+      like: ['Oh, {i}! Das kommt gleich in meine Sammlung. Danke!', 'Wie spannend, {i}! Danke dir, das untersuche ich sofort.'],
+      neutral: ['Oh, {i}. Interessant. Ich notiere es mal unter "Sonstiges".', 'Danke! {i} kommt in die Kiste mit den ungeklärten Fällen.'],
+      dislike: ['{i}... ähm. Das ist wissenschaftlich gesehen nicht mein Lieblingsthema. Aber danke!', 'Oh. {i}. Meine Kiemen wackeln gerade nicht vor Freude. Aber es ist lieb gemeint!'],
+    },
+    letters: {
+      2: ['Forschungsbericht Nr. 1', 'Hallo {p}!\nNeue Erkenntnis: Seit du da bist, ist die Insel viel spannender. Komm mich doch mal am Teich besuchen!\nWanda'],
+      4: ['Eine Entdeckung', 'Hallo {p}!\nIch habe eine Schnecke gefunden, die genauso guckt wie du beim Nachdenken. Ich habe sie nach dir benannt.\nWanda'],
+      6: ['Notizbuch-Seite', 'Liebe/r {p},\nin meinem Notizbuch steht über dich: "Sehr nett. Bringt gute Sachen mit. Unbedingt öfter treffen."\nDeine Wanda'],
+      8: ['Ergebnis der Studie', '{p}!\nNach langer Forschung steht fest: Mit dir ist jeder Tag ein guter Tag. Die Daten sind eindeutig!\nDeine Wanda'],
+      10: ['Wissenschaftlich bewiesen', '{p},\nmeine wichtigste Entdeckung bisher bist du. Beste Freunde für immer – das ist jetzt offiziell notiert!\nDeine Wanda'],
+      0: ['Kurzer Bericht', 'Hallo {p}!\nHeute im Teich: 4 Frösche, 2 Libellen, 1 Kalle. Alles in Ordnung.\nWanda'],
+    },
+    request: ['Für meine Forschung bräuchte ich {n}× {i}. Kannst du mir helfen? Bitte, bitte!', 'Ich habe eine Theorie, aber für den Beweis fehlen mir {n}× {i}. Bringst du sie mir?'],
   },
 };
 

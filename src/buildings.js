@@ -774,7 +774,7 @@ function plazatree(P, G, s) {
   else P.push(cyl(0.86, 0.86, 0.05, SNOW, 0, 0.35, 0, 18));
 }
 // Häuschen der Nachbarn: in ihren Lieblingsfarben, mit Briefkasten
-const VH = { mira: [0xfff2e6, 0xff8fab, 0xb77a5a], bruno: [0xd9a46b, 0x4f8f5a, 0x7a4e35], pippa: [0xd6efff, 0x5aa0e0, 0xfff7ea], lio: [0xffc98f, 0xd9583a, 0x8f5a3c] };
+const VH = { mira: [0xfff2e6, 0xff8fab, 0xb77a5a], bruno: [0xd9a46b, 0x4f8f5a, 0x7a4e35], pippa: [0xd6efff, 0x5aa0e0, 0xfff7ea], lio: [0xffc98f, 0xd9583a, 0x8f5a3c], kalle: [0xfff0c9, 0x7fbf6a, 0x9a6b44], wanda: [0xf3e6ff, 0xff8fbf, 0x7d9ad6] };
 function vhouse(id, P, G, s) {
   const [wall, roof, door] = VH[id] || VH.mira, W = 1.9, D = 1.6, top = 1.35, snow = s === 'winter', prof = [[D / 2 + 0.3, 0], [0, 0.95]], gf = fill(W, D, prof, wall);
   P.push(rb(W + 0.14, 0.2, D + 0.14, STONE_D, 0, 0.1, -0.1, 0.04), rb(W, top - 0.2, D, wall, 0, 0.2 + (top - 0.2) / 2, -0.1, 0.05), ...tf([gf.p], 0, top, -0.1));
@@ -789,6 +789,7 @@ const BUILD = {
   house, coop, barn, mail,
   office: (l, s, P, G) => office(P, G, s), shop: (l, s, P, G) => shop(P, G, s), museum: (l, s, P, G) => museum(P, G, s), plazatree: (l, s, P, G) => plazatree(P, G, s),
   vhouse_mira: (l, s, P, G) => vhouse('mira', P, G, s), vhouse_bruno: (l, s, P, G) => vhouse('bruno', P, G, s), vhouse_pippa: (l, s, P, G) => vhouse('pippa', P, G, s), vhouse_lio: (l, s, P, G) => vhouse('lio', P, G, s),
+  vhouse_kalle: (l, s, P, G) => vhouse('kalle', P, G, s), vhouse_wanda: (l, s, P, G) => vhouse('wanda', P, G, s),
   market: (l, s, P, G) => market(P, G, s), bin: (l, s, P, G) => bin(P, G, s), board: (l, s, P, G) => board(P, G, s),
   bench: (l, s, P, G) => bench(P, G, s), kitchen: (l, s, P, G) => kitchen(P, G, s),
 };

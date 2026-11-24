@@ -4,7 +4,7 @@ import * as S from './state.js';
 import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT, PAVE, WEEKDAYS, weekday, FOSSILS } from './data.js';
 const FOSSIL_IDS = FOSSILS.map(f => f[0]);
 import * as net from './net.js';
-import { audio, unlock, play, setMusic, setVolumes, ambience, blip, musicFor } from './audio.js';
+import { audio, unlock, play, setMusic, setVolumes, ambience, speak, musicTick } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { Editor, settingsHtml } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
@@ -166,7 +166,7 @@ function handleAct(id, a) {
   const out = S.act(G.s, a);
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -333,6 +333,11 @@ function onRes(r) {
   if (r.msg) toast(r.msg);
   if (r.caught) toast(`${ITEMS[r.caught].cat === 'fish' ? '🎣' : ITEMS[r.caught].cat === 'bug' && !FOSSIL_IDS.includes(r.caught) ? '🦋' : '⛏️'} ${ITEMS[r.caught].icon} ${ITEMS[r.caught].name}!`);
   if (r.learned) { play('level'); world.float(G.players[G.me].x, G.players[G.me].z, '📜✨', 2); }
+  // Fundstück kurz hochhalten (nur bei Dingen, die man noch nicht oft hat)
+  if (r.got && ITEMS[r.got] && G.players[G.me] && !G.players[G.me].sw) {
+    const me = G.players[G.me], n = G.s.inv[r.got] || 0, big = n <= 1 || ITEMS[r.got].furn || ITEMS[r.got].place;
+    if (big) { animate('lift'); world.float(me.x, me.z, ITEMS[r.got].icon, 2.1, { cls: 'hold', life: 1.4, rise: 0.15, follow: () => G?.players[G.me] }); play('harvest'); }
+  }
   if (r.newAlbum) { toast(`📖 Neu im Sammelbuch: ${ITEMS[r.newAlbum].icon} ${ITEMS[r.newAlbum].name}`, 'ach'); play('ach'); }
 }
 function onLevel(l) {
@@ -1175,20 +1180,46 @@ function openTalk(id) {
   world.npcSay(id, 'happy');
   play('chat');
 }
-let typeTimer = null;
-const VOICE = { mira: 620, bruno: 210, pippa: 760, lio: 440 };
-function say2(text) { // Tippen wie in einer Sprechblase, mit Plapper-Stimme
+let typeTimer = null, typeFull = '';
+const VOWELS = 'aeiouäöüy';
+function say2(text) { // Tippen wie in einer Sprechblase, dazu die Plapper-Stimme der Figur
   clearInterval(typeTimer);
-  let i = 0;
-  const v = VOICE[G?.talk?.id] || 500;
-  $('dlgtext').textContent = '';
+  const v = NPCS[G?.talk?.id]?.voice || { pitch: 500 }, el = $('dlgtext'), sp = v.speed || 28;
+  // Zeitplan: wann welcher Buchstabe erscheint (Pausen nach Satzzeichen)
+  const at = [];
+  let t = 0;
+  for (let k = 0; k < text.length; k++) {
+    at.push(t);
+    t += sp;
+    if (/[.!?…]/.test(text[k]) && text[k + 1] === ' ') t += sp * 7;
+    else if (text[k] === ',' || text[k] === '\n') t += sp * 3;
+  }
+  const t0 = performance.now();
+  let i = 0, lastSyl = 0;
+  typeFull = text;
+  el.textContent = '';
+  el.parentElement.classList.remove('done');
   typeTimer = setInterval(() => {
-    i += 2;
-    $('dlgtext').textContent = text.slice(0, i);
-    if (i % 4 === 0 && /[a-zäöüß]/i.test(text[i] || '')) blip(v);
-    if (i >= text.length) clearInterval(typeTimer);
-  }, 24);
+    const now = performance.now(), el2 = now - t0;
+    let vowel = -1;
+    while (i < text.length && at[i] <= el2) { if (VOWELS.includes(text[i].toLowerCase())) vowel = i; i++; }
+    el.textContent = text.slice(0, i);
+    if (vowel >= 0 && now - lastSyl > (v.gap || 70)) {
+      lastSyl = now;
+      const rest = text.slice(vowel + 1), end = (rest.match(/^[^.!?…]*([.!?…])/) || [])[1] || '';
+      speak(text[vowel].toLowerCase(), v, rest.search(/[.!?…]/) < 4 ? end : '');
+    }
+    if (i >= text.length) { clearInterval(typeTimer); typeTimer = null; el.parentElement.classList.add('done'); }
+  }, 16);
 }
+// Antippen des Textes: sofort ganz anzeigen
+$('dlgtext').addEventListener('click', () => {
+  if (!typeTimer) return;
+  clearInterval(typeTimer);
+  typeTimer = null;
+  $('dlgtext').textContent = typeFull;
+  $('dlgtext').parentElement.classList.add('done');
+});
 function closeTalk() {
   clearInterval(typeTimer);
   if (G) G.talk = null;
@@ -1484,7 +1515,7 @@ function gameFrame(dt, now) {
   if (panels.open === 'map') drawMap();
   if (s.balloon && G.balloonSeen !== s.balloon.id) { G.balloonSeen = s.balloon.id; toast('🎈 Ein Geschenkballon schwebt über die Insel! Schnapp dir die Schleuder.'); play('chat'); }
   ambience({ day: info.day, night: info.night, rain: s.weather === 'rain', walking: me.m });
-  musicFor(info.night > 0.6 ? 'night' : 'day');
+  musicTick(6 + s.dayTime * 18, s.weather === 'rain');
   // Nachbarn sagen ab und zu etwas, wenn man in der Nähe ist
   if (now > (G.nextChatter || 0) && !G.talk) {
     G.nextChatter = now + 14000 + Math.random() * 12000;
@@ -1562,4 +1593,4 @@ function demoFarm() {
 
 showMenu(joinParam ? 'join' : 'title');
 requestAnimationFrame(frame);
-window.__game = { get G() { return G; }, world, S, profile, settings }; // für Tests & Fehlersuche
+window.__game = { get G() { return G; }, world, S, profile, settings, openTalk }; // für Tests & Fehlersuche
