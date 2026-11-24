@@ -39,7 +39,7 @@ audio.music = settings.music;
 
 // Blender-Modelle laden (der Ladebildschirm zeigt den Fortschritt)
 await loadAssets(['buildings', 'nature', 'crops', 'place', 'furniture', 'characters', 'sky'], f => { const el = document.querySelector('#loading div'); if (el) el.innerHTML = `<span>🏝️</span><br>Kuschelinsel lädt… ${Math.round(f * 100)}%`; });
-await loadTextures(['grass', 'path', ...FLOORS.map(f => 'floor_' + f[0]), ...WALLS.map(w => 'wall_' + w[0])]);
+await loadTextures(['grass', 'path', 'cobble', 'glint', ...FLOORS.map(f => 'floor_' + f[0]), ...WALLS.map(w => 'wall_' + w[0])]);
 const world = new World($('c'), $('labels'), settings.quality);
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {

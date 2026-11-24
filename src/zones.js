@@ -5,6 +5,7 @@ import * as M from './models.js';
 import * as N from './nature.js';
 import { building } from './buildings.js';
 import { placeable } from './nature.js';
+import { tex, model } from './assets.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT, TROPIC_TREES, TOURS, TOUR_ICON, shopOpen, concertNow } from './newleaf.js';
 
 function canvasTex(w, h, paint, rep) {
@@ -22,9 +23,9 @@ const put = (g, m, x, z, ry = 0) => { m.position.set(x, 0, z); m.rotation.y = ry
 function buildStreet() {
   const g = new THREE.Group(), X = STREET.x, Z = STREET.z;
   // Wiese rundherum, Kopfsteinpflaster, Gehweg vor den Läden
-  const grass = new THREE.Mesh(new THREE.PlaneGeometry(90, 60), new THREE.MeshLambertMaterial({ color: 0x86c75e }));
+  const grass = new THREE.Mesh(new THREE.PlaneGeometry(90, 60), new THREE.MeshLambertMaterial({ color: 0x86c75e, map: tex('grass', 45, 30) }));
   grass.rotation.x = -Math.PI / 2; grass.position.set(X, -0.02, Z); grass.receiveShadow = true; g.add(grass);
-  const cobble = canvasTex(128, 128, c => {
+  const cobble = tex('cobble', 29 / 2, 8.2 / 2) || canvasTex(128, 128, c => { // Kopfstein aus Blender
     c.fillStyle = '#c9bfb2'; c.fillRect(0, 0, 128, 128);
     for (let y = 0; y < 128; y += 16) for (let x = 0; x < 128; x += 16) {
       const o = (y / 16) % 2 ? 8 : 0;
@@ -49,7 +50,7 @@ function buildStreet() {
   // Wimpelketten über der Straße
   const cols = [0xff6b8a, 0xffd23f, 0x6cc4ff, 0x8fd694, 0xb39cff], flags = [];
   for (let i = 0; i < 26; i++) { const x = -13 + i * 1.04, y = 3.4 - Math.sin(i / 25 * Math.PI) * 0.5; flags.push(M.cone(0.13, 0.26, cols[i % 5], x, y, 0, 3, Math.PI)); }
-  for (const z of [-1.2, 1.4]) { const m = M.model(flags.map(f => ({ g: f.g.clone(), c: f.c })), [], false); m.position.set(X, 0, Z + z); g.add(m); }
+  for (const z of [-1.2, 1.4]) { const m = model('bunting') || M.model(flags.map(f => ({ g: f.g.clone(), c: f.c })), [], false); m.position.set(X, 0, Z + z); g.add(m); }
   g.userData.lights = [-12, -6, 6, 12].map(x => [X + x, Z + 3.9]);
   return g;
 }
@@ -69,16 +70,18 @@ function buildTropic() {
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   geo.computeVertexNormals();
-  const land = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+  const land = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: tex('grass', R + 1.2, R + 1.2) }));
   land.position.set(X, 0, Z); land.receiveShadow = true; g.add(land);
   // Meer: türkis am Strand, tiefblau draußen, Schaumkante
-  const U = { t: { value: 0 }, night: { value: 0 } };
+  const glintT = tex('glint') || new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+  glintT.needsUpdate = true;
+  const U = { t: { value: 0 }, night: { value: 0 }, glint: { value: glintT } };
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(140, 140, 70, 70), new THREE.ShaderMaterial({
     uniforms: U, transparent: true, depthWrite: false,
     vertexShader: `varying vec3 vw; void main(){ vec3 transformed = position; vec4 wq = modelMatrix * vec4(position, 1.0); vw = wq.xyz;
       #include <project_vertex>
       }`,
-    fragmentShader: `uniform float t, night; varying vec3 vw;
+    fragmentShader: `uniform float t, night; uniform sampler2D glint; varying vec3 vw;
       void main(){
         float c = length(vw.xz - vec2(${X.toFixed(1)}, ${Z.toFixed(1)})) - ${(R + 0.3).toFixed(2)};
         vec3 col = mix(vec3(0.45, 0.93, 0.88), vec3(0.16, 0.7, 0.86), smoothstep(0.0, 6.0, c));
@@ -87,6 +90,8 @@ function buildTropic() {
         col += smoothstep(0.9, 1.4, w) * 0.12;
         float foam = smoothstep(0.35, 0.0, abs(c - 0.2 - sin(t * 1.3 + vw.x * 0.4 + vw.z * 0.3) * 0.25));
         col = mix(col, vec3(1.0), foam * 0.85);
+        float g1 = smoothstep(0.35, 0.95, texture2D(glint, vw.xz * 0.21 + vec2(t * 0.012, t * 0.007)).r), g2 = smoothstep(0.3, 0.9, texture2D(glint, vw.xz * 0.13 - vec2(t * 0.009, -t * 0.011)).r);
+        col += g1 * (0.35 + g2 * 0.9) * 0.45 * (1.0 - night * 0.7);
         col *= mix(1.0, 0.38, night);
         gl_FragColor = vec4(col, mix(0.75, 0.96, smoothstep(-0.5, 2.0, c)));
       }`,

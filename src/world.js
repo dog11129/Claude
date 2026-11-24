@@ -438,7 +438,13 @@ export class World {
 
   // Meer, Fluss mit Wasserfall, Teich – alle mit derselben Krümmung wie der Boden
   buildWater() {
-    const U = this.waterU = { t: { value: 0 }, night: { value: 0 }, ice: { value: 0 } };
+    // Glitzern aus Blender (weiße Funkel auf Schwarz); ohne Textur ein schwarzes Pixel = kein Glitzern
+    const glintT = tex('glint') || new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+    glintT.needsUpdate = true;
+    const U = this.waterU = { t: { value: 0 }, night: { value: 0 }, ice: { value: 0 }, glint: { value: glintT } };
+    const GLINT = `uniform sampler2D glint;
+      float sparkle(vec2 p, float t){ float a = smoothstep(0.35, 0.95, texture2D(glint, p * 0.21 + vec2(t * 0.012, t * 0.007)).r);
+        float b = smoothstep(0.3, 0.9, texture2D(glint, p * 0.13 + vec2(-t * 0.009, t * 0.011)).r); return a * (0.35 + b * 0.9); }`;
     const vert = `varying vec3 vw; varying float vfall; attribute float fall;
       void main(){ vec3 transformed = position; vec4 wq = modelMatrix * vec4(position, 1.0); vw = wq.xyz; vfall = fall;
       #include <project_vertex>
@@ -451,7 +457,7 @@ export class World {
     const sea = new THREE.Mesh(seaGeo, new THREE.ShaderMaterial({
       uniforms: U, transparent: true, depthWrite: false,
       vertexShader: vert,
-      fragmentShader: `uniform float t, night; varying vec3 vw; ${coastGL}
+      fragmentShader: `uniform float t, night; varying vec3 vw; ${coastGL} ${GLINT}
         void main(){
           float c = coast(vw.xz);
           vec3 shallow = vec3(0.42, 0.88, 0.86), mid = vec3(0.18, 0.66, 0.84), deep = vec3(0.10, 0.42, 0.72);
@@ -461,6 +467,7 @@ export class World {
           col += smoothstep(0.9, 1.4, w) * 0.12;
           float foam = smoothstep(0.35, 0.0, abs(c - 0.35 - sin(t * 1.3 + vw.x * 0.4 + vw.z * 0.3) * 0.25));
           col = mix(col, vec3(1.0), foam * 0.85);
+          col += sparkle(vw.xz, t) * 0.45 * (1.0 - night * 0.7);
           col *= mix(1.0, 0.38, night);
           float a = mix(0.7, 0.96, smoothstep(-0.5, 2.0, c));
           gl_FragColor = vec4(col, a);
@@ -491,13 +498,14 @@ export class World {
     const river = new THREE.Mesh(rg, new THREE.ShaderMaterial({
       uniforms: U, transparent: true, depthWrite: false, side: THREE.DoubleSide,
       vertexShader: vert,
-      fragmentShader: `uniform float t, night, ice; varying vec3 vw; varying float vfall;
+      fragmentShader: `uniform float t, night, ice; varying vec3 vw; varying float vfall; ${GLINT}
         void main(){
           float flow = sin(vw.z * 3.0 - t * 4.0 + sin(vw.x * 2.0) * 1.5) * 0.5 + 0.5;
           vec3 col = mix(vec3(0.30, 0.74, 0.86), vec3(0.48, 0.86, 0.92), flow * 0.5);
           float streak = smoothstep(0.55, 1.0, sin(vw.x * 13.0 + sin(vw.y * 3.0)) * 0.5 + 0.5) * (0.6 + 0.4 * sin(vw.y * 8.0 + t * 12.0));
           col = mix(col, vec3(0.95, 0.99, 1.0), clamp(vfall * (0.55 + streak * 0.45), 0.0, 1.0));
           col = mix(col, vec3(0.86, 0.94, 0.99), ice * 0.7 * (1.0 - vfall));
+          col += sparkle(vw.xz * 1.6 + vec2(0.0, t * 0.5), t) * 0.35 * (1.0 - vfall) * (1.0 - ice);
           col *= mix(1.0, 0.38, night);
           gl_FragColor = vec4(col, 0.9);
         }`,
@@ -512,7 +520,7 @@ export class World {
     const pond = new THREE.Mesh(pg, new THREE.ShaderMaterial({
       uniforms: U, transparent: true, depthWrite: false,
       vertexShader: vert,
-      fragmentShader: `uniform float t, night, ice; varying vec3 vw;
+      fragmentShader: `uniform float t, night, ice; varying vec3 vw; ${GLINT}
         void main(){
           vec2 q = vw.xz - vec2(${POND.cx.toFixed(2)}, ${POND.cz.toFixed(2)});
           float r = length(q) / ${(POND.r + 0.25).toFixed(2)};
@@ -520,6 +528,7 @@ export class World {
           float w = sin(q.x * 3.1 + t * 1.3) * sin(q.y * 2.7 - t * 1.1) + sin((q.x + q.y) * 4.3 + t * 2.0) * 0.5;
           c += smoothstep(0.75, 1.3, w) * 0.22 * (1.0 - ice);
           c = mix(c, vec3(0.86, 0.94, 0.99), ice * 0.8);
+          c += sparkle(vw.xz * 1.3, t * 0.6) * 0.35 * (1.0 - ice);
           c *= mix(1.0, 0.35, night);
           gl_FragColor = vec4(c, 0.92);
         }`,
