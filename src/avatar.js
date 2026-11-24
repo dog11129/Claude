@@ -246,12 +246,16 @@ const HELD = {
     cyl(0.004, 0.004, 0.3, 0xeeeeee, 0, -0.82, -0.14, 3, -1.19), ball(0.02, 0xff6b6b, 0, -0.77, -0.28, 1, 1, 1, 5)]],
   seeds: [0, true, () => [ell(0.085, 0xd9b98a, 0, -0.12, 0.02, 1, 1.1, 0.9, 0, 0, 0, 8), cyl(0.032, 0.05, 0.05, 0xc9a370, 0, -0.035, 0.02, 7),
     cyl(0.038, 0.038, 0.015, 0xff6b8a, 0, -0.05, 0.02, 7), ell(0.03, 0x76c955, 0, -0.12, 0.1, 1, 0.6, 0.3, 0, 0, 0.5)]],
+  net: [-0.6, false, () => [cyl(0.016, 0.018, 0.75, WOOD, 0, -0.3, 0, 5), ring(0.13, 0.014, 0xd9d9d9, 0, -0.78, 0, Math.PI * 2, Math.PI / 2, 0, 0, 12),
+    cone(0.12, 0.2, 0xf4f1ea, 0, -0.86, 0, 10, Math.PI)]],
+  shovel: [-0.7, false, () => [cyl(0.018, 0.02, 0.6, WOOD, 0, -0.25, 0, 5), box(0.1, 0.025, 0.04, WOOD, 0, 0.04, 0), box(0.14, 0.18, 0.025, METAL, 0, -0.62, 0.0), cone(0.07, 0.07, METAL, 0, -0.74, 0, 4, Math.PI, Math.PI / 4)]],
+  axe: [-0.9, false, () => [cyl(0.02, 0.024, 0.55, WOOD, 0, -0.22, 0, 5), box(0.05, 0.12, 0.16, METAL, 0, -0.46, 0.05), box(0.02, 0.13, 0.04, 0xd9dde2, 0, -0.46, 0.14)]],
   box: [0, true, () => [box(0.24, 0.17, 0.2, 0xc98d55, 0.12, -0.08, 0.1), box(0.25, 0.03, 0.21, 0x9c6b3f, 0.12, -0.02, 0.1), box(0.25, 0.03, 0.21, 0x9c6b3f, 0.12, -0.12, 0.1),
     ball(0.05, 0xff3b3b, 0.08, 0.02, 0.08, 1, 1, 1, 6), ball(0.05, 0xff8a2a, 0.16, 0.02, 0.12, 1, 1, 1, 6)]],
 };
 
 // ---------- Avatar ----------
-const REST = { y: 0, rz: 0, tx: 0, ty: 0, tz: 0, hx: 0, hz: 0, lLx: 0, lLz: 0, lRx: 0, lRz: 0, aLx: 0, aLz: 0.2, aRx: 0, aRz: 0.2, hand: 0 };
+const REST = { y: 0, rz: 0, rx: 0, ry: 0, z: 0, tx: 0, ty: 0, tz: 0, hx: 0, hz: 0, lLx: 0, lLz: 0, lRx: 0, lRz: 0, aLx: 0, aLz: 0.2, aRx: 0, aRz: 0.2, hand: 0 };
 const cl = x => Math.min(1, Math.max(0, x)), ease = x => x * x * (3 - 2 * x);
 
 function mesh(g, parent, x = 0, y = 0, z = 0) {
@@ -308,6 +312,7 @@ export function makeAvatar(look) {
     t.aLz += br * 0.03; t.aRz += br * 0.03; t.hx = br * 0.02;
     if (held === 'box') { t.aLx = t.aRx = -0.85; t.aLz = t.aRz = -0.25; }
     if (st.pose === 'sit') { t.y = 0.13; t.rz = 0; t.tx = 0; t.lLx = t.lRx = -1.45; t.lLz = t.lRz = 0.08; t.aLx = t.aRx = -0.35; }
+    if (st.pose === 'sleep') { t.rx = -1.5; t.y = 0.55; t.rz = 0; t.tx = 0; t.lLx = t.lRx = 0; t.aLx = t.aRx = 0; t.aLz = t.aRz = 0.15; t.hz = 0.25 + br * 0.03; eye = 0.08; }
 
     switch (st.act) {
       case 'hoe': {
@@ -330,6 +335,14 @@ export function makeAvatar(look) {
       case 'plant': t.y = -0.07 * e; t.lLx = -0.7 * e; t.lRx = 0.55 * e; t.tx = 0.55 * e; t.aLx = t.aRx = -0.75 * e; t.aLz = t.aRz = 0; t.hx = 0.25 * e; break;
       case 'pet': t.aLx = t.aRx = (-1.0 + Math.sin(T * 16) * 0.12) * e; t.aLz = t.aRz = -0.1 * e; t.tx = 0.45 * e; t.y = -0.03 * e; t.hx = 0.1 * e; break;
       case 'use': t.aRx = -1.4 * e; t.aRz = 0; break;
+      case 'shake': t.aLx = t.aRx = -2.1 * Math.min(1, e * 2); t.aLz = t.aRz = -0.2; t.ty = Math.sin(T * 30) * 0.12 * e; t.tx = 0.15 * e; break;
+      case 'highfive': { const h = Math.min(1, e * 2); t.aRx = -2.9 * h; t.aRz = -0.25 * h; t.tx = 0.1 * h; t.y = 0.05 * e; break; }
+      case 'kiss': { const h = Math.min(1, e * 2); t.tx = 0.35 * h; t.hx = 0.15 * h; t.hz = 0.2 * h; t.aLx = t.aRx = -0.5 * h; t.aLz = t.aRz = 0.5 * h; t.lLx = 0.5 * h; break; }
+      case 'net': {
+        const u = ease(a);
+        t.aRx = -1.7 + 0.6 * u; t.aRz = 1.3 - 2.2 * u; t.aLx = -1.2; t.aLz = -0.3; t.ty = -0.5 + 1.0 * u; t.tx = 0.2;
+        break;
+      }
       case 'hug': { const h = Math.min(1, e * 2); t.aLx = t.aRx = -1.35 * h; t.aLz = t.aRz = -0.5 * h; t.tx = 0.1 * h; t.hz = 0.15 * h; break; }
       case 'fish': {
         const up = ease(cl(a / 0.45)), dn = ease(cl((a - 0.45) / 0.15));
@@ -345,13 +358,23 @@ export function makeAvatar(look) {
       case '😮': t.y += Math.max(0, Math.sin(T * 6)) * 0.08; t.hx = -0.15; t.aLz = t.aRz = 0.6; eye = 1.25; break;
       case '❤️': case '❤': case '🥰': t.aLx = t.aRx = -1.0; t.aLz = t.aRz = -0.75; t.rz = Math.sin(T * 3) * 0.08; t.hz = Math.sin(T * 3 + 0.6) * 0.14; break;
       case '😴': t.hz = 0.35; t.hx = 0.2 + br * 0.04; t.tx += 0.06; t.aLz = t.aRz = 0.08; eye = 0.1; break;
-      case '👍': t.aRx = -1.45 + Math.sin(T * 8) * 0.08; t.aRz = -0.15; break;
+      case '👍': case '🍀': t.aRx = -1.45 + Math.sin(T * 8) * 0.08; t.aRz = -0.15; break;
+      case '💤': t.hz = 0.35; t.hx = 0.2 + br * 0.04; t.tx += 0.06; t.aLz = t.aRz = 0.08; eye = 0.1; break;
+      case '💃': { const d = Math.sin(T * 9); t.rz = d * 0.15; t.y += Math.abs(d) * 0.06; t.aLx = t.aRx = 0; t.aLz = 2.4 + d * 0.5; t.aRz = 2.4 - d * 0.5; t.hz = -d * 0.15; t.ry = Math.sin(T * 4.5) * 0.4; eye = 0.6; break; }
+      case '👏': t.aLx = t.aRx = -1.3; t.aLz = t.aRz = -0.35 + Math.abs(Math.sin(T * 14)) * 0.5; t.y += Math.abs(Math.sin(T * 7)) * 0.03; eye = 0.6; break;
+      case '😢': t.hx = 0.35; t.aLx = t.aRx = -1.9; t.aLz = t.aRz = -0.7; t.tz = Math.sin(T * 18) * 0.03; eye = 0.3; break;
+      case '😡': t.aLx = t.aRx = 0.2; t.aLz = t.aRz = 0.55; t.y += Math.max(0, Math.sin(T * 12)) * 0.05; t.tz = Math.sin(T * 24) * 0.04; t.hx = 0.1; eye = 0.55; break;
+      case '🤔': t.aRx = -2.05; t.aRz = -0.75; t.aLx = -0.6; t.aLz = -0.6; t.hz = 0.18 + Math.sin(T * 2) * 0.05; t.hx = -0.1; break;
+      case '😊': case '🙈': t.aLx = t.aRx = -2.2; t.aLz = t.aRz = -0.65; t.rz = Math.sin(T * 4) * 0.08; t.hx = 0.12; eye = st.emote === '🙈' ? 0.1 : 0.6; break;
+      case '😘': { const k = Math.sin(T * 5); t.aRx = -2.0 + k * 0.4; t.aRz = -0.5; t.tx = 0.15; t.hz = 0.15; eye = 0.25; break; }
+      case '🎵': t.rz = Math.sin(T * 5) * 0.12; t.hz = Math.sin(T * 5 + 1) * 0.2; t.aLz = t.aRz = 0.6 + Math.sin(T * 5) * 0.2; t.hx = -0.15; eye = 0.6; break;
+      case '✨': t.ry = T * 9; t.aLz = t.aRz = 1.4; t.y += 0.04; eye = 0.6; break;
     }
 
     if (T > blinkAt) { if (T > blinkAt + 0.13) blinkAt = T + 2 + Math.random() * 3; else eye = 0.1; }
     const k = 1 - Math.exp(-dt * 18);
     for (const n in c) c[n] += (t[n] - c[n]) * k;
-    rig.position.y = c.y; rig.rotation.z = c.rz;
+    rig.position.set(0, c.y, c.z); rig.rotation.set(c.rx, st.emote === '✨' ? t.ry % (Math.PI * 2) : c.ry, c.rz);
     torso.rotation.set(c.tx, c.ty, c.tz);
     body.scale.y = 1 + br * 0.012;
     neck.rotation.set(c.hx, 0, c.hz);

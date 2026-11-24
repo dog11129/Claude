@@ -79,8 +79,10 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   await sleep(500);
   check((await A.evaluate(() => window.__game.G.ctx?.label || '')).includes('umarmen'), 'Partner vor dir: Umarmen wird angeboten');
   await A.keyboard.press('e');
+  await sleep(300);
+  await A.click('#pbody [data-ui=soc][data-k=hug]');
   await sleep(600);
-  check(await B.evaluate(() => window.__game.G.players[window.__game.G.me].ak === 'hug'), 'Umarmung kommt beim Gast an');
+  check(await B.evaluate(() => window.__game.G.players[window.__game.G.me].ak === 'hug'), 'Umarmung (Zusammen-Menü) kommt beim Gast an');
   await B.evaluate(() => { window.__game.profile.look = { ...window.__game.profile.look, hat: 'crown' }; });
   await B.evaluate(() => [...document.querySelectorAll('[data-open=settings]')][0].click());
   await B.click('#pbody [data-ui=editlook]');

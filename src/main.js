@@ -1,12 +1,13 @@
 // Spielablauf: Menü, Steuerung, Host/Gast-Logik, Speichern.
 import { World, esc, cropInfo } from './world.js';
 import * as S from './state.js';
-import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS } from './data.js';
+import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL } from './data.js';
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { Editor, settingsHtml } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
+import { NPCS, npcLine, giftReply } from './npc.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -40,9 +41,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const r3 = v => Math.round(v * 1000) / 1000;
 // Zustand fürs Netz verkleinern: Kommazahlen kürzen
 const pack = s => JSON.parse(JSON.stringify(s, (k, v) => typeof v === 'number' && !Number.isInteger(v) ? r3(v) : v));
-const ACTS = ['hoe', 'can', 'sickle', 'plant', 'pet', 'fish', 'use', 'hug'];
-const HELD = ['hoe', 'can', 'sickle', 'rod', 'seeds', 'box'];
-const ANIM_OF = { till: 'hoe', water: 'can', plant: 'plant', harvest: 'sickle', place: 'use', pickup: 'use', use: 'use', animal: 'pet' };
+const ACTS = ['hoe', 'can', 'sickle', 'plant', 'pet', 'fish', 'use', 'hug', 'shake', 'highfive', 'kiss', 'net'];
+const HELD = ['hoe', 'can', 'sickle', 'rod', 'seeds', 'box', 'net', 'shovel', 'axe'];
+const ANIM_OF = { till: 'hoe', water: 'can', plant: 'plant', harvest: 'sickle', place: 'use', pickup: 'use', use: 'use', animal: 'pet', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake' };
 
 // ---------- kleine Helfer fürs HUD ----------
 function toast(text, kind) {
@@ -65,7 +66,7 @@ $('coverbtn').onclick = () => leave();
 // ---------- Spieler & Sitzung ----------
 const cleanProfile = p => ({ name: String(p?.name || '').trim().slice(0, 16) || 'Gast', look: cleanLook(p?.look || p) });
 const newPlayer = (id, p) => ({ id, ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: 'hoe', pose: null, fishing: false });
-const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hoe', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0 });
+const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hoe', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0, get myName() { return profile.name; } });
 
 // Gast-Kopien liegen unter eigenem Schlüssel, damit sie nie die eigene Farm überschreiben.
 function saveFarm() {
@@ -133,7 +134,8 @@ function hostData(id, d) {
   if (d.t === 'act') handleAct(id, d.a);
   if (d.t === 'chat') chat(id, d.text);
   if (d.t === 'emote') emote(id, d.e);
-  if (d.t === 'hug' && typeof d.id === 'string') hug(id, d.id);
+  if (d.t === 'hug' && typeof d.id === 'string') social(id, d.id, 'hug');
+  if (d.t === 'soc' && typeof d.id === 'string' && Object.hasOwn(SOCIAL, d.k)) social(id, d.id, d.k);
 }
 
 function hostLeave(id) {
@@ -154,7 +156,7 @@ function handleAct(id, a) {
   const out = S.act(G.s, a);
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -177,12 +179,13 @@ function emote(id, e) {
   G.net?.broadcast({ t: 'emote', id, e });
   showEmote(id, e);
 }
-function hug(a, b) {
+function social(a, b, k) {
   if (!Object.hasOwn(G.players, a) || !Object.hasOwn(G.players, b) || a === b) return;
   const pa = G.players[a], pb = G.players[b];
   if (!(Math.hypot(pa.x - pb.x, pa.z - pb.z) <= 3)) return;
-  G.net?.broadcast({ t: 'hug', a, b });
-  onHug(a, b);
+  G.net?.broadcast({ t: 'soc', a, b, k });
+  G.net?.broadcast({ t: 'hug', a, b }); // für ältere Versionen
+  onSocial(a, b, k);
 }
 
 // ---------- Gast ----------
@@ -252,7 +255,7 @@ function guestData(d) {
     case 'ach': onAch(d.ids); break;
     case 'chat': showChat(d); break;
     case 'emote': showEmote(d.id, d.e); break;
-    case 'hug': onHug(d.a, d.b); break;
+    case 'soc': if (Object.hasOwn(SOCIAL, d.k)) onSocial(d.a, d.b, d.k); break;
     case 'toast': toast(d.text); if (d.snd) play(d.snd); break;
     case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Farm geschickt.', true); break;
     case 'bye': G.ended = true; G.conn?.close(); saveFarm(); cover('🏡 Der Host hat die Farm verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Farmen“.', true); break;
@@ -291,7 +294,7 @@ function send(a) {
 const sendTo = (msg, local) => (G.role === 'host' ? local() : G.conn?.send(msg));
 const sendChat = text => sendTo({ t: 'chat', text }, () => chat(G.me, text));
 const sendEmote = e => sendTo({ t: 'emote', e }, () => emote(G.me, e));
-const sendHug = id => sendTo({ t: 'hug', id }, () => hug(G.me, id));
+const sendSocial = (id, k) => sendTo({ t: 'soc', id, k }, () => social(G.me, id, k));
 function sendLook() {
   const me = G.players[G.me];
   Object.assign(me, { name: profile.name, look: profile.look });
@@ -305,10 +308,12 @@ function showFx(fx) {
   }
 }
 function onRes(r) {
+  if (r.reaction && G.talk) giftAnswer(r.reaction);
   if (r.snd) play(r.snd);
   else if (r.msg && !r.ok) play('fail');
   if (r.msg) toast(r.msg);
-  if (r.caught) toast(`🎣 ${ITEMS[r.caught].icon} ${ITEMS[r.caught].name} gefangen!`);
+  if (r.caught) toast(`${ITEMS[r.caught].cat === 'fish' ? '🎣' : r.caught === 'kristall' || ['ammonit', 'knochen', 'zahn', 'abdruck', 'altmuenze', 'amphore', 'eiszapfen'].includes(r.caught) ? '⛏️' : '🦋'} ${ITEMS[r.caught].icon} ${ITEMS[r.caught].name}!`);
+  if (r.newAlbum) { toast(`📖 Neu im Sammelbuch: ${ITEMS[r.newAlbum].icon} ${ITEMS[r.newAlbum].name}`, 'ach'); play('ach'); }
 }
 function onLevel(l) {
   const neu = S.unlocksAt(l);
@@ -335,24 +340,27 @@ function showChat(m) {
   G.social[m.id] = { ...G.social[m.id], chat: m.text, chatUntil: performance.now() + 6000 };
   if (m.id !== G.me) play('chat');
 }
-function showEmote(id, e) {
-  G.social[id] = { ...G.social[id], emote: e, emoteUntil: performance.now() + 2600 };
-  if (e === '❤️' || e === '🥰') play('love');
+function showEmote(id, e, ms = 2600) {
+  G.social[id] = { ...G.social[id], emote: e, emoteUntil: performance.now() + ms };
+  const p = G.players[id];
+  if (p) world.emoteFx(p.x, p.z, e);
+  play({ '❤️': 'love', '🥰': 'love', '😘': 'love', '🎉': 'level', '👏': 'coin', '😂': 'chat', '💃': 'join', '🎵': 'join' }[e] || 'chat');
 }
-function onHug(a, b) {
+// Zusammen: Umarmen, Küsschen, High-Five, Tanzen
+function onSocial(a, b, k) {
   const pa = G.players[a], pb = G.players[b];
   if (!pa || !pb) return;
   if (a === G.me || b === G.me) {
     const me = G.players[G.me], o = a === G.me ? pb : pa;
     me.ry = Math.atan2(o.x - me.x, o.z - me.z);
     me.pose = null;
-    animate('hug');
-    G.social[G.me] = { ...G.social[G.me], emote: '🥰', emoteUntil: performance.now() + 2000 };
+    if (k === 'dance') { showEmote(a, '💃', 5000); showEmote(b, '💃', 5000); }
+    else animate(k);
   }
   const x = (pa.x + pb.x) / 2, z = (pa.z + pb.z) / 2;
-  world.burst(x, z, 'heart', 1.3);
-  world.float(x, z, '💕', 1.7);
-  play('love');
+  if (k === 'hug') { world.burst(x, z, 'heart', 1.3); world.float(x, z, '💕', 1.7); world.emoteFx(x, z, '🥰'); play('love'); }
+  if (k === 'kiss') { world.emoteFx(x, z, '😘'); world.float(x, z, '😘', 1.9); play('love'); }
+  if (k === 'highfive') { setTimeout(() => { world.burst(x, z, 'coin', 1.7); world.float(x, z, '✋✨', 2); play('coin'); }, 180); }
 }
 function animate(kind) {
   const me = G.players[G.me];
@@ -362,7 +370,8 @@ function animate(kind) {
 
 function announceDay() {
   const s = G.s;
-  say(`🌅 Tag ${s.day} beginnt – ${s.weather === 'rain' ? '🌧️ Regen gießt alle Felder!' : '☀️ Sonnenschein'}`);
+  const sea = S.seasonOf(s.day), newSea = (s.day - 1) % 7 === 0;
+  say(`${newSea ? `${SEASONS[sea][1]} Der ${SEASONS[sea][0]} beginnt! ` : '🌅 '}Tag ${s.day} – ${s.weather === 'rain' ? '🌧️ Regen gießt alle Felder!' : s.weather === 'snow' ? '🌨️ Es schneit!' : '☀️ Sonnenschein'}`);
   saveFarm();
 }
 
@@ -434,6 +443,7 @@ function leave() {
     if (g.role === 'guest') { g.ended = true; g.conn?.close(); }
     g.wake?.release?.();
   }
+  closeTalk();
   G = null;
   keys.clear();
   Object.assign(joy, { x: 0, y: 0, id: null });
@@ -604,6 +614,7 @@ const panels = new Panels({
   act: a => send(a),
   ui(kind, d) {
     if (kind === 'emote') { sendEmote(d.e); panels.close(); }
+    if (kind === 'soc' && Object.hasOwn(G.players, G.together || '')) { sendSocial(G.together, d.k); panels.close(); }
     if (kind === 'leave') leave();
     if (kind === 'fullscreen') toggleFullscreen();
     if (kind === 'editlook') openEditor();
@@ -694,14 +705,15 @@ $('rotbtn').onclick = () => world.rotate(Math.PI / 4);
 const keys = new Set();
 const joy = { x: 0, y: 0, id: null };
 let actHeld = false, nextAct = 0;
-const busy = () => !G?.ready || panels.open || editor.isOpen || G.photo;
+const busy = () => !G?.ready || panels.open || editor.isOpen || G.photo || G.talk;
 
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') { if (e.key === 'Escape') closeChat(); return; }
   if (!G?.ready) return;
   const k = e.key.toLowerCase();
   if (k === 'escape') {
-    if (G.photo) setPhoto(false);
+    if (G.talk) closeTalk();
+    else if (G.photo) setPhoto(false);
     else if (editor.isOpen) $('edcancel').click();
     else if (panels.open) panels.close(); else panels.show('settings');
     return;
@@ -827,6 +839,8 @@ function select(id) {
 // Was passiert am Punkt "at" (oder vor der Figur)? Andere Spieler kann man umarmen.
 function context(me, at) {
   const p = at || { x: me.x + Math.sin(me.ry) * 0.9, z: me.z + Math.cos(me.ry) * 0.9 };
+  const n = world.npcNear(p.x, p.z, at ? 0.9 : 1.1);
+  if (n) return { npc: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
   for (const o of Object.values(G.players)) {
     if (o.id !== G.me && Math.hypot(o.x - p.x, o.z - p.z) < 0.75) return { hug: o.id, label: `🤗 ${o.name} umarmen`, tiles: [], px: o.x, pz: o.z };
   }
@@ -847,7 +861,20 @@ function pressAction() {
 function execute(r, fresh) {
   if (!r) return;
   const me = G.players[G.me];
-  if (r.hug) { if (fresh) sendHug(r.hug); return; }
+  if (r.npc) { if (fresh) openTalk(r.npc); return; }
+  if (r.hug) { if (fresh) { interrupt(); G.together = r.hug; panels.show('together'); play('click'); } return; }
+  if (r.net) {
+    if (!fresh) return;
+    animate('net');
+    const c = world.nearCritter(r.net.x, r.net.z), k = S.key(Math.round(r.net.x), Math.round(r.net.z));
+    const flowers = ['blumen', 'kirschbaum'].includes(G.s.obj[k]?.k) || G.s.tiles[k]?.c?.k === 'sonnenblume';
+    if (c || (flowers && Math.random() < 0.45) || (S.seasonOf(G.s.day) === 'winter' && Math.random() < 0.35)) {
+      if (c) world.catchCritter(c);
+      send({ t: 'bug', x: Math.round(me.x), z: Math.round(me.z) });
+    } else { toast('🦋 Daneben! Schleich dich an Schmetterlinge oder Blumen an.'); play('fail'); }
+    return;
+  }
+  if (r.petals) { if (fresh) { animate('shake'); for (let i = 0; i < 6; i++) world.burst(r.petals.x, r.petals.z, 'petal', 2.2); play('water'); } return; }
   if (r.ui) {
     if (!fresh) return;
     interrupt();
@@ -862,6 +889,7 @@ function execute(r, fresh) {
   } else if (r.a && (fresh || r.a.t !== 'pickup')) {
     send(r.a);
     animate(ANIM_OF[r.a.t] || 'use');
+    if (r.a.t === 'shake' || r.a.t === 'chop') world.shakeTree(r.a.x, r.a.z);
     if (r.a.t === 'harvest') G.sickleUntil = performance.now() + 600;
   }
 }
@@ -882,7 +910,8 @@ function tapAt(cx, cy) {
   let an = null, bd = 0.9;
   for (const a of G.s.animals) { const q = S.animalPos(a, G.s.time), d = Math.hypot(q.x - p.x, q.z - p.z); if (d < bd) { bd = d; an = a; } }
   const pl = Object.values(G.players).find(o => o.id !== G.me && Math.hypot(o.x - p.x, o.z - p.z) < 0.7);
-  G.goal = an ? { animal: an.id } : pl ? { player: pl.id } : { x: p.x, z: p.z };
+  const nb = world.npcNear(p.x, p.z, 0.8);
+  G.goal = nb ? { npc: nb.id } : an ? { animal: an.id } : pl ? { player: pl.id } : { x: p.x, z: p.z };
   G.goal.last = { x: me.x, z: me.z, t: performance.now() };
   world.burst(p.x, p.z, 'sparkle', 0.15);
 }
@@ -896,6 +925,11 @@ function followGoal(me, now) {
     if (!a) return (G.goal = null);
     at = S.animalPos(a, s.time);
     range = 1.05;
+  } else if (g.npc) {
+    const n = world.npcM?.get(g.npc);
+    if (!n || !n.awake) return (G.goal = null);
+    at = { x: n.x, z: n.z };
+    range = 1.1;
   } else if (g.player) {
     const o = G.players[g.player];
     if (!o) return (G.goal = null);
@@ -923,10 +957,81 @@ function arrive(me, at, act) {
   G.goal = null;
   if (Math.hypot(at.x - me.x, at.z - me.z) > 0.05) me.ry = Math.atan2(at.x - me.x, at.z - me.z);
   if (!act) return;
+  if (g.npc) { openTalk(g.npc); return; }
   const r = g.player ? context(me, null) : context(me, at);
   if (g.player && r.hug !== g.player) return;
   execute(r, true);
 }
+
+// ---------- Gespräche mit Nachbarn ----------
+function talkCtx(id) {
+  const s = G.s, partner = Object.values(G.players).find(p => p.id !== G.me);
+  return { hearts: S.hearts(s, id), season: S.seasonOf(s.day), weather: s.weather, hour: 6 + s.dayTime * 18, player: profile.name, partner: partner?.name || null, day: s.day };
+}
+function openTalk(id) {
+  if (!G?.ready || !NPCS[id]) return;
+  interrupt();
+  panels.close();
+  const me = G.players[G.me], n = world.npcM.get(id);
+  if (n) me.ry = Math.atan2(n.x - me.x, n.z - me.z);
+  G.talk = { id };
+  world.npcTalk = { id, x: me.x, z: me.z };
+  send({ t: 'talk', id });
+  document.body.classList.add('talking');
+  $('dialog').classList.remove('hidden');
+  $('dlggifts').classList.add('hidden');
+  const N = NPCS[id], h = S.hearts(G.s, id);
+  $('dlgname').style.background = N.color;
+  $('dlgname').innerHTML = `${N.icon} ${N.name}<small>${'❤️'.repeat(Math.ceil(h / 2)) || '🤍'}</small>`;
+  say2(npcLine(id, talkCtx(id)));
+  world.npcSay(id, 'happy');
+  play('chat');
+}
+let typeTimer = null;
+function say2(text) { // Tippen wie in einer Sprechblase
+  clearInterval(typeTimer);
+  let i = 0;
+  $('dlgtext').textContent = '';
+  typeTimer = setInterval(() => {
+    i += 2;
+    $('dlgtext').textContent = text.slice(0, i);
+    if (i >= text.length) clearInterval(typeTimer);
+  }, 22);
+}
+function closeTalk() {
+  clearInterval(typeTimer);
+  if (G) G.talk = null;
+  world.npcTalk = null;
+  document.body.classList.remove('talking');
+  $('dialog').classList.add('hidden');
+}
+function giftAnswer(reaction) {
+  const id = G.talk.id;
+  say2(giftReply(id, reaction, ITEMS[G.talk.gift]?.name || ''));
+  world.npcSay(id, { love: 'love', like: 'happy', neutral: 'happy', dislike: 'sad' }[reaction]);
+  const n = world.npcM.get(id);
+  if (n && reaction !== 'dislike') { world.burst(n.x, n.z, 'heart', 1.4); world.emoteFx(n.x, n.z, reaction === 'love' ? '🥰' : '❤️'); }
+  const h = S.hearts(G.s, id);
+  $('dlgname').querySelector('small').textContent = '❤️'.repeat(Math.ceil(h / 2)) || '🤍';
+}
+$('dialog').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || !G?.talk) return;
+  const id = G.talk.id;
+  if (b.dataset.dlg === 'bye') closeTalk();
+  if (b.dataset.dlg === 'talk') { $('dlggifts').classList.add('hidden'); say2(npcLine(id, talkCtx(id))); world.npcSay(id, 'happy'); play('chat'); }
+  if (b.dataset.dlg === 'gift') {
+    const items = Object.entries(G.s.inv).filter(([k, n]) => n > 0 && ITEMS[k] && !ITEMS[k].seed && (ITEMS[k].sell || ITEMS[k].place));
+    $('dlggifts').innerHTML = items.length ? items.map(([k, n]) => `<button data-gift="${k}">${ITEMS[k].icon}<small>${ITEMS[k].name}</small><i>${n}</i></button>`).join('')
+      : '<div class="note">Du hast nichts zum Verschenken dabei.</div>';
+    $('dlggifts').classList.toggle('hidden');
+  }
+  if (b.dataset.gift) {
+    G.talk.gift = b.dataset.gift;
+    send({ t: 'gift', id, item: b.dataset.gift });
+    $('dlggifts').classList.add('hidden');
+  }
+});
 
 // ---------- Angeln ----------
 function startFishing(me) {
@@ -986,7 +1091,7 @@ function infoAt(r) {
 function heldItem() {
   if (G.fishing) return 'rod';
   if (performance.now() < (G.sickleUntil || 0)) return 'sickle';
-  if (G.sel === 'hoe' || G.sel === 'can') return G.sel;
+  if (['hoe', 'can', 'net', 'shovel', 'axe'].includes(G.sel)) return G.sel;
   if (ITEMS[G.sel]?.seed) return 'seeds';
   if (PLACE[G.sel]) return 'box';
   return null;
@@ -1076,9 +1181,10 @@ function gameFrame(dt, now) {
 
   // HUD
   const hour = 6 + s.dayTime * 18, hh = Math.floor(hour) % 24, mm = Math.floor((hour % 1) * 6) * 10;
-  const sky = s.weather === 'rain' ? '🌧️' : hour >= 20 ? '🌙' : hour >= 18 ? '🌇' : '☀️';
+  const sky = s.weather === 'rain' ? '🌧️' : s.weather === 'snow' ? '🌨️' : hour >= 20 ? '🌙' : hour >= 18 ? '🌇' : '☀️';
+  const [seaName, seaIcon] = SEASONS[S.seasonOf(s.day)];
   setText('money', s.money.toLocaleString('de-DE'));
-  setText('clock', `${sky} Tag ${s.day} · ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+  setText('clock', `${sky} ${seaIcon} ${seaName} ${((s.day - 1) % 7) + 1} · ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
   setText('lvl', String(s.level));
   const pct = Math.min(100, s.xp / (40 * s.level * s.level) * 100) + '%';
   if (hud.pct !== pct) { hud.pct = pct; document.querySelector('#lvlbar i').style.width = pct; }

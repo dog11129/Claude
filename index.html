@@ -33,6 +33,7 @@ h2, h3 { margin: 0; }
 .tag { position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform; }
 .tag.name { font-size: 13px; font-weight: 600; color: #fff; background: rgba(90,70,54,.5); padding: 1px 9px; border-radius: 10px; backdrop-filter: blur(4px); }
 .tag.name.me { background: rgba(232,106,139,.78); }
+.tag.name.npc { background: rgba(255,253,249,.92); color: var(--ink); }
 .tag.chat { background: #fff; padding: 6px 11px; border-radius: 14px 14px 14px 4px; font-size: 14px; max-width: 230px; white-space: normal; box-shadow: var(--shadow); animation: pop .25s; }
 .tag.emote { font-size: 38px; animation: pop .3s; filter: drop-shadow(0 3px 4px rgba(0,0,0,.2)); }
 .tag.bubble { background: #fff; border-radius: 14px; padding: 2px 8px; font-size: 18px; box-shadow: 0 2px 0 rgba(90,70,54,.2); animation: bob 1.4s ease-in-out infinite; }
@@ -42,6 +43,22 @@ h2, h3 { margin: 0; }
 .tag.prompt { background: rgba(255,253,249,.95); border-radius: 14px; padding: 4px 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); text-align: center; animation: pop .15s; }
 .tag.prompt small { display: block; font-weight: 500; font-size: 12px; color: var(--soft); }
 .tag.prompt kbd { background: var(--line); border-radius: 6px; padding: 0 5px; font-family: inherit; margin-right: 4px; }
+.floater.mini { font-size: 18px; text-shadow: 0 1px 3px rgba(90,70,54,.3); }
+.emogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.emogrid button { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: transform .1s; }
+.emogrid button:hover { transform: scale(1.06); border-color: var(--pink); }
+.emogrid span { font-size: 34px; line-height: 1.1; }
+.emogrid small { font-size: 12px; color: var(--soft); font-weight: 600; }
+.album { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin: 6px 0 12px; }
+.album div { background: #f6efe6; border-radius: 14px; padding: 6px 4px; text-align: center; position: relative; min-height: 70px; }
+.album div span { font-size: 28px; display: block; filter: grayscale(1) opacity(.35); }
+.album div.got { background: #fff; border: 2px solid #cfeac2; }
+.album div.got span { filter: none; }
+.album small { font-size: 11px; color: var(--soft); display: block; line-height: 1.15; }
+.album i { position: absolute; right: 5px; top: 3px; font-size: 10px; font-style: normal; color: var(--soft); }
+.letter { background: #fffaf0; border: 2px dashed #f0d9b5; border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; }
+.letter h3 { color: var(--pinkd); margin-bottom: 4px; }
+.letter p { margin: 0 0 8px; line-height: 1.4; }
 .floater { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 21px; color: #fff; text-shadow: 0 2px 0 rgba(90,70,54,.55), 0 0 8px rgba(90,70,54,.35); white-space: nowrap; }
 @keyframes bob { 50% { margin-top: -5px; } }
 @keyframes pop { from { scale: .4; opacity: 0; } }
@@ -230,6 +247,19 @@ body.wantland.portrait.ingame #rotatehint { display: flex; }
   #edrot { transform: translateX(calc(-50% - 26vw)); }
 }
 
+/* Gespräche mit Nachbarn */
+#dialog { position: fixed; left: 50%; bottom: max(14px, var(--safe-b)); transform: translateX(-50%); width: min(620px, calc(100vw - 20px)); z-index: 6; animation: slideup .25s; }
+.dlg { background: #fffdf6; border-radius: 28px; padding: 26px 20px 14px; box-shadow: 0 6px 0 rgba(90,70,54,.15), 0 14px 34px rgba(90,70,54,.25); position: relative; border: 3px solid #f6e7d2; }
+.dlgname { position: absolute; top: -18px; left: 22px; color: #fff; font-weight: 700; font-size: 17px; padding: 5px 16px; border-radius: 999px; box-shadow: 0 3px 0 rgba(90,70,54,.18); transform: rotate(-2deg); }
+.dlgname small { opacity: .85; margin-left: 6px; font-weight: 600; }
+#dlgtext { font-size: 18px; line-height: 1.45; margin: 4px 2px 12px; min-height: 2.9em; }
+.dlgbtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+#dlggifts { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; max-height: 34vh; overflow-y: auto; margin-bottom: 10px; touch-action: pan-y; }
+#dlggifts button { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 4px; font-size: 26px; position: relative; }
+#dlggifts button small { display: block; font-size: 10px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dlggifts button i { position: absolute; right: 4px; top: 2px; font-size: 10px; font-style: normal; color: var(--soft); }
+body.talking #hotbar, body.talking #actwrap { display: none; }
+
 /* Fotomodus */
 #photobar { position: fixed; left: 50%; bottom: max(16px, var(--safe-b)); transform: translateX(-50%); display: flex; gap: 10px; align-items: center; }
 #shutter { width: 72px; height: 72px; border-radius: 50%; background: #fff; border: 6px solid var(--pink); font-size: 28px; box-shadow: var(--shadow); }
@@ -327,6 +357,14 @@ body.wantland.portrait.ingame #rotatehint { display: flex; }
 </div>
 <div id="edrot" class="hidden"><button class="round" data-rot="-1">⟲</button><button class="round" data-rot="1">⟳</button></div>
 
+<div id="dialog" class="hidden">
+  <div class="dlg">
+    <div class="dlgname" id="dlgname"></div>
+    <p id="dlgtext"></p>
+    <div id="dlggifts" class="hidden"></div>
+    <div class="dlgbtns"><button class="btn white" data-dlg="talk">💬 Plaudern</button><button class="btn pink" data-dlg="gift">🎁 Geschenk</button><button class="btn white" data-dlg="bye">👋 Tschüss</button></div>
+  </div>
+</div>
 <div id="photobar" class="hidden">
   <button class="round" data-prot="-1">⟲</button>
   <button id="shutter">📸</button>

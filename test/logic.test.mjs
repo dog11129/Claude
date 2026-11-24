@@ -133,3 +133,64 @@ test('Erfolge werden einmal vergeben und belohnt', async () => {
   assert.equal(act(s, { t: 'harvest', x: -6, z: 0, dx: 1, dz: 0 }).ach, undefined);
   for (const a of ACHIEVEMENTS) a.test(newFarm()); // keine Ausnahme bei leerem Hof
 });
+
+test('Holz, Stein, Schütteln, Ausgraben, Insekten, Kochen & Werkeln', async () => {
+  const { RES_SPOTS, RECIPES } = await import('../src/data.js');
+  const s = newFarm();
+  const tree = Object.keys(RES_SPOTS).find(k => RES_SPOTS[k] === 'tree').split(',').map(Number);
+  const rock = Object.keys(RES_SPOTS).find(k => RES_SPOTS[k] === 'rock').split(',').map(Number);
+  for (let i = 0; i < 3; i++) assert.ok(act(s, { t: 'chop', x: tree[0], z: tree[1] }).ok);
+  assert.equal(act(s, { t: 'chop', x: tree[0], z: tree[1] }).ok, false, 'nur 3× pro Tag');
+  assert.ok(s.inv.holz >= 3);
+  assert.ok(act(s, { t: 'mine', x: rock[0], z: rock[1] }).ok);
+  assert.ok(act(s, { t: 'shake', x: tree[0], z: tree[1] }).ok);
+  assert.equal(act(s, { t: 'shake', x: tree[0], z: tree[1] }).ok, false);
+  assert.equal(s.digs.length, 4, 'vier Grabstellen pro Tag');
+  const [dx, dz] = s.digs[0].split(',').map(Number);
+  const out = act(s, { t: 'dig', x: dx, z: dz });
+  assert.ok(out.ok && out.newAlbum, 'Fund landet im Sammelbuch');
+  assert.equal(act(s, { t: 'dig', x: dx, z: dz }).ok, false);
+  s.dayTime = 0.3;
+  assert.ok(act(s, { t: 'bug', x: 0, z: 0 }).ok);
+  assert.equal(s.stats.bugs, 1);
+  s.inv.weizen = 3;
+  assert.ok(act(s, { t: 'craft', id: 'brot' }).ok);
+  assert.equal(s.inv.brot, 1);
+  assert.equal(act(s, { t: 'craft', id: 'brot' }).ok, false, 'Zutaten fehlen');
+  assert.equal(act(s, { t: 'craft', id: '__proto__' }).ok, false);
+  s.inv.holz = 6;
+  assert.ok(act(s, { t: 'craft', id: 'r_bank' }).ok);
+  assert.equal(s.inv.bank, 1);
+  for (const r of Object.values(RECIPES)) assert.ok(Object.keys(r.in).length, 'jedes Rezept hat Zutaten');
+  tick(s, DAY, true);
+  assert.equal(s.res[tree.join(',')], 3, 'morgens wieder voll');
+});
+
+test('Pflanzen außerhalb der Saison wachsen langsamer', async () => {
+  const s = newFarm();
+  act(s, { t: 'till', x: -6, z: 0, dx: 1, dz: 0 });
+  s.inv.s_melone = 1;
+  act(s, { t: 'plant', x: -6, z: 0, dx: 1, dz: 0, item: 's_melone' });
+  s.tiles[key(-6, 0)].w = 999;
+  tick(s, 10, true);
+  assert.equal(Math.round(s.tiles[key(-6, 0)].c.g), 5, 'Melone im Frühling: halbe Geschwindigkeit');
+});
+
+test('Nachbarn: Gespräche, Geschenke, Briefe', async () => {
+  const s = newFarm();
+  assert.ok(act(s, { t: 'talk', id: 'mira' }).ok);
+  act(s, { t: 'talk', id: 'mira' });
+  assert.equal(s.npc.mira.f, 15, 'nur einmal pro Tag Freundschaft durchs Reden');
+  s.inv.kuchen = 2;
+  const out = act(s, { t: 'gift', id: 'mira', item: 'kuchen' });
+  assert.equal(out.reaction, 'love');
+  assert.equal(act(s, { t: 'gift', id: 'mira', item: 'kuchen' }).ok, false, 'ein Geschenk pro Tag');
+  assert.equal(act(s, { t: 'gift', id: '__proto__', item: 'kuchen' }).ok, false);
+  s.npc.mira.f = 250;
+  tick(s, DAY, true);
+  assert.equal(s.mail.length, 1, 'Brief bei 2 Herzen');
+  assert.equal(s.mail[0].from, 'mira');
+  assert.ok(act(s, { t: 'mail', i: 0 }).ok);
+  assert.ok(s.inv.kuchen >= 2, 'Geschenk aus dem Brief');
+  assert.ok(s.orders.every(o => o.npc), 'Aufträge kommen von Nachbarn');
+});

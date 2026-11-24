@@ -6,8 +6,9 @@ import { UnrealBloomPass } from '../vendor/post/UnrealBloomPass.js';
 import { OutputPass } from '../vendor/post/OutputPass.js';
 import * as M from './models.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
-import { FIELDS, PENS, PLACE, POND, ANIMALS, ITEMS, CROPS, MAP } from './data.js';
-import { stage, animalPos, buildingAt, inPond, key } from './state.js';
+import { makeNpc, NPCS } from './npc.js';
+import { FIELDS, PENS, PLACE, POND, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, NPC_IDS } from './data.js';
+import { stage, animalPos, buildingAt, inPond, key, seasonOf, npcPos, npcAwake } from './state.js';
 
 const C = h => new THREE.Color(h);
 const SKY_TOP = [C(0x5fb4f5), C(0x2a3f86), C(0x0b1433)], SKY_HOR = [C(0xcfeeff), C(0xffb38a), C(0x26365e)];
@@ -37,6 +38,7 @@ const windTime = { value: 0 };
 function windy(base, amp) {
   const m = base.clone();
   m.onBeforeCompile = sh => {
+    M.cozy(sh);
     sh.uniforms.uWind = windTime;
     sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       vec4 wpos = vec4(transformed, 1.0);
@@ -89,8 +91,7 @@ export class World {
     this.buildSky();
     this.buildGround();
     this.buildPond();
-    s.add(M.scenery((x, z) => !buildingAt(x, z) && !inPond(x, z) && !(x >= -14 && x <= 4 && z >= -5 && z <= 11) && !onPath(x, z), heightAt));
-    s.children[s.children.length - 1].children[0].material = WIND_TREE;
+
     const pen = p => [p.cx - p.rx - 0.6, p.cz - p.rz - 0.5, p.cx + p.rx + 0.6, p.cz + p.rz + 0.5];
     const cp = pen(PENS.coop), bp = pen(PENS.barn);
     s.add(M.fences([[...cp, cp[3]], [...bp, bp[1]]]));
@@ -150,6 +151,15 @@ export class World {
     this.rain.visible = false;
     this.rain.frustumCulled = false;
     s.add(this.rain);
+
+    const sp = new Float32Array(900 * 3);
+    for (let i = 0; i < sp.length; i++) sp[i] = i % 3 === 1 ? Math.random() * 16 : (Math.random() - 0.5) * 34;
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    this.snow = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.13, transparent: true, opacity: 0.9, depthWrite: false }));
+    this.snow.visible = false;
+    this.snow.frustumCulled = false;
+    s.add(this.snow);
 
     this.bobber = M.model([M.ball(0.1, 0xff4d4d, 0, 0.05, 0), M.ball(0.1, 0xffffff, 0, -0.03, 0, 1, 0.5, 1)], [], false);
     this.bobber.visible = false;
@@ -238,18 +248,12 @@ export class World {
   }
 
   buildGround() {
-    const geo = new THREE.PlaneGeometry(220, 220, 110, 110);
+    const geo = this.groundGeo = new THREE.PlaneGeometry(220, 220, 110, 110);
     geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
-    const a = C(0x8fd06a), b = C(0x7cc25a), c = C(0xa7dc7a), tmp = new THREE.Color();
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = pos.getZ(i), y = heightAt(x, z);
-      pos.setY(i, y);
-      const n = noise(x * 2.3, z * 2.1) * 0.5 + 0.5;
-      tmp.copy(a).lerp(b, n * 0.8).lerp(c, Math.min(1, y / 6) * 0.6);
-      col.set([tmp.r, tmp.g, tmp.b], i * 3);
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
+    this.colorGround('summer');
     geo.computeVertexNormals();
     const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
     ground.receiveShadow = true;
@@ -264,18 +268,42 @@ export class World {
     }
   }
 
+  // Boden, Wald und Gras passend zur Jahreszeit färben
+  colorGround(season) {
+    const [a, b, c] = { spring: [0x95d66e, 0x84c95e, 0xb2e284], summer: [0x86c95a, 0x72b94b, 0x9fd46a], autumn: [0xb4c46a, 0xc7a75a, 0xd6be78], winter: [0xeef3f6, 0xdfe8ee, 0xffffff] }[season].map(C);
+    const pos = this.groundGeo.attributes.position, col = this.groundGeo.attributes.color, tmp = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i), n = noise(x * 2.3, z * 2.1) * 0.5 + 0.5;
+      tmp.copy(a).lerp(b, n * 0.8).lerp(c, Math.min(1, pos.getY(i) / 6) * 0.6);
+      col.setXYZ(i, tmp.r, tmp.g, tmp.b);
+    }
+    col.needsUpdate = true;
+  }
+  syncSeason(s) {
+    const season = seasonOf(s.day);
+    if (season === this.season) return;
+    this.season = season;
+    this.colorGround(season);
+    if (this.forest) this.scene.remove(this.forest);
+    this.forest = M.scenery((x, z) => !buildingAt(x, z) && !inPond(x, z) && !(x >= -14 && x <= 4 && z >= -5 && z <= 11) && !onPath(x, z), heightAt, season);
+    this.forest.children[0].material = WIND_TREE;
+    this.scene.add(this.forest);
+    this.grassSig = null;
+  }
+
   buildPond() {
-    this.waterU = { t: { value: 0 }, night: { value: 0 } };
+    this.waterU = { t: { value: 0 }, night: { value: 0 }, ice: { value: 0 } };
     const water = new THREE.Mesh(new THREE.CircleGeometry(POND.r + 0.3, 48), new THREE.ShaderMaterial({
       uniforms: this.waterU, transparent: true,
       vertexShader: 'varying vec2 vu; void main(){ vu = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: `uniform float t; uniform float night; varying vec2 vu;
+      fragmentShader: `uniform float t; uniform float night; uniform float ice; varying vec2 vu;
         void main(){
           float r = length(vu) / ${(POND.r + 0.3).toFixed(2)};
           vec3 deep = vec3(0.16, 0.55, 0.78), shallow = vec3(0.45, 0.82, 0.92);
           vec3 c = mix(deep, shallow, smoothstep(0.35, 1.0, r));
           float w = sin(vu.x * 3.1 + t * 1.3) * sin(vu.y * 2.7 - t * 1.1) + sin((vu.x + vu.y) * 4.3 + t * 2.0) * 0.5;
-          c += smoothstep(0.75, 1.3, w) * 0.22;
+          c += smoothstep(0.75, 1.3, w) * 0.22 * (1.0 - ice);
+          c = mix(c, vec3(0.86, 0.94, 0.99) + sin(vu.x * 7.0 + vu.y * 3.0) * 0.03, ice * 0.8);
           c = mix(c, vec3(0.95, 0.98, 1.0), smoothstep(0.9, 1.0, r) * 0.55);
           c *= mix(1.0, 0.35, night);
           gl_FragColor = vec4(c, 0.92);
@@ -292,7 +320,7 @@ export class World {
 
   // ---------- Gras (instanziert, wiegt im Wind) ----------
   syncGrass(s) {
-    const per = this.Q.grass, sig = `${per}|${s.up.field}|${Object.keys(s.obj).join()}`;
+    const per = this.season === 'winter' ? 0 : this.Q.grass, sig = `${per}|${this.season}|${s.up.field}|${Object.keys(s.obj).join()}`;
     if (sig === this.grassSig) return;
     this.grassSig = sig;
     if (this.grass) { this.scene.remove(this.grass); this.grass.dispose(); this.grass = null; }
@@ -328,7 +356,7 @@ export class World {
       d.scale.setScalar(0.7 + rnd() * 0.7);
       d.updateMatrix();
       im.setMatrixAt(i, d.matrix);
-      im.setColorAt(i, c.setHSL(0.22 + rnd() * 0.1, 0.5, 0.82 + rnd() * 0.14));
+      im.setColorAt(i, c.setHSL((this.season === 'autumn' ? 0.1 : 0.22) + rnd() * 0.1, 0.5, 0.82 + rnd() * 0.14));
       i++;
     }
     this.grass = im;
@@ -360,6 +388,9 @@ export class World {
       smoke: [1, [0xffffff, 0xf2f2f2], 0.12, 0.6, -0.12, 0.12, 2.6, 0],
       drop: [1, [0x9fdcff], 1.6, 1.6, 9, 0.035, 0.5, 0.35],
       splash: [3, [0xcfe8ff], 0.8, 1.2, 9, 0.025, 0.3, 0.02],
+      petal: [1, [0xffc8dc, 0xffb7d0, 0xffffff], 0.6, 0, 0.35, 0.05, 9, 4],
+      fall: [1, [0xf0a040, 0xd9583a, 0xf2c94c], 0.6, 0, 0.4, 0.06, 9, 4],
+      snowball: [8, [0xffffff, 0xeef4f8], 1.2, 2, 8, 0.06, 0.6, 0.3],
     }[kind];
     if (!K) return;
     const [n, cols, v, up, g, size, life, y0] = K;
@@ -397,7 +428,7 @@ export class World {
     wing.translate(0.08, 0, 0);
     wing.rotateX(-Math.PI / 2);
     this.flies = new THREE.InstancedMesh(wing, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), 28);
-    this.flyData = Array.from({ length: 14 }, (_, i) => ({ hx: (Math.random() - 0.5) * 26, hz: (Math.random() - 0.5) * 24, p: Math.random() * 100, s: 0.15 + Math.random() * 0.15 }));
+    this.flyData = Array.from({ length: 14 }, (_, i) => ({ hx: (Math.random() - 0.5) * 26, hz: (Math.random() - 0.5) * 24, p: Math.random() * 100, s: 0.15 + Math.random() * 0.15, gone: 0 }));
     const cols = [0xffb3d1, 0xfff07a, 0xb7a6ff, 0xffffff, 0x8fd6ff, 0xffa65c];
     this.flyData.forEach((f, i) => { this.flies.setColorAt(i * 2, C(cols[i % 6])); this.flies.setColorAt(i * 2 + 1, C(cols[i % 6])); });
     this.flies.frustumCulled = false;
@@ -413,10 +444,11 @@ export class World {
   }
   updateCritters(info, rain) {
     const t = this.time, d = this.dummy, dayish = info.night < 0.5 && !rain;
-    this.flies.visible = dayish;
+    this.flies.visible = dayish && this.season !== 'winter';
     if (dayish) this.flyData.forEach((f, i) => {
       const u = t * f.s + f.p;
-      const x = f.hx + Math.sin(u * 1.3) * 3 + Math.sin(u * 3.1) * 0.6, z = f.hz + Math.cos(u * 0.9) * 3, y = 0.7 + Math.sin(u * 2.3) * 0.35;
+      const x = f.hx + Math.sin(u * 1.3) * 3 + Math.sin(u * 3.1) * 0.6, z = f.hz + Math.cos(u * 0.9) * 3, y = (f.gone > t ? -5 : 0.7) + Math.sin(u * 2.3) * 0.35;
+      f.pos = { x, z };
       const dx = Math.cos(u * 1.3) * 1.3, dz = -Math.sin(u * 0.9) * 0.9, yaw = Math.atan2(dx, dz), flap = Math.sin(t * 22 + f.p) * 1.1;
       for (const side of [0, 1]) {
         d.position.set(x, y, z);
@@ -433,8 +465,9 @@ export class World {
       const p = this.fireflies.geometry.attributes.position, c = this.fireflies.geometry.attributes.color;
       this.bugs.forEach((b, i) => {
         const u = t * 0.3 + b.p;
-        p.setXYZ(i, b.hx + Math.sin(u * 1.7) * 1.5, heightAt(b.hx, b.hz) + 0.6 + Math.sin(u * 2.3) * 0.4, b.hz + Math.cos(u * 1.3) * 1.5);
-        const k = glow * Math.max(0, Math.sin(t * 2.2 + b.p * 3)) * 2.4;
+        b.pos = { x: b.hx + Math.sin(u * 1.7) * 1.5, z: b.hz + Math.cos(u * 1.3) * 1.5 };
+        p.setXYZ(i, b.pos.x, heightAt(b.hx, b.hz) + 0.6 + Math.sin(u * 2.3) * 0.4, b.pos.z);
+        const k = b.gone > t ? 0 : glow * Math.max(0, Math.sin(t * 2.2 + b.p * 3)) * 2.4;
         c.setXYZ(i, k * 0.9, k, k * 0.35);
       });
       p.needsUpdate = c.needsUpdate = true;
@@ -461,12 +494,13 @@ export class World {
     if (p) t.el.style.transform = `translate(${p[0]}px, ${p[1]}px) translate(-50%, -100%)`;
     t.used = true;
   }
-  float(x, z, txt, y = 1.2) {
+  float(x, z, txt, y = 1.2, o = {}) {
     const el = document.createElement('div');
-    el.className = 'floater';
+    el.className = 'floater ' + (o.cls || '');
     el.textContent = txt;
+    el.style.opacity = 0;
     this.labels.appendChild(el);
-    this.floaters.push({ el, x, y, z, age: 0 });
+    this.floaters.push({ el, x, y, z, age: -(o.delay || 0), vx: o.vx || 0, life: o.life || 1.6 });
   }
 
   // Bildschirmpunkt -> Punkt auf dem Boden
@@ -484,22 +518,23 @@ export class World {
 
   // ---------- statische Teile, die sich mit Upgrades ändern ----------
   syncStatic(s) {
-    const sig = `${s.up.house}|${s.up.coop}|${s.up.barn}`;
+    const sig = `${s.up.house}|${s.up.coop}|${s.up.barn}|${s.mail?.length ? 1 : 0}`;
     if (this.static.sig !== sig) {
       if (this.static.group) this.scene.remove(this.static.group);
       const g = new THREE.Group();
-      g.add(M.building('house', s.up.house), M.building('coop', s.up.coop), M.building('barn', s.up.barn), M.building('market', 1), M.building('bin', 1), M.building('board', 1));
+      g.add(M.building('house', s.up.house), M.building('coop', s.up.coop), M.building('barn', s.up.barn), M.building('market', 1), M.building('bin', 1), M.building('board', 1),
+        M.building('bench', 1), M.building('kitchen', 1), M.building('mail', s.mail?.length ? 1 : 0));
       this.scene.add(g);
       this.static = { ...this.static, sig, group: g };
     }
-    if (this.static.field !== s.up.field) {
+    if (this.static.field !== s.up.field + this.season) {
       if (this.static.fieldMesh) this.scene.remove(this.static.fieldMesh);
       const [x0, z0, x1, z1] = FIELDS[s.up.field], c = 0x8a5a3a, p = [];
       const w = x1 - x0 + 1, d = z1 - z0 + 1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       p.push(M.box(w + 0.2, 0.12, 0.1, c, cx, 0.06, z0 - 0.55), M.box(w + 0.2, 0.12, 0.1, c, cx, 0.06, z1 + 0.55), M.box(0.1, 0.12, d + 0.2, c, x0 - 0.55, 0.06, cz), M.box(0.1, 0.12, d + 0.2, c, x1 + 0.55, 0.06, cz));
-      p.push(M.box(w + 0.1, 0.01, d + 0.1, 0x86c463, cx, 0.006, cz));
+      p.push(M.box(w + 0.1, 0.01, d + 0.1, { winter: 0xe4ecf1, autumn: 0xb3bf68 }[this.season] || 0x86c463, cx, 0.006, cz));
       this.static.fieldMesh = M.model(p, [], false);
-      this.static.field = s.up.field;
+      this.static.field = s.up.field + this.season;
       this.scene.add(this.static.fieldMesh);
     }
   }
@@ -579,6 +614,109 @@ export class World {
     }
     for (const [k, e] of this.objs) if (!seen.has(k)) { this.scene.remove(e.m); this.objs.delete(k); }
   }
+
+  // Bäume, Felsen und Grabstellen
+  syncNature(s) {
+    this.wildM ||= new Map();
+    for (const [k, kind] of Object.entries(RES_SPOTS)) {
+      const left = s.res?.[k] ?? 3, sig = kind + this.season + (left > 0);
+      let e = this.wildM.get(k);
+      if (e && e.sig !== sig) { this.scene.remove(e.m); e = null; }
+      if (!e) {
+        const [x, z] = k.split(',').map(Number);
+        const m = M.wild(kind, this.season, left);
+        m.position.set(x, 0, z);
+        m.rotation.y = (x * 3 + z) % 6;
+        if (kind === 'tree') m.children[0].material = WIND_TREE;
+        this.scene.add(m);
+        e = { m, sig, x, z };
+        this.wildM.set(k, e);
+      }
+      if (e.shake > 0) { e.shake -= 1 / 60; e.m.rotation.z = Math.sin(e.shake * 40) * 0.06 * e.shake; }
+    }
+    this.digM ||= new Map();
+    const seen = new Set(s.digs || []);
+    for (const k of seen) {
+      if (this.digM.has(k)) continue;
+      const [x, z] = k.split(',').map(Number), m = M.digMark();
+      m.position.set(x, 0, z);
+      this.scene.add(m);
+      this.digM.set(k, { m, x, z });
+    }
+    for (const [k, e] of this.digM) if (!seen.has(k)) { this.scene.remove(e.m); this.digM.delete(k); this.burst(e.x, e.z, 'dirt'); }
+  }
+  shakeTree(x, z) { const e = this.wildM?.get(x + ',' + z); if (e) e.shake = 1; }
+
+  // Schmetterling oder Glühwürmchen in der Nähe? (für den Kescher)
+  nearCritter(x, z, r = 2) {
+    const night = this.fireflies.visible && !this.flies.visible;
+    const list = night ? this.bugs : this.flyData;
+    let best = null, bd = r;
+    for (const c of list) {
+      if (!c.pos || c.gone > this.time) continue;
+      const d = Math.hypot(c.pos.x - x, c.pos.z - z);
+      if (d < bd) { bd = d; best = c; }
+    }
+    return best;
+  }
+  catchCritter(c) { c.gone = this.time + 25; }
+
+  // kleine Emoji-Wölkchen für Emotes
+  emoteFx(x, z, e) {
+    const S = {
+      '❤️': ['❤️', '💕', '💗'], '🥰': ['💕', '💗', '💖'], '😘': ['💋', '❤️', '💕'], '💃': ['🎵', '🎶', '✨'], '🎵': ['🎵', '🎶'], '👏': ['✨', '⭐'], '🎉': ['🎊', '✨', '🎉'],
+      '😴': ['💤', 'z', 'Z'], '💤': ['💤', 'z', 'Z'], '😢': ['💧'], '😡': ['💢'], '🤔': ['❓', '❔'], '😮': ['❗'], '😊': ['🌸', '💮'], '🙈': ['💦', '🌸'], '✨': ['✨', '🌟'], '🍀': ['🍀', '✨'], '😂': ['💦', '✨'],
+    }[e];
+    if (!S) return;
+    for (let i = 0; i < 5; i++) this.float(x + (Math.random() - 0.5) * 0.6, z + (Math.random() - 0.5) * 0.4, S[i % S.length], 1.5 + Math.random() * 0.4, { vx: (Math.random() - 0.5) * 0.8, life: 1.6 + Math.random() * 0.6, delay: i * 0.12, cls: 'mini' });
+    if (['❤️', '🥰', '😘'].includes(e)) this.burst(x, z, 'heart', 1.2);
+    if (e === '🎉' || e === '✨') this.burst(x, z, 'coin', 1.4);
+    if (e === '😢') this.burst(x, z, 'drop', 1.2);
+  }
+
+  // Nachbarn: laufen herum, bleiben beim Gespräch stehen und schauen dich an
+  syncNpcs(s, dt) {
+    this.npcM ||= new Map();
+    this.npcMood ||= {};
+    const awake = npcAwake(s);
+    for (const id of NPC_IDS) {
+      let e = this.npcM.get(id);
+      if (!e) {
+        const p = npcPos(id, s.time);
+        e = { m: makeNpc(id), x: p.x, z: p.z, ry: 0, speed: 0 };
+        this.scene.add(e.m);
+        this.npcM.set(id, e);
+      }
+      e.m.visible = e.awake = awake;
+      if (!awake) continue;
+      const talk = this.npcTalk?.id === id;
+      if (talk) {
+        e.ry = Math.atan2(this.npcTalk.x - e.x, this.npcTalk.z - e.z);
+        e.speed += (0 - e.speed) * Math.min(1, dt * 8);
+      } else {
+        const p = npcPos(id, s.time), q = npcPos(id, s.time + 0.3), k = Math.min(1, dt * 5);
+        e.x += (p.x - e.x) * k;
+        e.z += (p.z - e.z) * k;
+        if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
+        e.speed += ((p.walking ? 0.7 : 0) - e.speed) * Math.min(1, dt * 6);
+      }
+      e.m.position.set(e.x, 0, e.z);
+      e.m.rotation.y += angDiff(e.m.rotation.y, e.ry) * Math.min(1, dt * 8);
+      const md = this.npcMood[id];
+      e.m.userData.update(dt, { speed: e.speed, talking: talk, mood: md && md.until > this.time ? md.mood : null, time: this.time });
+      this.tag('npc' + id, `${NPCS[id].icon} ${NPCS[id].name}`, e.x, (e.m.userData.headTop || 1.3) + 0.3, e.z, 'name npc');
+    }
+  }
+  npcNear(x, z, r = 1.1) {
+    let best = null, bd = r;
+    for (const [id, e] of this.npcM || []) {
+      if (!e.awake) continue;
+      const d = Math.hypot(e.x - x, e.z - z);
+      if (d < bd) { bd = d; best = { id, x: e.x, z: e.z }; }
+    }
+    return best;
+  }
+  npcSay(id, mood) { this.npcMood[id] = { mood, until: this.time + 2.5 }; }
 
   syncAnimals(s) {
     const seen = new Set();
@@ -663,7 +801,7 @@ export class World {
     const day = smooth(4.8, 6.8, hour) * (1 - smooth(17.5, 21, hour));
     const dusk = Math.max(1 - smooth(6, 8, hour), smooth(16.5, 18.5, hour) * (1 - smooth(19.5, 21.5, hour)));
     const night = 1 - day;
-    const rain = s.weather === 'rain';
+    const rain = s.weather !== 'sun';
     const top = this.skyU.top.value, hor = this.skyU.hor.value;
     top.copy(SKY_TOP[2]).lerp(SKY_TOP[0], day).lerp(SKY_TOP[1], dusk * 0.5);
     hor.copy(SKY_HOR[2]).lerp(SKY_HOR[0], day).lerp(SKY_HOR[1], dusk * 0.75);
@@ -680,6 +818,7 @@ export class World {
     this.sunDir = new THREE.Vector3(-Math.cos(a) * 0.8, 1.1, 0.6).normalize();
     M.GLOW.color.copy(GLOW_DAY).lerp(GLOW_NIGHT, Math.min(1, night * 1.5));
     this.waterU.night.value = night * 0.8;
+    this.waterU.ice.value += ((this.season === 'winter' ? 1 : 0) - this.waterU.ice.value) * 0.02;
     if (this.bloom) this.bloom.strength = 0.25 + night * 0.55;
     return { hour, night, day };
   }
@@ -694,13 +833,16 @@ export class World {
     this.time += dt;
     windTime.value = this.time;
     this.waterU.t.value = this.time;
+    this.syncSeason(s);
     this.syncStatic(s);
     this.syncTiles(s);
     this.syncObjects(s);
     this.syncAnimals(s);
+    this.syncNature(s);
+    this.syncNpcs(s, dt);
     this.syncGrass(s);
     this.syncPlayers(players, me, dt, !opt.hideNames);
-    const info = this.light(s), rain = s.weather === 'rain';
+    const info = this.light(s), rain = s.weather === 'rain', snowing = s.weather === 'snow';
 
     // Zielfeld-Markierung
     const tiles = opt.tiles || [];
@@ -762,12 +904,29 @@ export class World {
       this.nextFx = this.time + 0.12;
       if (Math.random() < 0.35) this.burst(1.3 + (Math.random() - 0.5) * 0.2, -11, 'smoke', 3.9);
       for (const e of this.sprinklers || []) if (Math.random() < 0.6) this.burst(e.x, e.z, 'drop', 0.4);
+      for (const e of this.digM?.values() || []) if (Math.random() < 0.15) this.burst(e.x + (Math.random() - 0.5) * 0.3, e.z + (Math.random() - 0.5) * 0.3, 'sparkle', 0.15);
       if (this.ripe.length && Math.random() < 0.7) { const e = this.ripe[Math.floor(Math.random() * this.ripe.length)]; this.burst(e.x + (Math.random() - 0.5) * 0.5, e.z + (Math.random() - 0.5) * 0.5, 'sparkle', 0.4 + Math.random() * 0.5); }
       if (rain) for (let i = 0; i < 4; i++) this.burst(this.target.x + (Math.random() - 0.5) * 16, this.target.z + (Math.random() - 0.5) * 12, 'splash', 0.03);
+      // Jahreszeit: Blütenblätter im Frühling, bunte Blätter im Herbst
+      const drift = { spring: 'petal', autumn: 'fall' }[this.season];
+      if (drift && !rain && Math.random() < 0.5) this.burst(this.target.x + (Math.random() - 0.5) * 18, this.target.z + (Math.random() - 0.5) * 14, drift, 4 + Math.random() * 2);
     }
     this.updateParticles(dt);
     this.updateCritters(info, rain);
 
+    // Schnee
+    this.snow.visible = snowing;
+    if (snowing) {
+      const a = this.snow.geometry.attributes.position;
+      for (let i = 0; i < a.count; i++) {
+        let y = a.getY(i) - dt * 1.6;
+        if (y < 0) y += 16;
+        a.setY(i, y);
+        a.setX(i, a.getX(i) + Math.sin(this.time + i) * dt * 0.3);
+      }
+      a.needsUpdate = true;
+      this.snow.position.set(this.target.x, 0, this.target.z);
+    }
     // Regen
     this.rain.visible = rain;
     if (rain) {
@@ -794,10 +953,11 @@ export class World {
     }
     this.floaters = this.floaters.filter(f => {
       f.age += dt;
-      const p = this.project(f.x, f.y + f.age * 1.2, f.z);
-      if (f.age > 1.6 || !p) { f.el.remove(); return false; }
+      if (f.age < 0) return true;
+      const p = this.project(f.x + f.vx * f.age + Math.sin(f.age * 5) * 0.08 * (f.vx ? 1 : 0), f.y + f.age * 1.2, f.z);
+      if (f.age > f.life || !p) { f.el.remove(); return false; }
       f.el.style.transform = `translate(${p[0]}px, ${p[1]}px) translate(-50%, -100%) scale(${Math.min(1, f.age * 6)})`;
-      f.el.style.opacity = Math.min(1, 2.2 - f.age * 1.4);
+      f.el.style.opacity = Math.min(1, (f.life - f.age) * 1.6);
       return true;
     });
     return info;

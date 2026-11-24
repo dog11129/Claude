@@ -1,10 +1,12 @@
 // Fenster-Inhalte (Laden, Lager, Aufträge, Freunde, Einstellungen). Reines HTML, Klicks gehen an Callbacks.
-import { CROPS, ANIMALS, ITEMS, PLACE, UPGRADES, EMOTES, AREA_NAME, ACHIEVEMENTS, needXp } from './data.js';
+import { CROPS, ANIMALS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SOCIAL } from './data.js';
 import { settingsHtml } from './menu.js';
-import { price, upgradeInfo, capacity, animalCount } from './state.js';
+import { price, upgradeInfo, capacity, animalCount, seasonOf, hearts } from './state.js';
+import { NPCS, letter, requestLine } from './npc.js';
 import { esc } from './world.js';
 
 const $ = id => document.getElementById(id);
+const lines = {}; // Sprüche/Briefe einmal würfeln, damit sie beim Neuzeichnen gleich bleiben
 const money = n => `<span class="money">🪙 ${n.toLocaleString('de-DE')}</span>`;
 const lvTag = l => `<span class="lv">ab Lv ${l}</span>`;
 const pips = (l, max) => `<span class="pips">${'●'.repeat(l)}${'○'.repeat(Math.max(0, max - l))}</span>`;
@@ -12,10 +14,10 @@ const time = s => s >= 60 ? `${Math.round(s / 6) / 10} Min` : `${s} s`;
 
 export const TABS = {
   shop: [['seeds', '🌱 Samen'], ['animals', '🐾 Tiere'], ['farm', '🏡 Farm'], ['tools', '🛠️ Werkzeug'], ['goods', '💎 Waren'], ['deco', '🌷 Deko']],
-  orders: [['orders', '📋 Aufträge'], ['goals', '🏆 Erfolge'], ['stats', '📊 Statistik']],
+  orders: [['orders', '📋 Aufträge'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Statistik']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
 };
-const TITLES = { shop: '🛒 Laden', sell: '🎒 Lager & Verkauf', orders: '📋 Hof-Buch', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü' };
+const TITLES = { shop: '🛒 Laden', sell: '🎒 Lager & Verkauf', orders: '📋 Hof-Buch', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -41,10 +43,11 @@ function placeRow(s, id) {
 
 const SHOP = {
   seeds(s) {
-    let h = '<div class="note">Samen kaufen ➜ in der Leiste auswählen ➜ auf umgegrabenem Boden säen ➜ gießen 💧</div>';
+    const sea = seasonOf(s.day);
+    let h = `<div class="note">Samen kaufen ➜ in der Leiste auswählen ➜ auf umgegrabenem Boden säen ➜ gießen 💧<br>In ihrer Saison wachsen Pflanzen doppelt so schnell. Jetzt ist ${SEASONS[sea][1]} ${SEASONS[sea][0]}.</div>`;
     for (const [k, c] of Object.entries(CROPS)) {
-      const id = 's_' + k, locked = c.lvl > s.level, have = s.inv[id] || 0;
-      const sub = `Wächst in ${time(c.grow)}${c.regrow ? ' · trägt immer wieder' : ''}${c.yield ? ` · ${c.yield}× Ernte` : ''} · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`;
+      const id = 's_' + k, locked = c.lvl > s.level, have = s.inv[id] || 0, ok = c.sea.includes(sea);
+      const sub = `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · Wächst in ${time(c.grow)}${c.regrow ? ' · trägt immer wieder' : ''}${c.yield ? ` · ${c.yield}× Ernte` : ''} · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`;
       h += row(c.icon, c.name + (locked ? lvTag(c.lvl) : ''), sub,
         btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, '', locked || s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, '', locked || s.money < c.seed * 10), locked);
     }
@@ -119,6 +122,27 @@ const PANELS = {
       }
       return h;
     }
+    if (tab === 'friends') {
+      let h = '<div class="note">Plaudert jeden Tag mit euren Nachbarn und macht ihnen Geschenke – je mehr Herzen, desto mehr verraten sie über sich (und schicken euch Briefe 💌).</div>';
+      for (const [id, N] of Object.entries(NPCS)) {
+        const hh = hearts(s, id), n = s.npc[id] || {};
+        const lk = hh >= 2 ? N.likes.map(i => ITEMS[i].icon).join(' ') : '❔❔', lv = hh >= 4 ? N.loves.map(i => ITEMS[i].icon).join(' ') : '❔';
+        h += `<div class="row"><div class="ic">${N.icon}</div><div class="tx"><b>${N.name} <span class="lv">${N.role}</span></b><small>${N.bio}</small>
+          <small>💕 ${'❤️'.repeat(hh)}${'🤍'.repeat(10 - hh)}</small><small>Mag: ${lk} · Liebt: ${lv}${n.talk === s.day ? ' · 💬 heute geplaudert' : ''}${n.gift === s.day ? ' · 🎁 beschenkt' : ''}</small></div></div>`;
+      }
+      return h;
+    }
+    if (tab === 'album') {
+      const n = Object.keys(s.album).length, all = ALBUM.fish.length + ALBUM.bug.length + ALBUM.fossil.length;
+      const info = { ...Object.fromEntries(FISH.map(f => [f[0], (f[2] || []).map(x => SEASONS[x][1]).join('') || 'ganzjährig'])),
+        ...Object.fromEntries(BUGS.map(b => [b[0], b[4].map(x => SEASONS[x][1]).join('') + (b[5] === 'night' ? ' 🌙' : b[5] === 'day' ? ' ☀️' : '')])),
+        ...Object.fromEntries(FOSSILS.map(f => [f[0], 'Ausgraben'])) };
+      const sec = (t, ids) => `<h3>${t}</h3><div class="album">${ids.map(id => s.album[id]
+        ? `<div class="got" title="${ITEMS[id].name}"><span>${ITEMS[id].icon}</span><small>${ITEMS[id].name}</small><i>${s.album[id]}×</i></div>`
+        : `<div title="${info[id] || ''}"><span>❔</span><small>${info[id] || '???'}</small></div>`).join('')}</div>`;
+      return `<div class="note">Alles, was ihr fangt und ausgrabt, wird hier eingetragen. Gesammelt: <b>${n}/${all}</b></div><div class="bar"><i style="width:${n / all * 100}%"></i></div>` +
+        sec('🎣 Fische', ALBUM.fish) + sec('🦋 Insekten', ALBUM.bug) + sec('🦴 Funde', ALBUM.fossil);
+    }
     if (tab === 'stats') {
       const st = s.stats, pct = Math.round(s.xp / needXp(s.level) * 100);
       const line = (i, l, v) => row(i, l, '', `<b>${v}</b>`);
@@ -127,8 +151,9 @@ const PANELS = {
     }
     let h = '<div class="note">Die Leute im Dorf wünschen sich Waren von eurer Farm – sie zahlen extra! Alle 3 Tage kommen neue Wünsche.</div>';
     s.orders.forEach((o, i) => {
-      const have = s.inv[o.item] || 0, it = ITEMS[o.item];
-      h += row(it.icon, `${o.n}× ${it.name}`, `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐<div class="bar"><i style="width:${Math.min(1, have / o.n) * 100}%"></i></div>`, btn('Abgeben', { t: 'order', i, item: o.item, n: o.n }, 'pink', have < o.n));
+      const have = s.inv[o.item] || 0, it = ITEMS[o.item], N = NPCS[o.npc];
+      const say = N ? (lines[o.day + o.item + o.npc] ||= requestLine(o.npc, it.name, o.n)) : '';
+      h += row(N ? `<span title="${N.name}">${N.icon}</span>` : it.icon, `${N ? N.name + ': ' : ''}${o.n}× ${it.icon} ${it.name}`, (say ? `„${esc(say)}“<br>` : '') + `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐<div class="bar"><i style="width:${Math.min(1, have / o.n) * 100}%"></i></div>`, btn('Abgeben', { t: 'order', i, item: o.item, n: o.n }, 'pink', have < o.n));
     });
     return h;
   },
@@ -147,7 +172,19 @@ const PANELS = {
     return h;
   },
   emotes() {
-    return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${EMOTES.map(e => `<button class="slot" style="width:auto;height:64px;font-size:34px" data-ui="emote" data-e="${e}">${e}</button>`).join('')}</div>`;
+    return `<div class="emogrid">${EMOTE_LIST.map(([e, l]) => `<button data-ui="emote" data-e="${e}"><span>${e}</span><small>${l}</small></button>`).join('')}</div>`;
+  },
+  together(s, g) {
+    const p = g.players[g.together];
+    if (!p) return '<div class="note">Dein Lieblingsmensch ist gerade nicht in der Nähe.</div>';
+    return `<div class="note">Was möchtest du mit <b>${esc(p.name)}</b> machen?</div><div class="emogrid">${Object.entries(SOCIAL).map(([k, [e, l]]) => `<button data-ui="soc" data-k="${k}"><span>${e}</span><small>${l}</small></button>`).join('')}</div>`;
+  },
+  craft: (s, g) => recipes(s, 'craft'),
+  cook: (s, g) => recipes(s, 'cook'),
+  mail(s, g) {
+    if (!s.mail.length) return '<div class="note">📭 Der Briefkasten ist leer. Freundet euch mit den Nachbarn an – manchmal schreiben sie euch!</div>';
+    return s.mail.map((m, i) => { const L = (lines['mail' + i + m.from + m.hearts] ||= letter(m.from, m.hearts, g.myName)); return `<div class="letter"><h3>${NPCS[m.from]?.icon || '💌'} ${esc(L.title)}</h3><p>${esc(L.text).replace(/\n/g, '<br>')}</p>
+      ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item]?.icon || '🎁'}</div><div class="tx"><b>Geschenk: ${m.n || 1}× ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i }, 'white')}</div>`}</div>`; }).join('');
   },
   settings(s, g, tab) {
     if (tab === 'options') return settingsHtml(g.settings, g.touch);
@@ -166,6 +203,18 @@ const PANELS = {
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Farm wird gespeichert</small></span></button>`;
   },
 };
+
+function recipes(s, st) {
+  let h = st === 'cook' ? '<div class="note">Aus euren Ernten werden leckere Gerichte – die bringen viel mehr Geld und sind tolle Geschenke für die Nachbarn.</div>'
+    : '<div class="note">Aus Holz 🪵 (Axt an wilden Bäumen) und Stein 🪨 (Schaufel an Felsen) baut ihr hier Deko und Nützliches.</div>';
+  for (const [id, r] of Object.entries(RECIPES)) {
+    if (r.st !== st) continue;
+    const it = ITEMS[r.out], locked = (r.lvl || 1) > s.level, can = Object.entries(r.in).every(([k, n]) => (s.inv[k] || 0) >= n);
+    const need = Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#d64545'}">${ITEMS[k].icon} ${s.inv[k] || 0}/${n}</span>`).join(' · ');
+    h += row(it.icon, `${r.n > 1 ? r.n + '× ' : ''}${it.name}${locked ? lvTag(r.lvl) : ''}`, need + (it.sell ? ` · Wert ${money(price(s, r.out))}` : ''), btn(st === 'cook' ? 'Kochen' : 'Bauen', { t: 'craft', id }, 'pink', locked || !can), locked);
+  }
+  return h;
+}
 
 export class Panels {
   constructor(cb) {
@@ -208,7 +257,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings, s.ach]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc]);
     if (sig === this.sig) return;
     this.sig = sig;
     const body = $('pbody'), y = body.scrollTop;
@@ -220,14 +269,24 @@ export class Panels {
 }
 
 // ---------- Hotbar ----------
+// Werkzeug-Symbole als kleine Zeichnungen (Emojis gibt es nicht für alle)
+const svg = b => `<svg viewBox="0 0 32 32" width="30" height="30">${b}</svg>`;
+const TOOLS = {
+  hoe: [svg('<rect x="14" y="4" width="4" height="24" rx="2" fill="#c98d55" transform="rotate(35 16 16)"/><path d="M5 6 L15 4 L16 9 L7 11Z" fill="#9aa6b2" stroke="#6d7884" stroke-width="1"/>'), 'Hacke: umgraben'],
+  can: [svg('<rect x="7" y="12" width="15" height="13" rx="4" fill="#7cc6e8"/><path d="M21 15 L29 9 L30 11 L23 18Z" fill="#5aa9cf"/><path d="M9 12 Q14 4 20 12" stroke="#5aa9cf" stroke-width="2.5" fill="none"/><circle cx="29" cy="9" r="2" fill="#5aa9cf"/>'), 'Gießkanne'],
+  hand: ['✋', 'Hand: aufheben & schütteln'],
+  axe: [svg('<rect x="14" y="5" width="4" height="23" rx="2" fill="#c98d55" transform="rotate(-25 16 16)"/><path d="M14 4 Q24 3 25 10 Q20 13 15 12Z" fill="#9aa6b2" stroke="#6d7884" stroke-width="1"/>'), 'Axt: Holz von wilden Bäumen'],
+  shovel: [svg('<rect x="14.5" y="3" width="3" height="17" rx="1.5" fill="#c98d55"/><rect x="11" y="2" width="10" height="3" rx="1.5" fill="#c98d55"/><path d="M10 19 H22 V24 Q16 31 10 24Z" fill="#9aa6b2" stroke="#6d7884" stroke-width="1"/>'), 'Schaufel: ausgraben & Steine'],
+  net: [svg('<rect x="15" y="12" width="3" height="18" rx="1.5" fill="#c98d55" transform="rotate(20 16 20)"/><ellipse cx="13" cy="9" rx="8" ry="6.5" fill="#f4f1ea" stroke="#b8b0a2" stroke-width="2"/><path d="M7 9 H19 M13 3 V15" stroke="#d9d2c4" stroke-width="1"/>'), 'Kescher: Insekten fangen'],
+};
 export function hotbarItems(s) {
-  const items = ['hoe', 'can', 'hand'];
+  const items = ['hoe', 'can', 'hand', 'axe', 'shovel', 'net'];
   for (const k of Object.keys(CROPS)) if (s.inv['s_' + k] > 0) items.push('s_' + k);
   for (const k of Object.keys(PLACE)) if (s.inv[k] > 0) items.push(k);
   return items;
 }
 export function slotHtml(s, id, i, sel) {
-  const tool = { hoe: ['⛏️', 'Hacke'], can: ['💧', 'Gießkanne'], hand: ['✋', 'Hand: aufheben & benutzen'] }[id];
+  const tool = TOOLS[id];
   const icon = tool ? tool[0] : ITEMS[id].icon, title = tool ? tool[1] : ITEMS[id].name;
   const n = tool ? '' : `<span class="n">${s.inv[id]}</span>`;
   return `<button class="slot${id === sel ? ' sel' : ''}" data-id="${id}" title="${title}">${i < 9 ? `<span class="k">${i + 1}</span>` : ''}${icon}${ITEMS[id]?.seed ? '<span class="seed">🫘</span>' : ''}${n}</button>`;
