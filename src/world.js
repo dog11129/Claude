@@ -4,9 +4,30 @@ import { EffectComposer } from '../vendor/post/EffectComposer.js';
 import { RenderPass } from '../vendor/post/RenderPass.js';
 import { UnrealBloomPass } from '../vendor/post/UnrealBloomPass.js';
 import { OutputPass } from '../vendor/post/OutputPass.js';
+import { ShaderPass } from '../vendor/post/ShaderPass.js';
+
+// Miniatur-Look: oben/unten weich unscharf (Tilt-Shift), dazu etwas mehr Farbe und Wärme
+const FINISH = {
+  uniforms: { tDiffuse: { value: null }, aspect: { value: 1 }, amount: { value: 0.006 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float aspect, amount; varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      float d = clamp(abs(vUv.y - 0.45) * 2.4 - 0.3, 0.0, 1.0), r = d * d * amount;
+      if (r > 0.0004) {
+        vec4 acc = c;
+        for (int i = 1; i <= 8; i++) { float a = float(i) * 2.39996; acc += texture2D(tDiffuse, vUv + vec2(cos(a) / aspect, sin(a)) * r * sqrt(float(i) / 8.0)); }
+        c = acc / 9.0;
+      }
+      float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+      c.rgb = mix(vec3(l), c.rgb, 1.1) * vec3(1.02, 1.0, 0.97);
+      gl_FragColor = c;
+    }`,
+};
 import * as M from './models.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS } from './npc.js';
+import { makeAnimal } from './animals.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { FIELDS, PENS, PLACE, POND, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, NPC_IDS } from './data.js';
 import { stage, animalPos, buildingAt, inPond, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize } from './state.js';
@@ -51,6 +72,8 @@ function windy(base, amp) {
       float ww = sin(uWind * 1.6 + wpos.x * 0.55 + wpos.z * 0.35) + 0.45 * sin(uWind * 3.3 + wpos.x * 1.7 - wpos.z);
       transformed.x += ww * ${amp.toFixed(4)} * hh * hh;
       transformed.z += ww * ${(amp * 0.6).toFixed(4)} * hh * hh;`);
+    // doppelseitige Halme: Rückseite nicht umdrehen, sonst wirkt sie grau
+    if (base.side === THREE.DoubleSide) sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n normal = normalize(vNormal);');
   };
   m.customProgramCacheKey = () => 'wind' + amp;
   return m;
@@ -195,7 +218,7 @@ export class World {
     this.composer?.passes.forEach(p => p.dispose?.());
     this.composer?.renderTarget1.dispose();
     this.composer?.renderTarget2.dispose();
-    this.composer = this.bloom = null;
+    this.composer = this.bloom = this.finish = null;
     if (Q.bloom) {
       const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
       this.composer = new EffectComposer(r, rt);
@@ -203,6 +226,8 @@ export class World {
       this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.35, 0.55, 0.92);
       this.composer.addPass(this.bloom);
       this.composer.addPass(new OutputPass());
+      this.finish = new ShaderPass(FINISH);
+      this.composer.addPass(this.finish);
     }
     this.grassSig = null;
     this.scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
@@ -213,6 +238,7 @@ export class World {
     const w = innerWidth, h = innerHeight;
     this.renderer.setSize(w, h, false);
     this.composer?.setSize(w, h);
+    if (this.finish) this.finish.uniforms.aspect.value = w / h;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.w = w; this.h = h;
@@ -249,6 +275,24 @@ export class World {
     this.scene.add(sky);
   }
 
+  // Feine, gekachelte Detailtextur aus dem Canvas (keine Bilddateien nötig)
+  detailTex(paint, rep) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, 128, 128);
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    paint(g, rnd);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(rep[0], rep[1]);
+    t.anisotropy = 4;
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
   buildGround() {
     const geo = this.groundGeo = new THREE.PlaneGeometry(220, 220, 110, 110);
     geo.rotateX(-Math.PI / 2);
@@ -257,12 +301,36 @@ export class World {
     geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
     this.colorGround('summer');
     geo.computeVertexNormals();
-    const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+    // Gras: helle und dunkle Halme, damit der Boden nicht wie Plastik wirkt
+    const grassTex = this.detailTex((g, rnd) => {
+      for (let i = 0; i < 40; i++) { // weiche Flecken
+        const x = rnd() * 128, y = rnd() * 128, r = 6 + rnd() * 14;
+        g.fillStyle = `hsla(0 0% ${93 + rnd() * 5}% / .5)`;
+        g.beginPath(); g.ellipse(x, y, r, r * 0.7, rnd() * 3, 0, 7); g.fill();
+      }
+      for (let i = 0; i < 140; i++) {
+        const x = rnd() * 128, y = rnd() * 128, l = 89 + rnd() * 11;
+        g.strokeStyle = `hsl(0 0% ${l}%)`;
+        g.lineWidth = 1;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + rnd() * 3 - 1.5, y - 3 - rnd() * 4); g.stroke();
+      }
+    }, [55, 55]);
+    const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: grassTex }));
     ground.receiveShadow = true;
     this.scene.add(ground);
-    const pathMat = new THREE.MeshLambertMaterial({ color: 0xe9d7a6 });
+    // Sandweg mit Kieseln
+    const pathTex = this.detailTex((g, rnd) => {
+      for (let i = 0; i < 90; i++) {
+        const x = rnd() * 128, y = rnd() * 128, r = 1.5 + rnd() * 3.5;
+        g.fillStyle = `hsl(35 25% ${70 + rnd() * 22}%)`;
+        g.beginPath(); g.ellipse(x, y, r, r * 0.75, rnd() * 3, 0, 7); g.fill();
+      }
+    }, [1, 1]);
     for (const [x, z, w, d] of PATHS) {
-      const p = new THREE.Mesh(new THREE.PlaneGeometry(w, d), pathMat);
+      const map = pathTex.clone();
+      map.repeat.set(w / 3, d / 3);
+      map.needsUpdate = true;
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ color: 0xf2e2b4, map }));
       p.rotation.x = -Math.PI / 2;
       p.position.set(x, 0.012, z);
       p.receiveShadow = true;
@@ -534,7 +602,6 @@ export class World {
       const [x0, z0, x1, z1] = FIELDS[s.up.field], c = 0x8a5a3a, p = [];
       const w = x1 - x0 + 1, d = z1 - z0 + 1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       p.push(M.box(w + 0.2, 0.12, 0.1, c, cx, 0.06, z0 - 0.55), M.box(w + 0.2, 0.12, 0.1, c, cx, 0.06, z1 + 0.55), M.box(0.1, 0.12, d + 0.2, c, x0 - 0.55, 0.06, cz), M.box(0.1, 0.12, d + 0.2, c, x1 + 0.55, 0.06, cz));
-      p.push(M.box(w + 0.1, 0.01, d + 0.1, { winter: 0xe4ecf1, autumn: 0xb3bf68 }[this.season] || 0x86c463, cx, 0.006, cz));
       this.static.fieldMesh = M.model(p, [], false);
       this.static.field = s.up.field + this.season;
       this.scene.add(this.static.fieldMesh);
@@ -767,17 +834,20 @@ export class World {
       seen.add(a.id);
       let e = this.animals.get(a.id);
       if (!e) {
-        e = { m: M.animal(a.k), ry: 0 };
+        e = { m: makeAnimal(a.k), ry: 0, pet: a.pet, happyT: 0 };
         this.scene.add(e.m);
         this.animals.set(a.id, e);
       }
       const p = animalPos(a, s.time), q = animalPos(a, s.time + 0.3);
       if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
-      e.m.position.set(p.x, p.walking ? Math.abs(Math.sin(this.time * 9 + a.id)) * 0.08 : 0, p.z);
+      if (a.pet && !e.pet) e.happyT = 4; // frisch gestreichelt: kurz freuen
+      e.pet = a.pet;
+      e.happyT -= this.dt || 0;
+      e.m.position.set(p.x, 0, p.z);
       e.m.rotation.y += angDiff(e.m.rotation.y, e.ry) * 0.15;
-      e.m.rotation.z = p.walking ? Math.sin(this.time * 9 + a.id) * 0.05 : 0;
+      e.m.userData.update(this.dt || 0, { speed: p.walking ? 1 : 0, happy: e.happyT > 0, hungry: a.fed <= 0 });
       e.x = p.x; e.z = p.z;
-      const h = a.k === 'huhn' ? 0.95 : 1.4;
+      const h = e.m.userData.headTop + 0.3;
       if (a.ready) this.tag('a' + a.id, ITEMS[ANIMALS[a.k].product].icon, p.x, h, p.z, 'bubble');
       else if (a.fed <= 0) this.tag('a' + a.id, '🌿?', p.x, h, p.z, 'bubble small hungry');
     }
@@ -874,6 +944,7 @@ export class World {
 
   render(s, players, me, dt, opt = {}) {
     this.time += dt;
+    this.dt = dt;
     windTime.value = this.time;
     this.waterU.t.value = this.time;
     this.syncSeason(s);

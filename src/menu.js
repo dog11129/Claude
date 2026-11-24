@@ -4,7 +4,7 @@ import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey } from './av
 
 // Kleine 3D-Vorschaubilder für jede Option (eigener Mini-Renderer, Ergebnis wird zwischengespeichert)
 const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', top: 'body', pet: 'pet' };
-const CAM = { head: [[0, 1.25, 1.35], [0, 1.08, 0]], face: [[0, 1.08, 0.85], [0, 1.03, 0]], body: [[0, 0.85, 2.5], [0, 0.62, 0]], pet: [[0, 0.42, 1.0], [0, 0.2, 0]] };
+const CAM = { head: [[0, 1.32, 1.7], [0, 1.13, 0]], face: [[0, 1.08, 0.85], [0, 1.03, 0]], body: [[0, 0.85, 2.5], [0, 0.62, 0]], pet: [[0, 0.42, 1.0], [0, 0.2, 0]] };
 let tr = null, ts, tc;
 const thumbs = new Map();
 function thumb(look, view) {
