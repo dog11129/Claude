@@ -14,7 +14,8 @@ Taler, Taschen, Museum und Fortschritt sind geteilt.
    Beim nächsten Mal reicht ein Tipp auf **Wieder zu Besuch**.
 
 **Vollbild:** Auf Android-Handys und dem iPad geht das Spiel beim ersten Tipp automatisch ins Vollbild; oben rechts schaltet der Vollbild-Knopf um (abschaltbar unter ⚙️ → Optionen).
-Das iPhone erlaubt Webseiten kein Vollbild – dort **Teilen → „Zum Home-Bildschirm“** wählen und die Kuschelinsel über das Symbol starten (eigener Speicher, Insel dort neu besiedeln oder beitreten).
+**Als App:** Im Hauptmenü auf **📲 Als App aufs Handy** tippen (Android/PC: Installieren-Dialog; iPhone/iPad: **Teilen → „Zum Home-Bildschirm“**). Die App hat ein eigenes Symbol, läuft ohne Adressleiste und funktioniert auch offline (alleine spielen).
+Die Home-Bildschirm-App auf dem iPhone hat einen eigenen Speicher – die Insel nimmst du mit 💾 **Insel als Datei sichern** und 📂 **Insel aus Datei laden** mit.
 
 Wer die Insel besiedelt hat, ist „Host“: dort läuft und speichert das Spiel. Gäste bekommen automatisch eine Sicherheitskopie
 und können die Insel später auch selbst hosten. Der Code bleibt pro Insel gleich, solange er frei ist.
@@ -24,7 +25,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | | PC | Handy |
 |---|---|---|
 | Laufen / Rennen | WASD / Pfeiltasten, Shift = rennen | links wischen (weit = rennen) |
-| Hinlaufen & benutzen | Klick auf Baum, Muschel, Gebäude … | irgendwo antippen |
+| Benutzen | Auf Baum, Muschel, Haus, Nachbarn … zeigen und klicken (oder E) – nah dran sofort, sonst läuft die Figur hin | drauf tippen |
 | Aktion vor der Figur | E / Leertaste (halten = wiederholen) | großer rosa Knopf |
 | Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne, Schleuder, Designer) | unten antippen |
 | Kamera | Mausrad = Zoom, rechte Maustaste ziehen oder Z/C = drehen | zwei Finger = Zoom & drehen, 🔄 |
@@ -34,6 +35,18 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | Fotomodus | P | 📷 |
 
 ## Was es gibt
+
+### 🎉 Neu: Feste-Update
+- **Antippen & Anklicken** trifft jetzt die Dinge selbst (Baumkrone, Dach, Nachbarn, Möbel). Nah genug dran wird sofort benutzt, sonst läuft die Figur hin. Mit der Maus zeigt eine Blase, was passiert; E benutzt das, worauf die Maus zeigt.
+- **Feste im Jahreskreis:** 🥚 Eiersuche (10 versteckte Eier ➜ Eiernest), 🎆 Sommerfeuerwerk (ab 19 Uhr, am schönsten mit 🔭), 🎃 Kürbisfest (Bonbons von allen Nachbarn ➜ Kürbislaterne), 🎄 Lichterfest (Lichterbaum, Schneemann, Geschenke im Briefkasten). Alles im **🎉 Festkalender** im Inselhandy.
+- **Turniere:** 🎣 Angeln und 🦋 Krabbeltiere – am Turnierstand auf dem Dorfplatz anmelden, 3 Minuten fangen, Bronze/Silber/Gold und ein Pokal für den Garten.
+- **Nachbarn mit eigenem Leben:** Geburtstage (Partyhut, Herzballon, Geschenke zählen doppelt, am nächsten Tag kommt eine Torte), sie treffen sich und plaudern miteinander, tragen bei Regen Schirme und im Winter Schals.
+- **Zu zweit:** 🤝 Händchen halten (wer stehen bleibt, läuft mit), 🙈 Verstecken mit „heiß/kalt“, 🧩 Foto-Rätsel aus dem Fotomodus, ✍️ Briefe mit Briefpapier und Geschenk, die am nächsten Morgen ankommen – auch wenn ihr gerade nicht zusammen spielt –, und das **📔 Kuschel-Tagebuch** mit euren schönsten Momenten.
+- **Insel:** 🪵 Treibholz am Strand, Pfützen nach dem Regen (patsch!), Polarlicht in klaren Winternächten, Felsen an der Klippe und im Meer, 🌱 Blumen-Kreuzungen (seltene Sorten keimen zwischen verschiedenen Blumen).
+- **Figuren:** Gesichtsausdrücke bei Emotes (Herzaugen, Tränchen, Ärger-Zeichen …), 🐾 Haustier-Tricks.
+- **Neue Geräusche:** Eier-Glöckchen, Fanfare, Pfiff, Feuerwerk, Pfützen, Party.
+- **Sichern:** 💾 Insel als Datei speichern/laden und automatische Zwischenstände (⏪) im Browser.
+- **App fürs Handy** mit eigenem Symbol aus Blender und Offline-Speicher.
 
 ### 🏛️ Neu: Bürgermeister-Update
 - **Rathaus** (früher Inselbüro): Ihr seid die Bürgermeister! Rosi 🦌 hilft euch bei allem.
@@ -79,7 +92,8 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 - Reine statische Webseite (`index.html`, `src/`, `vendor/`), kein Build-Schritt. Three.js für 3D, PeerJS (WebRTC) für den Multiplayer.
 - Der Host ist gleichzeitig der Server. Zum Finden des Partners wird der kostenlose PeerJS-Vermittlungsserver genutzt; danach laufen die Daten direkt zwischen den Geräten.
-- Gespeichert wird im Browser (`localStorage`). Browserdaten löschen = Insel weg (die Kopie beim Partner bleibt).
+- Gespeichert wird im Browser (`localStorage`), dazu automatische Zwischenstände in IndexedDB (`src/backup.js`). Browserdaten löschen = Insel weg (die Kopie beim Partner bleibt) – darum ab und zu 💾 als Datei sichern.
+- `sw.js` (Service Worker) legt alles Geladene für offline ab; immer zuerst aus dem Netz, damit Updates sofort da sind.
 
 | Datei | Inhalt |
 |---|---|
@@ -91,6 +105,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/main.js`, `src/menu.js`, `src/ui.js` | Menü, Steuerung, Multiplayer, Fenster |
 | `src/newleaf.js`, `src/zones.js` | Bürgermeister-Update: Rathaus, Verordnungen, Wohnwert, Bummelgasse & Tropeninsel (Logik und 3D) |
 | `src/net.js`, `src/audio.js` | Netzwerk, Klang |
+| `src/backup.js`, `sw.js` | Insel-Sicherung (Datei & Zwischenstände), Offline-Speicher der App |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |
 
 ### Grafik aus Blender
@@ -107,6 +122,8 @@ Alle Modelle und Texturen werden in Blender gebaut (Skripte in `blender/`) und l
 | `sky.py` | `sky.glb`: Wolken, Regenbogen, Sonne & Mond, Schmetterlingsflügel, Fischschatten, Wimpelkette |
 | `textures.py` | `assets/tex`: Rasen, Wege, Kopfstein, Wasser-Glitzern, 8 Böden, 8 Tapeten |
 | `icons.py` | `assets/ui`: die Symbole der Oberfläche |
+| `extras.py` | `extras.glb`: Ostereier, Kürbislaterne, Lichterbaum, Schneemann, Schirme, Schal, Partyhut, Torte, Treibholz, Pfütze, Turnierstand, Herzballon |
+| `appicon.py` | `appicon.png` ➜ `python3 tools/icons.py appicon.png` baut `icon-192/512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` |
 
 `node tools/dump-shapes.mjs` schreibt `blender/shapes_data.py` neu, wenn sich die Formen der Figuren in `src/` ändern. Ein Skript läuft in Blenders Python-Konsole nach `kit.py`; die Ergebnisse landen im Ordner `kuschel3d` und werden nach `assets/` kopiert.
 

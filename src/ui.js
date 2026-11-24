@@ -332,7 +332,8 @@ const PANELS = {
     if (tab === 'options') return settingsHtml(g.settings, g.touch);
     if (tab === 'help') {
       return `<div class="note">💻 <b>PC:</b> WASD/Pfeiltasten laufen · Klick = hinlaufen & benutzen · E/Leertaste = Aktion · 1–9 Werkzeug · Mausrad Zoom · rechte Maustaste ziehen oder Z/C = Kamera drehen · Enter Chat · B Laden · I Taschen · O Inselbuch · Q Emotes · P Fotomodus<br><br>
-      📱 <b>Handy:</b> links wischen = laufen · irgendwo antippen = hinlaufen & benutzen · großer Knopf = Aktion · zwei Finger = zoomen & drehen · 🔄 Kamera drehen<br><br>
+      📱 <b>Handy:</b> links wischen = laufen · auf etwas tippen = benutzen (nah dran) oder hinlaufen & benutzen · großer Knopf = Aktion · zwei Finger = zoomen & drehen · 🔄 Kamera drehen<br>
+      🖱️ <b>Maus:</b> Zeig auf etwas – E oder ein Klick benutzt genau das. Ist es weiter weg, läuft deine Figur hin.<br><br>
       🍎 Bäume schütteln: Obst fällt herunter (wächst in 3 Tagen nach). Mit der Axt 🪓 gibt's Holz.<br>
       🌷 Samen auf den Rasen pflanzen ➜ Gießkanne 💧 ➜ pflücken. Blumen blühen immer wieder.<br>
       🐚 Muscheln am Strand aufheben, 🌿 Unkraut zupfen, ✨ Stern-Risse mit der Schaufel ausgraben.<br>
@@ -343,7 +344,12 @@ const PANELS = {
       ⭐ Mit Erfahrung steigt eure Insel im Level und schaltet Neues frei.<br><br>
       🏛️ <b>Rathaus:</b> Ihr seid Bürgermeister! Inselprojekte bauen, Verordnungen erlassen, Haus auf Kredit ausbauen, Wohnwert & Inselbewertung ansehen.<br>
       🛍️ <b>Bummelgasse:</b> Durchs Tor im Norden – Schneiderei (Hüte), Gärtnerei (seltene Blumen) und abends der Mondschein-Club (samstags Livemusik).<br>
-      ⛵ <b>Tropeninsel:</b> Am Ende des Stegs wartet Käpt'n Flossi. Drüben: Tropenfrüchte, seltene Käfer und Touren für Medaillen.</div>`;
+      ⛵ <b>Tropeninsel:</b> Am Ende des Stegs wartet Käpt'n Flossi. Drüben: Tropenfrüchte, seltene Käfer und Touren für Medaillen.<br><br>
+      🎉 <b>Feste:</b> Eiersuche, Sommerfeuerwerk, Kürbisfest, Lichterfest, Angel- und Krabbeltier-Turniere und die Geburtstage der Nachbarn – alles im 🎉 Festkalender im Inselhandy. Geburtstagsgeschenke zählen doppelt!<br>
+      💞 <b>Zu zweit:</b> Tippt euch an für 🤝 Händchen halten (wer stehen bleibt, läuft mit) oder 🙈 Verstecken. Im Fotomodus schickt 🧩 ein Foto-Rätsel. Am Briefkasten ✍️ Briefe schreiben – sie kommen am nächsten Morgen an. Schöne Momente landen im 📔 Tagebuch.<br>
+      🌱 <b>Blumen-Kreuzungen:</b> Verschiedene Blumen nebeneinander pflanzen und gießen – manchmal keimt über Nacht eine seltene Sorte.<br>
+      🐾 <b>Haustier:</b> Unter 😊 Gefühle gibt es den Haustier-Trick.<br>
+      💾 <b>Sichern:</b> Im Menü die Insel als Datei speichern – und im Hauptmenü wieder laden (auch auf einem anderen Gerät).</div>`;
     }
     return `<button class="big" data-ui="editlook"><span class="i">👗</span><span>Aussehen ändern<small>Frisur, Outfit, Haustier …</small></span></button><br>
       <button class="big" data-ui="photo"><span class="i">📷</span><span>Fotomodus<small>Schöne Erinnerungsfotos von eurer Insel</small></span></button><br>
