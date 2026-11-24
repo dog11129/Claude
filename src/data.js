@@ -156,3 +156,31 @@ export const HATS = [
 ];
 export const COLORS = ['#ff8fab', '#ffb86b', '#ffe066', '#8fd694', '#6cc4ff', '#b39cff', '#ff6b6b', '#f5f5f5'];
 export const EMOTES = ['❤️', '👋', '😂', '😮', '🎉', '😴', '🥰', '👍'];
+
+// Erfolge: gemeinsame Ziele mit Belohnung (Taler)
+const decos = s => Object.values(s.obj).filter(o => PLACE[o.k]?.kind === 'deco').length;
+const hasAnimal = (s, k) => s.animals.some(a => a.k === k);
+export const ACHIEVEMENTS = [
+  ['ernte1', '🌱', 'Erste Ernte', 'Erntet zum ersten Mal etwas', s => s.stats.harvested >= 1, 50],
+  ['ernte100', '🧺', 'Fleißige Hände', '100 Pflanzen geerntet', s => s.stats.harvested >= 100, 300],
+  ['ernte1000', '🏆', 'Erntekönige', '1000 Pflanzen geerntet', s => s.stats.harvested >= 1000, 2500],
+  ['kuerbis', '🎃', 'Riesenkürbis', 'Einen Kürbis geerntet', s => (s.stats.h_kuerbis || 0) >= 1, 400],
+  ['tier1', '🐣', 'Neue Freunde', 'Das erste Tier gekauft', s => s.animals.length >= 1, 100],
+  ['zoo', '🐾', 'Bauernhof-Zoo', 'Huhn, Kuh, Schaf und Schwein auf der Farm', s => ['huhn', 'kuh', 'schaf', 'schwein'].every(k => hasAnimal(s, k)), 1500],
+  ['liebe', '💞', 'Ganz viel Liebe', 'Ein Tier hat 10 Herzen', s => s.animals.some(a => a.love >= 10), 800],
+  ['fisch10', '🎣', 'Anglerglück', '10 Fische gefangen', s => s.stats.fish >= 10, 250],
+  ['schatz', '💎', 'Schatzsucher', 'Eine Schatztruhe geangelt', s => (s.stats.treasure || 0) >= 1, 500],
+  ['maschine', '⚙️', 'Handwerker', 'Die erste Maschine aufgestellt', s => Object.values(s.obj).some(o => PLACE[o.k]?.kind === 'machine'), 200],
+  ['auftrag10', '📋', 'Dorfhelden', '10 Aufträge erledigt', s => s.stats.orders >= 10, 600],
+  ['reich', '💰', 'Gut betucht', '10.000 Taler verdient', s => s.stats.earned >= 10000, 500],
+  ['reich2', '👑', 'Großgrundbesitzer', '100.000 Taler verdient', s => s.stats.earned >= 100000, 5000],
+  ['deko20', '🌷', 'Gartenkünstler', '20 Deko-Stücke aufgestellt', s => decos(s) >= 20, 400],
+  ['herz', '💕', 'Für immer zusammen', 'Einen Herzbogen aufgestellt', s => Object.values(s.obj).some(o => o.k === 'herz'), 200],
+  ['feld', '🟫', 'Großbauern', 'Das Feld voll ausgebaut', s => s.up.field >= 5, 3000],
+  ['haus', '🏰', 'Traumhaus', 'Das Haus voll ausgebaut', s => s.up.house >= 3, 3000],
+  ['werkzeug', '🛠️', 'Profi-Ausrüstung', 'Hacke, Gießkanne und Sichel auf Stufe 4', s => s.up.hoe >= 4 && s.up.can >= 4 && s.up.sickle >= 4, 2000],
+  ['level5', '⭐', 'Aufsteiger', 'Farm-Level 5 erreicht', s => s.level >= 5, 300],
+  ['level10', '🌟', 'Meisterhof', 'Farm-Level 10 erreicht', s => s.level >= 10, 2000],
+  ['tag10', '📅', 'Treue Seelen', '10 Tage zusammen gefarmt', s => s.day >= 10, 500],
+  ['regen', '🌧️', 'Regentänzer', 'Einen Regentag erlebt', s => s.weather === 'rain', 100],
+].map(([id, icon, name, desc, test, reward]) => ({ id, icon, name, desc, test, reward }));

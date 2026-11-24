@@ -1,7 +1,7 @@
 // Spiellogik ohne Grafik: Welt-Zustand, Zeit, Aktionen. Läuft beim Host; Gäste rechnen nur zur Anzeige mit.
 import {
   DAY, WET, MAP, CROPS, ANIMALS, ANIMAL_NAMES, PENS, BUILDINGS, POND, FIELDS, ITEMS, FISH, PLACE,
-  MACHINE_CAP, UPGRADES, needXp, MAX_LEVEL,
+  MACHINE_CAP, UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS,
 } from './data.js';
 
 export const key = (x, z) => x + ',' + z;
@@ -14,8 +14,8 @@ export function newFarm(name = 'Kuschelhof') {
     time: 0, day: 1, dayTime: 0.02, weather: 'sun',
     money: 150, xp: 0, level: 1,
     inv: { s_weizen: 10, s_karotte: 6, futter: 0 },
-    up: {}, tiles: {}, obj: {}, animals: [], orders: [], nextId: 1,
-    stats: { harvested: 0, earned: 0, fish: 0, orders: 0 },
+    up: {}, tiles: {}, obj: {}, animals: [], orders: [], nextId: 1, ach: {},
+    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0 },
   };
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
   for (let x = -5; x <= -2; x++) for (let z = 1; z <= 2; z++) s.tiles[key(x, z)] = { w: 0 };
@@ -213,7 +213,7 @@ const isInt = v => Number.isInteger(v) && Math.abs(v) <= MAP + 4;
 const isCount = v => Number.isInteger(v) && v > 0 && v <= 9999;
 const isDir = (dx, dz) => [-1, 0, 1].includes(dx) && [-1, 0, 1].includes(dz) && Math.abs(dx) + Math.abs(dz) === 1;
 const has = (o, k) => typeof k === 'string' && Object.hasOwn(o, k);
-const fx = (out, x, z, txt) => out.fx.push({ x, z, txt });
+const fx = (out, x, z, txt, k) => out.fx.push({ x, z, txt, k }); // k = Partikel-Art für die Grafik
 
 const ACTIONS = {
   till(s, a, out) {
@@ -221,6 +221,7 @@ const ACTIONS = {
     for (const [x, z] of area(s.up.hoe, a.x, a.z, a.dx, a.dz)) {
       if (!inField(s, x, z) || s.tiles[key(x, z)] || s.obj[key(x, z)]) continue;
       s.tiles[key(x, z)] = { w: 0 };
+      fx(out, x, z, '', 'dirt');
       n++;
     }
     out.snd = 'till';
@@ -230,9 +231,8 @@ const ACTIONS = {
     let n = 0;
     for (const [x, z] of area(s.up.can, a.x, a.z, a.dx, a.dz)) {
       const t = s.tiles[key(x, z)];
-      if (t) { t.w = WET; n++; }
+      if (t) { t.w = WET; n++; fx(out, x, z, '', 'water'); }
     }
-    if (n) fx(out, a.x, a.z, '💧');
     out.snd = 'water';
     return n > 0;
   },
@@ -244,6 +244,7 @@ const ACTIONS = {
       const t = s.tiles[key(x, z)];
       if (!t || t.c || !takeInv(s, a.item, 1)) continue;
       t.c = { k, g: 0 };
+      fx(out, x, z, '', 'seed');
       n++;
     }
     out.snd = 'plant';
@@ -260,6 +261,8 @@ const ACTIONS = {
       addInv(s, t.c.k, n);
       xp += c.xp * n;
       s.stats.harvested += n;
+      s.stats['h_' + t.c.k] = (s.stats['h_' + t.c.k] || 0) + n;
+      fx(out, x, z, '', 'leaf');
       if (c.regrow) t.c.g = c.grow - c.regrow; else delete t.c;
     }
     const entries = Object.entries(got);
@@ -276,6 +279,7 @@ const ACTIONS = {
     if (kind === 'machine') Object.assign(o, { n: 0, t: 0, o: 0 });
     if (kind === 'producer') o.t = 0;
     s.obj[key(a.x, a.z)] = o;
+    fx(out, a.x, a.z, '', 'dust');
     out.snd = 'place';
     return true;
   },
@@ -286,6 +290,7 @@ const ACTIONS = {
     if (o.o) addInv(s, PLACE[o.k].out, o.o);
     delete s.obj[k];
     addInv(s, o.k, 1);
+    fx(out, a.x, a.z, '', 'dust');
     out.snd = 'place';
     return true;
   },
@@ -298,7 +303,7 @@ const ACTIONS = {
       o.t = 0;
       addInv(s, p.item, p.n);
       addXp(s, ITEMS[p.item].xp * p.n, out);
-      fx(out, a.x, a.z, `+${p.n} ${ITEMS[p.item].icon}`);
+      fx(out, a.x, a.z, `+${p.n} ${ITEMS[p.item].icon}`, 'leaf');
       out.snd = 'harvest';
       return true;
     }
@@ -307,7 +312,7 @@ const ACTIONS = {
     if (o.o > 0) {
       addInv(s, p.out, o.o);
       addXp(s, ITEMS[p.out].xp * o.o, out);
-      fx(out, a.x, a.z, `+${o.o} ${ITEMS[p.out].icon}`);
+      fx(out, a.x, a.z, `+${o.o} ${ITEMS[p.out].icon}`, 'sparkle');
       o.o = 0;
       did = true;
     }
@@ -331,7 +336,7 @@ const ACTIONS = {
       addXp(s, ITEMS[d.product].xp * n, out);
       an.ready = false;
       an.p = 0;
-      fx(out, pos.x, pos.z, `+${n} ${ITEMS[d.product].icon}`);
+      fx(out, pos.x, pos.z, `+${n} ${ITEMS[d.product].icon}`, 'sparkle');
       out.snd = 'harvest';
       return true;
     }
@@ -339,12 +344,12 @@ const ACTIONS = {
       const food = takeInv(s, 'futter', 1) ? 'futter' : takeInv(s, 'weizen', 1) ? 'weizen' : null;
       if (!food) { out.msg = `${an.name} hat Hunger! Kaufe Futter 🌿 oder ernte Weizen 🌾.`; return false; }
       an.fed = DAY;
-      fx(out, pos.x, pos.z, '😋');
+      fx(out, pos.x, pos.z, '😋', 'seed');
       out.snd = 'plant';
       return true;
     }
     if (!an.pet) { an.pet = 1; an.love = Math.min(10, an.love + 1); addXp(s, 1, out); }
-    fx(out, pos.x, pos.z, '❤️');
+    fx(out, pos.x, pos.z, '❤️', 'heart');
     out.snd = 'love';
     return true;
   },
@@ -354,8 +359,9 @@ const ACTIONS = {
     for (const [f, w] of FISH) { if ((r -= w[l]) < 0) { id = f; break; } }
     addInv(s, id, 1);
     s.stats.fish++;
+    if (id === 'schatz') s.stats.treasure++;
     addXp(s, ITEMS[id].xp, out);
-    fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`);
+    fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`, 'water');
     out.caught = id;
     out.snd = 'harvest';
     return true;
@@ -448,7 +454,18 @@ export function act(s, a) {
   if (['till', 'water', 'plant', 'harvest'].includes(a.t) && !isDir(a.dx, a.dz)) return out;
   if (a.t === 'order' && !Number.isInteger(a.i)) return out;
   out.ok = ACTIONS[a.t](s, a, out);
+  if (out.ok) checkAchievements(s, out);
   return out;
+}
+
+// Neu erreichte Erfolge eintragen und belohnen
+export function checkAchievements(s, out) {
+  for (const a of ACHIEVEMENTS) {
+    if (s.ach[a.id] || !a.test(s)) continue;
+    s.ach[a.id] = s.day;
+    s.money += a.reward;
+    (out.ach ||= []).push(a.id);
+  }
 }
 
 // ---------- Was passiert, wenn ich jetzt die Aktionstaste drücke? (läuft lokal beim Spieler) ----------
@@ -458,10 +475,12 @@ export function facing(ry) {
   return Math.abs(fx) > Math.abs(fz) ? [Math.sign(fx), 0] : [0, Math.sign(fz)];
 }
 
-export function resolve(s, me, sel) {
-  const px = me.x + Math.sin(me.ry) * 0.9, pz = me.z + Math.cos(me.ry) * 0.9;
+// at = angetippter Punkt {x, z}; ohne at zählt das Feld vor der Figur.
+export function resolve(s, me, sel, at) {
+  const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
   const x = Math.round(px), z = Math.round(pz), k = key(x, z);
-  const [dx, dz] = facing(me.ry);
+  const toward = at && (x !== Math.round(me.x) || z !== Math.round(me.z)) ? Math.atan2(x - me.x, z - me.z) : me.ry;
+  const [dx, dz] = facing(toward);
   const one = [[x, z]];
 
   let best = null, bd = 1.3;
@@ -484,9 +503,10 @@ export function resolve(s, me, sel) {
   const o = s.obj[k];
   if (o) {
     const p = PLACE[o.k];
-    if (sel === 'hoe') return { a: { t: 'pickup', x, z }, label: '✋ Aufheben', tiles: one };
+    if (sel === 'hand') return { a: { t: 'pickup', x, z }, label: '✋ Aufheben', tiles: one };
     if (p.kind === 'machine') return { a: { t: 'use', x, z }, label: o.o ? `${ITEMS[p.out].icon} Abholen` : '⚙️ Befüllen', tiles: one };
     if (p.kind === 'producer') return { a: { t: 'use', x, z }, label: `${ITEMS[p.item].icon} Pflücken`, tiles: one };
+    if (o.k === 'bank') return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
     return { label: p.icon + ' ' + p.name, tiles: one };
   }
 

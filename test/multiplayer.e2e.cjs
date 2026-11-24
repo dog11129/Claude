@@ -21,13 +21,17 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   const browser = await chromium.launch({ args: ['--disable-features=WebRtcHideLocalIpsWithMdns'] });
   const errors = [];
   const open = async (opts, name) => {
-    const p = await (await browser.newContext(opts)).newPage();
+    const ctx = await browser.newContext(opts);
+    await ctx.addInitScript(() => localStorage.setItem('kh.settings', JSON.stringify({ quality: 'low', sound: 0, music: 0 })));
+    const p = await ctx.newPage();
     p.on('pageerror', e => errors.push(`${name}: ${e.message}`));
     return p;
   };
   const A = await open({ viewport: { width: 1280, height: 800 } }, 'host');
   await A.goto(URL);
   await A.fill('#pname', 'Host');
+  await A.click('#edok');
+  await A.click('[data-go=farms]');
   await A.click('#newbtn');
   await A.waitForFunction(() => window.__game.G?.code, null, { timeout: 15000 });
   const code = await A.evaluate(() => window.__game.G.code);
@@ -38,10 +42,15 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   await A.keyboard.press('e');
   await sleep(200);
   check(await A.evaluate(() => !!window.__game.G.s.tiles['-6,0']), 'Host gräbt mit E um');
+  const pt = await A.evaluate(() => window.__game.world.project(-6, 0, 2));
+  await A.mouse.click(pt[0], pt[1]);
+  await A.waitForFunction(() => !!window.__game.G.s.tiles['-6,2'], null, { timeout: 5000 }).catch(() => {});
+  check(await A.evaluate(() => !!window.__game.G.s.tiles['-6,2']), 'Klick aufs Feld: hinlaufen & umgraben');
 
   const B = await open({ ...devices['Pixel 7'] }, 'guest');
   await B.goto(URL + '&join=' + code);
   await B.fill('#pname', 'Gast');
+  await B.click('#edok');
   await B.click('#jbtn');
   await B.waitForFunction(() => window.__game.G?.ready, null, { timeout: 20000 });
   await sleep(800);
@@ -64,6 +73,20 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   await sleep(600);
   check(await B.evaluate(() => window.__game.G.s.money === 130), 'Geteiltes Geld wird synchronisiert');
   check(await B.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('kh.farms'))).length === 1), 'Gast hat eine Sicherheitskopie');
+
+  await B.evaluate(() => { const g = window.__game.G; Object.assign(g.players[g.me], { x: -4, z: -2 }); });
+  await A.evaluate(() => Object.assign(window.__game.G.players.h, { x: -4, z: -3, ry: 0 }));
+  await sleep(500);
+  check((await A.evaluate(() => window.__game.G.ctx?.label || '')).includes('umarmen'), 'Partner vor dir: Umarmen wird angeboten');
+  await A.keyboard.press('e');
+  await sleep(600);
+  check(await B.evaluate(() => window.__game.G.players[window.__game.G.me].ak === 'hug'), 'Umarmung kommt beim Gast an');
+  await B.evaluate(() => { window.__game.profile.look = { ...window.__game.profile.look, hat: 'crown' }; });
+  await B.evaluate(() => [...document.querySelectorAll('[data-open=settings]')][0].click());
+  await B.click('#pbody [data-ui=editlook]');
+  await B.click('#edok');
+  await sleep(600);
+  check(await A.evaluate(() => Object.values(window.__game.G.players).some(p => p.look.hat === 'crown')), 'Neues Aussehen des Gasts sieht der Host');
 
   await A.evaluate(() => [...document.querySelectorAll('[data-open=settings]')][0].click());
   await A.click('#pbody [data-ui=leave]');

@@ -119,3 +119,17 @@ test('migrate gibt Dinge unter Gebäuden zurück und repariert Zahlen', () => {
   assert.equal(s.inv.ei, 2);
   assert.equal(s.money, 0);
 });
+
+test('Erfolge werden einmal vergeben und belohnt', async () => {
+  const { ACHIEVEMENTS } = await import('../src/data.js');
+  const s = newFarm();
+  assert.ok(act(s, { t: 'till', x: -6, z: 0, dx: 1, dz: 0 }).ok);
+  act(s, { t: 'plant', x: -6, z: 0, dx: 1, dz: 0, item: 's_karotte' });
+  s.tiles[key(-6, 0)].c.g = 999;
+  const money = s.money, out = act(s, { t: 'harvest', x: -6, z: 0, dx: 1, dz: 0 });
+  assert.deepEqual(out.ach, ['ernte1']);
+  assert.equal(s.money, money + ACHIEVEMENTS.find(a => a.id === 'ernte1').reward);
+  s.tiles[key(-6, 0)].c = { k: 'karotte', g: 999 };
+  assert.equal(act(s, { t: 'harvest', x: -6, z: 0, dx: 1, dz: 0 }).ach, undefined);
+  for (const a of ACHIEVEMENTS) a.test(newFarm()); // keine Ausnahme bei leerem Hof
+});

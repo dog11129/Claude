@@ -1,5 +1,6 @@
 // Fenster-Inhalte (Laden, Lager, Aufträge, Freunde, Einstellungen). Reines HTML, Klicks gehen an Callbacks.
-import { CROPS, ANIMALS, ITEMS, PLACE, UPGRADES, EMOTES, AREA_NAME, needXp } from './data.js';
+import { CROPS, ANIMALS, ITEMS, PLACE, UPGRADES, EMOTES, AREA_NAME, ACHIEVEMENTS, needXp } from './data.js';
+import { settingsHtml } from './menu.js';
 import { price, upgradeInfo, capacity, animalCount } from './state.js';
 import { esc } from './world.js';
 
@@ -11,8 +12,10 @@ const time = s => s >= 60 ? `${Math.round(s / 6) / 10} Min` : `${s} s`;
 
 export const TABS = {
   shop: [['seeds', '🌱 Samen'], ['animals', '🐾 Tiere'], ['farm', '🏡 Farm'], ['tools', '🛠️ Werkzeug'], ['goods', '💎 Waren'], ['deco', '🌷 Deko']],
+  orders: [['orders', '📋 Aufträge'], ['goals', '🏆 Erfolge'], ['stats', '📊 Statistik']],
+  settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
 };
-const TITLES = { shop: '🛒 Laden', sell: '🎒 Lager & Verkauf', orders: '📋 Aufträge', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü' };
+const TITLES = { shop: '🛒 Laden', sell: '🎒 Lager & Verkauf', orders: '📋 Hof-Buch', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -68,7 +71,7 @@ const SHOP = {
   farm(s) {
     let h = '';
     for (const id of ['field', 'house', 'coop', 'barn']) h += upgradeRow(s, id);
-    h += '<h3>Maschinen & Helfer</h3><div class="note">Gekauftes landet im Lager. Wähle es in der Leiste aus und platziere es auf der Farm. Mit der Hacke ⛏️ hebst du es wieder auf.</div>';
+    h += '<h3>Maschinen & Helfer</h3><div class="note">Gekauftes landet im Lager. Wähle es in der Leiste aus und platziere es auf der Farm. Mit der Hand ✋ hebst du es wieder auf.</div>';
     for (const [id, p] of Object.entries(PLACE)) if (p.kind !== 'deco') h += placeRow(s, id);
     return h;
   },
@@ -83,7 +86,7 @@ const SHOP = {
     return h;
   },
   deco(s) {
-    let h = '<div class="note">Macht eure Farm süß! Kaufen ➜ in der Leiste wählen ➜ platzieren. Drehen: in die gewünschte Richtung schauen.</div>';
+    let h = '<div class="note">Macht eure Farm süß! Kaufen ➜ in der Leiste wählen ➜ platzieren. Drehen: in die gewünschte Richtung schauen. Aufheben mit der Hand ✋.</div>';
     for (const [id, p] of Object.entries(PLACE)) if (p.kind === 'deco') h += placeRow(s, id);
     return h;
   },
@@ -106,13 +109,27 @@ const PANELS = {
     }
     return h;
   },
-  orders(s) {
+  orders(s, g, tab) {
+    if (tab === 'goals') {
+      const done = ACHIEVEMENTS.filter(a => s.ach[a.id]).length;
+      let h = `<div class="note">Gemeinsame Ziele – jedes bringt eine Belohnung. Geschafft: <b>${done}/${ACHIEVEMENTS.length}</b></div><div class="bar"><i style="width:${done / ACHIEVEMENTS.length * 100}%"></i></div><br>`;
+      for (const a of ACHIEVEMENTS) {
+        const ok = s.ach[a.id];
+        h += `<div class="row${ok ? ' done' : ' locked'}"><div class="ic">${ok ? a.icon : '🔒'}</div><div class="tx"><b>${a.name}</b><small>${a.desc}${ok ? ` · geschafft an Tag ${ok}` : ''}</small></div><div class="bt">${money(a.reward)}</div></div>`;
+      }
+      return h;
+    }
+    if (tab === 'stats') {
+      const st = s.stats, pct = Math.round(s.xp / needXp(s.level) * 100);
+      const line = (i, l, v) => row(i, l, '', `<b>${v}</b>`);
+      return line('🏡', esc(s.name), `Tag ${s.day}`) + line('⭐', 'Farm-Level', `${s.level} (${pct}%)`) + line('🧺', 'Geerntet', st.harvested) + line('🎣', 'Fische gefangen', st.fish) +
+        line('📋', 'Aufträge erledigt', st.orders) + line('💰', 'Taler verdient', st.earned.toLocaleString('de-DE')) + line('🐾', 'Tiere', s.animals.length) + line('🌷', 'Aufgestellte Dinge', Object.keys(s.obj).length);
+    }
     let h = '<div class="note">Die Leute im Dorf wünschen sich Waren von eurer Farm – sie zahlen extra! Alle 3 Tage kommen neue Wünsche.</div>';
     s.orders.forEach((o, i) => {
       const have = s.inv[o.item] || 0, it = ITEMS[o.item];
-      h += row(it.icon, `${o.n}× ${it.name}`, `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐`, btn('Abgeben', { t: 'order', i, item: o.item, n: o.n }, 'pink', have < o.n));
+      h += row(it.icon, `${o.n}× ${it.name}`, `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐<div class="bar"><i style="width:${Math.min(1, have / o.n) * 100}%"></i></div>`, btn('Abgeben', { t: 'order', i, item: o.item, n: o.n }, 'pink', have < o.n));
     });
-    h += `<div class="note">Erledigte Aufträge: ${s.stats.orders}</div>`;
     return h;
   },
   friends(s, g) {
@@ -124,7 +141,7 @@ const PANELS = {
     h += `<input type="hidden" id="invlink" value="${esc(link)}">`;
     for (const p of Object.values(g.players)) {
       const kick = (p.id !== g.me ? btn('Hinbeamen ✨', { ui: 'goto', id: p.id }) : '') + (g.role === 'host' && p.id !== g.me ? btn('Entfernen', { ui: 'kick', id: p.id }, 'white') : '');
-      h += row(`<span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:${esc(p.color)}"></span>`, esc(p.name) + (p.id === 'h' ? ' 👑' : '') + (p.id === g.me ? ' (du)' : ''), p.id === 'h' ? 'Host – die Farm wird auf diesem Gerät gespeichert' : 'Gast – bekommt automatisch eine Kopie der Farm', kick);
+      h += row(`<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:${esc(p.look?.topColor || '#ccc')};border:3px solid ${esc(p.look?.hairColor || '#fff')}"></span>`, esc(p.name) + (p.id === 'h' ? ' 👑' : '') + (p.id === g.me ? ' (du)' : ''), p.id === 'h' ? 'Host – die Farm wird auf diesem Gerät gespeichert' : 'Gast – bekommt automatisch eine Kopie der Farm', kick);
     }
     h += '<div class="note">Alles ist geteilt: Geld, Lager, Tiere und Fortschritt. Jede/r bekommt eine Sicherheitskopie und kann die Farm später auch selbst hosten.</div>';
     return h;
@@ -132,20 +149,21 @@ const PANELS = {
   emotes() {
     return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${EMOTES.map(e => `<button class="slot" style="width:auto;height:64px;font-size:34px" data-ui="emote" data-e="${e}">${e}</button>`).join('')}</div>`;
   },
-  settings(s, g) {
-    const st = g.settings, tog = (k, l) => `<div class="row"><div class="tx"><b>${l}</b></div><div class="bt"><button class="btn small ${st[k] ? '' : 'white'}" data-ui="toggle" data-k="${k}">${st[k] ? 'An' : 'Aus'}</button></div></div>`;
-    const pct = Math.round(s.xp / needXp(s.level) * 100);
-    return tog('sound', '🔊 Geräusche') + tog('music', '🎵 Musik') + tog('shadows', '🌗 Schatten (aus = flüssiger)') +
-      `<div class="row"><div class="tx"><b>📱 Vollbild</b></div><div class="bt"><button class="btn small white" data-ui="fullscreen">Umschalten</button></div></div>
-      <h3>So wird gespielt</h3>
-      <div class="note">💻 <b>PC:</b> WASD/Pfeiltasten laufen · E/Leertaste/Klick = Aktion · 1–9 Werkzeug · Mausrad Zoom · Enter Chat · B Laden · I Lager · O Aufträge · Q Emotes<br>
-      📱 <b>Handy:</b> links wischen = laufen · großer Knopf = Aktion · unten Werkzeug antippen · zwei Finger = Zoom<br><br>
-      🌱 Hacke ⛏️ gräbt um ➜ Samen säen ➜ Gießkanne 💧 ➜ warten ➜ ernten (Aktion auf reife Pflanzen).<br>
+  settings(s, g, tab) {
+    if (tab === 'options') return settingsHtml(g.settings, g.touch);
+    if (tab === 'help') {
+      return `<div class="note">💻 <b>PC:</b> WASD/Pfeiltasten laufen · Klick = hinlaufen & benutzen · E/Leertaste = Aktion · 1–9 Werkzeug · Mausrad Zoom · rechte Maustaste ziehen oder Z/C = Kamera drehen · Enter Chat · B Laden · I Lager · O Hof-Buch · Q Emotes · P Fotomodus<br><br>
+      📱 <b>Handy:</b> links wischen = laufen · irgendwo antippen = hinlaufen & benutzen · großer Knopf = Aktion · zwei Finger = zoomen & drehen · 🔄 Kamera drehen<br><br>
+      🌱 Hacke ⛏️ gräbt um ➜ Samen säen ➜ Gießkanne 💧 ➜ warten ➜ ernten.<br>
+      🐾 Tiere füttern (Futter oder Weizen) und streicheln – glückliche Tiere geben öfter doppelt.<br>
       🎣 Am Teich angeln: Aktion, warten bis ❗ erscheint, dann schnell nochmal drücken.<br>
-      💰 An der Verkaufskiste oder im 🎒 Lager verkaufen. 📋 Aufträge geben Extra-Geld.<br>
-      ⭐ Mit Erfahrung steigt eure Farm im Level und schaltet neue Pflanzen, Tiere & Upgrades frei.</div>
-      <h3>Statistik</h3><div class="note">${esc(s.name)} · Tag ${s.day} · Level ${s.level} (${pct}%) · ${s.stats.harvested} geerntet · ${s.stats.fish} Fische · ${s.stats.earned.toLocaleString('de-DE')} Taler verdient</div>
-      <button class="btn pink" style="width:100%" data-ui="leave">🏠 Zurück zum Hauptmenü</button>`;
+      🪑 Auf Bänke kannst du dich setzen, und deinen Lieblingsmenschen kannst du umarmen 🤗.<br>
+      💰 An der Verkaufskiste oder im 🎒 Lager verkaufen. 📋 Aufträge & 🏆 Erfolge geben Extra-Geld.<br>
+      ⭐ Mit Erfahrung steigt eure Farm im Level und schaltet Neues frei.</div>`;
+    }
+    return `<button class="big" data-ui="editlook"><span class="i">👗</span><span>Aussehen ändern<small>Frisur, Outfit, Haustier …</small></span></button><br>
+      <button class="big" data-ui="photo"><span class="i">📷</span><span>Fotomodus<small>Schöne Erinnerungsfotos von eurer Farm</small></span></button><br>
+      <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Farm wird gespeichert</small></span></button>`;
   },
 };
 
@@ -175,7 +193,7 @@ export class Panels {
   show(kind, tab) {
     this.open = kind;
     if (tab) this.tab = tab;
-    if (kind === 'shop' && !TABS.shop.some(t => t[0] === this.tab)) this.tab = 'seeds';
+    if (TABS[kind] && !TABS[kind].some(t => t[0] === this.tab)) this.tab = TABS[kind][0][0];
     this.sig = null;
     $('panel').classList.remove('hidden');
     $('ptitle').textContent = TITLES[kind];
@@ -190,7 +208,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings, s.ach]);
     if (sig === this.sig) return;
     this.sig = sig;
     const body = $('pbody'), y = body.scrollTop;
@@ -203,13 +221,13 @@ export class Panels {
 
 // ---------- Hotbar ----------
 export function hotbarItems(s) {
-  const items = ['hoe', 'can'];
+  const items = ['hoe', 'can', 'hand'];
   for (const k of Object.keys(CROPS)) if (s.inv['s_' + k] > 0) items.push('s_' + k);
   for (const k of Object.keys(PLACE)) if (s.inv[k] > 0) items.push(k);
   return items;
 }
 export function slotHtml(s, id, i, sel) {
-  const tool = { hoe: ['⛏️', 'Hacke'], can: ['💧', 'Gießkanne'] }[id];
+  const tool = { hoe: ['⛏️', 'Hacke'], can: ['💧', 'Gießkanne'], hand: ['✋', 'Hand: aufheben & benutzen'] }[id];
   const icon = tool ? tool[0] : ITEMS[id].icon, title = tool ? tool[1] : ITEMS[id].name;
   const n = tool ? '' : `<span class="n">${s.inv[id]}</span>`;
   return `<button class="slot${id === sel ? ' sel' : ''}" data-id="${id}" title="${title}">${i < 9 ? `<span class="k">${i + 1}</span>` : ''}${icon}${ITEMS[id]?.seed ? '<span class="seed">🫘</span>' : ''}${n}</button>`;

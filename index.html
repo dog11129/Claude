@@ -14,139 +14,240 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #fff8f0; --card: #fffdf9; --ink: #5a4636; --soft: #a08a76; --pink: #ff8fab; --pinkd: #f06a8d;
-  --green: #7cc96a; --greend: #5aa84a; --yellow: #ffd66b; --blue: #6cc4ff; --line: #f0e2d2;
-  --shadow: 0 4px 0 rgba(90,70,54,.18), 0 8px 24px rgba(90,70,54,.15);
+  --card: #fffdf9; --card2: rgba(255,253,249,.9); --ink: #5a4636; --soft: #a08a76; --pink: #ff8fab; --pinkd: #e86a8b;
+  --green: #7cc96a; --greend: #5aa84a; --yellow: #ffd66b; --blue: #6cc4ff; --line: #f0e2d2; --lilac: #b39cff;
+  --shadow: 0 4px 0 rgba(90,70,54,.16), 0 10px 28px rgba(90,70,54,.16);
+  --r: 22px; --safe-l: env(safe-area-inset-left); --safe-r: env(safe-area-inset-right); --safe-t: env(safe-area-inset-top); --safe-b: env(safe-area-inset-bottom);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #9fd9ff; color: var(--ink);
   font-family: 'Fredoka', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
 canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
 input { font: inherit; color: var(--ink); user-select: text; -webkit-user-select: text; }
 .hidden { display: none !important; }
+h2, h3 { margin: 0; }
 
-/* Beschriftungen über der 3D-Welt */
+/* ---------- Beschriftungen in der Welt ---------- */
 #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
 .tag { position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform; }
-.tag.name { font-size: 13px; font-weight: 600; color: #fff; background: rgba(90,70,54,.55); padding: 1px 8px; border-radius: 10px; }
-.tag.name.me { background: rgba(240,106,141,.75); }
-.tag.chat { background: #fff; padding: 5px 10px; border-radius: 12px; font-size: 14px; max-width: 220px; white-space: normal; box-shadow: var(--shadow); }
-.tag.emote { font-size: 34px; animation: pop .3s; }
-.tag.bubble { background: #fff; border-radius: 14px; padding: 2px 7px; font-size: 18px; box-shadow: 0 2px 0 rgba(90,70,54,.2); animation: bob 1.4s ease-in-out infinite; }
+.tag.name { font-size: 13px; font-weight: 600; color: #fff; background: rgba(90,70,54,.5); padding: 1px 9px; border-radius: 10px; backdrop-filter: blur(4px); }
+.tag.name.me { background: rgba(232,106,139,.78); }
+.tag.chat { background: #fff; padding: 6px 11px; border-radius: 14px 14px 14px 4px; font-size: 14px; max-width: 230px; white-space: normal; box-shadow: var(--shadow); animation: pop .25s; }
+.tag.emote { font-size: 38px; animation: pop .3s; filter: drop-shadow(0 3px 4px rgba(0,0,0,.2)); }
+.tag.bubble { background: #fff; border-radius: 14px; padding: 2px 8px; font-size: 18px; box-shadow: 0 2px 0 rgba(90,70,54,.2); animation: bob 1.4s ease-in-out infinite; }
 .tag.bubble b { font-size: 12px; margin-left: 2px; }
 .tag.bubble.small { font-size: 12px; animation: none; opacity: .9; }
 .tag.hungry { background: #fff3d6; }
-.floater { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 20px; color: #fff; text-shadow: 0 2px 0 rgba(90,70,54,.5), 0 0 6px rgba(90,70,54,.4); white-space: nowrap; }
+.tag.prompt { background: rgba(255,253,249,.95); border-radius: 14px; padding: 4px 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); text-align: center; animation: pop .15s; }
+.tag.prompt small { display: block; font-weight: 500; font-size: 12px; color: var(--soft); }
+.tag.prompt kbd { background: var(--line); border-radius: 6px; padding: 0 5px; font-family: inherit; margin-right: 4px; }
+.floater { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 21px; color: #fff; text-shadow: 0 2px 0 rgba(90,70,54,.55), 0 0 8px rgba(90,70,54,.35); white-space: nowrap; }
 @keyframes bob { 50% { margin-top: -5px; } }
-@keyframes pop { from { scale: .3; } }
-
-/* HUD */
-#hud { position: fixed; inset: 0; pointer-events: none; }
-#hud > * { pointer-events: auto; }
-.pill { background: var(--card); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-#stats { position: absolute; left: max(10px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); display: flex; flex-wrap: wrap; gap: 8px; max-width: max(52vw, calc(100vw - 400px)); pointer-events: none; }
-#lvlbar { width: 70px; height: 9px; background: var(--line); border-radius: 9px; overflow: hidden; }
-#lvlbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--yellow)); width: 0; transition: width .4s; }
-#topbtns { position: absolute; right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 46vw; }
-.round { width: 46px; height: 46px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow); font-size: 22px; display: grid; place-items: center; position: relative; }
-.round:active, .btn:active, .slot:active { transform: translateY(2px); }
-.round .dot { position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--pink); color: #fff; font-size: 11px; display: grid; place-items: center; padding: 0 4px; }
-#invite { background: var(--pink); color: #fff; pointer-events: auto; }
-#hint { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); pointer-events: none; font-size: 15px; }
-#hint kbd { background: var(--line); border-radius: 6px; padding: 0 6px; font-family: inherit; }
-#hotbar { position: absolute; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; background: rgba(255,253,249,.85);
-  border-radius: 18px; box-shadow: var(--shadow); max-width: calc(100vw - 20px); overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
-#hotbar::-webkit-scrollbar { display: none; }
-.slot { width: 54px; height: 54px; flex: 0 0 auto; border-radius: 14px; background: #fff; border: 3px solid transparent; font-size: 26px; position: relative; display: grid; place-items: center; }
-.slot.sel { border-color: var(--pink); background: #fff0f4; }
-.slot .n { position: absolute; right: 3px; bottom: 0; font-size: 12px; font-weight: 700; }
-.slot .k { position: absolute; left: 4px; top: 1px; font-size: 10px; color: var(--soft); }
-.slot .seed { position: absolute; left: 2px; bottom: 1px; font-size: 13px; }
-#chatlog { position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: 150px; width: min(320px, 70vw); display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
-#chatlog div { background: rgba(255,253,249,.88); border-radius: 12px; padding: 4px 10px; font-size: 14px; animation: fadeout 12s forwards; }
-#chatlog b { color: var(--pinkd); }
+@keyframes pop { from { scale: .4; opacity: 0; } }
 @keyframes fadeout { 85% { opacity: 1; } to { opacity: 0; } }
-#chatform { position: absolute; left: 50%; top: 70px; transform: translateX(-50%); display: flex; gap: 6px; width: min(460px, 92vw); }
-#chatform input { flex: 1; border: 3px solid var(--pink); border-radius: 14px; padding: 10px 12px; font-size: 16px; outline: none; }
+@keyframes slideup { from { transform: translateY(24px); opacity: 0; } }
+@keyframes spin { to { rotate: 360deg; } }
 
-/* Handy-Steuerung */
-#joy { position: absolute; left: 0; bottom: 0; width: 50vw; height: 60vh; }
-#joybase { position: absolute; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,.35); border: 3px solid rgba(255,255,255,.7); transform: translate(-50%, -50%); pointer-events: none; }
-#joyknob { position: absolute; width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: var(--shadow); transform: translate(-50%, -50%); pointer-events: none; }
-#actwrap { position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: max(86px, calc(env(safe-area-inset-bottom) + 76px)); display: flex; flex-direction: column; align-items: center; gap: 6px; }
-#actbtn { width: 84px; height: 84px; border-radius: 50%; background: var(--pink); color: #fff; font-size: 34px; box-shadow: 0 5px 0 var(--pinkd), 0 10px 24px rgba(90,70,54,.25); }
-#actbtn:active, #actbtn.on { transform: translateY(4px); box-shadow: 0 1px 0 var(--pinkd); }
-#actlabel { font-size: 13px; font-weight: 600; background: var(--card); border-radius: 10px; padding: 2px 8px; box-shadow: var(--shadow); white-space: nowrap; }
-body:not(.touch) #joy, body:not(.touch) #actwrap { display: none; }
-body.touch #hint { display: none; }
-body.touch #chatlog { bottom: 200px; }
-
-/* Fenster / Menüs */
-.card { background: var(--card); border-radius: 24px; box-shadow: var(--shadow); padding: 18px; }
-.btn { background: var(--green); color: #fff; font-weight: 600; border-radius: 14px; padding: 10px 16px; box-shadow: 0 4px 0 var(--greend); font-size: 16px; }
+/* ---------- Bausteine ---------- */
+.pill { background: var(--card2); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(6px); }
+.round { width: 46px; height: 46px; border-radius: 50%; background: var(--card2); box-shadow: var(--shadow); font-size: 22px; display: grid; place-items: center; position: relative; backdrop-filter: blur(6px); transition: transform .1s; }
+.round:hover { transform: translateY(-2px); }
+.round:active, .btn:active, .slot:active, .big:active { transform: translateY(2px); }
+.round .dot { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--pink); color: #fff; font-size: 11px; display: grid; place-items: center; padding: 0 4px; }
+.btn { background: var(--green); color: #fff; font-weight: 600; border-radius: 14px; padding: 10px 16px; box-shadow: 0 4px 0 var(--greend); font-size: 16px; transition: filter .15s; }
+.btn:hover { filter: brightness(1.05); }
 .btn.pink { background: var(--pink); box-shadow: 0 4px 0 var(--pinkd); }
 .btn.white { background: #fff; color: var(--ink); box-shadow: 0 4px 0 var(--line); border: 2px solid var(--line); }
 .btn.small { padding: 6px 10px; font-size: 14px; border-radius: 10px; }
-.btn:disabled { background: #d8cfc6; box-shadow: 0 4px 0 #c2b6aa; cursor: not-allowed; }
-#panel { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(90,70,54,.25); padding: 10px; }
-#panel .card { width: min(620px, 100%); max-height: min(86vh, 760px); display: flex; flex-direction: column; padding: 14px; }
+.btn:disabled { background: #d8cfc6; box-shadow: 0 4px 0 #c2b6aa; cursor: not-allowed; filter: none; }
+.card { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); padding: 18px; }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatches button { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--line); transition: transform .1s; }
+.swatches button.on { box-shadow: 0 0 0 3px var(--pink); transform: scale(1.1); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 6px 10px; font-weight: 500; }
+.chips button.on { border-color: var(--pink); background: #fff0f4; color: var(--pinkd); }
+.seg { display: inline-flex; background: var(--line); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { padding: 6px 12px; border-radius: 9px; font-weight: 600; }
+.seg button.on { background: #fff; box-shadow: 0 2px 0 rgba(90,70,54,.12); color: var(--pinkd); }
+.toggle { width: 52px; height: 30px; border-radius: 15px; background: var(--line); position: relative; transition: background .2s; }
+.toggle i { position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.15); transition: left .2s; }
+.toggle.on { background: var(--green); }
+.toggle.on i { left: 25px; }
+input[type=range] { width: min(220px, 50vw); accent-color: var(--pink); }
+input[type=text] { border: 3px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 17px; outline: none; width: 100%; background: #fff; }
+input[type=text]:focus { border-color: var(--pink); }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 4px; border-bottom: 2px dashed var(--line); flex-wrap: wrap; }
+.set:last-child { border-bottom: 0; }
+.err { color: #d64545; font-weight: 600; min-height: 1em; }
+.note { color: var(--soft); font-size: 14px; margin: 4px 2px 10px; line-height: 1.35; }
+.money { color: #c98a00; font-weight: 700; white-space: nowrap; }
+.lv { display: inline-block; background: var(--line); border-radius: 8px; padding: 0 6px; font-size: 12px; margin-left: 4px; }
+.pips { color: var(--pink); letter-spacing: 1px; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+#hud > * { pointer-events: auto; }
+#stats { position: absolute; left: max(10px, var(--safe-l)); top: max(10px, var(--safe-t)); display: flex; flex-wrap: wrap; gap: 8px; max-width: max(52vw, calc(100vw - 480px)); pointer-events: none; }
+#lvlbar { width: 70px; height: 9px; background: var(--line); border-radius: 9px; overflow: hidden; }
+#lvlbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--yellow)); width: 0; transition: width .4s; }
+#invite { background: var(--pink); color: #fff; pointer-events: auto; }
+#topbtns { position: absolute; right: max(10px, var(--safe-r)); top: max(10px, var(--safe-t)); display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 46vw; }
+#hint { display: none !important; position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); pointer-events: none; font-size: 15px; }
+#hint kbd { background: var(--line); border-radius: 6px; padding: 0 6px; font-family: inherit; }
+#hotbar { position: absolute; left: 50%; bottom: max(10px, var(--safe-b)); transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; background: var(--card2); backdrop-filter: blur(8px);
+  border-radius: 20px; box-shadow: var(--shadow); max-width: calc(100vw - 20px); overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+#hotbar::-webkit-scrollbar { display: none; }
+.slot { width: 54px; height: 54px; flex: 0 0 auto; border-radius: 15px; background: #fff; border: 3px solid transparent; font-size: 26px; position: relative; display: grid; place-items: center; transition: transform .1s; }
+.slot.sel { border-color: var(--pink); background: #fff0f4; transform: translateY(-3px); }
+.slot .n { position: absolute; right: 3px; bottom: 0; font-size: 12px; font-weight: 700; }
+.slot .k { position: absolute; left: 4px; top: 1px; font-size: 10px; color: var(--soft); }
+.slot .seed { position: absolute; left: 2px; bottom: 1px; font-size: 13px; }
+#chatlog { position: absolute; left: max(10px, var(--safe-l)); bottom: 150px; width: min(330px, 70vw); display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+#chatlog div { background: var(--card2); border-radius: 12px; padding: 4px 10px; font-size: 14px; animation: slideup .25s, fadeout 12s forwards; }
+#chatlog b { color: var(--pinkd); }
+#chatform { position: absolute; left: 50%; top: 70px; transform: translateX(-50%); display: flex; gap: 6px; width: min(460px, 92vw); }
+#chatform input { flex: 1; border: 3px solid var(--pink); border-radius: 14px; padding: 10px 12px; font-size: 16px; outline: none; }
+#fishbar { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font-size: 18px; }
+#fishbar.bite { background: var(--yellow); animation: pop .2s; }
+
+/* Handy-Steuerung */
+#joy { position: absolute; left: 0; bottom: 0; width: 45vw; height: 58vh; }
+#joybase { position: absolute; width: 124px; height: 124px; border-radius: 50%; background: rgba(255,255,255,.28); border: 3px solid rgba(255,255,255,.75); transform: translate(-50%, -50%); pointer-events: none; backdrop-filter: blur(2px); }
+#joyknob { position: absolute; width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: var(--shadow); transform: translate(-50%, -50%); pointer-events: none; }
+#actwrap { position: absolute; right: max(14px, var(--safe-r)); bottom: max(86px, calc(var(--safe-b) + 76px)); display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; gap: 8px; align-items: end; justify-items: center; }
+#actlabel { grid-column: 1 / 3; font-size: 13px; font-weight: 600; background: var(--card2); border-radius: 10px; padding: 2px 9px; box-shadow: var(--shadow); white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+#minibtns { display: flex; flex-direction: column; gap: 8px; }
+#minibtns .round { width: 42px; height: 42px; font-size: 19px; }
+#actbtn { width: 86px; height: 86px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffb3c6, var(--pink)); color: #fff; font-size: 36px; box-shadow: 0 5px 0 var(--pinkd), 0 10px 24px rgba(90,70,54,.25); transition: transform .08s; }
+#actbtn:active, #actbtn.on { transform: translateY(4px); box-shadow: 0 1px 0 var(--pinkd); }
+body:not(.touch) #joy, body:not(.touch) #actwrap { display: none; }
+body.touch #hint, body.touch .desk { display: none; }
+body.touch #chatlog { bottom: 210px; }
+
+/* Querformat auf dem Handy: alles kompakter, Bedienung an den Seiten */
+@media (orientation: landscape) and (max-height: 540px) {
+  .round { width: 38px; height: 38px; font-size: 18px; }
+  #topbtns { gap: 6px; max-width: none; }
+  #stats { gap: 6px; max-width: calc(100vw - 330px); }
+  #stats .pill { padding: 3px 9px; font-size: 14px; }
+  #lvlbar { width: 44px; }
+  .slot { width: 46px; height: 46px; font-size: 22px; }
+  #hotbar { gap: 4px; padding: 4px; max-width: calc(100vw - 330px); }
+  #actwrap { bottom: max(14px, var(--safe-b)); }
+  #actbtn { width: 78px; height: 78px; }
+  #joy { width: 36vw; height: 80vh; }
+  body.touch #chatlog { bottom: 70px; width: min(280px, 34vw); }
+  #fishbar { top: 22%; }
+}
+@media (max-width: 560px) and (orientation: portrait) {
+  .round { width: 40px; height: 40px; font-size: 19px; }
+  .slot { width: 48px; height: 48px; font-size: 23px; }
+  #stats .pill { padding: 4px 9px; font-size: 14px; }
+  #lvlbar { width: 46px; }
+}
+#rotatehint { position: fixed; inset: 0; z-index: 30; background: linear-gradient(160deg, #ffd6e2, #b9e6ff); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; font-size: 20px; font-weight: 600; text-align: center; padding: 30px; }
+#rotatehint span { font-size: 70px; animation: tilt 1.6s ease-in-out infinite; }
+@keyframes tilt { 50% { rotate: -90deg; } }
+body.wantland.portrait.ingame #rotatehint { display: flex; }
+
+/* Fenster im Spiel */
+#panel { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(90,70,54,.28); padding: 10px; animation: fadein .15s; }
+@keyframes fadein { from { opacity: 0; } }
+#panel .card { width: min(640px, 100%); max-height: min(88vh, 780px); display: flex; flex-direction: column; padding: 14px; animation: slideup .2s; }
 #panel header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-#panel h2 { margin: 0; font-size: 22px; flex: 1; }
-#ptabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; flex: 0 0 auto; }
+#panel h2 { font-size: 22px; flex: 1; }
+#ptabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; flex: 0 0 auto; touch-action: pan-x; }
 #ptabs button { flex: 0 0 auto; background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 6px 10px; font-weight: 600; }
 #ptabs button.on { background: var(--pink); color: #fff; border-color: var(--pink); }
 #pbody { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 2px; }
-.row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; background: #fff; margin-bottom: 6px; border: 2px solid var(--line); }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 16px; background: #fff; margin-bottom: 6px; border: 2px solid var(--line); }
 .row .ic { font-size: 30px; width: 40px; text-align: center; flex: 0 0 auto; }
 .row .tx { flex: 1; min-width: 0; }
 .row .tx b { display: block; }
 .row .tx small { color: var(--soft); display: block; line-height: 1.25; }
 .row .bt { display: flex; gap: 6px; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
 .row.locked { opacity: .55; }
-.money { color: #c98a00; font-weight: 700; white-space: nowrap; }
-.lv { display: inline-block; background: var(--line); border-radius: 8px; padding: 0 6px; font-size: 12px; margin-left: 4px; }
-.pips { color: var(--pink); letter-spacing: 1px; }
-.note { color: var(--soft); font-size: 14px; margin: 4px 2px 10px; }
+.row.done { background: #f3fbef; border-color: #cfeac2; }
+.bar { height: 7px; background: var(--line); border-radius: 7px; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--green), var(--yellow)); }
 
-/* Hauptmenü */
-#menu { position: fixed; inset: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 20px 12px 30px; gap: 14px; touch-action: pan-y; }
-#menu h1 { font-size: clamp(40px, 9vw, 72px); margin: 10px 0 0; color: #fff; text-shadow: 0 4px 0 var(--pinkd), 0 8px 20px rgba(90,70,54,.3); letter-spacing: 1px; }
-#menu .sub { margin-top: -10px; color: #fff; font-weight: 600; text-shadow: 0 2px 4px rgba(90,70,54,.4); }
-#menu .card { width: min(460px, 100%); display: flex; flex-direction: column; gap: 10px; }
-#menu h3 { margin: 0; }
-#menu input[type=text] { border: 3px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 17px; outline: none; width: 100%; }
-#menu input[type=text]:focus { border-color: var(--pink); }
-.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
-.swatches button { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--line); }
-.swatches button.on { box-shadow: 0 0 0 3px var(--pink); }
-.chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.chips button { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 5px 9px; }
-.chips button.on { border-color: var(--pink); background: #fff0f4; }
+@media (orientation: landscape) and (max-height: 540px) {
+  #panel { padding: 4px; } #panel .card { max-height: 98vh; padding: 10px; } #panel h2 { font-size: 18px; }
+  .row { padding: 5px 8px; margin-bottom: 4px; } .row .ic { font-size: 24px; } .note { margin: 2px 2px 6px; }
+}
+
+/* ---------- Hauptmenü ---------- */
+#menu { position: fixed; inset: 0; overflow-y: auto; touch-action: pan-y; padding: max(16px, var(--safe-t)) 14px 26px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 10%, rgba(255,255,255,.35), transparent 60%); }
+#menu .screen { width: min(460px, 100%); animation: slideup .3s; }
+.logo { text-align: center; margin-bottom: 18px; }
+.logo .sun { font-size: clamp(54px, 12vw, 86px); display: inline-block; animation: spin 30s linear infinite; filter: drop-shadow(0 6px 10px rgba(255,180,0,.35)); }
+.logo h1 { font-size: clamp(48px, 11vw, 84px); margin: -8px 0 0; color: #fff; letter-spacing: 1px; line-height: 1;
+  text-shadow: 0 4px 0 var(--pinkd), 0 8px 0 rgba(232,106,139,.35), 0 14px 28px rgba(90,70,54,.35); }
+.logo p { margin: 8px 0 0; color: #fff; font-weight: 600; font-size: 17px; text-shadow: 0 2px 6px rgba(90,70,54,.45); }
+.mainbtns { display: flex; flex-direction: column; gap: 10px; }
+.big { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 18px; border-radius: 20px; background: var(--card2); backdrop-filter: blur(8px); box-shadow: var(--shadow); font-size: 19px; font-weight: 600; text-align: left; transition: transform .12s; }
+.big:hover { transform: translateY(-2px) scale(1.01); }
+.big .i { font-size: 28px; width: 36px; text-align: center; }
+.big small { display: block; font-size: 13px; font-weight: 500; color: var(--soft); }
+.big.pink { background: linear-gradient(135deg, #ffa3bc, var(--pink)); color: #fff; box-shadow: 0 5px 0 var(--pinkd), 0 12px 26px rgba(232,106,139,.35); }
+.big.pink small { color: rgba(255,255,255,.85); }
+.hello { text-align: center; margin-top: 14px; color: #fff; font-weight: 600; text-shadow: 0 2px 6px rgba(90,70,54,.45); }
+.screen.card { display: flex; flex-direction: column; gap: 12px; }
+.screen header { display: flex; align-items: center; gap: 10px; }
+.screen header h2 { flex: 1; font-size: 22px; }
+.back { font-size: 22px; width: 40px; height: 40px; border-radius: 50%; background: var(--line); }
 .joinrow { display: flex; gap: 8px; }
-#jcode { text-transform: uppercase; letter-spacing: 4px; text-align: center; font-weight: 700; }
-.farm { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; border: 2px solid var(--line); background: #fff; }
-.farm .tx { flex: 1; }
+#jcode { text-transform: uppercase; letter-spacing: 8px; text-align: center; font-weight: 700; font-size: 28px; }
+.farm { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; border: 2px solid var(--line); background: #fff; }
+.farm .tx { flex: 1; min-width: 0; }
 .farm small { color: var(--soft); display: block; }
-.err { color: #d64545; font-weight: 600; min-height: 1em; }
 
-#toasts { position: fixed; left: 50%; top: 66px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: 92vw; }
-#toasts div { background: var(--card); border-radius: 14px; padding: 8px 14px; box-shadow: var(--shadow); font-weight: 600; animation: pop .25s, fadeout 4s forwards; text-align: center; max-width: 460px; }
-#toasts div.big { background: var(--yellow); font-size: 18px; animation: pop .25s, fadeout 6s forwards; }
+/* ---------- Charakter-Editor ---------- */
+#editor { position: fixed; inset: 0; pointer-events: none; display: flex; justify-content: flex-end; align-items: stretch; padding: max(12px, var(--safe-t)) max(12px, var(--safe-r)) max(12px, var(--safe-b)) 12px; }
+#editor > * { pointer-events: auto; }
+#editor .ed { width: min(420px, 46vw); display: flex; flex-direction: column; gap: 10px; padding: 14px; animation: slideup .25s; }
+#editor header { display: flex; gap: 8px; align-items: center; }
+#editor header h2 { flex: 1; font-size: 21px; }
+.edtabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 0 0 auto; touch-action: pan-x; }
+.edtabs button { flex: 0 0 auto; padding: 7px 10px; border-radius: 12px; background: #fff; border: 2px solid var(--line); font-weight: 600; }
+.edtabs button.on { background: var(--pink); border-color: var(--pink); color: #fff; }
+.edbody { flex: 1; overflow-y: auto; touch-action: pan-y; display: flex; flex-direction: column; gap: 12px; padding: 2px; }
+.edbody h4 { margin: 0 0 6px; font-size: 15px; color: var(--soft); }
+.edfoot { display: flex; gap: 8px; }
+.edfoot .btn { flex: 1; }
+#edrot { position: fixed; left: 50%; bottom: max(16px, var(--safe-b)); display: flex; gap: 10px; transform: translateX(calc(-50% - 210px)); pointer-events: auto; }
+@media (orientation: portrait) {
+  #editor { align-items: flex-end; padding: 0; }
+  #editor .ed { width: 100%; height: 52vh; border-radius: 26px 26px 0 0; padding-bottom: max(14px, var(--safe-b)); }
+  #edrot { bottom: calc(52vh + 10px); transform: translateX(-50%); }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  #editor .ed { width: min(400px, 52vw); padding: 10px; gap: 6px; }
+  .swatches button { width: 30px; height: 30px; }
+  #edrot { transform: translateX(calc(-50% - 26vw)); }
+}
+
+/* Fotomodus */
+#photobar { position: fixed; left: 50%; bottom: max(16px, var(--safe-b)); transform: translateX(-50%); display: flex; gap: 10px; align-items: center; }
+#shutter { width: 72px; height: 72px; border-radius: 50%; background: #fff; border: 6px solid var(--pink); font-size: 28px; box-shadow: var(--shadow); }
+#flash { position: fixed; inset: 0; background: #fff; pointer-events: none; opacity: 0; transition: opacity .4s; }
+#flash.on { opacity: .85; transition: none; }
+#photohint { position: fixed; top: max(14px, var(--safe-t)); left: 50%; transform: translateX(-50%); }
+
+#toasts { position: fixed; left: 50%; top: 70px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: 92vw; z-index: 5; }
+#toasts div { background: var(--card); border-radius: 14px; padding: 8px 14px; box-shadow: var(--shadow); font-weight: 600; animation: pop .25s, fadeout 4s forwards; text-align: center; max-width: 480px; }
+#toasts div.big { background: linear-gradient(135deg, #fff3b0, var(--yellow)); font-size: 18px; animation: pop .25s, fadeout 6s forwards; }
+#toasts div.ach { background: linear-gradient(135deg, #ffe0ea, #ffd0f0); animation: pop .25s, fadeout 6s forwards; }
 #cover { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(90,70,54,.35); z-index: 10; }
 #cover .card { text-align: center; max-width: 360px; }
 .spin { display: inline-block; animation: spin 1.2s linear infinite; font-size: 30px; }
-@keyframes spin { to { rotate: 360deg; } }
-#fishbar { position: absolute; left: 50%; top: 32%; transform: translateX(-50%); font-size: 18px; }
-@media (max-width: 560px), (max-height: 500px) {
-  .round { width: 40px; height: 40px; font-size: 19px; }
-  .slot { width: 48px; height: 48px; font-size: 23px; }
-  #stats .pill { padding: 4px 9px; font-size: 14px; }
-  #lvlbar { width: 46px; }
-}
-@media (max-height: 500px) { #menu { padding-top: 6px; } #menu h1 { margin: 0; } #actwrap { bottom: 76px; } #actbtn { width: 72px; height: 72px; }
-  #panel { padding: 4px; } #panel .card { max-height: 98vh; padding: 10px; } #panel h2 { font-size: 18px; } .row { padding: 5px 8px; margin-bottom: 4px; } .row .ic { font-size: 24px; } .note { margin: 2px 2px 6px; }
-  #toasts div.big { font-size: 15px; } }
+#loading { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: linear-gradient(160deg, #bfe8ff, #ffe1ea); transition: opacity .5s; }
+#loading.off { opacity: 0; pointer-events: none; }
+#loading div { text-align: center; font-size: 22px; font-weight: 600; color: var(--ink); }
+#loading span { font-size: 64px; display: inline-block; animation: spin 2s linear infinite; }
 </style>
 </head>
 <body>
@@ -163,10 +264,11 @@ body.touch #chatlog { bottom: 200px; }
   <div id="topbtns">
     <button class="round" data-open="shop" title="Laden (B)">🛒</button>
     <button class="round" data-open="sell" title="Lager & Verkaufen (I)">🎒</button>
-    <button class="round" data-open="orders" title="Aufträge (O)">📋<span class="dot hidden" id="orderdot"></span></button>
+    <button class="round" data-open="orders" title="Aufträge & Erfolge (O)">📋<span class="dot hidden" id="orderdot"></span></button>
     <button class="round" data-open="friends" title="Freunde (F)">👥<span class="dot" id="pcount">1</span></button>
-    <button class="round" id="chatbtn" title="Chat (Enter)">💬</button>
-    <button class="round" data-open="emotes" title="Emotes (Q)">😊</button>
+    <button class="round desk" id="chatbtn" title="Chat (Enter)">💬</button>
+    <button class="round desk" data-open="emotes" title="Emotes (Q)">😊</button>
+    <button class="round" id="photobtn" title="Fotomodus (P)">📷</button>
     <button class="round" data-open="settings" title="Menü (Esc)">⚙️</button>
   </div>
   <div id="hint" class="pill hidden"></div>
@@ -174,31 +276,65 @@ body.touch #chatlog { bottom: 200px; }
   <form id="chatform" class="hidden"><input id="chatin" maxlength="120" placeholder="Nachricht…" autocomplete="off"><button class="btn pink">Senden</button></form>
   <div id="fishbar" class="pill hidden"></div>
   <div id="joy"><div id="joybase" class="hidden"></div><div id="joyknob" class="hidden"></div></div>
-  <div id="actwrap"><div id="actlabel">…</div><button id="actbtn">✋</button></div>
+  <div id="actwrap">
+    <div id="actlabel">…</div>
+    <div id="minibtns"><button class="round" id="chatbtn2">💬</button><button class="round" data-open="emotes">😊</button><button class="round" id="rotbtn" title="Kamera drehen">🔄</button></div>
+    <button id="actbtn">✋</button>
+  </div>
   <div id="hotbar"></div>
 </div>
 
 <div id="menu" class="hidden">
-  <h1>🌻 Kuschelhof</h1>
-  <div class="sub">Eure gemeinsame kleine Farm</div>
-  <div class="card">
-    <h3>Du</h3>
+  <section id="m-title" class="screen">
+    <div class="logo"><span class="sun">🌻</span><h1>Kuschelhof</h1><p>Eure gemeinsame kleine Farm</p></div>
+    <div class="mainbtns">
+      <button class="big pink hidden" id="b-continue"><span class="i">▶️</span><span>Weiterspielen<small id="continue-sub"></small></span></button>
+      <button class="big hidden" id="b-rejoin"><span class="i">💞</span><span>Wieder zu Besuch<small id="rejoin-sub"></small></span></button>
+      <button class="big" data-go="farms"><span class="i">🏡</span><span>Meine Farmen<small>Neue Farm gründen oder weitermachen</small></span></button>
+      <button class="big" data-go="join"><span class="i">💌</span><span>Mit Code beitreten<small>Auf die Farm deines Lieblingsmenschen</small></span></button>
+      <button class="big" data-go="char"><span class="i">👗</span><span>Charakter<small>Aussehen & Haustier</small></span></button>
+      <button class="big" data-go="settings"><span class="i">⚙️</span><span>Einstellungen<small>Grafik, Ton, Querformat</small></span></button>
+    </div>
+    <div class="hello" id="hello"></div>
+  </section>
+  <section id="m-farms" class="screen card hidden">
+    <header><button class="back" data-go="title">←</button><h2>🏡 Meine Farmen</h2></header>
+    <div id="farms"></div>
+    <div class="joinrow"><input type="text" id="fname" maxlength="24" placeholder="Name der neuen Farm"><button class="btn" id="newbtn">Gründen</button></div>
+  </section>
+  <section id="m-join" class="screen card hidden">
+    <header><button class="back" data-go="title">←</button><h2>💌 Beitreten</h2></header>
+    <div class="note">Gib den 5-stelligen Code ein, den dir dein Lieblingsmensch geschickt hat (steht bei ihr/ihm oben unter „💌 Einladen“).</div>
+    <input type="text" id="jcode" maxlength="5" placeholder="CODE" autocomplete="off">
+    <button class="btn pink" id="jbtn">Beitreten</button>
+    <div class="err" id="jerr"></div>
+  </section>
+  <section id="m-settings" class="screen card hidden">
+    <header><button class="back" data-go="title">←</button><h2>⚙️ Einstellungen</h2></header>
+    <div id="msettings"></div>
+  </section>
+</div>
+
+<div id="editor" class="hidden">
+  <div class="ed card">
+    <header><h2>👗 Dein Look</h2><button class="btn small white" id="edrand" title="Zufällig">🎲</button></header>
     <input type="text" id="pname" maxlength="16" placeholder="Dein Name">
     <div class="err" id="perr"></div>
-    <div class="swatches" id="pcolors"></div>
-    <div class="chips" id="phats"></div>
-  </div>
-  <div class="card">
-    <h3>💌 Mit Code beitreten</h3>
-    <div class="joinrow"><input type="text" id="jcode" maxlength="5" placeholder="CODE"><button class="btn pink" id="jbtn">Beitreten</button></div>
-    <div class="err" id="jerr"></div>
-  </div>
-  <div class="card">
-    <h3>🏡 Deine Farmen</h3>
-    <div id="farms"></div>
-    <div class="joinrow"><input type="text" id="fname" maxlength="24" placeholder="Name der neuen Farm"><button class="btn" id="newbtn">Neue Farm</button></div>
+    <div class="edtabs" id="edtabs"></div>
+    <div class="edbody" id="edbody"></div>
+    <div class="edfoot"><button class="btn white" id="edcancel">Abbrechen</button><button class="btn pink" id="edok">Fertig ✓</button></div>
   </div>
 </div>
+<div id="edrot" class="hidden"><button class="round" data-rot="-1">⟲</button><button class="round" data-rot="1">⟳</button></div>
+
+<div id="photobar" class="hidden">
+  <button class="round" data-prot="-1">⟲</button>
+  <button id="shutter">📸</button>
+  <button class="round" data-prot="1">⟳</button>
+  <button class="round" id="photoexit">✖️</button>
+</div>
+<div id="photohint" class="pill hidden">Ziehen = drehen & neigen · Zoomen = Mausrad / zwei Finger</div>
+<div id="flash"></div>
 
 <div id="panel" class="hidden">
   <div class="card">
@@ -209,6 +345,8 @@ body.touch #chatlog { bottom: 200px; }
 </div>
 <div id="toasts"></div>
 <div id="cover" class="hidden"><div class="card"><div class="spin">🌻</div><p id="covertext">Verbinde…</p><button class="btn white hidden" id="coverbtn">Zum Menü</button></div></div>
+<div id="rotatehint"><span>📱</span>Dreh dein Handy ins Querformat<small>(oder schalte das Querformat in den Einstellungen aus)</small></div>
+<div id="loading"><div><span>🌻</span><br>Kuschelhof lädt…</div></div>
 
 <script src="vendor/peerjs.min.js"></script>
 <script type="module" src="src/main.js"></script>

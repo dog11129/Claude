@@ -318,14 +318,17 @@ export function building(id, l) {
 }
 
 // ---------- Landschaft (einmal gebaut, ein einziger Draw-Call) ----------
-export function scenery(isFree) {
+export function scenery(isFree, h = () => 0) {
   const p = [];
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < 140; i++) {
-    const a = rand() * Math.PI * 2, r = 17 + rand() * 13, x = Math.cos(a) * r, z = Math.sin(a) * r, s = 0.8 + rand() * 0.7;
-    if (rand() < 0.5) p.push(cyl(0.12 * s, 0.18 * s, 1.2 * s, 0x7a4b2e, x, 0.6 * s, z, 5), cone(0.9 * s, 1.6 * s, 0x3f8f4a, x, 1.6 * s, z, 7), cone(0.7 * s, 1.3 * s, 0x4fa85a, x, 2.3 * s, z, 7));
-    else p.push(cyl(0.12 * s, 0.18 * s, 1 * s, 0x7a4b2e, x, 0.5 * s, z, 5), ball(0.8 * s, rand() < 0.2 ? 0xffb7d0 : 0x5fb84a, x, 1.4 * s, z, 1, 0.9, 1, 7));
+  for (let i = 0; i < 240; i++) {
+    const a = rand() * Math.PI * 2, r = 17.5 + rand() * 18, x = Math.cos(a) * r, z = Math.sin(a) * r, s = 0.8 + rand() * 0.8, y = h(x, z) - 0.1;
+    const k = rand();
+    if (k < 0.45) p.push(cyl(0.12 * s, 0.18 * s, 1.2 * s, 0x7a4b2e, x, y + 0.6 * s, z, 5), cone(0.9 * s, 1.6 * s, 0x3f8f4a, x, y + 1.6 * s, z, 7), cone(0.7 * s, 1.3 * s, 0x4fa85a, x, y + 2.3 * s, z, 7), cone(0.45 * s, 0.9 * s, 0x5fb86a, x, y + 2.9 * s, z, 7));
+    else if (k < 0.85) p.push(cyl(0.12 * s, 0.18 * s, 1 * s, 0x7a4b2e, x, y + 0.5 * s, z, 5), ball(0.8 * s, rand() < 0.2 ? 0xffb7d0 : rand() < 0.5 ? 0x5fb84a : 0x6cc455, x, y + 1.4 * s, z, 1, 0.9, 1, 7), ball(0.5 * s, 0x7fd06a, x + 0.3 * s, y + 1.75 * s, z + 0.2 * s, 1, 0.9, 1, 6));
+    else if (k < 0.95) p.push(ball(0.45 * s, 0x4fa85a, x, y + 0.3 * s, z, 1.3, 0.8, 1.1, 6), ball(0.08, [0xff8fab, 0xffffff, 0xffe066][i % 3], x + 0.2, y + 0.6 * s, z + 0.3, 1, 1, 1, 4));
+    else p.push(ball(0.5 * s, 0xa8a39c, x, y + 0.15, z, 1.2, 0.6, 1, 5), ball(0.3 * s, 0xb9b4ad, x + 0.4 * s, y + 0.1, z + 0.2, 1, 0.6, 1, 5));
   }
   for (let i = 0; i < 260; i++) {
     const x = (rand() - 0.5) * 30, z = (rand() - 0.5) * 30;
