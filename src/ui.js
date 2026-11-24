@@ -7,6 +7,7 @@ import { price, upgradeInfo, seasonOf, hearts, halfDay, turnipSeller, turnipPric
 import { NPCS, letter, requestLine } from './npc.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
+import { WEATHER, WEEK_GOALS, catalogPrice, annivToday, cookDay, cookOpen, nightOpen, STALL_MAX } from './extras.js';
 import {
   PROJECTS, ORDS, ORD_PRICE, ord, WARDROBE, SONGS, TOURS, MEDAL_SHOP, BOAT_PRICE, STREET_SHOPS, TROPIC_HUT, shopHours, shopOpen, concertNow,
   homeScore, hhaRank, HHA_RANKS, islandScore, buyPrice, fmt, hourOf,
@@ -25,8 +26,10 @@ export const TABS = {
   mayor: [['projects', '🏗️ Projekte'], ['areas', '🗺️ Erweiterungen'], ['ords', '📜 Verordnungen'], ['house', '🏡 Haus & Kredit'], ['hha', '🛋️ Wohnwert'], ['stars', '⭐ Inselbewertung']],
   garden: [['seeds', '🌱 Samen'], ['plants', '🌳 Pflanzen']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
+  news: [['paper', '📰 Zeitung'], ['week', '🤝 Wochenziele']],
+  book: [['pages', '📸 Momente'], ['photos', '🖼️ Fotos'], ['anniv', '🎂 Jahrestage']],
 };
-const TITLES = { chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
+const TITLES = { night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -106,7 +109,7 @@ const SHOP = {
     for (const [c, label] of Object.entries(cats)) {
       h += `<h3>${label}</h3>`;
       for (const [id, f] of Object.entries(FURNITURE)) {
-        if (f.cat !== c) continue;
+        if (f.cat !== c || f.rare) continue;
         const locked = f.lvl > s.level, have = s.inv[id] || 0;
         h += row(itemIcon(id), f.name + (locked ? lvTag(f.lvl) : ''), `${f.w}×${f.d}${f.sit ? ' · zum Sitzen' : ''}${f.bed ? ' · zum Schlafen' : ''}${f.store ? ' · Lagerkiste für alle' : ''}${f.craft ? (f.buy ? ' · auch an der Werkbank' : ' · nur an der Werkbank') : ''}${have ? ` · <b>${have}× in der Tasche</b>` : ''}`,
           f.buy ? btn(`🪙 ${f.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < f.buy) : '<span class="lv">🔨</span>', locked);
@@ -246,7 +249,8 @@ const PANELS = {
     const apps = [['map', '🗺️', 'Karte', '#7fd3a8'], ['shop', '🛍️', 'Bestellen', '#ffb36b'], ['sell', '🎒', 'Taschen', '#f7a8c4'], ['quests', '📜', 'Inselbuch', '#ffd66b', ready],
       ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
       ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
-      ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
+      ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0],
+      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
     const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
     return `<div class="phone-top"><b>${s.real ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : `${hh}:${String(mm).padStart(2, '0')}`}</b><span>${WEEKDAYS[weekday(s.day)]} · ${esc(s.name)}</span></div>
       <div class="apps">${apps.map(([id, ic, l, c, dot]) => `<button data-ui="app" data-app="${id}"><span class="ai" style="background:${c}">${ic}${dot ? `<i>${dot}</i>` : ''}</span><small>${l}</small></button>`).join('')}</div>`;
@@ -307,7 +311,7 @@ const PANELS = {
     return h + sec('🐟 Aquarium', MUSEUM.fish) + sec('🤿 Meeresbecken', MUSEUM.sea) + sec('🦋 Insektenhaus', MUSEUM.bug) + sec('🦴 Fossilienhalle', MUSEUM.fossil) + sec('💎 Edelsteinhalle', MUSEUM.gem);
   },
   craft: (s, g) => recipes(s, 'craft'),
-  cook: (s, g) => recipes(s, 'cook'),
+  cook: (s, g) => cookContest(s, g) + recipes(s, 'cook'),
   mail(s, g) {
     const write = `<button class="big" data-ui="write"><span class="i">✍️</span><span>Brief schreiben<small>An deinen Lieblingsmenschen – kommt am nächsten Morgen an, auch wenn ihr gerade nicht zusammen spielt</small></span></button>`;
     const mine = m => m.kind !== 'letter' || ((!m.to || m.to === g.myName) && s.day >= (m.arrive || 0));
@@ -343,6 +347,76 @@ const PANELS = {
     if (!d.length) return add + '<div class="note">📔 Hier sammeln sich eure schönsten Momente: Umarmungen, Feste, Turniere, Briefe … und alles, was ihr selbst hineinschreibt.</div>';
     let last = 0;
     return add + d.slice(0, 80).map(e => { const head = e.day !== last ? `<h3>Tag ${e.day} · ${WEEKDAYS[weekday(e.day)]}</h3>` : ''; last = e.day; return head + `<div class="dyline"><span>${e.icon || '💗'}</span>${esc(e.text)}</div>`; }).join('');
+  },
+  news(s, g, tab) {
+    g.readPaper = s.day;
+    if (tab === 'week') {
+      const w = s.week;
+      let h = `<div class="note">🤝 <b>Wochenziele</b> – gemeinsam für alle! Jedes Ziel bringt 1.500 Taler, alle drei zusammen etwas Seltenes: <b>${ITEMS[w?.prize]?.icon || '🎁'} ${ITEMS[w?.prize]?.name || ''}</b>. Neue Ziele gibt es jeden Sonntag.</div>`;
+      for (const q of w?.goals || []) { const G = WEEK_GOALS[q.i]; if (G) h += row(G[3], G[2] + (q.done ? ' <span class="lv">✓ geschafft</span>' : ''), `${q.p.toLocaleString('de-DE')} / ${G[1].toLocaleString('de-DE')}<div class="bar"><i style="width:${Math.min(100, q.p / G[1] * 100)}%"></i></div>`, ''); }
+      return h;
+    }
+    const P = s.paper;
+    if (!P) return '<div class="note">Die erste Ausgabe erscheint morgen früh.</div>';
+    const wx = w => WEATHER[w] || WEATHER.sun, sec = (t, list) => list?.length ? `<h3>${t}</h3>${list.map(x => `<div class="dyline">${esc(x)}</div>`).join('')}` : '';
+    return `<div class="paper"><div class="mast">Der Inselbote</div><div class="pdate">${WEEKDAYS[weekday(P.day)]}, Tag ${P.day} · ${esc(s.name)}</div>
+      <div class="phead">${esc(P.head)}</div>
+      <div class="pcols"><div><b>Wetter</b><br>Heute: ${wx(P.wx)[0]} ${wx(P.wx)[1]}<br>Morgen: ${wx(P.wxNext)[0]} ${wx(P.wxNext)[1]}</div><div><b>Rübenbörse</b><br>${esc(P.turnip)}</div></div>
+      ${sec('🏆 Gestern auf der Insel', [...P.done, ...P.diary])}${sec('💬 Inselgeflüster', P.gossip)}${sec('🤝 Wochenziele', P.week)}
+      <div class="pad">${esc(P.ad)}</div></div>`;
+  },
+  book(s, g, tab) {
+    if (tab === 'photos') return `<div class="note">📷 Fotos aus dem Fotomodus landen hier (nur auf diesem Gerät). Als 📮 Postkarte kannst du sie an Mitspieler schicken oder teilen.</div><div id="photogrid" class="photogrid"><div class="note">Lade Fotos …</div></div>`;
+    if (tab === 'anniv') {
+      const a = s.anniv || {}, A = annivToday(s), d = a.founded ? new Date(a.founded + 'T12:00') : null;
+      let h = `<div class="note">🎂 Die Insel merkt sich ihren Gründungstag und eure besonderen Tage. An einem Jahrestag gibt es Geschenke, eine Seite im Fotobuch und abends ab 19 Uhr ein Feuerwerk.${A ? `<br><b>Heute: ${A.icon} ${esc(A.name)}!</b>` : ''}</div>`;
+      h += row('🏝️', 'Gründungstag', `${d ? d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }) : '–'}${a.guess ? ' · (geschätzt – stimmt das?)' : ''}<div class="diaryadd"><input type="date" id="anfounded" value="${a.founded || ''}"><button class="btn small white" data-ui="annivfounded">Ändern</button></div>`, '');
+      h += '<h3>💕 Eure Jahrestage</h3>';
+      (a.dates || []).forEach((x, i) => { h += row('💕', esc(x.name), `jedes Jahr am ${new Date('2000-' + x.md + 'T12:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long' })}${x.y ? ` · seit ${x.y}` : ''}`, `<button class="btn small white" data-act='${JSON.stringify({ t: 'anniv', op: 'del', i })}'>🗑️</button>`); });
+      h += `<div class="diaryadd"><input id="anname" maxlength="30" placeholder="z. B. Unser Jahrestag"><input type="date" id="andate"><button class="btn small pink" data-ui="annivadd">Merken</button></div>`;
+      return h;
+    }
+    const pages = [...(s.book || [])].reverse();
+    if (!pages.length) return '<div class="note">Noch leer – das Fotobuch füllt sich von selbst mit euren besonderen Momenten.</div>';
+    return `<div class="note">📸 ${pages.length} Seite${pages.length === 1 ? '' : 'n'} voller Erinnerungen. Neue Seiten kommen von ganz allein dazu.</div><div class="bookgrid">${pages.map(p => `<div class="bpage" data-bk="${esc(p.k)}"><div class="bpic" data-bpic="${esc(p.k)}"><span>${p.icon}</span></div><b>${esc(p.title)}</b><small>Tag ${p.day}</small><p>${esc(p.text)}</p></div>`).join('')}</div>`;
+  },
+  catalog(s) {
+    const ids = Object.keys(s.catalog || {}).filter(id => ITEMS[id]);
+    if (!ids.length) return '<div class="note">📦 Alles, was ihr je an Möbeln und Deko besessen habt, landet hier – und kann jederzeit nachbestellt werden.</div>';
+    const furn = ids.filter(id => FURNITURE[id]), deco = ids.filter(id => !FURNITURE[id]);
+    const list = arr => arr.sort((a, b) => ITEMS[a].name.localeCompare(ITEMS[b].name)).map(id => { const c = catalogPrice(id); return row(itemIcon(id), ITEMS[id].name, `${s.inv[id] ? `${s.inv[id]}× in der Tasche · ` : ''}sofort nachbestellbar`, btn(`🪙 ${c.toLocaleString('de-DE')}`, { t: 'catbuy', id }, '', s.money < c)); }).join('');
+    return `<div class="note">📦 Alles, was ihr je besessen habt (${ids.length} Sachen) – hier könnt ihr es nachbestellen.</div>${furn.length ? '<h3>🛋️ Möbel</h3>' + list(furn) : ''}${deco.length ? '<h3>🏮 Garten & Deko</h3>' + list(deco) : ''}`;
+  },
+  night(s) {
+    let h = hero('🦋 Mottilda', 'Der Nachtmarkt', 'Psst … Ich bin nur freitagabends hier. Seltene Schätze, die es nirgends sonst gibt! Aber Vorsicht: Es sind Fälschungen im Umlauf. <b>Echte Ware trägt mein Siegel – eine silberne Motte mit VIER Punkten.</b>');
+    if (!nightOpen(s) || s.night?.day !== s.day) return h + '<div class="note">🌙 Der Nachtmarkt öffnet freitags ab 18 Uhr auf dem Dorfplatz.</div>';
+    s.night.offers.forEach((o, i) => {
+      h += row(itemIcon(o.id), ITEMS[o.id].name + (o.sold ? ' <span class="lv">verkauft</span>' : ''), `🔍 Siegel: <b>${o.seal}</b>`, o.sold ? '' : btn(`🪙 ${o.price.toLocaleString('de-DE')}`, { t: 'nightbuy', i }, 'pink', s.money < o.price), o.sold);
+    });
+    return h;
+  },
+  stall(s, g) {
+    const st = s.stall || { offers: [] }, me = g.players?.[g.me]?.key || 'host';
+    let h = '<div class="note">🏪 Legt Sachen mit einem Preis aus – Nachbarn und Besuch kaufen sie im Laufe des Tages (je fairer der Preis, desto schneller). Oder bietet einen <b>Tausch</b> an: Mitspieler geben euch dafür das Gewünschte.</div>';
+    st.offers.forEach((o, i) => {
+      const own = o.key === me, it = ITEMS[o.id];
+      const what = o.price ? `für 🪙 ${o.price.toLocaleString('de-DE')}` : `Tausch gegen ${o.wn}× ${ITEMS[o.want].icon} ${ITEMS[o.want].name}`;
+      h += row(itemIcon(o.id), `${o.n}× ${it.name}`, `${what} · von ${esc(o.by)}`, (own || me === 'host' ? btn('Zurück', { t: 'stalltake', i }, 'white') : '') + (!own && o.want ? btn('🤝 Tauschen', { t: 'stallswap', i }, 'pink', !(s.inv[o.want] >= o.wn)) : ''));
+    });
+    if (!st.offers.length) h += '<div class="note">Noch liegt nichts aus.</div>';
+    const mine = Object.keys(s.inv).filter(id => s.inv[id] > 0 && ITEMS[id] && !ITEMS[id].gear && !ITEMS[id].seed?.length && id !== 'ruebe');
+    const wants = Object.keys(ITEMS).filter(id => ['fruit', 'fish', 'bug', 'mat', 'dish', 'veg', 'misc'].includes(ITEMS[id].cat) || ITEMS[id].furn).sort((a, b) => ITEMS[a].name.localeCompare(ITEMS[b].name));
+    if (st.offers.length < STALL_MAX && mine.length) {
+      h += `<h3>➕ Etwas anbieten</h3><div class="stallform"><select id="stid">${mine.map(id => `<option value="${id}">${ITEMS[id].icon} ${esc(ITEMS[id].name)} (${s.inv[id]})</option>`).join('')}</select>
+        <input id="stn" type="number" min="1" max="99" value="1" title="Anzahl">
+        <select id="stmode"><option value="price">für Taler</option><option value="swap">als Tausch</option></select>
+        <input id="stprice" type="number" min="1" max="999999" placeholder="Preis">
+        <select id="stwant" class="hidden">${wants.map(id => `<option value="${id}">${ITEMS[id].icon} ${esc(ITEMS[id].name)}</option>`).join('')}</select>
+        <input id="stwn" type="number" min="1" max="99" value="1" class="hidden" title="Wie viele?">
+        <button class="btn small pink" data-ui="stalladd">Auslegen</button></div>`;
+    }
+    if (st.log?.length) h += `<h3>📒 Verkauft & getauscht</h3>${[...st.log].reverse().map(l => `<div class="dyline">${esc(l.txt)}</div>`).join('')}`;
+    return h;
   },
   fests(s) {
     let h = '<div class="note">Was steht an? Feste, Turniere und Geburtstage der nächsten vier Wochen.</div>';
@@ -515,11 +589,26 @@ Object.assign(PANELS, {
   },
 });
 
+// Kochwettbewerb: sonntags oben in der Gartenküche
+function cookContest(s, g) {
+  if (!cookDay(s)) return '<div class="note">🏆 Jeden <b>Sonntag</b> von 9 bis 18 Uhr ist hier <b>Kochwettbewerb</b>: Drei Nachbarn probieren eure Gerichte. Wer gewinnt, bekommt ein geheimes Rezept!</div>';
+  const c = s.cook;
+  if (!c) return '';
+  const jury = c.judges.map(id => NPCS[id] ? `${NPCS[id].icon} ${NPCS[id].name}` : id).join(' · ');
+  const board = Object.values(c.entries).sort((a, b) => b.total - a.total).map((e, i) => `<div class="dyline"><span>${['🥇', '🥈', '🥉'][i] || '🍽️'}</span>${esc(e.name)}: ${ITEMS[e.dish].icon} ${ITEMS[e.dish].name} – <b>${e.total}</b>/30</div>`).join('');
+  if (c.done) return `<div class="note">🏆 Der Kochwettbewerb ist vorbei${c.winner ? ` – gewonnen hat <b>${esc(c.winner)}</b>!` : '.'} Nächsten Sonntag wieder!</div>${board}`;
+  let h = `<div class="note">🏆 <b>Heute ist Kochwettbewerb!</b> Jury: ${jury}. Jede und jeder darf bis 18 Uhr zwei Gerichte einreichen – Lieblingsessen der Jury geben Extrapunkte. Der Sieg bringt ein <b>geheimes Rezept</b>.</div>`;
+  if (!cookOpen(s)) h += '<div class="note">🕘 Abgabe ist von 9 bis 18 Uhr.</div>';
+  const dishes = Object.keys(s.inv).filter(id => ITEMS[id]?.cat === 'dish' && s.inv[id] > 0);
+  h += dishes.length ? dishes.map(id => row(itemIcon(id), ITEMS[id].name, `${s.inv[id]}× in der Tasche`, btn('🍽️ Einreichen', { t: 'cookin', id }, 'pink', !cookOpen(s)))).join('') : '<div class="note">Kocht erst etwas – unten stehen die Rezepte.</div>';
+  return h + (board ? `<h3>📋 Punkte bisher</h3>${board}` : '') + '<h3>🍳 Rezepte</h3>';
+}
+
 function recipes(s, st) {
   let h = st === 'cook' ? '<div class="note">Aus Obst, Gemüse, Fisch und Zutaten aus dem Laden werden leckere Gerichte – die bringen viel mehr Taler und sind tolle Geschenke für die Nachbarn.</div>'
     : `<div class="note">Heimwerken: Holz 🪵 (Axt an Bäumen), Äste 🥢 (Bäume schütteln), Steine 🪨, Lehm 🧱 und Eisen 🔩 (Schaufel an Felsen). Ihr kennt <b>${DIY_IDS.filter(k => s.recipes?.[k]).length}/${DIY_IDS.length}</b> Baupläne – neue gibt's in der 🍾 Flaschenpost am Strand!</div>`;
   for (const [id, r] of Object.entries(RECIPES)) {
-    if (r.st !== st || (st === 'craft' && !s.recipes?.[id])) continue;
+    if (r.st !== st || (st === 'craft' && !s.recipes?.[id] && !r.gem) || (r.excl && !s.recipes?.[id])) continue;
     const it = ITEMS[r.out], locked = (r.lvl || 1) > s.level, can = Object.entries(r.in).every(([k, n]) => (s.inv[k] || 0) >= n);
     const need = Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#d64545'}">${ITEMS[k].icon} ${s.inv[k] || 0}/${n}</span>`).join(' · ');
     h += row(it.icon, `${r.n > 1 ? r.n + '× ' : ''}${it.name}${locked ? lvTag(r.lvl) : ''}`, need + (it.sell ? ` · Wert ${money(price(s, r.out))}` : ''), btn(st === 'cook' ? 'Kochen' : 'Bauen', { t: 'craft', id }, 'pink', locked || !can), locked);
@@ -569,7 +658,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;
@@ -610,5 +699,6 @@ export function slotHtml(s, id, i, sel) {
   const ti = TOOL_ITEM[id], tool = TOOLS[id] || (ti && [itemIcon(ti[0]), ti[1]]);
   const icon = tool ? tool[0] : itemIcon(id), title = tool ? tool[1] : ITEMS[id].name;
   const n = tool ? '' : `<span class="n">${s.inv[id]}</span>`;
-  return `<button class="slot${id === sel ? ' sel' : ''}" data-id="${id}" title="${title}">${i < 9 ? `<span class="k">${i + 1}</span>` : ''}${icon}${ITEMS[id]?.seed ? '<span class="seed">🫘</span>' : ''}${n}</button>`;
+  const gem = { net: 'saphirkescher', shovel: 'rubinschaufel', axe: 'kristallaxt', can: 'opalkanne' }[id], hasGem = gem && s.inv[gem] > 0;
+  return `<button class="slot${id === sel ? ' sel' : ''}${hasGem ? ' gem' : ''}" data-id="${id}" title="${hasGem ? ITEMS[gem].name + ': ' + ITEMS[gem].desc : title}">${i < 9 ? `<span class="k">${i + 1}</span>` : ''}${icon}${ITEMS[id]?.seed ? '<span class="seed">🫘</span>' : ''}${n}</button>`;
 }

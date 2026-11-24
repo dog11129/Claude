@@ -364,6 +364,7 @@ test('Flaschenpost & Baupläne', async () => {
   assert.ok(bk, 'Flaschenpost am Strand');
   const [x, z] = bk.split(',').map(Number);
   assert.match(resolve(s, { x, z: z - 0.9, ry: 0 }, 'axe').label, /Flaschenpost/);
+  s.tmap = { n: 0, spot: '99,99' }; // keine Schatzkarten-Stücke in diesem Test
   const out = act(s, { t: 'pick', x, z });
   assert.ok(out.ok && out.learned && s.recipes[out.learned], 'Bauplan gelernt');
   assert.ok(DIY_IDS.includes(out.learned));

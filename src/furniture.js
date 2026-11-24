@@ -6,6 +6,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, ball, cyl, cone } from './models.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { tex, model } from './assets.js';
+import { FURN_X } from './models-extra.js';
 export { FURNITURE, WALLS, FLOORS };
 
 const PI = Math.PI, H = PI / 2;
@@ -426,6 +427,7 @@ const MAKE = {
   ],
 };
 
+Object.assign(MAKE, FURN_X); // seltene Möbel (models-extra.js)
 const cache = new Map();
 function built(k, fn) {
   if (!cache.has(k)) {

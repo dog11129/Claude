@@ -720,7 +720,9 @@ export function npcLine(id, ctx = {}) {
   const L = txt(id), h = ctx.hour ?? 12, hearts = ctx.hearts || 0;
   const time = h < 11 ? 'morning' : h < 17 ? 'day' : h < 21 ? 'evening' : 'night';
   const tier = hearts >= 9 ? 3 : hearts >= 6 ? 2 : hearts >= 3 ? 1 : 0;
-  const pools = [[L[time], 3], [L.tier[tier], 3], [L[ctx.weather] || L.sun, 1.5], [L[ctx.season], 1], [L.tips, 1.5], [L.gossip, 1], [ctx.partner && L.partner, 1.2]]
+  const wl = { storm: ['Hast du den Donner gehört?! Ich hab mich fast unter meinem Kissen versteckt!', 'Gewitter … ich zähle immer die Sekunden zwischen Blitz und Donner. Bis jetzt: drei!', 'Bei Gewitter soll man sich ja nicht unter Bäume stellen. Gut, dass wir so viele Häuser haben!'],
+    fog: ['Huch, wer ist da? … Ach, du bist es! Bei dem Nebel erkenne ich ja gar nichts.', 'Nebel ist wie eine kuschelige Decke für die ganze Insel, findest du nicht?', 'Im Nebel sollen ganz besondere Falter unterwegs sein. Hast du schon einen gesehen?'] }[ctx.weather];
+  const pools = [[L[time], 3], [L.tier[tier], 3], [wl || L[ctx.weather] || L.sun, 1.5], [L[ctx.season], 1], [L.tips, 1.5], [L.gossip, 1], [ctx.partner && L.partner, 1.2]]
     .filter(([p]) => p);
   let r = Math.random() * pools.reduce((s, [, w]) => s + w, 0), pool = pools[0][0];
   for (const [p, w] of pools) if ((r -= w) < 0) { pool = p; break; }

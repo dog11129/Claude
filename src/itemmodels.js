@@ -41,6 +41,7 @@ const FISH_LOOK = {
   karpfen: [0xd7a046, 0xfff0c8, 0xc58534, 'deep', 0x9a6a2a], goldfisch: [0xff8a2a, 0xffd39a, 0xffb36b, 'gold'],
   makrele: [0x5aa0c8, 0xf2f6fa, 0x4c88aa, 'long', 0x23506e], kugelfisch: [0xe8d27a, 0xfff6d6, 0xd9b85a, 'round', 0x8a6a2a],
   rochen: [0x8e9db0, 0xe8eef4, 0x7a8a9c, 'flat'], hai: [0x8597a8, 0xf2f4f6, 0x73879a, 'shark'],
+  blitzaal: [0x3a4a8a, 0xfff6a0, 0xffe040, 'long', 0xffe040], nebelhecht: [0xb8c4cc, 0xf4f6f8, 0x9aa8b4, 'long', 0xe0e6ec], sternbarsch: [0x2f3f78, 0xc8d4ff, 0xffd23f, 'fish', 0xffe066],
 };
 function fish(id) {
   const [c, belly, fc, shape, pat] = FISH_LOOK[id] || [0x8ab0d0, 0xf4f8fa, 0x6a90b0, 'fish'];
@@ -123,6 +124,9 @@ const BUG_MODELS = {
   nachtfalter: () => butterfly(0xb0a690, 0x9a907a, 0x6a5a4a, 0.95),
   marienkaefer: () => beetle(0xe8302a, 0x2a2222, [[-0.08, 0.1], [0.08, -0.1], [-0.12, -0.08], [0.06, 0.1]]),
   hirschkaefer: () => beetle(0x6a3a22, 0x3a2418, [], 'stag'),
+  gewitterkaefer: () => beetle(0x2a3a6a, 0x1a2244, [[0.04, 0.07], [-0.08, -0.07], [0.04, -0.07], [-0.08, 0.07]]),
+  nebelfalter: () => butterfly(0xe6ecf2, 0xc8d2dc, 0x9aa8b8, 1.05),
+  sternenfalter: () => butterfly(0x2a3470, 0x4a5aa8, 0xffe066, 1.1),
   goliathkaefer: () => [...beetle(0xf0ecdf, 0x2a2222, [[0.0, 0.08], [0.0, -0.08], [-0.12, 0.1], [-0.12, -0.1]])],
   biene: () => [ell(0.13, 0xffc83a, 0, 0.25, 0, 1.4, 1, 1), ...[-0.07, 0.03].map(x => cyl(0.125, 0.125, 0.04, 0x2a2222, x, 0.25, 0, 12, 0, 0, PI / 2)), ball(0.08, 0x2a2222, 0.18, 0.27, 0), cone(0.02, 0.06, 0x2a2222, -0.21, 0.25, 0, 5, 0, 0, PI / 2), ...[-1, 1].map(s => ell(0.1, 0xe8f4ff, -0.02, 0.4, s * 0.08, 0.7, 0.3, 1, s * 0.4)), ...eye(0.23, 0.3, 0.05, 0.022)],
   raupe: () => [...Array.from({ length: 6 }, (_, i) => ball(0.07, i % 2 ? 0x8ad45a : 0x6ab83a, -0.3 + i * 0.11, 0.08 + Math.sin(i * 1.1) * 0.03, 0)), ball(0.09, 0x8ad45a, 0.36, 0.12, 0), ...eye(0.42, 0.15, 0.05, 0.022), ...eye(0.42, 0.15, -0.05, 0.022), cyl(0.008, 0.008, 0.08, 0x3a2e2e, 0.38, 0.22, 0.03, 4)],
@@ -219,6 +223,17 @@ const GEAR_MODELS = {
     ell(0.15, 0x9aa8b8, 0.1, 0.12, 0, 0.85, 1.3, 0.25, 0, 0, 0.5), ell(0.1, 0xc8d4e0, 0.09, 0.15, 0.03, 0.7, 1, 0.15, 0, 0, 0.5), ell(0.05, 0x5fb84a, 0.08, 0.14, 0.05, 1, 1.4, 0.2, 0, 0, 0.9)],
   baum_apfel: () => sapling('apfel'), baum_kirsche: () => sapling('kirsche'), baum_orange: () => sapling('orange'),
   baum_pfirsich: () => sapling('pfirsich'), baum_birne: () => sapling('birne'), baum_palme: () => sapling('kokosnuss', true),
+  // Edelstein-Werkzeuge
+  goldangel: () => [cyl(0.02, 0.025, 0.8, 0xffc83a, -0.05, 0.38, 0, 8, 0, 0, 0.45), cyl(0.05, 0.05, 0.06, 0xd8a020, -0.2, 0.12, 0.04, 12, PI / 2), cyl(0.004, 0.004, 0.5, 0xffffff, 0.18, 0.5, 0, 4), ball(0.04, 0xff6b6b, 0.18, 0.25, 0), ball(0.03, 0xffffff, 0.18, 0.29, 0)],
+  kristallaxt: () => [[cyl(0.025, 0.03, 0.66, 0xb8864a, 0, 0.33, 0, 8), box(0.06, 0.08, 0.06, 0x8a5a36, 0, 0.6, 0)], [cone(0.13, 0.26, 0xc9a8ff, 0.12, 0.62, 0, 6, 0, 0, -PI / 2), cone(0.06, 0.14, 0xb08cff, -0.08, 0.64, 0, 6, 0, 0, PI / 2)]],
+  rubinschaufel: () => [cyl(0.025, 0.025, 0.56, 0xb8864a, -0.06, 0.38, 0, 8, 0, 0, 0.5), ell(0.15, 0xc0c8d4, 0.1, 0.12, 0, 0.85, 1.3, 0.25, 0, 0, 0.5), ...[[0.06, 0.16], [0.13, 0.08]].map(([x, y]) => ell(0.035, 0xe8203a, x, y, 0.04, 1, 1, 0.5))],
+  saphirkescher: () => [cyl(0.02, 0.02, 0.6, 0xb8864a, 0, 0.3, 0, 8), torus(0.16, 0.015, 0x2a6aff, 0, 0.72, 0, 0, 0, 0), ell(0.15, 0xeaf2ff, 0, 0.62, 0, 1, 0.9, 0.3), ell(0.035, 0x6aa8ff, 0, 0.88, 0, 1, 1, 0.6)],
+  opalkanne: () => [[cyl(0.16, 0.18, 0.26, 0xf2f6ff, 0, 0.13, 0, 16), cyl(0.03, 0.04, 0.3, 0xf2f6ff, 0.22, 0.24, 0, 8, 0, 0, -0.9), torus(0.08, 0.02, 0xd8e0f0, -0.17, 0.18, 0, 0, 0, 0)], [ell(0.05, 0, 0.0, 0.18, 0.15, 1, 1, 0.4), ell(0.035, 0, -0.07, 0.1, 0.15, 1, 1, 0.4)]],
+  faelschung: () => [ell(0.22, 0xf2e6d6, 0, 0.2, 0, 1, 1.1, 0.4), ball(0.04, 0x2a2222, -0.07, 0.25, 0.08), ball(0.04, 0x2a2222, 0.07, 0.25, 0.08), torus(0.06, 0.012, 0x2a2222, 0, 0.13, 0.08, 0, 0, PI, PI)],
+  sternentorte: () => plate([cyl(0.22, 0.22, 0.24, 0x2f3f78, 0, 0.14, 0, 20), cyl(0.225, 0.225, 0.04, 0xffe066, 0, 0.27, 0, 20), ...Array.from({ length: 5 }, (_, i) => { const a = i / 5 * PI * 2; return ball(0.035, 0xffe066, Math.cos(a) * 0.14, 0.31, Math.sin(a) * 0.14); }), cone(0.06, 0.1, 0xffd23f, 0, 0.35, 0, 5)]),
+  inselcurry: () => bowl(0xf0a030, [ell(0.07, 0xfff2e0, 0.04, 0.15, 0.02, 1, 0.4, 1), ball(0.025, 0x6ab83a, -0.05, 0.15, -0.04), ball(0.025, 0xff5a3a, 0.08, 0.15, -0.06)]),
+  mondpudding: () => plate([cyl(0.15, 0.19, 0.2, 0xfff0b0, 0, 0.13, 0, 18), cyl(0.15, 0.15, 0.03, 0xa8642a, 0, 0.24, 0, 18), torus(0.06, 0.02, 0xffffff, 0.05, 0.3, 0, 0, 0, 0.4, PI * 1.3)]),
+  regenbogeneis: () => [cyl(0.05, 0.1, 0.12, 0xfff2f4, 0, 0.06, 0, 12), ...[0xff7b7b, 0xffe066, 0x8ad45a, 0x6cb4ff].map((c, i) => ball(0.085, c, Math.cos(i * 1.6) * 0.06, 0.18 + (i > 1 ? 0.1 : 0), Math.sin(i * 1.6) * 0.06)), ball(0.03, 0xff3b5a, 0, 0.38, 0)],
 };
 
 // ---------- Samentüten ----------

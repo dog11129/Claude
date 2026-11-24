@@ -153,6 +153,18 @@ export const ITEMS = {
   baum_pfirsich: { name: 'Pfirsichbaum (Ballen)', icon: '🌳', sapling: 'pfirsich' },
   baum_birne:    { name: 'Birnbaum (Ballen)',     icon: '🌳', sapling: 'birne' },
   baum_palme:    { name: 'Palme (Ballen)',        icon: '🌴', sapling: 'kokosnuss', palm: true },
+  // Edelstein-Werkzeuge (Werkbank): kleine Vorteile beim Angeln, Holzhacken, Graben, Keschern, Gießen
+  goldangel:     { name: 'Goldangel',      icon: '🎣', gear: true, tool: 'fish',   desc: 'Seltene Fische beißen öfter' },
+  kristallaxt:   { name: 'Kristallaxt',    icon: '🪓', gear: true, tool: 'axe',    desc: 'Oft doppelt Holz – und Bäume werden nicht so schnell müde' },
+  rubinschaufel: { name: 'Rubinschaufel',  icon: '🪏', gear: true, tool: 'shovel', desc: 'Felsen geben manchmal Edelsteine' },
+  saphirkescher: { name: 'Saphirkescher',  icon: '🦋', gear: true, tool: 'net',    desc: 'Seltene Krabbeltiere kommen öfter' },
+  opalkanne:     { name: 'Opalkanne',      icon: '💧', gear: true, tool: 'can',    desc: 'Gegossene Pflanzen wachsen schneller' },
+  faelschung:    { name: 'Fälschung',      icon: '🎭', sell: 10, cat: 'misc' },
+  // Siegerrezepte vom Kochwettbewerb
+  sternentorte:  { name: 'Sternentorte',   icon: '🎂', sell: 3200, cat: 'dish', xp: 12 },
+  inselcurry:    { name: 'Insel-Curry',    icon: '🍛', sell: 2600, cat: 'dish', xp: 10 },
+  mondpudding:   { name: 'Mondpudding',    icon: '🍮', sell: 2400, cat: 'dish', xp: 10 },
+  regenbogeneis: { name: 'Regenbogen-Eis', icon: '🍨', sell: 2800, cat: 'dish', xp: 11 },
   perle:     { name: 'Perle',        icon: '⚪', sell: 10000, cat: 'misc', xp: 10 },
   ruebe:     { name: 'Rübe',         icon: '🍠', cat: 'misc', turnip: true },
   faule_ruebe: { name: 'Faule Rübe', icon: '🥀', sell: 0, cat: 'misc' },
@@ -213,6 +225,10 @@ export const FISH = [
   ['hai', 'Hai', '🦈', 8000, [0, 2, 5], ['summer'], 'sea', 6],
   ['flaschenpost', 'Flaschenpost', '📜', 300, [3, 4, 5], null, 'sea', 2],
   ['schatz', 'Schatztruhe', '💎', 2000, [0, 1, 3], null, 'sea', 4],
+  // nur bei besonderem Wetter (Index 8): storm = Gewitter, fog = Nebel, stars = klarer Sternenhimmel nachts
+  ['blitzaal', 'Blitzaal', '⚡', 2600, [3, 5, 7], null, 'sea', 4, 'storm'],
+  ['nebelhecht', 'Nebelhecht', '🐟', 1800, [4, 6, 8], null, 'river', 4, 'fog'],
+  ['sternbarsch', 'Sternbarsch', '🌟', 2200, [4, 6, 8], null, 'pond', 3, 'stars'],
 ];
 const NOT_MUSEUM = ['flaschenpost', 'schatz'];
 for (const [id, name, icon, sell] of FISH) ITEMS[id] = { name, icon, sell, cat: NOT_MUSEUM.includes(id) ? 'misc' : 'fish', xp: Math.ceil(sell / 150) };
@@ -240,6 +256,10 @@ export const BUGS = [
   ['orchideenmantis', 'Orchideenmantis', '🌸', 2400, null, 'tropic', 12],
   ['blattschneider', 'Blattschneiderameise', '🐜', 800, null, 'tropic', 26],
   ['stabschrecke', 'Riesen-Stabschrecke', '🥢', 1500, null, 'tropic', 20],
+  // nur bei besonderem Wetter (Index 7)
+  ['gewitterkaefer', 'Gewitterkäfer', '🪲', 1600, null, 'any', 18, 'storm'],
+  ['nebelfalter', 'Nebelfalter', '🦋', 1400, null, 'any', 20, 'fog'],
+  ['sternenfalter', 'Sternenfalter', '🦋', 3000, null, 'night', 14, 'stars'],
 ];
 for (const b of BUGS) b[4] ||= ['spring', 'summer', 'autumn', 'winter'];
 
@@ -322,6 +342,14 @@ export const PLACE = {
   angelpokal: { name: 'Angel-Pokal',   icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gold beim Angelturnier' },
   kaeferpokal:{ name: 'Krabbeltier-Pokal', icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gold beim Krabbeltier-Turnier' },
   baustelle:  { name: 'Bauplatz-Pflock', icon: '🚩', lvl: 1, kind: 'site', solid: 1, desc: 'Markiert den Bauplatz für ein Inselprojekt' },
+  // Gärtnerei-Technik, Feuerwerk, Muster, Handel
+  gewaechshaus: { name: 'Gewächshaus',  icon: '🏡', buy: 6800, lvl: 3, kind: 'deco', solid: 1, garden: 1, desc: 'Beete bis 2 Felder rundherum wachsen das ganze Jahr wie in ihrer Saison' },
+  sprinkler:  { name: 'Sprinkler',      icon: '💦', buy: 1800, lvl: 2, kind: 'deco', solid: 1, garden: 1, desc: 'Gießt die 8 Beete rundherum von ganz allein' },
+  sternsprinkler: { name: 'Sternsprinkler', icon: '⭐', buy: 6500, lvl: 5, kind: 'deco', solid: 1, garden: 1, glow: 1, desc: 'Gießt alle Beete bis 2 Felder rundherum' },
+  sternenrakete: { name: 'Sternenrakete', icon: '🚀', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Für 5 Inselsterne: antippen = Feuerwerk am Abend' },
+  fahne:      { name: 'Inselfahne',     icon: '🚩', buy: 600, lvl: 1, kind: 'deco', solid: 1, desc: 'Zeigt euer eigenes Muster (🎨 Muster-Editor)' },
+  tauschstand: { name: 'Tauschstand',   icon: '🏪', buy: 2500, lvl: 2, kind: 'deco', solid: 1, desc: 'Hier bietet ihr Sachen an – Nachbarn und Besuch kaufen sie' },
+  schatzkiste: { name: 'Schatzkiste',   icon: '🏴‍☠️', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Vom großen Schatz der Schatzkarte' },
 };
 // Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
 export const PROJECTS = {
@@ -336,6 +364,7 @@ export const PROJECTS = {
   windmuehle:    { name: 'Windmühle',           icon: '🌬️', cost: 60000, lvl: 5 },
   glockenturm:   { name: 'Glockenturm',         icon: '🔔', cost: 80000, lvl: 6 },
   leuchtturm:    { name: 'Leuchtturm',          icon: '🗼', cost: 98000, lvl: 7, glow: 1 },
+  campingplatz:  { name: 'Campingplatz',        icon: '🏕️', cost: 22000, lvl: 2 },
 };
 for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
 for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
@@ -486,6 +515,17 @@ export const RECIPES = {
   salat: { st: 'cook', out: 'salat', n: 1, in: { tomate: 2, karotte: 1 } },
   eintopf: { st: 'cook', out: 'eintopf', n: 1, in: { kartoffel: 2, karotte: 1, tomate: 1 } },
   suppe: { st: 'cook', out: 'suppe', n: 1, in: { kuerbis: 1, milch: 1 } },
+  // Edelstein-Werkzeuge: immer an der Werkbank sichtbar (kein Bauplan nötig)
+  t_goldangel: { st: 'craft', out: 'goldangel', n: 1, in: { goldnugget: 1, holz: 4, eisen: 2 }, gem: 1 },
+  t_kristallaxt: { st: 'craft', out: 'kristallaxt', n: 1, in: { amethyst: 2, holz: 4, eisen: 2 }, gem: 1 },
+  t_rubinschaufel: { st: 'craft', out: 'rubinschaufel', n: 1, in: { rubin: 1, eisen: 3, holz: 2 }, gem: 1 },
+  t_saphirkescher: { st: 'craft', out: 'saphirkescher', n: 1, in: { saphir: 1, holz: 3, ast: 4 }, gem: 1 },
+  t_opalkanne: { st: 'craft', out: 'opalkanne', n: 1, in: { opal: 1, eisen: 3 }, gem: 1 },
+  // Siegerrezepte vom Kochwettbewerb (excl: nur nach einem Sieg)
+  x_sternentorte: { st: 'cook', out: 'sternentorte', n: 1, in: { mehl: 2, ei: 2, zucker: 2, sternfrucht: 1 }, excl: 1 },
+  x_inselcurry: { st: 'cook', out: 'inselcurry', n: 1, in: { kokosnuss: 1, kartoffel: 2, karotte: 2, mango: 1 }, excl: 1 },
+  x_mondpudding: { st: 'cook', out: 'mondpudding', n: 1, in: { milch: 2, zucker: 1, ei: 1, honig: 1 }, excl: 1 },
+  x_regenbogeneis: { st: 'cook', out: 'regenbogeneis', n: 1, in: { milch: 1, zucker: 1, kirsche: 1, orange: 1, blaubeere: 1 }, excl: 1 },
 };
 export const DIG_SPOTS_PER_DAY = 5;
 
@@ -578,7 +618,7 @@ export const NPC_PLAN = {
 // ---------- Baupläne (DIY) ----------
 // Werkbank-Rezepte muss man erst finden: Flaschenpost am Strand, Geschenkballons, Nachbarn.
 export const STARTER_DIY = ['r_zaun', 'r_weg', 'r_bank', 'f_hocker', 'f_stuhl', 'f_kiste'];
-export const DIY_IDS = Object.keys(RECIPES).filter(k => RECIPES[k].st === 'craft');
+export const DIY_IDS = Object.keys(RECIPES).filter(k => RECIPES[k].st === 'craft' && !RECIPES[k].gem);
 // Erfolge fürs Bürgermeister-Update
 ACHIEVEMENTS.push(...[
   ['projekt1', '🏗️', 'Spatenstich', 'Das erste Inselprojekt eingeweiht', s => (s.mayor?.built || 0) >= 1, 2000],

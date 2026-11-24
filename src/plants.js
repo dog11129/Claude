@@ -4,6 +4,7 @@
 // Pflanzen bleiben schlank (≈ 150–900 Dreiecke), weil bis zu ~250 gleichzeitig zu sehen sind.
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, cyl, cone } from './models.js';
+import { PLACE_X } from './models-extra.js';
 
 const PI = Math.PI, H = PI / 2, TAU = PI * 2;
 let seed = 1;
@@ -776,6 +777,7 @@ const missing = () => [box(0.5, 0.5, 0.5, 0xff00ff, 0, 0.25, 0)];
 export function crop(k, st) {
   return make('c' + k + st, () => { seed = 7; return st === 0 ? sprout(k) : CROP[k] ? CROP[k](st) : missing(); });
 }
+Object.assign(PLACE, PLACE_X); // Gewächshaus, Sprinkler, Sternenrakete, Fahne, Tauschstand … (models-extra.js)
 export function placeable(k, ready) {
   return make('p' + k + (ready ? 1 : 0), () => (PLACE[k] ? PLACE[k](!!ready) : missing()));
 }

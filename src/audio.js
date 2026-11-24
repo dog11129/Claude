@@ -96,6 +96,7 @@ const SFX = {
   puddle: t => { noise(t, 0.12, 1600, 0.3, sfxGain, 3); tone(520, t, 0.08, 'sine', 0.08, sfxGain, 900); },
   plopp: t => tone(380, t, 0.09, 'sine', 0.18, sfxGain, 760),
   party: t => [784, 880, 784, 1047, 988].forEach((f, i) => tone(f, t + i * 0.13, 0.2, 'triangle', 0.12)),
+  thunder: t => { noise(t, 2.2, 90, 0.9, sfxGain, 0.5); noise(t + 0.04, 0.5, 500, 0.35, sfxGain, 0.7); noise(t + 0.4, 1.6, 140, 0.5, sfxGain, 0.6); },
   found: t => { [659, 784, 988, 1319].forEach((f, i) => tone(f, t + i * 0.08, 0.25, 'triangle', 0.14)); noise(t + 0.3, 0.3, 3000, 0.08, sfxGain, 2); },
 };
 
@@ -176,12 +177,35 @@ export function play(name) {
 }
 
 // Umgebung: Vögel am Tag, Grillen in der Nacht, Regen, Schritte
-export function ambience({ day, night, rain, walking }) {
+let nextZone = 0;
+export function ambience({ day, night, rain, walking, area, storm, fog }) {
   if (!ctx || ctx.state !== 'running' || !audio.sound) return;
   const t = ctx.currentTime;
-  rainGain.gain.setTargetAtTime(rain ? 0.35 : 0, t, 0.8);
-  if (!rain && day > 0.5 && t > nextBird) {
-    nextBird = t + 2 + Math.random() * 6;
+  rainGain.gain.setTargetAtTime(rain ? (storm ? 0.5 : 0.35) : 0, t, 0.8);
+  // Geräusche je Gebiet: Vögel und Specht im Wald, Bienen auf der Wiese, Tropfen in der Höhle
+  if (area && t > nextZone) {
+    if (area === 'hoehle') {
+      nextZone = t + 0.7 + Math.random() * 2.2;
+      const f = 900 + Math.random() * 900;
+      tone(f, t, 0.18, 'sine', 0.07, ambGain, f * 0.55);
+      tone(f * 0.98, t + 0.32, 0.22, 'sine', 0.025, ambGain, f * 0.5); // Echo
+    } else if (area === 'wiese' && day > 0.3 && !rain) {
+      nextZone = t + 1.2 + Math.random() * 2.5;
+      const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain(), dur = 1.2 + Math.random() * 1.4, f = 210 + Math.random() * 60;
+      o.type = 'sawtooth'; o.frequency.value = f; lfo.frequency.value = 9 + Math.random() * 6; lg.gain.value = 14;
+      lfo.connect(lg).connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.018, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 900;
+      o.connect(flt).connect(g).connect(ambGain);
+      o.start(t); lfo.start(t); o.stop(t + dur + 0.1); lfo.stop(t + dur + 0.1);
+    } else if (area === 'wald' && day > 0.3) {
+      nextZone = t + 3 + Math.random() * 6;
+      if (Math.random() < 0.35) for (let i = 0; i < 6 + Math.floor(Math.random() * 6); i++) noise(t + i * 0.07, 0.03, 1100, 0.18, ambGain, 6); // Specht
+      else { const b = 1500 + Math.random() * 500; tone(b, t, 0.35, 'sine', 0.05, ambGain, b * 0.8); tone(b * 0.8, t + 0.4, 0.45, 'sine', 0.05, ambGain, b * 0.66); } // Kuckuck-artig
+    }
+  }
+  if (!rain && !fog && area !== 'hoehle' && day > 0.5 && t > nextBird) {
+    nextBird = t + (area === 'wald' ? 1 : 2) + Math.random() * 6;
     const base = 2200 + Math.random() * 1600, n = 2 + Math.floor(Math.random() * 4);
     for (let i = 0; i < n; i++) tone(base, t + i * 0.13, 0.09, 'sine', 0.05, ambGain, base * (1.2 + Math.random() * 0.4));
   }
@@ -193,6 +217,12 @@ export function ambience({ day, night, rain, walking }) {
     nextStep = t + 0.3;
     noise(t, 0.06, 350 + Math.random() * 150, 0.12, sfxGain, 2);
   }
+}
+
+// ---------- Klavier: einzelne Töne (MIDI-Nummer) ----------
+export function pianoNote(midi, vel = 0.5, dur = 0.6) {
+  if (!ctx || ctx.state !== 'running' || !audio.sound) return;
+  INST.keys(440 * 2 ** ((midi - 69) / 12), ctx.currentTime + 0.01, dur, 0.16 * vel + 0.04, sfxGain);
 }
 
 // ---------- Eigene Musik: jede Stunde ein eigenes, im Browser komponiertes Stück ----------

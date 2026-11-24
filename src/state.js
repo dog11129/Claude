@@ -8,6 +8,7 @@ import {
 } from './data.js';
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
+import * as X from './extras.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -149,6 +150,7 @@ export function questEvent(s, ev, n = 1, out) {
     d.p += n;
     if (d.p >= DAILY[d.i][2]) { d.done = true; if (out) out.quest = DAILY[d.i][0]; }
   }
+  X.weekEvent(s, ev, n, out);
 }
 
 // Morgens: Bäume & Felsen auffüllen, neue Grabstellen, Muscheln und Unkraut verteilen
@@ -263,6 +265,7 @@ export function migrate(s) {
   tr.rm = Object.fromEntries(Object.keys(tr.rm || {}).filter(k => RES_SPOTS[k] === 'tree' || RES_SPOTS[k] === 'palm').map(k => [k, 1]));
   tr.add = Object.fromEntries(Object.entries(tr.add || {}).filter(([k, v]) => /^-?\d+,-?\d+$/.test(k) && (v?.kind === 'tree' || v?.kind === 'palm') && ITEMS[v.fruit]).map(([k, v]) => [k, { kind: v.kind, fruit: v.fruit }]));
   if (Array.isArray(s.dives)) s.dives = s.dives.filter(d => !d || !Number.isFinite(d.x) || swimmable(d.x, d.z));
+  X.migrateX(s);
   return s;
 }
 
@@ -358,6 +361,7 @@ export function blocked(s, x, z, swim) {
   if (Math.abs(tx) <= 3 && tz >= -1 && tz <= 3) { // Dorfplatz: Turnierstand und Fest-Deko
     const f = festToday(s);
     if (f && ((tx === CONTEST_AT[0] && tz === CONTEST_AT[1] && FESTS[f].contest) || FEST_DECO[f]?.some(([, x, z]) => x === tx && z === tz))) return true;
+    if (tx === X.NIGHT_AT[0] && tz === X.NIGHT_AT[1] && X.nightOpen(s)) return true;
   }
   const o = s.obj[key(tx, tz)];
   return !!(o && PLACE[o.k].solid);
@@ -427,7 +431,8 @@ export function tick(s, dt, auth) {
   if (s.dayTime >= 1) {
     if (auth) { newDay(s); changed = true; } else s.dayTime = 0.9999;
   }
-  const rain = s.weather !== 'sun'; // Regen und Schnee gießen
+  if (X.tickX(s, dt, auth)) changed = true;
+  const rain = X.isWet(s); // Regen, Gewitter und Schnee gießen
   const sea = seasonOf(s.day), nice = ord(s) === 'schoen';
   if (auth && contestTick(s)) changed = true;
   // Tour auf der Tropeninsel: Zeit abgelaufen
@@ -449,11 +454,12 @@ export function tick(s, dt, auth) {
       if (o.t >= p.every) changed = true;
     }
   }
-  for (const t of Object.values(s.tiles)) {
-    if (rain) { if (!t.w) changed = true; t.w = WET; }
+  const cov = X.gardenCover(s); // Sprinkler gießen, im Gewächshaus ist immer Saison
+  for (const [k, t] of Object.entries(s.tiles)) {
+    if (rain || (cov.water.has(k) && !(t.w > 0))) { if (!t.w) changed = true; t.w = WET; }
     if (t.c && t.c.g < CROPS[t.c.k].grow) { // gegossen wächst es viel schneller
       const before = stage(t.c);
-      t.c.g = Math.min(CROPS[t.c.k].grow, t.c.g + dt * (CROPS[t.c.k].sea.includes(sea) ? 1 : 0.5) * (t.w > 0 ? 1 : nice ? 0.85 : 0.3));
+      t.c.g = Math.min(CROPS[t.c.k].grow, t.c.g + dt * (CROPS[t.c.k].sea.includes(sea) || cov.green.has(k) ? 1 : 0.5) * (t.w > 0 ? 1 : nice ? 0.85 : 0.3));
       if (stage(t.c) !== before) changed = true;
     }
     if (t.w > 0) {
@@ -545,7 +551,7 @@ function contestTick(s) {
 // Über Nacht: Blumen-Kreuzungen (gegossene, blühende Nachbarblumen verschiedener Sorte)
 function crossBreed(s) {
   let n = 0;
-  const bloom = k => { const t = s.tiles[k]; return t?.c && isFlower(t.c.k) && t.c.g >= CROPS[t.c.k].grow && (t.w > 0 || s.weather !== 'sun') ? t.c.k : null; };
+  const bloom = k => { const t = s.tiles[k]; return t?.c && isFlower(t.c.k) && t.c.g >= CROPS[t.c.k].grow && (t.w > 0 || X.isWet(s)) ? t.c.k : null; };
   for (const k of Object.keys(s.tiles)) {
     if (n >= 2) break;
     const a = bloom(k);
@@ -572,9 +578,9 @@ function newDay(s) {
   const bred = crossBreed(s);
   s.day++;
   s.dayTime = 0;
-  const sea = seasonOf(s.day), wet = { spring: 0.25, summer: 0.15, autumn: 0.28, winter: 0.35 }[sea], was = s.weather;
-  s.weather = s.day > 2 && Math.random() < wet ? (sea === 'winter' ? 'snow' : 'rain') : 'sun';
-  if (was === 'rain' && s.weather === 'sun') s.rainbowDay = s.day; // nach dem Regen: Regenbogen am Vormittag
+  const was = s.weather;
+  s.weather = X.nextWeather(s); // mit Vorhersage aus der Inselzeitung (Regen, Gewitter, Nebel, Schnee)
+  if ((was === 'rain' || was === 'storm') && s.weather === 'sun') s.rainbowDay = s.day; // nach dem Regen: Regenbogen am Vormittag
   s.orders = s.orders.filter(o => s.day - o.day < 3);
   s.balloon = null;
   refill(s);
@@ -625,6 +631,7 @@ function newDay(s) {
   festMorning(s);
   if (bred) s.mail.push({ kind: 'note', from: 'lio', title: '🌱 Etwas Neues blüht!', text: `Hallo ihr zwei!\nIch hab heute früh in eurem Garten etwas entdeckt: Zwischen euren Blumen ist eine seltene Sorte gekeimt! Das passiert manchmal, wenn verschiedene Blumen nebeneinander stehen und gut gegossen sind.\n\nLio 🦊`, day: s.day });
   if (s.diary?.length > 120) s.diary.splice(0, s.diary.length - 120);
+  X.morningX(s);
   if (s.mail.length > 20) s.mail.splice(0, s.mail.length - 20);
   fillOrders(s);
 }
@@ -735,7 +742,11 @@ function addXp(s, n, out) {
   if (s.level >= MAX_LEVEL) s.xp = Math.min(s.xp, needXp(MAX_LEVEL));
 }
 
-const addInv = (s, id, n) => { s.inv[id] = (s.inv[id] || 0) + n; };
+const addInv = (s, id, n) => { s.inv[id] = (s.inv[id] || 0) + n; if (n > 0 && X.catalogOk(id)) (s.catalog ||= {})[id] = 1; };
+export const addInvX = (s, id, n) => addInv(s, id, n);
+export const questEventX = (s, ev, n, out) => questEvent(s, ev, n, out);
+export const DAY_SECS = DAY;
+export const takeInvX = (s, id, n) => takeInv(s, id, n);
 const takeInv = (s, id, n) => {
   if ((s.inv[id] || 0) < n) return false;
   s.inv[id] -= n;
@@ -754,7 +765,10 @@ const ACTIONS = {
     let n = 0;
     for (const [x, z] of area(s.up.can, a.x, a.z, a.dx, a.dz)) {
       const t = s.tiles[key(x, z)];
-      if (t) { t.w = WET; n++; fx(out, x, z, '', 'water'); }
+      if (t) {
+        t.w = WET; n++; fx(out, x, z, '', 'water');
+        if (s.inv.opalkanne > 0 && t.c && t.op !== s.day) { t.op = s.day; t.c.g = Math.min(CROPS[t.c.k].grow, t.c.g + CROPS[t.c.k].grow * 0.15); } // Opalkanne: Wachstumsschub
+      }
     }
     out.snd = 'water';
     if (n) questEvent(s, 'water', n, out);
@@ -830,7 +844,7 @@ const ACTIONS = {
     const k = key(a.x, a.z), g = s.ground?.[k];
     if (g) {
       delete s.ground[k];
-      if (g.id === 'bottle') { learn(s, out); out.snd = 'level'; fx(out, a.x, a.z, '📜', 'sparkle'); return true; }
+      if (g.id === 'bottle') { if (!X.mapPiece(s, out)) learn(s, out); out.snd = 'level'; fx(out, a.x, a.z, '📜', 'sparkle'); return true; }
       if (g.id === 'diy') { learn(s, out); out.snd = 'level'; fx(out, a.x, a.z, '📜', 'sparkle'); return true; }
       if (g.id === 'money') { s.money += g.n; s.stats.earned += g.n; fx(out, a.x, a.z, `+${g.n} 🪙`, 'coin'); out.snd = 'coin'; return true; }
       if (!has(ITEMS, g.id)) return true;
@@ -897,9 +911,10 @@ const ACTIONS = {
   fish(s, a, out) {
     if (!isWater(a.x, a.z) && !isWater(a.x + 0.4, a.z) && !isWater(a.x - 0.4, a.z) && !isWater(a.x, a.z + 0.4) && !isWater(a.x, a.z - 0.4)) return false;
     const l = s.up.rod - 1, sea = seasonOf(s.day), where = waterKind(a.x, a.z);
-    let pool = FISH.filter(f => (!f[5] || f[5].includes(sea)) && (f[6] === where || (where === 'pond' && f[6] === 'river' && f[0] === 'barsch')));
+    let pool = FISH.filter(f => (!f[5] || f[5].includes(sea)) && X.wxOk(s, f[8]) && (f[6] === where || (where === 'pond' && f[6] === 'river' && f[0] === 'barsch')));
     if (Number.isInteger(a.size)) { const sized = pool.filter(f => f[7] === a.size && (f[4][l] || 0) > 0); if (sized.length) pool = sized; } // Schattengröße verrät den Fisch
-    const f = weighted(pool, f => f[4][l] || 0), id = f[0];
+    const gold = s.inv.goldangel > 0; // Goldangel: seltene Fische beißen öfter
+    const f = weighted(pool, f => (f[4][l] || 0) * (gold && f[3] >= 1000 ? 1.8 : 1) * (f[8] ? 2 : 1)), id = f[0];
     addInv(s, id, 1);
     collect(s, id, out);
     s.stats.fish++;
@@ -914,9 +929,10 @@ const ACTIONS = {
   },
   bug(s, a, out) {
     const sea = seasonOf(s.day), h = hourOf(s), night = h >= 20 || h < 6;
-    const pool = BUGS.filter(b => b[5] !== 'tropic' && b[4].includes(sea) && (b[5] === 'any' || (b[5] === 'night') === night));
+    const pool = BUGS.filter(b => b[5] !== 'tropic' && b[4].includes(sea) && X.wxOk(s, b[7], night) && (b[5] === 'any' || (b[5] === 'night') === night));
     if (!pool.length) { out.msg = 'Gerade sind keine Insekten unterwegs.'; return false; }
-    const [id, , icon] = weighted(pool, b => b[6]);
+    const saph = s.inv.saphirkescher > 0; // Saphirkescher: seltene Krabbeltiere öfter
+    const [id, , icon] = weighted(pool, b => b[6] * (saph && b[3] >= 1000 ? 1.8 : 1) * (b[7] ? 2 : 1));
     addInv(s, id, 1);
     collect(s, id, out);
     s.stats.bugs = (s.stats.bugs || 0) + 1;
@@ -932,8 +948,9 @@ const ACTIONS = {
     const k = key(a.x, a.z);
     if (!isTree(s, k)) return false;
     if (!(s.res[k] > 0)) { out.msg = 'Der Baum braucht eine Pause – morgen wieder!'; return false; }
-    s.res[k]--;
-    const n = Math.random() < 0.3 ? 2 : 1;
+    const crystal = s.inv.kristallaxt > 0; // Kristallaxt: oft doppelt, Baum wird seltener müde
+    if (!crystal || Math.random() < 0.6) s.res[k]--;
+    const n = Math.random() < (crystal ? 0.55 : 0.3) ? 2 : 1;
     drop(s, a.x, a.z, { id: 'holz', n }, out, Number.isFinite(a.px) ? [a.px, a.pz] : null);
     s.stats.wood = (s.stats.wood || 0) + n;
     questEvent(s, 'chop', n, out);
@@ -991,6 +1008,7 @@ const ACTIONS = {
     }
     const r = Math.random(), id = r < 0.15 ? 'eisen' : r < 0.4 ? 'lehm' : 'stein';
     drop(s, a.x, a.z, { id, n: 1 }, out); // Felsen spucken Material aus
+    if (s.inv.rubinschaufel > 0 && Math.random() < 0.1) { const g = Math.random() < 0.6 ? 'amethyst' : Math.random() < 0.5 ? 'rubin' : 'saphir'; drop(s, a.x, a.z, { id: g, n: 1 }, out); out.msg = `💎 Die Rubinschaufel hat ${ITEMS[g].icon} ${ITEMS[g].name} freigelegt!`; }
     fx(out, a.x, a.z, '', 'dust');
     return true;
   },
@@ -1038,6 +1056,7 @@ const ACTIONS = {
   },
   dig(s, a, out) {
     const k = key(a.x, a.z), i = s.digs.indexOf(k), t = s.tiles[k];
+    if (s.tmap?.spot === k) return X.digTreasure(s, a, out);
     if (i >= 0) {
       s.digs.splice(i, 1);
       const [id, , icon] = weighted(FOSSILS, f => f[4]);
@@ -1130,7 +1149,8 @@ const ACTIONS = {
   craft(s, a, out) {
     if (!has(RECIPES, a.id)) return false;
     const r = RECIPES[a.id];
-    if (r.st === 'craft' && !s.recipes?.[a.id]) { out.msg = 'Diesen Bauplan kennt ihr noch nicht.'; return false; }
+    if (r.st === 'craft' && !s.recipes?.[a.id] && !r.gem) { out.msg = 'Diesen Bauplan kennt ihr noch nicht.'; return false; }
+    if (r.excl && !s.recipes?.[a.id]) { out.msg = 'Dieses Rezept gibt es nur als Preis beim Kochwettbewerb.'; return false; }
     if ((r.lvl || 1) > s.level) { out.msg = `Erst ab Level ${r.lvl}.`; return false; }
     if (Object.entries(r.in).some(([id, n]) => (s.inv[id] || 0) < n)) { out.msg = 'Dafür fehlen noch Zutaten.'; return false; }
     for (const [id, n] of Object.entries(r.in)) takeInv(s, id, n);
@@ -1619,8 +1639,10 @@ Object.assign(ACTIONS, {
 });
 
 // Führt eine Spieler-Aktion aus. Eingaben kommen evtl. übers Netz, darum wird alles geprüft.
+let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1633,7 +1655,7 @@ export function act(s, a, who) {
   if ((a.t === 'order' || a.t === 'mail') && !Number.isInteger(a.i)) return out;
   if (a.t === 'claim' && a.q !== 'story' && ![0, 1, 2].includes(a.q)) return out;
   out.ok = ACTIONS[a.t](s, a, out);
-  if (out.ok) checkAchievements(s, out);
+  if (out.ok) { checkAchievements(s, out); X.afterAct(s, a, out); }
   return out;
 }
 
@@ -1764,6 +1786,7 @@ export function resolve(s, me, sel, at) {
     return { label: '🪨 Felsen · mit der Schaufel draufhauen', tiles: one };
   }
   if (contestDay(s) && x === CONTEST_AT[0] && z === CONTEST_AT[1]) return { ui: 'contest', label: `🏆 ${FESTS[festOf(s.day)].name}`, tiles: one };
+  if (X.nightOpen(s) && x === X.NIGHT_AT[0] && z === X.NIGHT_AT[1]) return { ui: 'night', label: '🏮 Nachtmarkt', tiles: one };
   if (s.eggs?.[k] !== undefined) return { a: { t: 'pick', x, z }, label: '🥚 Ei aufheben', tiles: one };
   if (s.drift?.[k]) return { a: { t: 'pick', x, z }, label: '🪵 Treibholz aufheben', tiles: one };
   if (s.shells?.[k]) return { a: { t: 'pick', x, z }, label: `${ITEMS[s.shells[k]].icon} Aufheben`, tiles: one };
@@ -1790,6 +1813,9 @@ export function resolve(s, me, sel, at) {
     if (p.kind === 'producer') return { a: { t: 'use', x, z }, label: `${ITEMS[p.item].icon} Pflücken`, tiles: one };
     if (o.k === 'bank' || p.sit) return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
     if (o.k === 'kirschbaum') return { petals: { x, z }, label: '🌸 Schütteln', tiles: one };
+    if (o.k === 'sternenrakete') return { a: { t: 'fwstart', x, z }, label: s.fw?.day === s.day ? '🎆 Heute Abend ist Feuerwerk!' : '🚀 Feuerwerk für heute Abend zünden', tiles: one };
+    if (o.k === 'tauschstand') return { ui: 'stall', label: '🏪 Tauschstand', tiles: one };
+    if (o.k === 'fahne') return { ui: 'patterns', label: '🚩 Inselfahne · Muster wählen', tiles: one };
     return { label: p.icon + ' ' + p.name, tiles: one };
   }
 
@@ -1797,6 +1823,7 @@ export function resolve(s, me, sel, at) {
 
   const t = s.tiles[k];
   if (sel === 'shovel') {
+    if (s.tmap?.spot === k) return { a: { t: 'dig', x, z }, label: '🏴‍☠️ Hier ist das Kreuz! Graben!', tiles: one };
     if (s.digs.includes(k)) return { a: { t: 'dig', x, z }, label: '✨ Ausgraben', tiles: one };
     if (t) return { a: { t: 'dig', x, z }, label: '🌱 Ausgraben', tiles: one };
     if (s.weeds?.[k]) return { a: { t: 'pick', x, z }, label: '🌿 Unkraut zupfen', tiles: one };

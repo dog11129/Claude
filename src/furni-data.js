@@ -50,6 +50,18 @@ export const FURNITURE = {
   muschellampe:   { name: 'Muschellampe',    icon: '🐚', buy: 460,  lvl: 2, cat: 'licht',    w: 1, d: 1, solid: true, glow: true },
   badezuber:      { name: 'Badezuber',       icon: '🛁', buy: 720,  lvl: 2, cat: 'deko',     w: 1, d: 1, solid: true, craft: { holz: 14, eisen: 1 } },
   wolkensofa:     { name: 'Wolkensofa',      icon: '☁️', buy: 1800, lvl: 4, cat: 'sitzen',   w: 2, d: 1, solid: true, sit: true },
+  // Selten: Belohnung für Wochenziele (rare: 'week') und vom Nachtmarkt (rare: 'night') – nicht im Laden
+  sternglobus:    { name: 'Sternenglobus',   icon: '🌐', buy: 0, lvl: 1, cat: 'licht',  w: 1, d: 1, solid: true, glow: true, rare: 'week' },
+  mondsessel:     { name: 'Mondsessel',      icon: '🌙', buy: 0, lvl: 1, cat: 'sitzen', w: 1, d: 1, solid: true, sit: true, rare: 'week' },
+  regenbogenregal:{ name: 'Regenbogenregal', icon: '🌈', buy: 0, lvl: 1, cat: 'deko',   w: 1, d: 1, solid: true, rare: 'week' },
+  leuchtturmmodell:{ name: 'Leuchtturm-Modell', icon: '🗼', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, glow: true, rare: 'week' },
+  lumilaterne:    { name: 'Glühwürmchen-Laterne', icon: '🏮', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'night' },
+  sternkarte:     { name: 'Sternkarte',      icon: '🗺️', buy: 0, lvl: 1, cat: 'wand',   w: 1, d: 1, solid: false, wall: true, rare: 'night' },
+  windspiel:      { name: 'Muschel-Windspiel', icon: '🎐', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'night' },
+  spieluhr:       { name: 'Spieluhr',        icon: '🎠', buy: 0, lvl: 1, cat: 'deko',   w: 1, d: 1, solid: true, rare: 'night' },
+  schneekugel:    { name: 'Insel-Schneekugel', icon: '🔮', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, glow: true, rare: 'night' },
+  // Zeigt ein eigenes Pixel-Muster (🎨 Muster-Editor)
+  musterbild:     { name: 'Musterrahmen',    icon: '🖼️', buy: 400, lvl: 1, cat: 'wand',   w: 1, d: 1, solid: false, wall: true, pattern: true },
 };
 
 // [id, Name, Grundfarbe, Muster, Akzentfarbe] – Grundfarbe taugt auch als Farbfeld in der Oberfläche.

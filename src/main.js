@@ -16,6 +16,8 @@ import { loadAssets, loadTextures } from './assets.js';
 import { FLOORS, WALLS, FURNITURE } from './furni-data.js';
 import * as backup from './backup.js';
 import * as cloud from './cloud.js';
+import * as photos from './photos.js';
+import * as XS from './extras.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -157,6 +159,8 @@ function hostData(id, d) {
     if (!fr.includes(G.players[id].name)) { fr.push(G.players[id].name); if (fr.length > 8) fr.shift(); }
     G.net.send(id, { t: 'welcome', id, s: pack(G.s), players: G.players, code: G.code });
     say(`💕 ${G.players[id].name} ist da!`, 'join');
+    const nm = G.players[id].name, mo = {};
+    if (XS.moment(G.s, 'visit:' + nm, '💞', `${nm} kommt zu Besuch`, 'Zum ersten Mal zusammen auf der Insel!', mo)) { G.dirty = true; G.net.broadcast({ t: 'moment', m: mo.moment }); onMoment(mo.moment); }
     return;
   }
   if (!p) return;
@@ -179,6 +183,10 @@ function hostData(id, d) {
   if (d.t === 'emote') emote(id, d.e);
   if (d.t === 'hug' && typeof d.id === 'string') social(id, d.id, 'hug');
   if (d.t === 'soc' && typeof d.id === 'string' && Object.hasOwn(SOCIAL, d.k)) social(id, d.id, d.k);
+  if (d.t === 'card' && typeof d.url === 'string' && d.url.length < 400000 && d.url.startsWith('data:image/jpeg')) { // Postkarte weiterreichen
+    const card = { t: 'card', url: d.url, from: p.name };
+    if (d.to === G.me) onCard(card); else if (G.players[d.to]) G.net.send(d.to, card);
+  }
 }
 
 function hostLeave(id) {
@@ -207,7 +215,7 @@ function handleAct(id, a) {
     a = { ...a, to: to.key };
   }
   const who = G.players[id]?.key || 'host';
-  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
+  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle', 'cookin', 'stalladd', 'stallswap', 'fwstart'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
   S.bindInv(G.s, 'host');
   if (out.gave) { // dem Empfänger Bescheid sagen
     const rid = Object.keys(G.players).find(k => G.players[k].key === out.gave.to), it = ITEMS[out.gave.item];
@@ -216,11 +224,13 @@ function handleAct(id, a) {
   }
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
   if (out.quest) questDone(out.quest);
+  if (out.moment) { G.net?.broadcast({ t: 'moment', m: out.moment }); onMoment(out.moment); }
+  if (out.weekGoal) { const text = `🤝 Wochenziel geschafft: ${out.weekGoal}!`; G.net?.broadcast({ t: 'toast', text, snd: 'ach' }); toast(text, 'ach'); play('ach'); }
   if (out.ok && out.msg && ['upgrade', 'order', 'donate'].includes(a.t)) {
     const text = `${G.players[id]?.name}: ${out.msg}`;
     G.net?.broadcast({ t: 'toast', text }, id);
@@ -329,6 +339,8 @@ function guestData(d) {
     case 'emote': showEmote(d.id, d.e); break;
     case 'soc': if (Object.hasOwn(SOCIAL, d.k)) onSocial(d.a, d.b, d.k); break;
     case 'toast': toast(d.text); if (d.snd) play(d.snd); break;
+    case 'moment': if (d.m?.k) onMoment(d.m); break;
+    case 'card': if (typeof d.url === 'string' && d.url.startsWith('data:image/jpeg')) onCard(d); break;
     case 'wake': wake(); break;
     case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Insel geschickt.', true); break;
     case 'bye': G.ended = true; G.conn?.close(); saveFarm(); cover('🏝️ Der Host hat die Insel verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Inseln“.', true); break;
@@ -394,7 +406,54 @@ function onRes(r) {
     const me = G.players[G.me], n = G.s.inv[r.got] || 0, big = n <= 1 || ITEMS[r.got].furn || ITEMS[r.got].place;
     if (big) { animate('lift'); world.float(me.x, me.z, ITEMS[r.got].icon, 2.1, { cls: 'hold', life: 1.4, rise: 0.15, follow: () => G?.players[G.me] }); play('harvest'); }
   }
+  if (r.cookVotes) r.cookVotes.forEach((v, i) => setTimeout(() => { toast(`${v.icon} ${v.name}: „${v.line}“ – ${'⭐'.repeat(Math.round(v.score / 2))} ${v.score}/10`); play(v.score >= 7 ? 'love' : 'chat'); }, 600 + i * 1400));
   if (r.newAlbum) { toast(`📖 Neu im Sammelbuch: ${ITEMS[r.newAlbum].icon} ${ITEMS[r.newAlbum].name}`, 'ach'); play('ach'); }
+}
+// Neue Seite im Fotobuch: kurz anzeigen und ein Bild vom Moment festhalten (nur auf diesem Gerät)
+const isleKey = () => G?.s?.id || G?.key || 'insel';
+function onMoment(m) {
+  toast(`📸 Neue Seite im Fotobuch: ${m.icon} ${m.title}`, 'ach');
+  play('shutter');
+  const isle = isleKey();
+  setTimeout(async () => {
+    if (!G?.ready || G.photo) return;
+    try { await photos.add(isle, await photos.shrink(world.snapshot(), 480, 0.78), { kind: 'moment', k: m.k, day: G.s.day }); } catch { /* ohne Bild */ }
+  }, 700);
+}
+async function onCard(d) {
+  await photos.add(isleKey(), d.url, { kind: 'photo', card: true, from: String(d.from || '').slice(0, 16), day: G.s?.day });
+  toast(`📮 ${d.from || 'Jemand'} hat dir eine Postkarte geschickt! (📸 Fotobuch → 🖼️ Fotos)`, true);
+  play('love');
+}
+// Bilder ins Fotobuch einsetzen (die Seiten selbst kommen aus dem Spielstand)
+let picSig = '';
+async function fillBook() {
+  const body = $('pbody');
+  if (panels.open !== 'book') { picSig = ''; return; }
+  const slots = body.querySelectorAll('[data-bpic]:not(.done)'), grid = $('photogrid');
+  if (!slots.length && !(grid && !grid.dataset.done)) return;
+  const isle = isleKey();
+  if (slots.length) {
+    for (const el of slots) el.classList.add('done');
+    const pics = new Map((await photos.list(isle, 'moment')).map(p => [p.k, p.url]));
+    for (const el of slots) { const u = pics.get(el.dataset.bpic); if (u) el.innerHTML = `<img src="${u}" alt="">`; }
+  }
+  if (grid && !grid.dataset.done) {
+    grid.dataset.done = 1;
+    const list = await photos.list(isle, 'photo'), others = Object.values(G.players).filter(p => p.id !== G.me);
+    const card = G.cardFor && list.find(p => p.id === G.cardFor);
+    grid.innerHTML = (card ? `<div class="photo" style="grid-column:1/-1"><img src="${card.url}" alt=""><div class="diaryadd" style="margin-top:6px"><input id="cardtxt" maxlength="160" placeholder="Liebe Grüße von der Insel …"></div><div class="row2">${others.map(p => `<button class="btn small pink" data-ui="cardsend" data-to="${esc(p.id)}">📮 An ${esc(p.name)}</button>`).join('')}<button class="btn small" data-ui="cardshare">📤 Teilen / Speichern</button><button class="btn small white" data-ui="cardno">Abbrechen</button></div></div>` : '')
+      + (list.length ? list.map(p => `<div class="photo"><img src="${p.url}" alt=""><small>${p.card ? `📮 von ${esc(p.from || '?')} · ` : ''}Tag ${p.day || '?'} · ${new Date(p.time).toLocaleDateString('de-DE')}</small><div class="row2"><button class="btn small white" data-ui="phcard" data-id="${p.id}" title="Als Postkarte">📮</button><button class="btn small white" data-ui="phsave" data-id="${p.id}" title="Speichern/Teilen">⬇️</button><button class="btn small white" data-ui="phdel" data-id="${p.id}" title="Löschen">🗑️</button></div></div>`).join('')
+        : '<div class="note">Noch keine Fotos. Im 📷 Fotomodus auf 📸 drücken – das Bild landet hier.</div>');
+  }
+}
+async function shareImage(url, name) {
+  try {
+    const file = new File([await (await fetch(url)).blob()], name, { type: 'image/jpeg' });
+    if (touch && navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: 'Kuschelinsel' }); return; }
+  } catch { /* Teilen abgebrochen oder nicht möglich: herunterladen */ }
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
 }
 function onLevel(l) {
   const neu = S.unlocksAt(l);
@@ -561,7 +620,7 @@ function animate(kind) {
 function announceDay() {
   const s = G.s;
   const sea = S.seasonOf(s.day), newSea = (s.day - 1) % 7 === 0;
-  say(`${newSea ? `${SEASONS[sea][1]} Der ${SEASONS[sea][0]} beginnt! ` : '🌅 '}${WEEKDAYS[weekday(s.day)]}, Tag ${s.day} – ${s.weather === 'rain' ? '🌧️ Regen gießt alle Blumen!' : s.weather === 'snow' ? '🌨️ Es schneit!' : s.rainbowDay === s.day ? '🌈 Nach dem Regen: Schau mal in den Himmel!' : '☀️ Sonnenschein'}`);
+  say(`${newSea ? `${SEASONS[sea][1]} Der ${SEASONS[sea][0]} beginnt! ` : '🌅 '}${WEEKDAYS[weekday(s.day)]}, Tag ${s.day} – ${s.weather === 'rain' ? '🌧️ Regen gießt alle Blumen!' : s.weather === 'storm' ? '⛈️ Gewitter! Der Regen gießt alles – und manche Tiere zeigen sich nur jetzt.' : s.weather === 'fog' ? '🌫️ Nebel liegt über der Insel – geheimnisvolle Tiere sind unterwegs.' : s.weather === 'snow' ? '🌨️ Es schneit!' : s.rainbowDay === s.day ? '🌈 Nach dem Regen: Schau mal in den Himmel!' : '☀️ Sonnenschein'}`);
   if (weekday(s.day) === 0) say('🐰 Hoppel verkauft heute bis 12 Uhr Rüben am Dorfplatz!');
   if (weekday(s.day) === 6) say('🎸 Heute ab 20 Uhr: Livemusik im Mondschein-Club in der Bummelgasse!');
   if (s.mail.some(m => m.kind && m.day === s.day)) say('💌 Im Briefkasten liegt neue Post!');
@@ -964,8 +1023,40 @@ updOrient();
 // ---------- Fenster ----------
 const panels = new Panels({
   act: a => send(a),
-  ui(kind, d) {
+  async ui(kind, d) {
     if (kind === 'app') openApp(d.app);
+    if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
+    if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
+    if (kind === 'phcard') { G.cardFor = +d.id; const g = $('photogrid'); if (g) delete g.dataset.done; $('pbody').scrollTop = 0; }
+    if (kind === 'cardno') { G.cardFor = null; const g = $('photogrid'); if (g) delete g.dataset.done; }
+    if (kind === 'cardsend' || kind === 'cardshare') {
+      const p = await photos.get(G.cardFor), text = $('cardtxt')?.value.trim() || 'Liebe Grüße von der Insel!';
+      if (!p) return;
+      const to = G.players[d.to]?.name, url = await photos.postcard(p.url, text, profile.name, kind === 'cardsend' ? to : '');
+      if (kind === 'cardshare') shareImage(url, 'kuschelinsel-postkarte.jpg');
+      else {
+        const small = await photos.shrink(url, 820, 0.8);
+        if (G.role === 'host') G.net?.send(d.to, { t: 'card', url: small, from: profile.name }); else G.conn?.send({ t: 'card', to: d.to, url: small });
+        toast(`📮 Postkarte an ${to} verschickt!`); play('love');
+      }
+      G.cardFor = null; const g = $('photogrid'); if (g) delete g.dataset.done;
+    }
+    if (kind === 'stalladd') {
+      const id = $('stid')?.value, n = Math.max(1, Math.min(99, +$('stn')?.value || 1)), swap = $('stmode')?.value === 'swap';
+      const a = { t: 'stalladd', id, n };
+      if (swap) Object.assign(a, { want: $('stwant')?.value, wn: Math.max(1, Math.min(99, +$('stwn')?.value || 1)) });
+      else a.price = Math.round(+$('stprice')?.value || 0);
+      if (!swap && !(a.price > 0)) { toast('🏪 Bitte einen Preis eintragen.'); return; }
+      for (const i of document.querySelectorAll('#pbody .stallform input')) i.value = i.id === 'stn' || i.id === 'stwn' ? '1' : '';
+      send(a);
+    }
+    if (kind === 'annivfounded') { const v = $('anfounded')?.value; if (v) send({ t: 'anniv', op: 'founded', date: v }); }
+    if (kind === 'annivadd') {
+      const n = $('anname')?.value.trim(), v = $('andate')?.value;
+      if (!n || !v) { toast('💕 Erst einen Namen und ein Datum eintragen!'); return; }
+      send({ t: 'anniv', op: 'add', name: n, date: v });
+      $('anname').value = '';
+    }
     if (kind === 'give' && G.players[d.id]) { G.giveTo = d.id; panels.show('give'); }
     if (kind === 'pave') { G.pathType = d.k; openBuild('wege'); if (G.build) { G.build.path = d.k; setBuildCat('wege'); renderBuild(); } }
     if (kind === 'build') openBuild(d.cat);
@@ -1024,7 +1115,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'] }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'] }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -1065,16 +1156,9 @@ $('shutter').onclick = async () => {
   play('shutter');
   $('flash').classList.add('on');
   setTimeout(() => $('flash').classList.remove('on'), 60);
-  const url = world.snapshot(), name = `kuschelinsel-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.jpg`;
-  try {
-    const file = new File([await (await fetch(url)).blob()], name, { type: 'image/jpeg' });
-    if (touch && navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: 'Kuschelinsel' }); return; }
-  } catch { /* Teilen abgebrochen oder nicht möglich: herunterladen */ }
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  toast('📸 Foto gespeichert!');
+  const url = world.snapshot();
+  const id = await photos.add(isleKey(), await photos.shrink(url, 1100, 0.86), { kind: 'photo', day: G?.s?.day });
+  toast(id ? '📸 Foto im Fotobuch gespeichert! (📱 → 📸 Fotobuch → 🖼️ Fotos)' : '📸 Foto konnte nicht gespeichert werden');
 };
 
 // ---------- Chat ----------
@@ -1845,7 +1929,8 @@ function updateFest(me, now) {
   G.resSeen = res.length;
   // Sommerfeuerwerk über dem Meer (19–24 Uhr)
   const home = Math.abs(me.z) < 150 && me.x < 150;
-  if (S.festOf(s.day) === 'feuerwerk' && hour >= 19 && home && now > (G.nextFw || 0)) {
+  const fwOn = (S.festOf(s.day) === 'feuerwerk' || XS.fireworksTonight(s)) && hour >= 19 || (s.fw?.day === s.day && hour >= 18 && s.time - (s.fw.t || 0) < 600);
+  if (fwOn && home && now > (G.nextFw || 0)) {
     G.nextFw = now + 500 + Math.random() * 1300;
     world.firework(me.x - 10 + Math.random() * 20, Math.min(me.z, 6) - 14 - Math.random() * 6, 13 + Math.random() * 6);
     play('launch');
@@ -1965,8 +2050,14 @@ function drawMap() {
     g.fillText(p.name, X(p.x), X(p.z) - r - sc * 0.9);
   }
   if (s.balloon) { const b = S.balloonPos(s.balloon, s.time); g.font = `${sc * 2.2}px sans-serif`; g.fillText('🎈', X(b.x), X(b.z)); }
+  if (s.tmap?.spot) { const [tx, tz] = s.tmap.spot.split(',').map(Number); g.strokeStyle = '#d6303a'; g.lineWidth = 4; g.beginPath(); g.moveTo(X(tx - 0.8), X(tz - 0.8)); g.lineTo(X(tx + 0.8), X(tz + 0.8)); g.moveTo(X(tx + 0.8), X(tz - 0.8)); g.lineTo(X(tx - 0.8), X(tz + 0.8)); g.stroke(); }
   if (G.goal && G.goal.x !== undefined) { g.strokeStyle = '#ff5d7a'; g.lineWidth = 3; g.beginPath(); g.arc(X(G.goal.x), X(G.goal.z), sc * 0.8, 0, 7); g.stroke(); }
 }
+$('pbody').addEventListener('change', e => { // Tauschstand: Preis oder Tausch
+  if (e.target.id !== 'stmode') return;
+  const swap = e.target.value === 'swap';
+  $('stprice')?.classList.toggle('hidden', swap); $('stwant')?.classList.toggle('hidden', !swap); $('stwn')?.classList.toggle('hidden', !swap);
+});
 $('pbody').addEventListener('click', e => {
   const pp = e.target.closest('[data-paper]');
   if (pp) { document.querySelectorAll('[data-paper]').forEach(x => x.classList.toggle('on', x === pp)); play('click'); return; }
@@ -2103,8 +2194,13 @@ function gameFrame(dt, now) {
   });
   if (panels.open === 'map') drawMap();
   if (s.balloon && G.balloonSeen !== s.balloon.id) { G.balloonSeen = s.balloon.id; toast('🎈 Ein Geschenkballon schwebt über die Insel! Schnapp dir die Schleuder.'); play('chat'); }
-  ambience({ day: info.day, night: info.night, rain: s.weather === 'rain', walking: me.m });
-  musicTick(6 + s.dayTime * 18, s.weather === 'rain');
+  ambience({ day: info.day, night: info.night, rain: XS.isRainy(s) && !S.inside(me), storm: s.weather === 'storm', fog: s.weather === 'fog', walking: me.m, area: me.x < -150 ? S.areaOf(me) : null });
+  musicTick(6 + s.dayTime * 18, XS.isRainy(s));
+  // Gewitter: Blitze und Donner (nur draußen auf der Insel)
+  if (s.weather === 'storm' && !S.inside(me) && Math.abs(me.z) < 150 && me.x < 150 && Math.random() < dt / 11) {
+    world.lightning();
+    setTimeout(() => play('thunder'), 300 + Math.random() * 1600);
+  }
   // Nachbarn sagen ab und zu etwas, wenn man in der Nähe ist
   if (now > (G.nextChatter || 0) && !G.talk) {
     G.nextChatter = now + 14000 + Math.random() * 12000;
@@ -2114,7 +2210,7 @@ function gameFrame(dt, now) {
 
   // HUD
   const hour = 6 + s.dayTime * 18, hh = Math.floor(hour) % 24, mm = Math.floor((hour % 1) * 6) * 10;
-  const sky = s.weather === 'rain' ? '🌧️ ' : s.weather === 'snow' ? '🌨️ ' : '';
+  const sky = s.weather !== 'sun' && XS.WEATHER[s.weather] ? XS.WEATHER[s.weather][0] + ' ' : '';
   const [seaName, seaIcon] = SEASONS[S.seasonOf(s.day)];
   if (hud.m !== s.money) { if (hud.m != null && s.money > hud.m) bump('moneypill'); hud.m = s.money; }
   setText('money', s.money.toLocaleString('de-DE'));
@@ -2154,7 +2250,7 @@ function gameFrame(dt, now) {
     fillIcons($('hotbar'));
     if (G.popSel) { bump($('hotbar').querySelector(`[data-id="${G.popSel}"]`), 'pop'); G.popSel = null; }
   }
-  if (!uiPress) panels.update(s, G);
+  if (!uiPress) { panels.update(s, G); fillBook(); }
 }
 
 let last = performance.now(), loaded = false;
@@ -2189,4 +2285,4 @@ function demoFarm() {
 
 showMenu(joinParam ? 'join' : 'title');
 requestAnimationFrame(frame);
-window.__game = { get G() { return G; }, world, S, profile, settings, openTalk, social, showRiddle };  // für Tests & Fehlersuche
+window.__game = { get G() { return G; }, world, S, profile, settings, openTalk, social, showRiddle, panels, XS, send };  // für Tests & Fehlersuche

@@ -38,6 +38,7 @@ import { tickAssets, part, snow, model, GLOW_VC, tex, flatGeometry } from './ass
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE, FEST_DECO, CONTEST_AT, FESTS } from './data.js';
 import { grass as onGrass } from './island.js';
+import { nightOpen, NIGHT_AT } from './extras.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
 import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng, COAST_GLSL } from './island.js';
@@ -114,6 +115,7 @@ export class World {
     r.shadowMap.type = THREE.PCFSoftShadowMap;
     const s = this.scene = new THREE.Scene();
     s.fog = new THREE.Fog(SKY_HOR[0].clone(), 34, 80);
+    this.fogNear = 34; this.fogFar = 80; this.fogCol = new THREE.Color(); this.boltCol = new THREE.Color(0xe8ecff);
     this.camera = new THREE.PerspectiveCamera(36, 1, 0.3, 400);
     this.target = new THREE.Vector3(0, 0, -4);
     this.zoom = 1;
@@ -213,7 +215,7 @@ export class World {
     this.quality = q;
     const r = this.renderer;
     r.setPixelRatio(Q.exact ? Q.ratio : Math.min(devicePixelRatio, Q.ratio));
-    if (typeof q === 'object') { this.scene.fog.near = 34 * (q.view || 1); this.scene.fog.far = 80 * (q.view || 1); }
+    if (typeof q === 'object') { this.fogNear = this.scene.fog.near = 34 * (q.view || 1); this.fogFar = this.scene.fog.far = 80 * (q.view || 1); }
     r.shadowMap.enabled = !!Q.shadows;
     this.sun.castShadow = !!Q.shadows;
     if (Q.shadows) {
@@ -1038,7 +1040,7 @@ export class World {
         else if (o.n > 0) this.tag('o' + k, `⚙️ ${o.n}`, e.x, 1.4, e.z, 'bubble small');
       }
       if (ready) this.tag('o' + k, ITEMS[p.item].icon, e.x, 2.3, e.z, 'bubble');
-      if (p.kind === 'sprinkler') { e.m.rotation.y = this.time * 2; this.sprinklers.push(e); }
+      if (p.kind === 'sprinkler' || o.k === 'sprinkler' || o.k === 'sternsprinkler') { e.m.rotation.y = this.time * 2; this.sprinklers.push(e); }
     }
     for (const [k, e] of this.objs) if (!seen.has(k)) { this.vanish(e.m); this.objs.delete(k); this.burst(e.x, e.z, 'dust'); }
   }
@@ -1151,7 +1153,7 @@ export class World {
   }
   // Nach dem Regen: Pfützen auf der Wiese (bis zum frühen Nachmittag)
   syncPuddles(s, hour) {
-    const wet = s.weather === 'rain' || (s.rainbowDay === s.day && hour < 15), sig = wet ? s.day : 0;
+    const wet = s.weather === 'rain' || s.weather === 'storm' || (s.rainbowDay === s.day && hour < 15), sig = wet ? s.day : 0;
     if (this.puddleSig === sig) return;
     this.puddleSig = sig;
     for (const p of this.puddles || []) this.vanish(p.m);
@@ -1319,7 +1321,7 @@ export class World {
         if (e.face != null) { e.ry = e.face; e.speed *= 0.5; }
       }
       // Accessoires: Partyhut am Geburtstag, Schirm bei Regen, Schal im Winter
-      this.npcGear(e, id, { hat: bday === id, umb: s.weather === 'rain', scarf: this.season === 'winter' || s.weather === 'snow' });
+      this.npcGear(e, id, { hat: bday === id, umb: s.weather === 'rain' || s.weather === 'storm', scarf: this.season === 'winter' || s.weather === 'snow' });
       // kleiner Freudenhüpfer, wenn ein Nachbar etwas sagt
       if (e.hop < 1) e.hop = Math.min(1, e.hop + dt * 3.2);
       const hy = e.hop < 1 && this.animations !== false ? Math.abs(Math.sin(e.hop * Math.PI * 2)) * 0.18 * (1 - e.hop * 0.5) : 0;
@@ -1608,16 +1610,21 @@ export class World {
     const day = smooth(4.8, 6.8, hour) * (1 - smooth(17.5, 21, hour));
     const dusk = Math.max(1 - smooth(6, 8, hour), smooth(16.5, 18.5, hour) * (1 - smooth(19.5, 21.5, hour)));
     const night = 1 - day;
-    const rain = s.weather !== 'sun';
+    const rain = s.weather === 'rain' || s.weather === 'snow' || s.weather === 'storm', fog = s.weather === 'fog', storm = s.weather === 'storm';
     const top = this.skyU.top.value, hor = this.skyU.hor.value;
     top.copy(SKY_TOP[2]).lerp(SKY_TOP[0], day).lerp(SKY_TOP[1], dusk * 0.5);
     hor.copy(SKY_HOR[2]).lerp(SKY_HOR[0], day).lerp(SKY_HOR[1], dusk * 0.75);
-    if (rain) { top.lerp(SKY_RAIN_TOP, 0.6 * (0.3 + day * 0.7)); hor.lerp(SKY_RAIN_HOR, 0.6 * (0.3 + day * 0.7)); }
+    if (rain) { top.lerp(SKY_RAIN_TOP, (storm ? 0.85 : 0.6) * (0.3 + day * 0.7)); hor.lerp(SKY_RAIN_HOR, (storm ? 0.85 : 0.6) * (0.3 + day * 0.7)); }
+    if (fog) { top.lerp(SKY_RAIN_HOR, 0.55 * (0.3 + day * 0.7)); hor.lerp(this.fogCol.setRGB(0.86, 0.88, 0.9), 0.7 * (0.2 + day * 0.8)); }
     this.scene.fog.color.copy(hor);
+    // Nebel: Sichtweite stark verkürzt (weich überblendet)
+    const fk = this.fogK = (this.fogK || 0) + ((fog ? 1 : 0) - (this.fogK || 0)) * Math.min(1, (this.dt || 0.016) * 0.9);
+    this.scene.fog.near = this.fogNear * (1 - fk * 0.78);
+    this.scene.fog.far = this.fogFar * (1 - fk * 0.62);
     this.stars.material.opacity = smooth(0.6, 1, night) * (rain ? 0.2 : 1);
-    this.sun.intensity = (rain ? 1.1 : 2.3) * (0.22 + 0.78 * day);
+    this.sun.intensity = (storm ? 0.8 : rain ? 1.1 : fog ? 1.4 : 2.3) * (0.22 + 0.78 * day);
     this.sun.color.copy(SUN_DAY).lerp(SUN_MOON, night).lerp(SUN_DUSK, dusk * 0.75);
-    this.hemi.intensity = 0.55 + 0.95 * day;
+    this.hemi.intensity = (0.55 + 0.95 * day) * (storm ? 0.62 : rain ? 0.85 : 1);
     this.hemi.color.copy(HEMI_DAY).lerp(HEMI_NIGHT, night);
     this.hemi.groundColor.copy(GROUND_DAY).lerp(GROUND_NIGHT, night);
     this.lamp.intensity = night * 12;
@@ -1629,9 +1636,26 @@ export class World {
     this.waterU.night.value = night * 0.8;
     this.waterU.ice.value += ((this.season === 'winter' ? 1 : 0) - this.waterU.ice.value) * 0.02;
     if (this.bloom) this.bloom.strength = 0.25 + night * 0.55;
-    const fk = this.fwFlash ? Math.max(0, 1 - (this.time - this.fwFlash.t) / 0.6) : 0;
-    if (fk > 0) { this.hemi.intensity += fk * 0.9 * night; this.hemi.color.lerp(this.fwFlash.c, fk * 0.6 * night); }
+    const fwk = this.fwFlash ? Math.max(0, 1 - (this.time - this.fwFlash.t) / 0.6) : 0;
+    if (fwk > 0) { this.hemi.intensity += fwk * 0.9 * night; this.hemi.color.lerp(this.fwFlash.c, fwk * 0.6 * night); }
+    const lk = this.bolt ? Math.max(0, 1 - (this.time - this.bolt) / 0.35) * (Math.sin((this.time - this.bolt) * 60) > -0.3 ? 1 : 0.3) : 0; // Blitz
+    if (lk > 0) { this.hemi.intensity += lk * 2.2; this.hemi.color.lerp(this.boltCol, lk * 0.7); top.lerp(this.boltCol, lk * 0.5); hor.lerp(this.boltCol, lk * 0.4); }
     return { hour, night, day };
+  }
+
+  lightning() { this.bolt = this.time; }
+
+  // Nachtmarkt-Stand (freitags ab 18 Uhr)
+  syncExtras(s) {
+    const open = nightOpen(s);
+    if (open && !this.nightM) {
+      this.nightM = placeable('nachtstand');
+      this.nightM.position.set(NIGHT_AT[0], 0, NIGHT_AT[1]);
+      this.nightM.rotation.y = Math.PI / 2;
+      this.scene.add(this.nightM);
+      this.burst(NIGHT_AT[0], NIGHT_AT[1], 'sparkle', 1);
+    } else if (!open && this.nightM) { this.vanish(this.nightM); this.nightM = null; }
+    if (this.nightM) this.tag('night', '🏮 Nachtmarkt', NIGHT_AT[0], 2.3, NIGHT_AT[1], 'bubble');
   }
 
   rotate(d) { this.yawT += d; }
@@ -1659,8 +1683,9 @@ export class World {
     this.syncGrass(s);
     this.syncPlayers(players, me, dt, !opt.hideNames);
     const indoors = this.target.x > HOME_X / 2, tropic = this.target.z > 150; // im Haus regnet es nicht, auf der Tropeninsel ist immer Sommer
-    const info = this.light(s), rain = s.weather === 'rain' && !indoors && !tropic, snowing = s.weather === 'snow' && !indoors && !tropic;
+    const info = this.light(s), rain = (s.weather === 'rain' || s.weather === 'storm') && !indoors && !tropic, snowing = s.weather === 'snow' && !indoors && !tropic;
     this.syncFest(s);
+    this.syncExtras(s);
     this.syncPuddles(s, info.hour);
     this.syncAurora(s, info.night || 0);
     this.zones.update(this, s, this.time, info.night || 0, this.target);
