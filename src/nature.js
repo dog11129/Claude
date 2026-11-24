@@ -75,3 +75,44 @@ export function placeable(k, ready, fruit) {
   }
   return model(k) || oldPlaceable(k, ready);
 }
+
+// Landschaft: Wald auf den Klippen, Grasbüschel, Wildblumen, Teichsteine – gleiche Verteilung wie vorher,
+// jetzt aus Blender-Modellen als InstancedMesh (ein Draw-Call pro Modell)
+import * as THREE from '../vendor/three.module.min.js';
+import { flatGeometry, OUTDOOR } from './assets.js';
+export function scenery(isFree, h = () => 0, season = 'summer', plateau = () => false) {
+  if (!hasModel('pine') || !hasModel('ftree_' + season)) return M.scenery(isFree, h, season, plateau);
+  const snow = season === 'winter', L = {}, add = (name, x, y, z, s, ry = 0, sy = s) =>
+    (L[name] ||= []).push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)), new THREE.Vector3(s, sy, s)));
+  let seed = 7, parts = 0;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 1400 && parts < 900; i++) {
+    const x = (rand() - 0.5) * 50, z = -14 - rand() * 12;
+    if (!plateau(x, z) || !plateau(x, z + 1.4) || Math.abs(x - (6.6 + 2.6 * Math.sin(z * 0.2 + 0.5))) < 1.8) continue;
+    const s = 0.85 + rand() * 0.6, y = h(x, z) - 0.05, k = rand(), ry = rand() * 6.28;
+    if (k < 0.45) { add('pine', x, y, z, s, ry); parts += 4; }
+    else if (k < 0.9) { add('ftree_' + season, x, y, z, s, ry); parts += 4; }
+    else { add('bush', x, y, z, s * 0.9, ry); parts += 1; }
+  }
+  for (let i = 0; i < (snow ? 0 : 700); i++) {
+    const x = (rand() - 0.5) * 44, z = (rand() - 0.5) * 40;
+    if (!isFree(Math.round(x), Math.round(z))) continue;
+    if (rand() < 0.8) add('tuft', x, 0, z, 0.9 + rand() * 0.4, rand() * 6.28);
+    else add('wildflower_' + Math.floor(rand() * 4), x, 0, z, 1, rand() * 6.28);
+  }
+  for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; add('pondstone', -15 + Math.cos(a) * 2.45, 0.02, -4 + Math.sin(a) * 2.45, 0.85 + (i % 3) * 0.25, a); }
+  add('lilypad', -14.2, -0.13, -3.4, 1); add('lilypad', -15.8, -0.13, -4.6, 0.85, 1.3);
+  const g = new THREE.Group();
+  for (const [name, mats] of Object.entries(L)) {
+    const geo = flatGeometry(name);
+    if (!geo) continue;
+    const im = new THREE.InstancedMesh(geo, OUTDOOR, mats.length);
+    mats.forEach((m, i) => im.setMatrixAt(i, m));
+    im.castShadow = !/tuft|wildflower|lilypad/.test(name);
+    im.receiveShadow = true;
+    im.computeBoundingSphere();
+    g.add(im);
+  }
+  g.userData.asset = 'scenery';
+  return g;
+}

@@ -478,7 +478,7 @@ function petParts(kind, C) {
 
 export function makePet(kind, color) {
   const k = ids('pet').includes(kind) && kind !== 'none' ? kind : 'cat', C = ids('petColor').includes(color) ? color : '#e8a35c';
-  const P = petParts(k, C), g = (n, fn) => bgeo([`pet_${k}_${n}`], { pet: C }, 'pet' + k + C + n, fn);
+  const P = petParts(k, C), g = (n, fn) => bgeo([`pet_${k}_${n}`], { fur: C }, 'pet' + k + C + n, fn);
   const root = new THREE.Group(), box_ = grp(root), body = grp(box_);
   mesh(g('body', () => P.body), body);
   const head = grp(body, ...P.neck), tail = grp(body, ...P.tailAt);

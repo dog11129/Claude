@@ -385,8 +385,8 @@ export class World {
     this.season = season;
     this.colorGround(season);
     if (this.forest) this.scene.remove(this.forest);
-    this.forest = M.scenery((x, z) => grass(x, z) && !buildingAt(x, z) && !onPath(x, z) && !onPlaza(x, z, 0.5) && !RES_SPOTS[key(x, z)], heightAt, season, plateau);
-    this.forest.children[0].material = WIND_TREE;
+    this.forest = N.scenery((x, z) => grass(x, z) && !buildingAt(x, z) && !onPath(x, z) && !onPlaza(x, z, 0.5) && !RES_SPOTS[key(x, z)], heightAt, season, plateau);
+    if (!this.forest.userData.asset) this.forest.children[0].material = WIND_TREE;
     this.scene.add(this.forest);
     this.grassSig = null;
     this.static.sig = null;

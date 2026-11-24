@@ -91,7 +91,7 @@ export const geometryOf = name => { const e = LIB.get(name); return e?.root.isMe
 // mit Weiß gemischtes Grün (helles Fell) bleibt gemischt.
 const lin = c => (c ? new THREE.Color(c) : null);
 function recolor(geo, cols) {
-  const K = { skin: lin(cols.skin), hair: lin(cols.hairColor), top: lin(cols.topColor), bottom: lin(cols.bottomColor), shoes: lin(cols.shoes), pet: lin(cols.pet) };
+  const K = { skin: lin(cols.skin), hair: lin(cols.hairColor), top: lin(cols.topColor), bottom: lin(cols.bottomColor), shoes: lin(cols.shoes), pet: lin(cols.fur) };
   const g = geo.clone(), a = g.getAttribute('color');
   if (!a) return g;
   const lo = 0.02, hi = 0.15, near = (x, y) => Math.abs(x - y) < 0.03, out = new THREE.Color();
@@ -121,4 +121,18 @@ export function keyedGeometry(names, cols, cacheKey) {
   const geo = geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
   KEYED.set(cacheKey, geo);
   return geo;
+}
+
+// Ganzes Modell (alle Teile außer Leuchtteilen) zu EINER Geometrie flach rechnen – für viele Kopien als InstancedMesh
+const FLAT = new Map();
+export function flatGeometry(name) {
+  if (FLAT.has(name)) return FLAT.get(name);
+  const e = LIB.get(name);
+  if (!e) return null;
+  e.root.updateMatrixWorld(true);
+  const inv = e.root.matrixWorld.clone().invert(), geos = [];
+  e.root.traverse(o => { if (o.isMesh && !o.name.includes('__glow')) geos.push(o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld))); });
+  const g = geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
+  FLAT.set(name, g);
+  return g;
 }
