@@ -788,6 +788,8 @@ export class World {
       if (B.ox !== undefined && !m.userData.asset) m.position.set(B.ox, 0, B.oz); else m.position.set(B.cx, 0, B.cz);
       g.add(m);
       if (id === 'office') this.clock = { h: part(m, 'clock_h'), m: part(m, 'clock_m') };
+      // Kamin des neuen Hauses (Blender: x 1.3, y 0.5 → Spiel: z -0.5)
+      if (id === 'house') this.chimney = m.userData.asset ? { x: B.cx + 1.3, z: B.cz - 0.5, y: s.up.house >= 4 ? 3.75 : 3.6 } : { x: -7.7, z: -11, y: 3.9 };
     }
     this.scene.add(g);
     this.static = { ...this.static, sig, group: g };
@@ -833,7 +835,7 @@ export class World {
       const pop = Math.min(1, (this.time - e.born) * 4);
       e.m.scale.setScalar(e.base * (0.5 + 0.5 * (1 - (1 - pop) ** 3) + (pop < 1 ? Math.sin(pop * Math.PI) * 0.15 : 0)));
     }
-    for (const [k, e] of this.crops) if (!seen.has(k)) { this.scene.remove(e.m); this.crops.delete(k); }
+    for (const [k, e] of this.crops) if (!seen.has(k)) { this.vanish(e.m); this.crops.delete(k); }
   }
 
   syncObjects(s) {
@@ -867,7 +869,7 @@ export class World {
       if (ready) this.tag('o' + k, ITEMS[p.item].icon, e.x, 2.3, e.z, 'bubble');
       if (p.kind === 'sprinkler') { e.m.rotation.y = this.time * 2; this.sprinklers.push(e); }
     }
-    for (const [k, e] of this.objs) if (!seen.has(k)) { this.scene.remove(e.m); this.objs.delete(k); }
+    for (const [k, e] of this.objs) if (!seen.has(k)) { this.vanish(e.m); this.objs.delete(k); this.burst(e.x, e.z, 'dust'); }
   }
 
   // Unser Zuhause: Zimmer + Möbel (liegt weit weg bei x = HOME_X)
@@ -903,7 +905,7 @@ export class World {
       this.furnM.set(id, { m, born: this.time, x: m.position.x, z: m.position.z });
     }
     for (const [id, e] of this.furnM) {
-      if (!seen.has(id)) { this.scene.remove(e.m); this.furnM.delete(id); this.burst(e.x, e.z, 'dust'); continue; }
+      if (!seen.has(id)) { this.vanish(e.m); this.furnM.delete(id); this.burst(e.x, e.z, 'dust'); continue; }
       const pop = Math.min(1, (this.time - e.born) * 4);
       e.m.scale.setScalar(pop < 1 ? 0.6 + 0.4 * pop + Math.sin(pop * Math.PI) * 0.15 : 1);
     }
@@ -938,7 +940,7 @@ export class World {
       this.scene.add(m);
       this.digM.set(k, { m, x, z });
     }
-    for (const [k, e] of this.digM) if (!seen.has(k)) { this.scene.remove(e.m); this.digM.delete(k); this.burst(e.x, e.z, 'dirt'); }
+    for (const [k, e] of this.digM) if (!seen.has(k)) { this.vanish(e.m); this.digM.delete(k); this.burst(e.x, e.z, 'dirt'); }
     // Muscheln am Strand und Unkraut
     this.pickM ||= new Map();
     const want = new Map();
@@ -955,9 +957,57 @@ export class World {
       this.scene.add(m);
       this.pickM.set(k, { m, v, x, z });
     }
-    for (const [k, e] of this.pickM) if (!want.has(k)) { this.scene.remove(e.m); this.pickM.delete(k); this.burst(e.x, e.z, e.v === 'w' ? 'leaf' : 'sparkle', 0.2); }
+    for (const [k, e] of this.pickM) if (!want.has(k)) { this.vanish(e.m); this.pickM.delete(k); this.burst(e.x, e.z, e.v === 'w' ? 'leaf' : 'sparkle', 0.2); }
   }
-  shakeTree(x, z) { const e = this.wildM?.get(x + ',' + z); if (e) e.shake = 1; }
+  shakeTree(x, z) { const e = this.wildM?.get(x + ',' + z); if (e) { e.shake = 1; this.squish(e.m, 0.12, 0.6); this.burst(x, z, this.season === 'winter' ? 'snowball' : 'leaf', 1.8); } }
+
+  // ---------- kleine Wackel-Animationen (Squash & Stretch) ----------
+  // Ein Objekt kurz zusammendrücken und zurückfedern lassen
+  squish(m, amt = 0.22, dur = 0.45) {
+    if (!m || this.animations === false) return;
+    this.tw ||= [];
+    const old = this.tw.find(t => t.m === m);
+    if (old) { old.t = 0; old.amt = amt; old.dur = dur; return; }
+    this.tw.push({ m, t: 0, dur, amt, base: m.scale.clone() });
+  }
+  // Objekt "plopp" verschwinden lassen statt es hart zu entfernen
+  vanish(m) {
+    if (!m) return;
+    if (this.animations === false) { m.parent?.remove(m); return; }
+    this.tw ||= [];
+    this.tw = this.tw.filter(t => t.m !== m);
+    this.tw.push({ m, t: 0, dur: 0.24, out: true, base: m.scale.clone() });
+  }
+  // was auch immer auf diesem Feld steht, hüpft kurz
+  squishAt(x, z, amt) {
+    const k = Math.round(x) + ',' + Math.round(z);
+    for (const map of [this.crops, this.objs, this.wildM, this.pickM]) { const e = map?.get(k); if (e) { this.squish(e.m, amt); return; } }
+  }
+  // Gebäude in der Nähe federt (Tür auf, Laden betreten …)
+  boingNear(x, z, r = 4.5) {
+    let best = null, bd = r;
+    for (const m of this.static.group?.children || []) { const d = Math.hypot(m.position.x - x, m.position.z - z); if (d < bd) { bd = d; best = m; } }
+    for (const m of [...(this.zones?.street?.children || []), ...(this.zones?.tropic?.children || [])]) { if (!m.userData.asset) continue; const d = Math.hypot(m.position.x - x, m.position.z - z); if (d < bd) { bd = d; best = m; } }
+    if (best) this.squish(best, 0.06, 0.5);
+  }
+  updateTweens(dt) {
+    if (!this.tw?.length) return;
+    this.tw = this.tw.filter(t => {
+      t.t += dt;
+      const k = Math.min(1, t.t / t.dur), b = t.base;
+      if (t.out) {
+        // flach werden und kurz breit, dann weg
+        const y = 1 - k * k, w = 1 + Math.sin(k * Math.PI) * 0.35;
+        t.m.scale.set(b.x * w, b.y * Math.max(0.001, y), b.z * w);
+        if (k >= 1) { t.m.parent?.remove(t.m); return false; }
+        return true;
+      }
+      const q = t.amt * Math.sin(k * Math.PI * 2.5) * (1 - k);
+      t.m.scale.set(b.x * (1 + q), b.y * (1 - q), b.z * (1 + q));
+      if (k >= 1) { t.m.scale.copy(b); return false; }
+      return true;
+    });
+  }
 
   // Schmetterling oder Glühwürmchen in der Nähe? (für den Kescher)
   nearCritter(x, z, r = 2) {
@@ -1014,7 +1064,10 @@ export class World {
         if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
         e.speed += ((p.walking ? 0.7 : 0) - e.speed) * Math.min(1, dt * 6);
       }
-      e.m.position.set(e.x, 0, e.z);
+      // kleiner Freudenhüpfer, wenn ein Nachbar etwas sagt
+      if (e.hop < 1) e.hop = Math.min(1, e.hop + dt * 3.2);
+      const hy = e.hop < 1 && this.animations !== false ? Math.abs(Math.sin(e.hop * Math.PI * 2)) * 0.18 * (1 - e.hop * 0.5) : 0;
+      e.m.position.set(e.x, hy, e.z);
       e.m.rotation.y += angDiff(e.m.rotation.y, e.ry) * Math.min(1, dt * 8);
       const md = this.npcMood[id];
       e.m.userData.update(dt, { speed: e.speed, talking: talk, mood: md && md.until > this.time ? md.mood : null, time: this.time });
@@ -1031,8 +1084,8 @@ export class World {
     }
     return best;
   }
-  npcSay(id, mood) { this.npcMood[id] = { mood, until: this.time + 2.5 }; }
-  npcBubble(id, text) { const e = this.npcM?.get(id); if (e) e.bubble = { text, until: this.time + 5 }; }
+  npcSay(id, mood) { this.npcMood[id] = { mood, until: this.time + 2.5 }; const e = this.npcM?.get(id); if (e) e.hop = 0; }
+  npcBubble(id, text) { const e = this.npcM?.get(id); if (e) { e.bubble = { text, until: this.time + 5 }; e.hop = 0; } }
 
   // ---------- Insel-Designer: selbst verlegte Wege ----------
   syncPaths(s) {
@@ -1091,7 +1144,7 @@ export class World {
       const t = this.time - e.born; // kurzer Hüpfer beim Herunterfallen
       e.m.position.y = 0.02 + (t < 0.6 ? Math.abs(Math.sin(t * 10)) * 0.5 * (1 - t / 0.6) : 0);
     }
-    for (const [sig, e] of this.groundM) if (!seen.has(sig)) { this.scene.remove(e.m); this.groundM.delete(sig); this.burst(e.x, e.z, 'sparkle', 0.2); }
+    for (const [sig, e] of this.groundM) if (!seen.has(sig)) { this.vanish(e.m); this.groundM.delete(sig); this.burst(e.x, e.z, 'sparkle', 0.2); }
     // Luftblasen über den Meerestieren
     if (this.time > (this.nextBubble || 0)) {
       this.nextBubble = this.time + 0.18;
@@ -1380,7 +1433,8 @@ export class World {
     // kleine Effekte: Kaminrauch, Sprinkler, Funkeln über reifen Pflanzen, Regentropfen
     if (this.time > this.nextFx) {
       this.nextFx = this.time + 0.12;
-      if (Math.random() < 0.35) this.burst(-7.7 + (Math.random() - 0.5) * 0.2, -11, 'smoke', 3.9);
+      const ch = this.chimney, cold = this.season === 'winter' || info.night > 0.3;
+      if (ch && Math.random() < (cold ? 0.45 : 0.22)) this.burst(ch.x + (Math.random() - 0.5) * 0.2, ch.z + (Math.random() - 0.5) * 0.2, 'smoke', ch.y);
       if (this.fallAt && Math.random() < 0.8) this.burst(this.fallAt.x + (Math.random() - 0.5) * 1.8, this.fallAt.z + 0.2, 'mist', -0.1);
       for (const e of this.sprinklers || []) if (Math.random() < 0.6) this.burst(e.x, e.z, 'drop', 0.4);
       for (const e of this.digM?.values() || []) if (Math.random() < 0.15) this.burst(e.x + (Math.random() - 0.5) * 0.3, e.z + (Math.random() - 0.5) * 0.3, 'sparkle', 0.15);
@@ -1391,6 +1445,7 @@ export class World {
       if (drift && !rain && Math.random() < 0.5) this.burst(this.target.x + (Math.random() - 0.5) * 18, this.target.z + (Math.random() - 0.5) * 14, drift, 4 + Math.random() * 2);
     }
     this.updateParticles(dt);
+    this.updateTweens(dt);
     this.updateCritters(info, rain);
     this.updateFish();
     this.updateSkyFx(s, info, rain);

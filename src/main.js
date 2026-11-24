@@ -337,6 +337,7 @@ function showFx(fx) {
   for (const f of fx || []) {
     if (f.txt) world.float(f.x, f.z, f.txt);
     if (f.k) world.burst(f.x, f.z, f.k);
+    world.squishAt(f.x, f.z); // was getroffen wurde, wackelt kurz
   }
 }
 function onRes(r) {
@@ -1026,6 +1027,7 @@ function execute(r, fresh) {
     } else { toast('🦋 Daneben! Schleich dich an Schmetterlinge oder Blumen an.'); play('fail'); }
     return;
   }
+  if ((r.ui || r.enter || r.visit) && fresh) world.boingNear(me.x, me.z);
   if (r.visit) {
     if (fresh) { const n = NPCS[r.visit], away = world.npcM?.get(r.visit)?.awake; toast(away ? `🚪 Klopf, klopf … ${n.icon} ${n.name} ist gerade draußen auf der Insel unterwegs.` : `🌙 ${n.icon} ${n.name} schläft schon. Pssst!`); play('door'); }
     return;
@@ -1059,6 +1061,7 @@ function execute(r, fresh) {
     send(r.a);
     animate(ANIM_OF[r.a.t] || 'use');
     if (r.a.t === 'shake' || r.a.t === 'chop') world.shakeTree(r.a.x, r.a.z);
+    else if (r.a.x !== undefined) world.squishAt(r.a.x, r.a.z, r.a.t === 'mine' ? 0.1 : 0.2);
     if (r.a.t === 'pop') { world.popBalloon(); play('splash'); }
   }
 }
