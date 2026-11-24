@@ -24,13 +24,22 @@ P = dict(
 )
 C = {k: lin(v) for k, v in P.items()}
 def col(c): return lin(c) if isinstance(c, int) else C[c] if isinstance(c, str) else c
+def shade(c, d):  # Farbe heller (d > 0) oder dunkler machen, in Hex
+    h = c if isinstance(c, int) else P[c]
+    rgb = [((h >> s) & 255) for s in (16, 8, 0)]
+    rgb = [max(0, min(255, int(v + (255 - v) * d if d > 0 else v * (1 + d)))) for v in rgb]
+    return (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]
 
 # ---------- Modell: sammelt Formen in EINEM Mesh mit Vertex-Farben (+ Leucht-Teil) ----------
 class Model:
-    def __init__(self, name):
+    def __init__(self, name, pivot=(0, 0, 0)):
         self.name = name
         self.bm = bmesh.new(); self.cl = self.bm.loops.layers.float_color.new("Col")
         self.gm = bmesh.new(); self.gcl = self.gm.loops.layers.float_color.new("Col")
+        self.pivot = Vector(pivot); self.parts = []; self.anim = None
+    # bewegliches Teil (eigenes Objekt mit Drehpunkt): Geometrie wird in Modell-Koordinaten gebaut
+    def part(self, name, pivot, anim=None):
+        p = Model(self.name + '_' + name, pivot); p.anim = anim; self.parts.append(p); return p
     def _bm(self, glow): return (self.gm, self.gcl) if glow else (self.bm, self.cl)
     def _finish(self, bm, cl, before, color, M):
         faces = [f for f in bm.faces if f not in before]
@@ -55,7 +64,7 @@ class Model:
         return self._finish(bm, cl, before, color, M)
 
     # Kugel / Ellipsoid; soft < 1 drückt sie zum runden Kissen (wie ein Würfel mit sehr weichen Kanten)
-    def ball(self, r, color, x=0, y=0, z=0, sx=1, sy=1, sz=1, seg=16, soft=1.0, bump=0.0, rx=0, ry=0, rz=0, glow=False, half=False):
+    def ball(self, r, color, x=0, y=0, z=0, sx=1, sy=1, sz=1, seg=16, soft=1.0, bump=0.0, rx=0, ry=0, rz=0, glow=False, half=False, taper=0.0):
         bm, cl = self._bm(glow); before = set(bm.faces)
         res = bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=max(6, seg // 2 + 2), radius=1.0)
         vs = res['verts']
@@ -64,7 +73,8 @@ class Model:
             p = v.co.copy()
             if soft != 1.0: p = Vector([math.copysign(abs(a) ** soft, a) for a in p])
             if bump: p *= 1 + bump * noise.noise(p * 2.2 + Vector((seed, seed, seed)))
-            v.co = Vector((p.x * r * sx, p.y * r * sy, p.z * r * sz))
+            t = 1 - taper * p.z
+            v.co = Vector((p.x * r * sx * t, p.y * r * sy * t, p.z * r * sz))
         if half:
             bmesh.ops.delete(bm, geom=[v for v in vs if v.co.z < -1e-4], context='VERTS')
         M = Matrix.Translation((x, y, z)) @ Matrix.Rotation(rz, 4, 'Z') @ Matrix.Rotation(ry, 4, 'Y') @ Matrix.Rotation(rx, 4, 'X')
@@ -112,6 +122,15 @@ class Model:
         M = Matrix.Translation((a + b) / 2) @ q.to_matrix().to_4x4()
         return self._finish(bm, cl, before, color, M)
 
+    # puffiger Klotz (Kissenform): w, d, h = volle Maße, z = Unterkante
+    def puff(self, w, d, h, color, x=0, y=0, z=0, soft=0.32, taper=0.06, seg=20, rz=0, rx=0, glow=False):
+        return self.ball(0.5, color, x, y, z + h / 2, sx=w, sy=d, sz=h, seg=seg, soft=soft, taper=taper, rz=rz, rx=rx, glow=glow)
+
+    # Herz (Vorderseite -Y), s = Größe
+    def heart(self, s, color, x=0, y=0, z=0, depth=0.35, glow=False):
+        for k in (-1, 1): self.ball(s * 0.3, color, x + k * s * 0.19, y, z + s * 0.08, sy=depth, seg=12, glow=glow)
+        self.ball(s * 0.4, color, x, y, z - s * 0.12, sx=0.95, sy=depth * 0.75, sz=0.9, seg=12, taper=-0.8, glow=glow)
+
     # Giebel-Füllung (dreieckiges Prisma), First entlang X
     def gable(self, L, D, H, color, x=0, y=0, z=0, rz=0):
         bm, cl = self.bm, self.cl; before = set(bm.faces)
@@ -119,6 +138,55 @@ class Model:
         fs = [bm.faces.new([v[i] for i in f]) for f in [(0, 2, 1), (3, 4, 5), (0, 3, 5, 2), (1, 2, 5, 4), (0, 1, 4, 3)]]
         bmesh.ops.recalc_face_normals(bm, faces=fs)
         return self._finish(bm, cl, before, color, Matrix.Translation((x, y, z)) @ Matrix.Rotation(rz, 4, 'Z'))
+
+    # Kuschel-Dach: dicke Platten, darauf gestufte Schindel-Reihen in zwei Tönen, gerollte Traufe, Firstrolle mit Kugeln
+    def cuteroof(self, L, D, H, color, z=0, y=0, x=0, th=0.24, over=0.32, rows=4, ridge=None, light=None, rz=0):
+        a = math.atan2(H, D / 2); S = math.hypot(H, D / 2) + over
+        lt = light or shade(color, 0.1)
+        M = Matrix.Translation((x, y, z)) @ Matrix.Rotation(rz, 4, 'Z')
+        for sy in (-1, 1):
+            u = Vector((0, -sy * math.cos(a), math.sin(a)))      # hangaufwärts
+            nrm = Vector((0, sy * math.sin(a), math.cos(a)))     # nach außen
+            eave = Vector((0, sy * (D / 2 + over * math.cos(a)), -over * math.sin(a)))
+            mid = eave + u * (S / 2) + nrm * (th / 2)
+            p = M @ mid
+            self.box(L + 2 * over, S, th, color, p.x, p.y, p.z, r=th * 0.45, rx=-sy * a, rz=rz)
+            for i in range(rows):  # Schindelreihen
+                t = (i + 0.55) / rows * S * 0.92
+                q = M @ (eave + u * t + nrm * (th + 0.045))
+                self.box(L + 2 * over - 0.06, S / rows * 0.8, 0.09, lt if i % 2 else color, q.x, q.y, q.z, r=0.04, rx=-sy * a, rz=rz)
+            q = M @ (eave + nrm * (th * 0.55))                     # gerollte Traufe
+            self.cyl(th * 0.62, th * 0.62, L + 2 * over + 0.04, lt, q.x, q.y, q.z, seg=14, ry=PI / 2, rz=rz, bev=0.03)
+        rp = M @ Vector((0, 0, H + th * 0.55))
+        self.cyl(th * 0.7, th * 0.7, L + 2 * over + 0.12, ridge or color, rp.x, rp.y, rp.z, seg=14, ry=PI / 2, rz=rz, bev=0.05)
+        for sx in (-1, 1):
+            e = M @ Vector((sx * (L / 2 + over + 0.1), 0, H + th * 0.55))
+            self.ball(th * 0.85, ridge or color, e.x, e.y, e.z, seg=12)
+
+    # rundes Fenster (Bullauge) mit Kreuz, Vorderseite -Y
+    def roundwin(self, x, y, z, r=0.3, frame='white', ry=0):
+        R = Matrix.Rotation(ry, 4, 'Z')
+        o = Vector((x, y, z))
+        def at(dx, dy, dz): return o + R @ Vector((dx, dy, dz))
+        c = at(0, -0.02, 0); self.cyl(r, r, 0.05, 'glass', c.x, c.y, c.z, seg=24, rx=PI / 2, rz=ry, glow=True)
+        c = at(0, -0.05, 0); self.torus(r + 0.03, 0.06, frame, c.x, c.y, c.z, rx=PI / 2, rz=ry, seg=24)
+        c = at(0, -0.06, 0); self.box(0.04, 0.03, 2 * r, frame, c.x, c.y, c.z, r=0.015, rz=ry); self.box(2 * r, 0.03, 0.04, frame, c.x, c.y, c.z, r=0.015, rz=ry)
+
+    # Rundbogentür mit Rahmen, Klinke und Herzfenster; Vorderseite -Y
+    def door(self, x, y, z, w=0.8, h=1.1, color='teal', frame='woodD', heart='yellow'):
+        self.box(w, 0.12, h - w / 2, color, x, y - 0.03, z + (h - w / 2) / 2, r=0.04)
+        self.cyl(w / 2, w / 2, 0.12, color, x, y - 0.03, z + h - w / 2, seg=24, rx=PI / 2)
+        self.torus(w / 2 + 0.04, 0.06, frame, x, y - 0.07, z + h - w / 2, arc=PI, rx=PI / 2, seg=16)
+        for sx in (-1, 1): self.box(0.12, 0.14, h - w / 2, frame, x + sx * (w / 2 + 0.04), y - 0.06, z + (h - w / 2) / 2, r=0.04)
+        self.ball(0.055, 'yellow', x + w * 0.32, y - 0.13, z + h * 0.45, seg=10)
+        if heart: self.heart(0.2, heart, x, y - 0.1, z + h - w / 2 + 0.05, glow=True)
+
+    # Laterne an der Wand (leuchtet)
+    def walllamp(self, x, y, z):
+        self.box(0.06, 0.2, 0.06, 'dark', x, y - 0.08, z + 0.2, r=0.02)
+        self.cyl(0.11, 0.08, 0.06, 'dark', x, y - 0.2, z + 0.16, seg=10)
+        self.cyl(0.08, 0.08, 0.16, 'yellow', x, y - 0.2, z + 0.05, seg=10, glow=True)
+        self.cone(0.12, 0.12, 'dark', x, y - 0.2, z + 0.19, seg=10)
 
     # Satteldach: zwei dicke, weich gerundete Platten, die sich am First treffen
     def roof(self, L, D, H, color, z=0, y=0, x=0, th=0.22, over=0.25, ridge=None, rz=0):
@@ -158,7 +226,7 @@ class Model:
                 a = i * 2.4
                 self.ball(0.06 * s, flowers[i % len(flowers)], x + math.cos(a) * 0.3 * s, y - 0.2 * s + math.sin(a) * 0.08 * s, z + (0.42 + 0.08 * math.sin(a * 3)) * s, seg=8)
 
-    def build(self, coll='Kuschel'):
+    def build(self, coll='Kuschel', parent=None):
         objs = []
         for bm, suffix, mat in ((self.bm, '', 'K_Base'), (self.gm, '__glow', 'K_Glow')):
             if not bm.faces: continue
@@ -174,9 +242,61 @@ class Model:
             me.materials.append(material(mat))
             collection(coll).objects.link(ob)
             objs.append(ob)
-        if len(objs) == 2: objs[1].parent = objs[0]
+        if not objs:  # leeres Teil (nur Drehpunkt)
+            ob = bpy.data.objects.new(self.name, None); collection(coll).objects.link(ob); objs.append(ob)
+        root = objs[0]
+        if len(objs) == 2: objs[1].parent = root
+        if parent is not None:
+            root.parent = parent; root.location = self.pivot - parent_pivot(parent)
+        for p in self.parts:
+            # Teil-Geometrie auf den Drehpunkt beziehen
+            for bm in (p.bm, p.gm): bmesh.ops.translate(bm, verts=bm.verts[:], vec=-p.pivot)
+            ob = p.build(coll, root)
+            ob['pivot'] = list(p.pivot)
+            if p.anim: animate(ob, *p.anim)
+        root['pivot'] = list(self.pivot)
         self.bm.free(); self.gm.free()
-        return objs[0]
+        return root
+
+def parent_pivot(ob):
+    return Vector(ob.get('pivot', (0, 0, 0))) if ob.parent else Vector((0, 0, 0))
+
+# Animationen (Keyframes, laufen im Spiel in Schleife):
+#   ('spin', achse, sekunden)            gleichmäßig drehen
+#   ('sway', achse, winkel, sekunden)    hin und her schwingen
+#   ('bob', höhe, sekunden)              auf und ab wippen
+#   ('squish', stärke, sekunden)         weich zusammendrücken und strecken
+FPS = 24
+def animate(ob, kind, *a):
+    sc = bpy.context.scene; sc.render.fps = FPS
+    ob.rotation_mode = 'XYZ'
+    ax = {'x': 0, 'y': 1, 'z': 2}
+    keys = []
+    if kind == 'spin':
+        i = ax[a[0]]; n = int(a[1] * FPS)
+        for f, v in ((0, 0.0), (n, 2 * PI * (a[2] if len(a) > 2 else 1))):
+            ob.rotation_euler[i] = v; ob.keyframe_insert('rotation_euler', index=i, frame=f)
+    elif kind == 'sway':
+        i = ax[a[0]]; n = int(a[2] * FPS)
+        for f, v in ((0, -a[1]), (n // 2, a[1]), (n, -a[1])):
+            ob.rotation_euler[i] = v; ob.keyframe_insert('rotation_euler', index=i, frame=f)
+    elif kind == 'bob':
+        n = int(a[1] * FPS); z0 = ob.location.z
+        for f, v in ((0, z0), (n // 2, z0 + a[0]), (n, z0)):
+            ob.location.z = v; ob.keyframe_insert('location', index=2, frame=f)
+    elif kind == 'squish':
+        n = int(a[1] * FPS)
+        for f, s in ((0, 1.0), (n // 2, 1 + a[0]), (n, 1.0)):
+            ob.scale = (1 - (s - 1) * 0.5, 1 - (s - 1) * 0.5, s)
+            ob.keyframe_insert('scale', frame=f)
+    ad = ob.animation_data
+    if ad and ad.action:
+        ad.action.name = ob.name + '_loop'
+        try:
+            for fc in ad.action.fcurves:
+                for kp in fc.keyframe_points: kp.interpolation = 'LINEAR' if kind == 'spin' else 'BEZIER'
+        except Exception:
+            pass
 
 def collection(name):
     c = bpy.data.collections.get(name)
@@ -260,14 +380,26 @@ def export(objs, name):
     bpy.ops.object.select_all(action='DESELECT')
     for o in objs:
         o.select_set(True)
-        for ch in o.children: ch.select_set(True)
+        for ch in o.children_recursive: ch.select_set(True)
     path = os.path.join(OUT, name + '.glb')
-    kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True, export_yup=True, export_normals=True, export_texcoords=False)
-    for extra in (dict(export_materials='NONE', export_vertex_color='ACTIVE'), dict(export_materials='NONE', export_colors=True), dict()):
+    kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True, export_yup=True, export_normals=True, export_texcoords=False,
+              export_animations=True, export_extras=True)
+    draco = dict(export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=7, export_draco_position_quantization=14,
+                 export_draco_normal_quantization=8, export_draco_color_quantization=8)
+    for extra in (dict(export_materials='NONE', export_vertex_color='ACTIVE', **draco), dict(export_materials='NONE', export_vertex_color='ACTIVE'),
+                  dict(export_materials='NONE', export_colors=True), dict()):
         try:
             bpy.ops.export_scene.gltf(**kw, **extra); break
         except TypeError: continue
     return path
+
+# Kontaktbogen: Modelle im Raster nebeneinander (nur für Vorschau-Renderings)
+def arrange(objs, cols=4, gap=6.5):
+    olds = []
+    for i, o in enumerate(objs):
+        olds.append(o.location.copy())
+        o.location = ((i % cols - (cols - 1) / 2) * gap, -(i // cols) * gap * 0.9, 0)
+    return olds
 
 print('Kuschel-Kit geladen')
 log({'kit': 'ok', 'version': bpy.app.version_string})
