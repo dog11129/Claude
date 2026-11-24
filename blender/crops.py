@@ -8,7 +8,7 @@ try:
     G = {}
 
     # Blatt / Blütenblatt: Länge L entlang Richtung yaw, nach oben geneigt um tilt, Breite W
-    def leaf(m, bx, by, bz, yaw, L, W, color, tilt=0.4, th=0.22, seg=10):
+    def leaf(m, bx, by, bz, yaw, L, W, color, tilt=0.4, th=0.22, seg=8):
         cx = bx + math.cos(yaw) * math.cos(tilt) * L / 2
         cy = by + math.sin(yaw) * math.cos(tilt) * L / 2
         cz = bz + math.sin(tilt) * L / 2
@@ -45,9 +45,9 @@ try:
         elif k == 'hyazinthe':
             for j in range(10):
                 a = j * 2.4; r = 0.035 * (1 - j / 14)
-                m.ball(0.03, c if j % 2 else shade(c, 0.2), x + math.cos(a) * r, y + math.sin(a) * r, z + 0.02 + j * 0.017, seg=8)
+                m.ball(0.03, c if j % 2 else shade(c, 0.2), x + math.cos(a) * r, y + math.sin(a) * r, z + 0.02 + j * 0.017, seg=6)
         elif k == 'kosmee':
-            for j in range(8): leaf(m, x, y, z, j * PI / 4, 0.09, 0.045, c if j % 2 else shade(c, 0.12), 0.18, 0.3)
+            for j in range(8): leaf(m, x, y, z, j * PI / 4, 0.09, 0.045, c if j % 2 else shade(c, 0.12), 0.18, 0.3, seg=6)
             m.ball(0.026, 0xFFA020, x, y, z + 0.012, sz=0.7, seg=8)
         elif k == 'stiefmuetterchen':
             for j, (a, s) in enumerate(((0.6, 1), (2.5, 1), (1.57, 1.15), (3.9, 0.9), (5.5, 0.9))):
@@ -55,13 +55,13 @@ try:
             m.ball(0.03, 0x4A2E6E, x, y - 0.01, z + 0.012, sx=1.4, sz=0.4, seg=8)
             m.ball(0.016, 0xFFD84A, x, y - 0.02, z + 0.02, seg=6)
         elif k == 'lilie':
-            for j in range(6): leaf(m, x, y, z, j * PI / 3, 0.11, 0.04, c if j % 2 else 0xFFD3E0, 0.55, 0.3)
+            for j in range(6): leaf(m, x, y, z, j * PI / 3, 0.11, 0.04, c if j % 2 else 0xFFD3E0, 0.55, 0.3, seg=7)
             for j in range(3): m.stick((x, y, z), (x + math.cos(j * 2.1) * 0.03, y + math.sin(j * 2.1) * 0.03, z + 0.06), 0.004, 0xF0A030, seg=4)
         elif k == 'mohn':
             for j in range(4): leaf(m, x, y, z, j * PI / 2 + 0.3, 0.09, 0.09, c, 0.7, 0.3)
             m.ball(0.022, 0x2E2626, x, y, z + 0.02, seg=8)
         elif k == 'kornblume':
-            for j in range(12): leaf(m, x, y, z, j * PI / 6, 0.07, 0.03, c if j % 2 else shade(c, 0.25), 0.45, 0.4)
+            for j in range(10): leaf(m, x, y, z, j * PI / 5, 0.07, 0.034, c if j % 2 else shade(c, 0.25), 0.45, 0.4, seg=6)
             m.ball(0.02, 0x2E3E8E, x, y, z + 0.02, seg=8)
 
     def flower(k, st):
@@ -93,7 +93,7 @@ try:
             hh = h * (0.85 + random.random() * 0.25); tip = (x * 1.25, y * 1.25, hh)
             m.stick((x * 0.6, y * 0.6, 0), tip, 0.012, sc, 0.009, seg=5)
             for j in range(4):  # Ähre aus kleinen Körnern
-                m.ball(0.022, ec, tip[0] + x * 0.05 * j, tip[1] + y * 0.05 * j, hh + 0.02 + j * 0.035, sx=0.8, sy=0.8, sz=1.3, seg=6)
+                m.ball(0.022, ec, tip[0] + x * 0.05 * j, tip[1] + y * 0.05 * j, hh + 0.02 + j * 0.035, sx=0.8, sy=0.8, sz=1.3, seg=5)
         for i in range(4): leaf(m, 0, 0, 0.01, i * 1.57 + 0.5, 0.26, 0.04, 0xBFC860 if ripe else 'leaf', 1.05)
         return m.build()
 
