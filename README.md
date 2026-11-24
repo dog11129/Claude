@@ -12,8 +12,9 @@ Ihr baut zusammen eine Farm auf: Geld, Lager, Tiere und Fortschritt sind geteilt
 3. Dein Lieblingsmensch öffnet dieselbe Seite und tippt den Code bei **Mit Code beitreten** ein – oder öffnet den Link aus 👥 → „Link teilen“.
    Beim nächsten Mal reicht ein Tipp auf **Wieder zu Besuch**.
 
-Tipp fürs Handy: im Browser-Menü **„Zum Startbildschirm hinzufügen“** – dann startet Kuschelhof wie eine App im Vollbild.
-Unter ⚙️ → Optionen gibt es den **Querformat-Modus**.
+**Vollbild:** Auf Android-Handys und dem iPad geht Kuschelhof beim ersten Tipp automatisch ins Vollbild; oben rechts schaltet der Vollbild-Knopf um (abschaltbar unter ⚙️ → Optionen).
+Das iPhone erlaubt Webseiten kein Vollbild – dort **Teilen → „Zum Home-Bildschirm“** wählen und Kuschelhof über das Symbol starten (eigener Speicher, Farm dort neu gründen oder beitreten).
+Unter ⚙️ → Optionen gibt es außerdem den **Querformat-Modus**.
 
 Wer die Farm gegründet hat, ist „Host“: dort läuft und speichert das Spiel. Gäste bekommen automatisch eine Sicherheitskopie
 und können die Farm später auch selbst hosten. Der Code bleibt pro Farm gleich, solange er frei ist.

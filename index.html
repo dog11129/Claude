@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#9fd9ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Kuschelhof</title>
 <link rel="manifest" href="manifest.json">
@@ -30,6 +31,17 @@ h2, h3 { margin: 0; }
 
 /* ---------- Beschriftungen in der Welt ---------- */
 #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+#fsbtn { color: var(--ink); }
+#fsbtn .in, body.fs #fsbtn .out { display: none; }
+body.fs #fsbtn .in { display: inline; }
+body:not(.touch) #fsbtn, body.standalone #fsbtn { display: none; }
+#fshelp { position: fixed; inset: 0; z-index: 12; display: grid; place-items: center; padding: 16px; background: rgba(90,70,54,.35); backdrop-filter: blur(3px); }
+#fshelp .card { max-width: 400px; line-height: 1.4; }
+#fshelp h3 { margin: 0 0 6px; color: var(--pinkd); }
+#fshelp ol { padding-left: 22px; margin: 8px 0; }
+#fshelp li { margin: 4px 0; }
+#fshelp .shr { display: inline-block; background: var(--line); border-radius: 6px; padding: 0 6px; }
+#fshelp .btn { width: 100%; margin-top: 6px; }
 #vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 48%, transparent 55%, rgba(70, 40, 30, .22)); }
 .tag { position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform; }
 .tag.name { font-size: 13px; font-weight: 600; color: #fff; background: rgba(90,70,54,.5); padding: 1px 9px; border-radius: 10px; backdrop-filter: blur(4px); }
@@ -329,6 +341,7 @@ body:has(#panel:not(.hidden)) #toasts { top: auto; bottom: max(16px, var(--safe-
     <button class="round desk" id="chatbtn" title="Chat (Enter)">💬</button>
     <button class="round desk" data-open="emotes" title="Emotes (Q)">😊</button>
     <button class="round" id="photobtn" title="Fotomodus (P)">📷</button>
+    <button class="round" id="fsbtn" title="Vollbild" aria-label="Vollbild"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="out" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path class="in" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button>
     <button class="round" data-open="settings" title="Menü (Esc)">⚙️</button>
   </div>
   <div id="hint" class="pill hidden"></div>
@@ -414,6 +427,13 @@ body:has(#panel:not(.hidden)) #toasts { top: auto; bottom: max(16px, var(--safe-
 </div>
 <div id="toasts"></div>
 <div id="cover" class="hidden"><div class="card"><div class="spin">🌻</div><p id="covertext">Verbinde…</p><button class="btn white hidden" id="coverbtn">Zum Menü</button></div></div>
+<div id="fshelp" class="hidden"><div class="card">
+  <h3>📱 Vollbild auf dem iPhone</h3>
+  <p>Safari erlaubt auf dem iPhone kein Vollbild für Spiele. So geht's trotzdem:</p>
+  <ol><li>Unten auf <b>Teilen</b> <span class="shr">⬆︎</span> tippen</li><li><b>„Zum Home-Bildschirm“</b> wählen</li><li>Kuschelhof über das neue Symbol starten – ohne Adressleiste, ganz im Vollbild</li></ol>
+  <p class="note">Achtung: Die Home-Bildschirm-App hat einen eigenen Speicher. Eine in Safari gegründete Farm siehst du dort nicht – am besten dort neu gründen oder beim Partner beitreten.</p>
+  <button class="btn pink" id="fsok">Alles klar</button>
+</div></div>
 <div id="rotatehint"><span>📱</span>Dreh dein Handy ins Querformat<button class="btn white" id="rotoff">Querformat ausschalten</button></div>
 <div id="loading"><div><span>🌻</span><br>Kuschelhof lädt…</div></div>
 

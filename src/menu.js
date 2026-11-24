@@ -115,5 +115,5 @@ export function settingsHtml(st, touch) {
     <div class="set"><b>🔊 Geräusche</b>${vol('sound')}</div>
     ${touch ? `<div class="set"><b>📱 Querformat</b>${tog('landscape')}</div>` : ''}
     <div class="set"><b>🏷️ Namen anzeigen</b>${tog('names')}</div>
-    <div class="set"><b>⛶ Vollbild</b><button class="btn small white" data-ui="fullscreen">Umschalten</button></div>`;
+    <div class="set"><b>⛶ Vollbild</b>${touch ? tog('fullscreen') : '<button class="btn small white" data-ui="fullscreen">Umschalten</button>'}</div>`;
 }

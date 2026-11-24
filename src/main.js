@@ -24,7 +24,7 @@ const oldProfile = store.get('kh.profile', null);
 const profile = { name: String(oldProfile?.name || '').slice(0, 16), look: oldProfile ? cleanLook(oldProfile.look || oldProfile) : randomLook() };
 const saveProfile = () => store.set('kh.profile', profile);
 
-const settings = { quality: touch ? 'mid' : 'high', sound: 0.8, music: 0.5, landscape: false, names: true, ...store.get('kh.settings', {}) };
+const settings = { quality: touch ? 'mid' : 'high', sound: 0.8, music: 0.5, landscape: false, names: true, fullscreen: touch, ...store.get('kh.settings', {}) };
 if (typeof settings.sound !== 'number') settings.sound = settings.sound === false ? 0 : 0.8;
 if (typeof settings.music !== 'number') settings.music = settings.music === false ? 0 : 0.5;
 if (!['low', 'mid', 'high'].includes(settings.quality)) settings.quality = 'mid';
@@ -618,18 +618,41 @@ function applySettings(k, redraw) {
   if (k === 'music') setMusic(settings.music);
   if (k === 'quality') world.setQuality(settings.quality);
   if (k === 'landscape') applyLandscape();
+  if (k === 'fullscreen' && settings.fullscreen !== isFs()) toggleFullscreen();
   if (redraw && menuScreen === 'settings' && !$('menu').classList.contains('hidden')) $('msettings').innerHTML = settingsHtml(settings, touch);
   panels.sig = null;
 }
-function toggleFullscreen() {
-  if (document.fullscreenElement) document.exitFullscreen?.();
-  else document.documentElement.requestFullscreen?.().catch(() => toast('Vollbild wird hier nicht unterstützt.'));
+// ---------- Vollbild (Handy & iPad) ----------
+// iPad/Android: echtes Vollbild. iPhone-Safari erlaubt das nicht – dort hilft nur „Zum Home-Bildschirm“.
+const root = document.documentElement;
+const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+const standalone = !!navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+document.body.classList.toggle('standalone', standalone);
+function enterFs() {
+  const req = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (!req) return Promise.reject();
+  try { return Promise.resolve(req.call(root, { navigationUI: 'hide' })); } catch (e) { return Promise.reject(e); }
 }
+function fsHelp() {
+  if (standalone) return toast('Du spielst schon im Vollbild 🙂');
+  $('fshelp').classList.remove('hidden');
+}
+function toggleFullscreen() {
+  if (isFs()) return (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+  enterFs().then(() => setTimeout(() => isFs() || fsHelp(), 600), fsHelp);
+}
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => document.body.classList.toggle('fs', isFs()));
+$('fsbtn').onclick = toggleFullscreen;
+$('fsok').onclick = () => $('fshelp').classList.add('hidden');
+// beim Antippen im Menü automatisch ins Vollbild (Browser verlangen dafür einen Tipp)
+document.addEventListener('click', e => {
+  if (touch && settings.fullscreen && !standalone && !isFs() && e.target.closest('#menu button:not([data-tog]), #edok')) enterFs().catch(() => {});
+}, true);
 // Querformat: Vollbild + Drehung sperren, wo der Browser es erlaubt; sonst Hinweis zum Drehen
 function applyLandscape() {
   document.body.classList.toggle('wantland', touch && settings.landscape);
   if (touch && settings.landscape && G?.ready) {
-    (document.fullscreenElement ? Promise.resolve() : document.documentElement.requestFullscreen?.() || Promise.reject())
+    (isFs() ? Promise.resolve() : enterFs())
       .then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
   }
 }
