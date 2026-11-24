@@ -28,9 +28,9 @@ export function unlock() {
     src.connect(f).connect(rainGain).connect(ambGain);
     src.start();
     setVolumes();
+    setMusic(audio.music);
   }
   if (ctx.state === 'suspended') ctx.resume();
-  setMusic(audio.music);
 }
 
 export function setVolumes() {

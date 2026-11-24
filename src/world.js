@@ -180,7 +180,10 @@ export class World {
       this.scene.add(l);
       return l;
     });
-    this.composer = null;
+    this.composer?.passes.forEach(p => p.dispose?.());
+    this.composer?.renderTarget1.dispose();
+    this.composer?.renderTarget2.dispose();
+    this.composer = this.bloom = null;
     if (Q.bloom) {
       const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
       this.composer = new EffectComposer(r, rt);

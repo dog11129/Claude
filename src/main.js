@@ -178,8 +178,9 @@ function emote(id, e) {
   showEmote(id, e);
 }
 function hug(a, b) {
+  if (!Object.hasOwn(G.players, a) || !Object.hasOwn(G.players, b) || a === b) return;
   const pa = G.players[a], pb = G.players[b];
-  if (!pa || !pb || a === b || Math.hypot(pa.x - pb.x, pa.z - pb.z) > 3) return;
+  if (!(Math.hypot(pa.x - pb.x, pa.z - pb.z) <= 3)) return;
   G.net?.broadcast({ t: 'hug', a, b });
   onHug(a, b);
 }
@@ -227,7 +228,7 @@ function guestData(d) {
       const old = G.players[G.me];
       G.me = d.id;
       G.s = S.migrate(d.s);
-      G.players = d.players;
+      G.players = normPlayers(d.players);
       if (old) Object.assign(G.players[G.me], { x: old.x, z: old.z, ry: old.ry });
       G.code = d.code;
       G.key = 'copy:' + G.s.id;
@@ -237,10 +238,11 @@ function guestData(d) {
       saveFarm();
       break;
     }
-    case 's': if (G.s) G.s = d.s; break;
+    case 's': if (G.s && d.s && typeof d.s === 'object') G.s = S.migrate(d.s); break;
     case 'p': {
+      if (!d.p || typeof d.p !== 'object') return;
       const me = G.players[G.me];
-      G.players = d.p;
+      G.players = normPlayers(d.p);
       if (me) G.players[G.me] = me;
       break;
     }
@@ -255,6 +257,13 @@ function guestData(d) {
     case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Farm geschickt.', true); break;
     case 'bye': G.ended = true; G.conn?.close(); saveFarm(); cover('🏡 Der Host hat die Farm verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Farmen“.', true); break;
   }
+}
+
+// Spieler vom Host absichern (auch ältere Versionen ohne "look")
+function normPlayers(ps) {
+  const out = {};
+  for (const [id, p] of Object.entries(ps || {})) if (p && typeof p === 'object') out[id] = { ...p, id, name: String(p.name || 'Gast').slice(0, 16), look: cleanLook(p.look || p) };
+  return out;
 }
 
 async function lostConnection() {
@@ -522,6 +531,7 @@ function needName() {
 const preview = { id: 'preview', name: '', look: profile.look, x: 0.5, z: -5, ry: 0.3, m: false, an: 0, held: null };
 function openEditor() {
   const inGame = !!G?.ready, me = inGame && G.players[G.me], before = me && { ...me.look };
+  interrupt();
   if (!inGame) {
     $('menu').classList.add('hidden');
     preview.look = profile.look;
@@ -583,6 +593,7 @@ function applyLandscape() {
       .then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
   }
 }
+$('rotoff').onclick = () => { settings.landscape = false; applySettings('landscape', true); };
 const portraitMQ = matchMedia('(orientation: portrait)');
 const updOrient = () => { document.body.classList.toggle('portrait', portraitMQ.matches); world.resize(); };
 portraitMQ.addEventListener?.('change', updOrient);
@@ -603,7 +614,8 @@ const panels = new Panels({
       if (navigator.share) navigator.share({ title: 'Kuschelhof', text: `Komm auf unsere Farm! 🌻 Code: ${G.code}`, url: link }).catch(() => {});
       else navigator.clipboard?.writeText(link).then(() => toast('📋 Link kopiert!'), () => toast(link));
     }
-    if (kind === 'goto' && G.players[d.id]) {
+    if (kind === 'goto' && Object.hasOwn(G.players, d.id)) {
+      interrupt();
       const me = G.players[G.me], p = G.players[d.id];
       Object.assign(me, { x: p.x + 0.7, z: p.z + 0.5, pose: null });
       panels.close();
@@ -617,7 +629,14 @@ const panels = new Panels({
     }
   },
 });
+// Laufende Aktionen (Angeln, Laufziel) abbrechen, wenn etwas anderes beginnt
+function interrupt() {
+  if (!G?.ready) return;
+  if (G.fishing) stopFishing();
+  G.goal = null;
+}
 function togglePanel(kind, tab) {
+  interrupt();
   if (panels.open === kind && !tab) panels.close(); else { panels.show(kind, tab); play('click'); }
 }
 for (const b of document.querySelectorAll('[data-open]')) b.onclick = () => togglePanel(b.dataset.open);
@@ -626,6 +645,7 @@ $('invite').onclick = () => togglePanel('friends');
 // ---------- Fotomodus ----------
 function setPhoto(on) {
   if (!G?.ready && on) return;
+  if (on) interrupt();
   if (G) G.photo = on;
   panels.close();
   $('hud').classList.toggle('hidden', on || !G?.ready);
@@ -712,12 +732,13 @@ for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, () => { ui
 
 // Bildschirm: tippen = hinlaufen & benutzen, ziehen (rechte Maustaste / Fotomodus / Editor) = drehen, zwei Finger = zoomen & drehen
 const canvas = $('c'), pointers = new Map();
+let multiTouch = false;
 const twoFinger = () => { const [a, b] = [...pointers.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), a: Math.atan2(b.y - a.y, b.x - a.x) }; };
 canvas.addEventListener('pointerdown', e => {
   unlock();
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), btn: e.button });
-  if (pointers.size === 2) G && (G.pinch = twoFinger());
+  if (pointers.size === 2) { multiTouch = true; if (G) G.pinch = twoFinger(); }
 });
 canvas.addEventListener('pointermove', e => {
   if (e.pointerType === 'mouse' && G?.ready) G.hover = { cx: e.clientX, cy: e.clientY, t: performance.now() };
@@ -747,7 +768,8 @@ const pointerEnd = e => {
   if (pointers.size < 2 && G) G.pinch = null;
   if (!p || e.type === 'pointercancel') return;
   const moved = Math.hypot(e.clientX - p.sx, e.clientY - p.sy), quick = performance.now() - p.t < 400;
-  if (moved < 12 && quick && p.btn === 0 && pointers.size === 0) tapAt(e.clientX, e.clientY);
+  if (moved < 12 && quick && p.btn === 0 && pointers.size === 0 && !multiTouch) tapAt(e.clientX, e.clientY);
+  if (!pointers.size) multiTouch = false;
 };
 canvas.addEventListener('pointerup', pointerEnd);
 canvas.addEventListener('pointercancel', pointerEnd);
@@ -828,6 +850,7 @@ function execute(r, fresh) {
   if (r.hug) { if (fresh) sendHug(r.hug); return; }
   if (r.ui) {
     if (!fresh) return;
+    interrupt();
     if (r.ui === 'animals') panels.show('shop', 'animals');
     else if (r.ui === 'farm') panels.show('shop', 'farm');
     else panels.show(r.ui);
@@ -901,6 +924,7 @@ function arrive(me, at, act) {
   if (Math.hypot(at.x - me.x, at.z - me.z) > 0.05) me.ry = Math.atan2(at.x - me.x, at.z - me.z);
   if (!act) return;
   const r = g.player ? context(me, null) : context(me, at);
+  if (g.player && r.hug !== g.player) return;
   execute(r, true);
 }
 
@@ -994,7 +1018,9 @@ function gameFrame(dt, now) {
     if (len > 1) { vx /= len; vz /= len; }
     wx = vx * c + vz * sn;
     wz = -vx * sn + vz * c;
-  } else if (G.goal && !busy()) {
+  } else if (G.goal && busy()) {
+    G.goal.last = { x: me.x, z: me.z, t: now };
+  } else if (G.goal) {
     const d = followGoal(me, now);
     if (d) { [wx, wz] = d; len = 1; }
   }
