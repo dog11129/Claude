@@ -185,8 +185,8 @@ try:
         m = Model('pine')
         m.cyl(0.12, 0.18, 1.0, 0x7A4B2E, 0, 0, 0.5, seg=10)
         for i, (r, h, z, c) in enumerate(((0.95, 0.9, 1.0, 0x3F8F4A), (0.78, 0.8, 1.45, 0x4A9F55), (0.58, 0.7, 1.85, 0x56AE60), (0.36, 0.55, 2.2, 0x62BA6A))):
-            m.cone(r, h, c, 0, 0, z + h / 2, seg=16, bev=0.0)
-            m.torus(r * 0.86, 0.07, c, 0, 0, z + 0.04, seg=16, tseg=6)  # weicher, runder Saum
+            m.cone(r, h, c, 0, 0, z + h / 2, seg=12)
+            m.torus(r * 0.86, 0.07, c, 0, 0, z + 0.04, seg=12, tseg=5)  # weicher, runder Saum
         m.ball(0.07, 'yellow', 0, 0, 2.5, seg=8)
         return m.build()
     def bush():
@@ -218,6 +218,18 @@ try:
         m.cyl(0.3, 0.3, 0.03, 0x4FAE4A, 0, 0, 0, seg=16, bev=0.01)
         m.ball(0.08, 0xFFB7D0, 0.05, 0, 0.05, sz=0.7, seg=8); m.ball(0.03, 'yellow', 0.05, 0, 0.09, seg=6)
         return m.build()
+    def ftree(season):  # leichter Waldbaum für den Hintergrund (viele Kopien)
+        L = LEAVES[season]
+        m = Model('ftree_' + season)
+        m.cyl(0.12, 0.18, 0.9, 'bark', 0, 0, 0.45, seg=8)
+        m.ball(0.85, L[0], 0, 0, 1.4, sz=0.9, seg=12)
+        for i, (a, r) in enumerate(((0.4, 0.5), (2.3, 0.45), (4.2, 0.48))):
+            m.ball(r, L[1 + i % 2], math.cos(a) * 0.45, math.sin(a) * 0.45, 1.65, sz=0.9, seg=10)
+        m.ball(0.22, L[3], -0.25, -0.55, 1.75, sz=0.7, seg=8)
+        if season == 'spring':
+            for i in range(8): a = i * 2.4; m.ball(0.09, 0xFFB8D2, math.cos(a) * 0.8, math.sin(a) * 0.8, 1.4 + (i % 3) * 0.2, sz=0.7, seg=6)
+        return m.build()
+    for s_ in ('spring', 'summer', 'autumn', 'winter'): o = ftree(s_); N[o.name] = o
     for f in (pine, bush, tuft, pondstone, lilypad): o = f(); N[o.name] = o
     for i in range(4): o = wildflower(i); N[o.name] = o
 
