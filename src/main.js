@@ -45,6 +45,7 @@ function applyView() {
   world.camSmooth = settings.camSmooth;
   world.baseEl = settings.camAngle;
   world.animations = settings.anim;
+  document.body.classList.toggle('calm', !settings.anim);
   document.documentElement.style.setProperty('--ui', settings.uiScale);
 }
 applyView();
@@ -949,6 +950,7 @@ function select(id, quiet) {
   if (id === 'pave' && G.sel === 'pave' && !quiet) { panels.show('designer'); play('click'); }
   if (id === 'pave' && !G.pathType) G.pathType = 'erde';
   G.sel = id;
+  G.popSel = id;
   G.hotSig = null;
   if (G.fishing) stopFishing();
 }
@@ -1498,6 +1500,13 @@ $('pbody').addEventListener('click', e => {
 // ---------- Bild für Bild ----------
 const hud = {};
 function setText(id, v) { if (hud[id] !== v) { hud[id] = v; $(id).textContent = v; } }
+// kleine Hüpf-Animation an einem HUD-Element neu starten
+function bump(el, cls = 'bump') {
+  if (typeof el === 'string') el = $(el);
+  if (!el) return;
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 500);
+}
 
 function gameFrame(dt, now) {
   const s = G.s, me = G.players[G.me];
@@ -1562,7 +1571,11 @@ function gameFrame(dt, now) {
     $('hint').classList.toggle('hidden', !label);
     $('actlabel').textContent = label || '…';
     const icon = label.split(' ')[0];
-    $('actbtn').textContent = me.pose ? '🧍' : /\p{Extended_Pictographic}/u.test(icon) ? icon : '✋';
+    // Werkzeug-Aktionen zeigen das Blender-Symbol, sonst das Emoji aus der Beschriftung
+    const TI = { '✋': 'hand', '🪓': 'axe', '🪨': 'shovel', '💧': 'can', '🦋': 'net', '🎯': 'sling' };
+    const e = me.pose ? '🧍' : /\p{Extended_Pictographic}/u.test(icon) ? icon : '✋';
+    $('actbtn').innerHTML = TI[e] ? `<img class="ico" src="assets/ui/${TI[e]}.webp" alt="">` : e;
+    bump('actbtn', 'pop');
   }
   if (actHeld && now > nextAct) { nextAct = now + 300; execute(G.ctx, false); }
   updateFishing(dt);
@@ -1600,14 +1613,18 @@ function gameFrame(dt, now) {
 
   // HUD
   const hour = 6 + s.dayTime * 18, hh = Math.floor(hour) % 24, mm = Math.floor((hour % 1) * 6) * 10;
-  const sky = s.weather === 'rain' ? '🌧️' : s.weather === 'snow' ? '🌨️' : hour >= 20 ? '🌙' : hour >= 18 ? '🌇' : '☀️';
+  const sky = s.weather === 'rain' ? '🌧️ ' : s.weather === 'snow' ? '🌨️ ' : '';
   const [seaName, seaIcon] = SEASONS[S.seasonOf(s.day)];
+  if (hud.m !== s.money) { if (hud.m != null && s.money > hud.m) bump('moneypill'); hud.m = s.money; }
   setText('money', s.money.toLocaleString('de-DE'));
   const real = s.real ? new Date() : null;
+  const rh = real ? real.getHours() : hour, night = rh >= 19 || rh < 6;
+  if (hud.night !== night) { hud.night = night; const im = document.querySelector('.skyico'); im.src = `assets/ui/${night ? 'moon' : 'sun'}.webp`; im.className = `ico skyico ${night ? 'moon' : 'sun'}`; }
   setText('ctime', real ? `${real.getHours()}:${String(real.getMinutes()).padStart(2, '0')}` : `${hh}:${String(mm).padStart(2, '0')}`);
-  setText('clock', `${sky} ${WEEKDAYS[weekday(s.day)]} · ${seaIcon} ${seaName}`);
+  setText('clock', `${sky}${WEEKDAYS[weekday(s.day)]} · ${seaIcon} ${seaName}`);
   // Abendmeldungen: Sternschnuppen-Nacht
   if (s.starNight && hour >= 19 && G.starToast !== s.day) { G.starToast = s.day; toast('🌠 Heute Nacht fallen Sternschnuppen! Tippe auf 🔭 (PC: K) und schau in den Himmel.', true); }
+  if (hud.lvl && hud.lvl !== String(s.level)) bump('lvlpill');
   setText('lvl', String(s.level));
   const pct = Math.min(100, s.xp / (40 * s.level * s.level) * 100) + '%';
   if (hud.pct !== pct) { hud.pct = pct; document.querySelector('#lvlbar i').style.width = pct; }
@@ -1633,6 +1650,7 @@ function gameFrame(dt, now) {
     G.hotSig = sig;
     G.hot = items;
     $('hotbar').innerHTML = items.map((id, i) => slotHtml(s, id, i, G.sel)).join('');
+    if (G.popSel) { bump($('hotbar').querySelector(`[data-id="${G.popSel}"]`), 'pop'); G.popSel = null; }
   }
   if (!uiPress) panels.update(s, G);
 }

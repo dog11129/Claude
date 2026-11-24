@@ -498,16 +498,16 @@ export class Panels {
 }
 
 // ---------- Hotbar ----------
-// Werkzeug-Symbole als kleine Zeichnungen (Emojis gibt es nicht für alle)
-const svg = b => `<svg viewBox="0 0 32 32" width="30" height="30">${b}</svg>`;
+// Werkzeug-Symbole: in Blender gebaut (blender/icons.py → assets/ui)
+export const icon = (n, c = '') => `<img class="ico${c ? ' ' + c : ''}" src="assets/ui/${n}.webp" alt="" draggable="false">`;
 const TOOLS = {
-  can: [svg('<rect x="7" y="12" width="15" height="13" rx="4" fill="#7cc6e8"/><path d="M21 15 L29 9 L30 11 L23 18Z" fill="#5aa9cf"/><path d="M9 12 Q14 4 20 12" stroke="#5aa9cf" stroke-width="2.5" fill="none"/><circle cx="29" cy="9" r="2" fill="#5aa9cf"/>'), 'Gießkanne'],
-  hand: ['✋', 'Hand: pflücken, schütteln, aufheben'],
-  axe: [svg('<rect x="14" y="5" width="4" height="23" rx="2" fill="#c98d55" transform="rotate(-25 16 16)"/><path d="M14 4 Q24 3 25 10 Q20 13 15 12Z" fill="#9aa6b2" stroke="#6d7884" stroke-width="1"/>'), 'Axt: Holz hacken'],
-  shovel: [svg('<rect x="14.5" y="3" width="3" height="17" rx="1.5" fill="#c98d55"/><rect x="11" y="2" width="10" height="3" rx="1.5" fill="#c98d55"/><path d="M10 19 H22 V24 Q16 31 10 24Z" fill="#9aa6b2" stroke="#6d7884" stroke-width="1"/>'), 'Schaufel: ausgraben & auf Felsen hauen'],
-  sling: [svg('<path d="M10 29 L16 17 L22 29" stroke="#c98d55" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M16 18 L9 5 M16 18 L23 5" stroke="#c98d55" stroke-width="3.5" stroke-linecap="round"/><path d="M9 6 Q16 13 23 6" stroke="#e0605a" stroke-width="2" fill="none"/><circle cx="16" cy="10" r="2.5" fill="#9aa6b2"/>'), 'Schleuder: Geschenkballons abschießen'],
-  pave: ['🧱', 'Insel-Designer: Wege legen (nochmal antippen = Wegart wählen)'],
-  net: [svg('<rect x="15" y="12" width="3" height="18" rx="1.5" fill="#c98d55" transform="rotate(20 16 20)"/><ellipse cx="13" cy="9" rx="8" ry="6.5" fill="#f4f1ea" stroke="#b8b0a2" stroke-width="2"/><path d="M7 9 H19 M13 3 V15" stroke="#d9d2c4" stroke-width="1"/>'), 'Kescher: Insekten fangen'],
+  hand: [icon('hand'), 'Hand: pflücken, schütteln, aufheben'],
+  net: [icon('net'), 'Kescher: Insekten fangen'],
+  shovel: [icon('shovel'), 'Schaufel: ausgraben & auf Felsen hauen'],
+  axe: [icon('axe'), 'Axt: Holz hacken'],
+  can: [icon('can'), 'Gießkanne'],
+  sling: [icon('sling'), 'Schleuder: Geschenkballons abschießen'],
+  pave: [icon('pave'), 'Insel-Designer: Wege legen (nochmal antippen = Wegart wählen)'],
 };
 export function hotbarItems(s) {
   const items = ['hand', 'net', 'shovel', 'axe', 'can', 'sling', 'pave'];
