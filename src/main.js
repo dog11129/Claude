@@ -6,7 +6,7 @@ const FOSSIL_IDS = FOSSILS.map(f => f[0]);
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience, speak, musicTick } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
-import { Editor, settingsHtml, setOwnedHats } from './menu.js';
+import { Editor, settingsHtml, setOwnedHats, PRESETS, SETTING_DEFAULTS } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
 import { NPCS, npcLine, giftReply } from './npc.js';
 import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, inPond, onPier, PATHS, PLAZA } from './island.js';
@@ -31,13 +31,23 @@ const saveProfile = () => store.set('kh.profile', profile);
 const settings = { quality: touch ? 'mid' : 'high', sound: 0.8, music: 0.5, landscape: false, names: true, fullscreen: touch, ...store.get('kh.settings', {}) };
 if (typeof settings.sound !== 'number') settings.sound = settings.sound === false ? 0 : 0.8;
 if (typeof settings.music !== 'number') settings.music = settings.music === false ? 0 : 0.5;
-if (!['low', 'mid', 'high'].includes(settings.quality)) settings.quality = 'mid';
+if (!PRESETS[settings.quality]) settings.quality = 'mid';
+for (const [k, v] of Object.entries({ ...PRESETS[settings.quality], ...SETTING_DEFAULTS })) if (settings[k] === undefined) settings[k] = v;
 audio.sound = settings.sound;
 audio.music = settings.music;
 
 // Blender-Modelle laden (der Ladebildschirm zeigt den Fortschritt)
 await loadAssets(['buildings'], f => { const el = document.querySelector('#loading div'); if (el) el.innerHTML = `<span>🏝️</span><br>Kuschelinsel lädt… ${Math.round(f * 100)}%`; });
 const world = new World($('c'), $('labels'), settings.quality);
+// Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
+function applyView() {
+  world.setQuality({ scale: settings.scale, shadows: settings.shadows, bloom: settings.bloom, grass: settings.grass, lights: settings.lights, view: settings.view });
+  world.camSmooth = settings.camSmooth;
+  world.baseEl = settings.camAngle;
+  world.animations = settings.anim;
+  document.documentElement.style.setProperty('--ui', settings.uiScale);
+}
+applyView();
 addEventListener('resize', () => world.resize());
 const editor = new Editor();
 
@@ -623,20 +633,24 @@ const previewCam = (x, z) => (matchMedia('(orientation: portrait)').matches ? { 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-set],[data-tog]');
   if (!b) return;
-  if (b.dataset.set) settings[b.dataset.set] = b.dataset.v;
+  if (b.dataset.set) { const v = b.dataset.v; settings[b.dataset.set] = v !== '' && !isNaN(v) ? Number(v) : v; }
   else settings[b.dataset.tog] = !settings[b.dataset.tog];
   applySettings(b.dataset.set || b.dataset.tog, true);
 });
 document.addEventListener('input', e => {
   const k = e.target.dataset?.vol;
   if (k) { settings[k] = e.target.value / 100; applySettings(k, false); }
+  const r = e.target.dataset?.rng; // Schieberegler: Zahl anzeigen, erst beim Loslassen neu zeichnen
+  if (r) { settings[r] = Number(e.target.value); const o = e.target.nextElementSibling; if (o) o.textContent = r === 'grass' ? (settings[r] || 'Aus') : r === 'camSmooth' ? (settings[r] < 0.8 ? 'weich' : settings[r] > 1.3 ? 'direkt' : 'normal') : Math.round(settings[r] * 100) + ' %'; applySettings(r, false); }
 });
+document.addEventListener('change', e => { if (e.target.dataset?.rng) applySettings(e.target.dataset.rng, true); });
 function applySettings(k, redraw) {
   store.set('kh.settings', settings);
   audio.sound = settings.sound;
   setVolumes();
   if (k === 'music') setMusic(settings.music);
-  if (k === 'quality') world.setQuality(settings.quality);
+  if (k === 'quality') Object.assign(settings, PRESETS[settings.quality]);
+  if (['quality', 'scale', 'shadows', 'bloom', 'grass', 'lights', 'view', 'camSmooth', 'camAngle', 'anim', 'uiScale'].includes(k)) { store.set('kh.settings', settings); applyView(); }
   if (k === 'landscape') applyLandscape();
   if (k === 'fullscreen' && settings.fullscreen !== isFs()) toggleFullscreen();
   if (redraw && menuScreen === 'settings' && !$('menu').classList.contains('hidden')) $('msettings').innerHTML = settingsHtml(settings, touch);
@@ -821,8 +835,7 @@ addEventListener('keydown', e => {
   }
   if (editor.isOpen || G.talk) return;
   if (k === 'p') { setPhoto(!G.photo); return; }
-  if (k === 'z') world.rotate(-Math.PI / 4);
-  if (k === 'c') world.rotate(Math.PI / 4);
+  if (k === 'z' || k === 'c') { keys.add(k); return; } // gedrückt halten = gleichmäßig drehen
   if (G.photo) return;
   if (k === 'k') { toggleSky(); return; }
   if (k === 'h' || k === 'tab') { togglePanel('phone'); e.preventDefault(); return; }
@@ -863,15 +876,15 @@ canvas.addEventListener('pointermove', e => {
   p.x = e.clientX; p.y = e.clientY;
   if (pointers.size === 2 && G?.pinch) {
     const now = twoFinger();
-    world.zoom = Math.max(0.5, Math.min(1.9, world.zoom * G.pinch.d / now.d));
-    world.rotate(-(now.a - G.pinch.a));
+    world.zoom = Math.max(0.5, Math.min(1.9, world.zoom * (G.pinch.d / now.d) ** settings.zoomSpeed));
+    world.rotate(-(now.a - G.pinch.a) * settings.mouseSens * (settings.invert ? -1 : 1));
     world.yaw = world.yawT;
     G.pinch = now;
   } else if (pointers.size === 1 && (p.btn === 2 || G?.photo || editor.isOpen || !G?.ready)) {
     if (editor.isOpen) {
       if (G?.ready) G.players[G.me].ry += dx * 0.012; else preview.ry += dx * 0.012;
     } else if (G?.ready) {
-      world.rotate(-dx * 0.008);
+      world.rotate(-dx * 0.008 * settings.mouseSens * (settings.invert ? -1 : 1));
       world.yaw = world.yawT;
       if (G.photo) world.el = Math.max(0.12, Math.min(1.35, world.el + dy * 0.005));
     }
@@ -889,7 +902,7 @@ const pointerEnd = e => {
 canvas.addEventListener('pointerup', pointerEnd);
 canvas.addEventListener('pointercancel', pointerEnd);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('wheel', e => { world.zoom = Math.max(0.5, Math.min(1.9, world.zoom * (1 + e.deltaY * 0.001))); }, { passive: true });
+canvas.addEventListener('wheel', e => { world.zoom = Math.max(0.5, Math.min(1.9, world.zoom * (1 + e.deltaY * 0.001 * settings.zoomSpeed))); }, { passive: true });
 
 const joyEl = $('joy');
 joyEl.addEventListener('pointerdown', e => {
@@ -1491,6 +1504,9 @@ function gameFrame(dt, now) {
   if (!s || !me) return;
   if (G.role === 'host') simulate(now); else S.tick(s, dt, false);
 
+  // Kamera mit Z / C drehen (gedrückt halten)
+  const spin = (keys.has('c') ? 1 : 0) - (keys.has('z') ? 1 : 0);
+  if (spin && !editor.isOpen && !G.talk) { world.rotate(spin * dt * 2.2 * settings.camSpeed * (settings.invert ? -1 : 1)); world.yaw = world.yawT; }
   // Laufen (Tastatur/Joystick relativ zur Kamera, sonst zum Tipp-Ziel)
   let vx = 0, vz = 0;
   if (!busy()) {
@@ -1624,6 +1640,7 @@ function gameFrame(dt, now) {
 let last = performance.now(), loaded = false;
 function frame(now) {
   requestAnimationFrame(frame);
+  if (settings.fps && now - last < 1000 / settings.fps - 2) return; // Bilder pro Sekunde begrenzen
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   if (G?.ready) gameFrame(dt, now);

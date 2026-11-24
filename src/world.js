@@ -202,11 +202,13 @@ export class World {
   }
 
   // ---------- Grafikstufe ----------
+  // Grafik: Voreinstellung ('low' …) oder einzelne Werte { scale, shadows, bloom, grass, lights, view }
   setQuality(q) {
-    const Q = this.Q = QUALITY[q] || QUALITY.mid;
+    const Q = this.Q = typeof q === 'object' ? { ratio: Math.max(0.5, Math.min(devicePixelRatio, 2) * (q.scale || 1)), shadows: q.shadows, bloom: q.bloom, grass: q.grass, lights: q.lights ? 4 : 0, exact: true } : QUALITY[q] || QUALITY.mid;
     this.quality = q;
     const r = this.renderer;
-    r.setPixelRatio(Math.min(devicePixelRatio, Q.ratio));
+    r.setPixelRatio(Q.exact ? Q.ratio : Math.min(devicePixelRatio, Q.ratio));
+    if (typeof q === 'object') { this.scene.fog.near = 34 * (q.view || 1); this.scene.fog.far = 80 * (q.view || 1); }
     r.shadowMap.enabled = !!Q.shadows;
     this.sun.castShadow = !!Q.shadows;
     if (Q.shadows) {
@@ -1301,7 +1303,7 @@ export class World {
     const indoors = this.target.x > HOME_X / 2, tropic = this.target.z > 150; // im Haus regnet es nicht, auf der Tropeninsel ist immer Sommer
     const info = this.light(s), rain = s.weather === 'rain' && !indoors && !tropic, snowing = s.weather === 'snow' && !indoors && !tropic;
     this.zones.update(this, s, this.time, info.night || 0, this.target);
-    tickAssets(dt);
+    if (this.animations !== false) tickAssets(dt);
     snow.value += ((this.season === 'winter' ? 0.85 : 0) - snow.value) * Math.min(1, dt * 2);
     if (this.clock?.h) { // Rathausuhr zeigt die Spielzeit (bzw. die echte Uhrzeit)
       const h = s.real ? (d => d.getHours() + d.getMinutes() / 60)(new Date()) : 6 + s.dayTime * 18;
@@ -1323,7 +1325,8 @@ export class World {
     if (opt.info) this.tag('info', opt.info.html, opt.info.x, 0.9, opt.info.z, 'info');
 
     // Kamera
-    this.yaw += angDiff(this.yaw, this.yawT) * Math.min(1, dt * 8);
+    const cs = this.camSmooth || 1;
+    this.yaw += angDiff(this.yaw, this.yawT) * Math.min(1, dt * 8 * cs);
     const pl = players[me];
     if (opt.orbit) {
       const a = this.time * 0.05;
@@ -1338,13 +1341,13 @@ export class World {
     } else {
       if (pl) {
         if (Math.abs(pl.x - this.target.x) > 40 || Math.abs(pl.z - this.target.z) > 40) this.target.set(pl.x, 0, pl.z); // Tür, Tor, Boot: Kamera springt mit
-        this.target.x += (pl.x - this.target.x) * Math.min(1, dt * 6);
-        this.target.z += (pl.z - this.target.z) * Math.min(1, dt * 6);
+        this.target.x += (pl.x - this.target.x) * Math.min(1, dt * 6 * cs);
+        this.target.z += (pl.z - this.target.z) * Math.min(1, dt * 6 * cs);
       }
       const portrait = Math.min(1.7, Math.max(1, 1.25 / this.camera.aspect)), home = this.target.x > HOME_X / 2;
       // Himmelsblick (Sternschnuppen, Regenbogen): Kamera geht tief und schaut nach oben
       this.skyK = (this.skyK || 0) + ((opt.sky && !home ? 1 : 0) - (this.skyK || 0)) * Math.min(1, dt * 3);
-      const k = this.skyK, d = 13.4 * this.zoom * portrait * (home ? 0.78 : 1), el = opt.photo ? this.el : home ? 0.83 : 0.74;
+      const k = this.skyK, d = 13.4 * this.zoom * portrait * (home ? 0.78 : 1), el = opt.photo ? this.el : home ? 0.83 : (this.baseEl || 0.74);
       const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw), cam = this.camera.position;
       // normal: schräg von oben · Himmel: knapp hinter der Figur, Blick 30° nach oben
       cam.set(this.target.x + sy * Math.cos(el) * d, Math.max(0.6, Math.sin(el) * d), this.target.z + cy * Math.cos(el) * d);
