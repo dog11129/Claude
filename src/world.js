@@ -33,7 +33,7 @@ import { crop } from './plants.js';
 import { placeable } from './nature.js';
 import { building } from './buildings.js';
 import { Zones } from './zones.js';
-import { tickAssets, part, snow } from './assets.js';
+import { tickAssets, part, snow, model, GLOW_VC } from './assets.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE } from './data.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, balloonPos, turnipSeller } from './state.js';
@@ -899,12 +899,12 @@ export class World {
       seen.add(id);
       if (this.furnM.has(id)) continue;
       const [x, z] = k.split(',').map(Number), [fw, fd] = o.r % 2 ? [f.d, f.w] : [f.w, f.d];
-      const m = makeFurniture(o.k);
+      const m = model(o.k) || makeFurniture(o.k);
       m.position.set(HOME_X + x + (fw - 1) / 2, f.rug ? 0.005 : 0, z + (fd - 1) / 2);
       m.rotation.y = o.r * Math.PI / 2;
       m.traverse(c => { if (c.isMesh) { c.castShadow = !f.rug; c.receiveShadow = true; } });
       this.scene.add(m);
-      this.furnM.set(id, { m, born: this.time, x: m.position.x, z: m.position.z });
+      this.furnM.set(id, { m, born: this.time, x: m.position.x, z: m.position.z, clock: o.k === 'wanduhr' && part(m, 'clock_h') ? { h: part(m, 'clock_h'), m: part(m, 'clock_m') } : null });
     }
     for (const [id, e] of this.furnM) {
       if (!seen.has(id)) { this.vanish(e.m); this.furnM.delete(id); this.burst(e.x, e.z, 'dust'); continue; }
@@ -1325,6 +1325,7 @@ export class World {
     const a = Math.min(1, Math.max(0, (hour - 6) / 14)) * Math.PI;
     this.sunDir = new THREE.Vector3(-Math.cos(a) * 0.8, 1.1, 0.6).normalize();
     M.GLOW.color.copy(GLOW_DAY).lerp(GLOW_NIGHT, Math.min(1, night * 1.5));
+    GLOW_VC.color.setScalar(0.9 + Math.min(1, night * 1.5) * 1.6);
     this.waterU.night.value = night * 0.8;
     this.waterU.ice.value += ((this.season === 'winter' ? 1 : 0) - this.waterU.ice.value) * 0.02;
     if (this.bloom) this.bloom.strength = 0.25 + night * 0.55;
@@ -1360,10 +1361,13 @@ export class World {
     this.zones.update(this, s, this.time, info.night || 0, this.target);
     if (this.animations !== false) tickAssets(dt);
     snow.value += ((this.season === 'winter' ? 0.85 : 0) - snow.value) * Math.min(1, dt * 2);
-    if (this.clock?.h) { // Rathausuhr zeigt die Spielzeit (bzw. die echte Uhrzeit)
+    { // Rathausuhr und Wanduhren zeigen die Spielzeit (bzw. die echte Uhrzeit)
       const h = s.real ? (d => d.getHours() + d.getMinutes() / 60)(new Date()) : 6 + s.dayTime * 18;
-      this.clock.h.rotation.z = -(h % 12) / 12 * Math.PI * 2;
-      this.clock.m.rotation.z = -(h % 1) * Math.PI * 2;
+      for (const c of [this.clock, ...[...(this.furnM?.values() || [])].map(e => e.clock)]) {
+        if (!c?.h) continue;
+        c.h.rotation.z = -(h % 12) / 12 * Math.PI * 2;
+        c.m.rotation.z = -(h % 1) * Math.PI * 2;
+      }
     }
 
     // Zielfeld-Markierung

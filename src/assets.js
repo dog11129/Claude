@@ -4,7 +4,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
 import { DRACOLoader } from '../vendor/loaders/DRACOLoader.js';
-import { MAT, GLOW, cozy } from './models.js';
+import { MAT, cozy } from './models.js';
 
 const LIB = new Map();
 const mixers = new Set();
@@ -21,6 +21,9 @@ OUTDOOR.onBeforeCompile = sh => {
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.96, 0.98, 1.0), snowUp * snowAmt);`);
 };
 OUTDOOR.customProgramCacheKey = () => 'cozy-snow';
+
+// Leuchtteile behalten ihre Farbe aus Blender (Flammen orange, Lampen gelb); die Welt dreht nachts die Helligkeit hoch
+export const GLOW_VC = new THREE.MeshBasicMaterial({ vertexColors: true });
 
 export async function loadAssets(files, onProgress) {
   const draco = new DRACOLoader().setDecoderPath(new URL('../vendor/draco/', import.meta.url).href);
@@ -40,7 +43,7 @@ function register(gltf, file) {
       names.add(o.name);
       if (!o.isMesh) return;
       const glow = o.name.includes('__glow') || o.parent?.name?.includes('__glow');
-      o.material = glow ? GLOW : OUTDOOR;
+      o.material = glow ? GLOW_VC : OUTDOOR;
       o.castShadow = !glow;
       o.receiveShadow = !glow;
       o.geometry.computeBoundingSphere();
