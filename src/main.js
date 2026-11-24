@@ -4,7 +4,7 @@ import * as S from './state.js';
 import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT, PAVE, WEEKDAYS, weekday, FOSSILS, FESTS, CONTEST_SECS } from './data.js';
 const FOSSIL_IDS = FOSSILS.map(f => f[0]);
 import * as net from './net.js';
-import { audio, unlock, play, setMusic, setVolumes, ambience, speak, musicTick } from './audio.js';
+import { audio, unlock, play, setMusic, setVolumes, ambience, speak, musicTick, pianoNote } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { fillIcons, itemIcon } from './icons.js';
 import { Editor, settingsHtml, setOwnedHats, PRESETS, SETTING_DEFAULTS } from './menu.js';
@@ -18,6 +18,8 @@ import * as backup from './backup.js';
 import * as cloud from './cloud.js';
 import * as photos from './photos.js';
 import * as XS from './extras.js';
+import * as PAT from './patterns.js';
+import { TRIP, TRIP_PRICE } from './trips.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -159,6 +161,7 @@ function hostData(id, d) {
     if (!fr.includes(G.players[id].name)) { fr.push(G.players[id].name); if (fr.length > 8) fr.shift(); }
     G.net.send(id, { t: 'welcome', id, s: pack(G.s), players: G.players, code: G.code });
     say(`💕 ${G.players[id].name} ist da!`, 'join');
+    setTimeout(() => { playMelody(); G.net?.broadcast({ t: 'mel' }, id); }, 1200);
     const nm = G.players[id].name, mo = {};
     if (XS.moment(G.s, 'visit:' + nm, '💞', `${nm} kommt zu Besuch`, 'Zum ersten Mal zusammen auf der Insel!', mo)) { G.dirty = true; G.net.broadcast({ t: 'moment', m: mo.moment }); onMoment(mo.moment); }
     return;
@@ -183,6 +186,7 @@ function hostData(id, d) {
   if (d.t === 'emote') emote(id, d.e);
   if (d.t === 'hug' && typeof d.id === 'string') social(id, d.id, 'hug');
   if (d.t === 'soc' && typeof d.id === 'string' && Object.hasOwn(SOCIAL, d.k)) social(id, d.id, d.k);
+  if (d.t === 'note' && Number.isInteger(d.m) && d.m >= 36 && d.m <= 96) { hearNote(id, d.m); G.net.broadcast({ t: 'note', m: d.m, id }, id); }
   if (d.t === 'card' && typeof d.url === 'string' && d.url.length < 400000 && d.url.startsWith('data:image/jpeg')) { // Postkarte weiterreichen
     const card = { t: 'card', url: d.url, from: p.name };
     if (d.to === G.me) onCard(card); else if (G.players[d.to]) G.net.send(d.to, card);
@@ -340,6 +344,8 @@ function guestData(d) {
     case 'soc': if (Object.hasOwn(SOCIAL, d.k)) onSocial(d.a, d.b, d.k); break;
     case 'toast': toast(d.text); if (d.snd) play(d.snd); break;
     case 'moment': if (d.m?.k) onMoment(d.m); break;
+    case 'note': if (Number.isInteger(d.m)) hearNote(d.id, d.m); break;
+    case 'mel': playMelody(); break;
     case 'card': if (typeof d.url === 'string' && d.url.startsWith('data:image/jpeg')) onCard(d); break;
     case 'wake': wake(); break;
     case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Insel geschickt.', true); break;
@@ -424,6 +430,63 @@ async function onCard(d) {
   await photos.add(isleKey(), d.url, { kind: 'photo', card: true, from: String(d.from || '').slice(0, 16), day: G.s?.day });
   toast(`📮 ${d.from || 'Jemand'} hat dir eine Postkarte geschickt! (📸 Fotobuch → 🖼️ Fotos)`, true);
   play('love');
+}
+// ---------- Klavier & Inselmelodie ----------
+let melT = [];
+function playMelody(notes = G?.s?.melody?.notes) {
+  if (!notes) return;
+  for (const t of melT) clearTimeout(t);
+  melT = notes.map((n, i) => n && setTimeout(() => pianoNote(XS.MEL_NOTES[n], 0.7, 0.35), i * 230)).filter(Boolean);
+}
+function hearNote(id, m) { // ein Mitspieler spielt Klavier
+  const p = G.players[id], me = G.players[G.me];
+  if (!p || !me || Math.hypot(p.x - me.x, p.z - me.z) > 14) return;
+  pianoNote(m, 0.5);
+  if (Math.random() < 0.3) world.float(p.x, p.z, ['🎵', '🎶'][Math.floor(Math.random() * 2)], 1.6);
+}
+function playKey(m) {
+  pianoNote(m, 0.7);
+  const me = G.players[G.me];
+  if (me && Math.random() < 0.4) world.float(me.x, me.z, ['🎵', '🎶'][Math.floor(Math.random() * 2)], 1.6);
+  if (G.role === 'host') G.net?.broadcast({ t: 'note', m, id: G.me }); else G.conn?.send({ t: 'note', m });
+  const k = document.querySelector(`#pbody .pk[data-m="${m}"]`);
+  if (k) { k.classList.add('hit'); setTimeout(() => k.classList.remove('hit'), 160); }
+}
+$('pbody').addEventListener('pointerdown', e => { const k = e.target.closest('.pk'); if (k) { e.preventDefault(); e.stopPropagation(); playKey(+k.dataset.m); } });
+const PIANO_KEYS = { a: 60, w: 61, s: 62, e: 63, d: 64, f: 65, t: 66, g: 67, z: 68, y: 68, h: 69, u: 70, j: 71, k: 72, o: 73, l: 74, p: 75, ö: 76 };
+addEventListener('keydown', e => {
+  if (panels.open !== 'piano' || panels.tab === 'song' || e.repeat || e.target.tagName === 'INPUT') return;
+  const m = PIANO_KEYS[e.key.toLowerCase()];
+  if (m) { playKey(m); e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);
+
+// Muster-Editor: Vorschauen malen, auf der Leinwand zeichnen
+function drawPat() { const cv = $('patcv'); if (cv && G.patEdit) PAT.paint(cv, G.patEdit.px, null, true); }
+function fillPatterns() {
+  if (panels.open !== 'patterns') return;
+  for (const cv of $('pbody').querySelectorAll('canvas[data-pat]:not(.done)')) { cv.classList.add('done'); const p = G.s.patterns?.[+cv.dataset.pat]; if (p) PAT.paint(cv, p.px); }
+  const cv = $('patcv');
+  if (!cv || cv.dataset.bound) return;
+  cv.dataset.bound = 1;
+  drawPat();
+  let down = false;
+  const at = e => { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * 16), Math.floor((e.clientY - r.top) / r.height * 16)]; };
+  const set = (x, y) => {
+    const E = G.patEdit;
+    if (!E || x < 0 || y < 0 || x > 15 || y > 15) return;
+    const c = E.c.toString(16), a = [...E.px];
+    if (E.tool === 'fill') { // Flächen füllen
+      const from = a[y * 16 + x];
+      if (from === c) return;
+      const st = [[x, y]];
+      while (st.length) { const [i, j] = st.pop(); if (i < 0 || j < 0 || i > 15 || j > 15 || a[j * 16 + i] !== from) continue; a[j * 16 + i] = c; st.push([i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]); }
+    } else a[y * 16 + x] = c;
+    E.px = a.join('');
+    drawPat();
+  };
+  cv.addEventListener('pointerdown', e => { down = true; cv.setPointerCapture(e.pointerId); set(...at(e)); e.preventDefault(); });
+  cv.addEventListener('pointermove', e => { if (down && G.patEdit?.tool === 'pen') set(...at(e)); });
+  cv.addEventListener('pointerup', () => { down = false; });
 }
 // Bilder ins Fotobuch einsetzen (die Seiten selbst kommen aus dem Spielstand)
 let picSig = '';
@@ -687,6 +750,7 @@ function netTick() {
 
 function enterGame() {
   G.ready = true;
+  setTimeout(() => playMelody(), 1500); // Inselmelodie zur Begrüßung
   document.body.classList.add('ingame');
   $('menu').classList.add('hidden');
   $('hud').classList.remove('hidden');
@@ -1041,6 +1105,19 @@ const panels = new Panels({
       }
       G.cardFor = null; const g = $('photogrid'); if (g) delete g.dataset.done;
     }
+    if (kind === 'melset') { const i = +d.i, n = +d.n; G.melEdit ||= (G.s.melody?.notes || XS.MEL_DEFAULT).slice(); G.melEdit[i] = G.melEdit[i] === n ? 0 : n; if (G.melEdit[i]) pianoNote(XS.MEL_NOTES[n], 0.6, 0.3); }
+    if (kind === 'melplay') playMelody(G.melEdit);
+    if (kind === 'melsave' && G.melEdit) send({ t: 'melody', notes: G.melEdit, by: profile.name });
+    if (kind === 'melreset') G.melEdit = null;
+    if (kind === 'patpick') { const i = +d.i; G.patEdit = { i, px: G.s.patterns?.[i]?.px || PAT.emptyPat(), c: G.patEdit?.c ?? 2, tool: G.patEdit?.tool || 'pen' }; }
+    if (kind === 'patcol' && G.patEdit) G.patEdit.c = +d.c;
+    if (kind === 'pattool' && G.patEdit) G.patEdit.tool = d.t;
+    if (kind === 'patclear' && G.patEdit && confirm('Muster leeren?')) { G.patEdit.px = PAT.emptyPat(); drawPat(); }
+    if (kind === 'patsave' && G.patEdit) send({ t: 'patsave', i: G.patEdit.i, px: G.patEdit.px, name: $('patname')?.value || '', by: profile.name });
+    if (kind === 'patwear' && G.patEdit) {
+      const px = G.s.patterns?.[G.patEdit.i]?.px;
+      if (px) { profile.look = { ...profile.look, pat: profile.look.pat === px ? undefined : px }; profile.look = cleanLook(profile.look); saveProfile(); sendLook(); toast(profile.look.pat ? '👕 Du trägst jetzt dein Muster!' : '👕 Muster ausgezogen'); }
+    }
     if (kind === 'stalladd') {
       const id = $('stid')?.value, n = Math.max(1, Math.min(99, +$('stn')?.value || 1)), swap = $('stmode')?.value === 'swap';
       const a = { t: 'stalladd', id, n };
@@ -1079,6 +1156,12 @@ const panels = new Panels({
       setTimeout(() => G?.ready && travel('tropic'), 600);
     }
     if (kind === 'sailhome') travel('pier');
+    if (kind === 'trip') {
+      if (G.s.money < TRIP_PRICE) { toast(`Der Ausflug kostet ${TRIP_PRICE} Taler.`); return; }
+      send({ t: 'tripgo' });
+      toast('⛵ Leinen los – ins Blaue! 🎶');
+      setTimeout(() => G?.ready && travel('trip'), 900);
+    }
     if (kind === 'dance') { panels.close(); sendEmote('💃'); animate('shake'); world.float(G.players[G.me].x, G.players[G.me].z, '🎶✨', 2); toast('🪩 DJ Quak legt auf – tanzt los!'); }
     if (kind === 'fullscreen') toggleFullscreen();
     if (kind === 'editlook') openEditor();
@@ -1115,7 +1198,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'] }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'] }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -1457,6 +1540,7 @@ function context(me, at) {
   }
   const p = at || { x: me.x + Math.sin(me.ry) * 0.9, z: me.z + Math.cos(me.ry) * 0.9 };
   const n = world.npcNear(p.x, p.z, at ? 0.9 : 1.1);
+  if (n?.visitor) return { ui: 'visitor', visitor: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
   if (n) return { npc: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
   for (const o of Object.values(G.players)) {
     if (o.id !== G.me && Math.hypot(o.x - p.x, o.z - p.z) < 0.75) return { hug: o.id, label: `🤗 ${o.name} umarmen`, tiles: [], px: o.x, pz: o.z };
@@ -1531,6 +1615,7 @@ function execute(r, fresh) {
   if (r.ui) {
     if (!fresh) return;
     interrupt();
+    if (r.visitor) { G.visitor = r.visitor; G.vline = null; send({ t: 'vtalk', id: r.visitor }); for (let i = 0; i < 4; i++) setTimeout(() => speak('aeiou'[i], NPCS[r.visitor].voice || {}), i * 90); }
     if (r.ui === 'farm') panels.show('shop', 'farm');
     else panels.show(r.ui);
     play('click');
@@ -1631,6 +1716,7 @@ function travel(where) {
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
     pier: [-9, 22.6, Math.PI, '⛵ Zurück auf eurer Insel.', 'splash'],
+    trip: [TRIP.x, TRIP.z + TRIP.r + 1.8, Math.PI, '', 'splash'],
   }[where] || areaTravel(where, me);
   if (!to) return;
   Object.assign(me, { x: to[0], z: to[1], ry: to[2], pose: null });
@@ -1929,6 +2015,7 @@ function updateFest(me, now) {
   G.resSeen = res.length;
   // Sommerfeuerwerk über dem Meer (19–24 Uhr)
   const home = Math.abs(me.z) < 150 && me.x < 150;
+  if (s.melody && hour >= 12 && hour < 13 && G.melDay !== s.day && home && Math.hypot(me.x, me.z + 4) < 20) { G.melDay = s.day; playMelody(); toast('🔔 Mittag! Das Rathaus spielt eure Inselmelodie.'); }
   const fwOn = (S.festOf(s.day) === 'feuerwerk' || XS.fireworksTonight(s)) && hour >= 19 || (s.fw?.day === s.day && hour >= 18 && s.time - (s.fw.t || 0) < 600);
   if (fwOn && home && now > (G.nextFw || 0)) {
     G.nextFw = now + 500 + Math.random() * 1300;
@@ -2250,7 +2337,7 @@ function gameFrame(dt, now) {
     fillIcons($('hotbar'));
     if (G.popSel) { bump($('hotbar').querySelector(`[data-id="${G.popSel}"]`), 'pop'); G.popSel = null; }
   }
-  if (!uiPress) { panels.update(s, G); fillBook(); }
+  if (!uiPress) { panels.update(s, G); fillBook(); fillPatterns(); }
 }
 
 let last = performance.now(), loaded = false;

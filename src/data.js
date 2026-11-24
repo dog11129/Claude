@@ -160,6 +160,8 @@ export const ITEMS = {
   saphirkescher: { name: 'Saphirkescher',  icon: '🦋', gear: true, tool: 'net',    desc: 'Seltene Krabbeltiere kommen öfter' },
   opalkanne:     { name: 'Opalkanne',      icon: '💧', gear: true, tool: 'can',    desc: 'Gegossene Pflanzen wachsen schneller' },
   faelschung:    { name: 'Fälschung',      icon: '🎭', sell: 10, cat: 'misc' },
+  bambus:        { name: 'Bambus',         icon: '🎋', sell: 120, cat: 'mat', xp: 1 },
+  bambussprosse: { name: 'Bambussprosse',  icon: '🌱', sell: 260, cat: 'veg', xp: 2 },
   // Siegerrezepte vom Kochwettbewerb
   sternentorte:  { name: 'Sternentorte',   icon: '🎂', sell: 3200, cat: 'dish', xp: 12 },
   inselcurry:    { name: 'Insel-Curry',    icon: '🍛', sell: 2600, cat: 'dish', xp: 10 },
@@ -350,6 +352,8 @@ export const PLACE = {
   fahne:      { name: 'Inselfahne',     icon: '🚩', buy: 600, lvl: 1, kind: 'deco', solid: 1, desc: 'Zeigt euer eigenes Muster (🎨 Muster-Editor)' },
   tauschstand: { name: 'Tauschstand',   icon: '🏪', buy: 2500, lvl: 2, kind: 'deco', solid: 1, desc: 'Hier bietet ihr Sachen an – Nachbarn und Besuch kaufen sie' },
   schatzkiste: { name: 'Schatzkiste',   icon: '🏴‍☠️', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Vom großen Schatz der Schatzkarte' },
+  grundstueck: { name: 'Grundstück',    icon: '🪧', lvl: 1, kind: 'deco', solid: 1, desc: 'Hier zieht am nächsten Morgen euer neuer Nachbar ein' },
+  nachbarhaus: { name: 'Nachbarhaus',   icon: '🏠', lvl: 1, kind: 'deco', solid: 1, desc: 'Hier wohnt Besuch, der geblieben ist' },
 };
 // Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
 export const PROJECTS = {
@@ -598,6 +602,7 @@ export const PAVE = {
   ziegel: { name: 'Ziegelweg', icon: '🧱', col: '#d27a5a' },
   holz:   { name: 'Holzdielen', icon: '🪵', col: '#c89564' },
   sand:   { name: 'Sandweg', icon: '🏖️', col: '#eedcaa' },
+  muster: { name: 'Muster-Weg', icon: '🎨', col: '#f2c9d8' }, // zeigt das gewählte eigene Muster
 };
 
 // ---------- Geschenkballons ----------

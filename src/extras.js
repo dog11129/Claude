@@ -4,6 +4,14 @@
 import { ITEMS, PLACE, NPC_IDS, NPC_DATA, WEEKDAYS, weekday, FESTS, SEASONS } from './data.js';
 import { FURNITURE } from './furni-data.js';
 import * as S from './state.js';
+import { TRIP, TRIP_PRICE, TRIP_KINDS, tripLayout, tripNodeAt, onTripDock, tripWalk, SOLID_TRIP, tripUses, nodeThing, TRIP_BUGS, TRIP_FISH } from './trips.js';
+
+// Pixel-Muster prüfen (wie in patterns.js, aber ohne three.js, damit es in Node-Tests läuft)
+export const PAT_SLOTS = 8;
+// Inselmelodie: Töne als MIDI-Nummern (Pentatonik, klingt immer schön)
+export const MEL_NOTES = [0, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81];
+export const MEL_DEFAULT = [6, 0, 5, 3, 4, 0, 3, 1, 2, 3, 4, 0, 6, 5, 6, 0];
+const validPx = px => typeof px === 'string' && /^[0-9a-f]{256}$/.test(px);
 
 const rnd = n => Math.floor(Math.random() * n);
 const pick = a => a[rnd(a.length)];
@@ -343,9 +351,117 @@ function stallTick(s, hours) {
   return sold;
 }
 
+// ---------- Bootsausflug zur Zufallsinsel ----------
+export function tripBlocked(s, x, z) {
+  const lx = x - TRIP.x, lz = z - TRIP.z;
+  if (!tripWalk(lx, lz)) return true;
+  const n = tripNodeAt(s, Math.round(lx), Math.round(lz));
+  return !!(n && SOLID_TRIP.includes(n.kind));
+}
+export function resolveTrip(s, me, sel, at) {
+  const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
+  const lx = Math.round(px - TRIP.x), lz = Math.round(pz - TRIP.z), tiles = [[lx + TRIP.x, lz + TRIP.z]];
+  if (onTripDock(me.x - TRIP.x, me.z - TRIP.z) && me.z - TRIP.z > TRIP.r + 1.2) return { ui: 'boatback', label: '⛵ Zurück nach Hause', tiles: [] };
+  const n = tripNodeAt(s, lx, lz);
+  if (!n) return sel === 'net' ? { label: '🦋 Hier flattert nichts – such die Blütenbüsche!', tiles: [] } : { label: '', tiles: [] };
+  const used = (s.trip.used?.[n.i] || 0) >= tripUses(n), a = how => ({ a: { t: 'tact', i: n.i, how }, tiles });
+  if (used) return { label: { bamboo: '🎋 Genug Bambus für heute', ore: '💎 Leer', pool: '🎣 Hier beißt nichts mehr' }[n.kind] || 'Schon eingesammelt', tiles };
+  if (n.kind === 'bamboo') return sel === 'axe' ? { ...a('chop'), label: '🪓 Bambus hacken' } : { ...a('shake'), label: '🌱 Sprossen suchen' };
+  if (n.kind === 'ore') return sel === 'shovel' ? { ...a('mine'), label: '💎 Draufhauen' } : { label: '💎 Mit der Schaufel draufhauen!', tiles };
+  if (n.kind === 'bugs') return sel === 'net' ? { ...a('net'), label: '🦋 Keschern!' } : { label: '🦋 Nimm den Kescher!', tiles };
+  if (n.kind === 'pool') return { ...a('fish'), label: '🎣 Im Becken angeln' };
+  const thing = nodeThing(n);
+  return { ...a('pick'), label: `${ITEMS[thing]?.icon || '✋'} ${n.kind === 'fruit' ? 'Pflücken' : 'Einsammeln'}` };
+}
+function tact(s, a, out) {
+  if (!s.trip || !Number.isInteger(a.i)) return false;
+  const L = tripLayout(s.trip.seed), n = L.nodes[a.i];
+  if (!n) return false;
+  s.trip.used ||= {};
+  if ((s.trip.used[n.i] || 0) >= tripUses(n)) return false;
+  const got = (id, c = 1) => { S.addInvX(s, id, c); out.fx.push({ x: TRIP.x + n.x, z: TRIP.z + n.z, txt: `+${c} ${ITEMS[id].icon}`, k: 'leaf' }); out.got = id; };
+  const need = { bamboo: ['chop', 'shake'], ore: ['mine'], bugs: ['net'], pool: ['fish'] }[n.kind] || ['pick'];
+  if (!need.includes(a.how)) return false;
+  s.trip.used[n.i] = (s.trip.used[n.i] || 0) + (n.kind === 'bamboo' && a.how === 'shake' ? 3 : 1);
+  if (n.kind === 'bamboo') { if (a.how === 'chop') { got('bambus', 1 + (Math.random() < 0.3 ? 1 : 0)); out.snd = 'chop'; } else { got('bambussprosse', 1 + Math.floor(Math.random() * 2)); out.snd = 'harvest'; } }
+  else if (n.kind === 'ore') { const r = Math.random(), id = r < 0.25 ? 'amethyst' : r < 0.38 ? 'rubin' : r < 0.51 ? 'saphir' : r < 0.57 ? 'opal' : r < 0.75 ? 'goldnugget' : 'kristall'; got(id); S.collectX(s, id, out); out.snd = 'mine'; }
+  else if (n.kind === 'bugs') { const id = TRIP_BUGS[(n.v + s.trip.used[n.i] * 7 + Math.floor(Math.random() * 3)) % TRIP_BUGS.length]; got(id); S.collectX(s, id, out); s.stats.bugs = (s.stats.bugs || 0) + 1; S.questEventX(s, 'bug', 1, out); out.caught = id; out.snd = 'harvest'; }
+  else if (n.kind === 'pool') { const id = TRIP_FISH[Math.floor(Math.random() * TRIP_FISH.length)]; got(id); S.collectX(s, id, out); s.stats.fish = (s.stats.fish || 0) + 1; S.questEventX(s, 'fish', 1, out); out.caught = id; out.snd = 'splash'; }
+  else { const id = nodeThing(n); got(id, n.kind === 'fruit' ? 3 : 1); if (n.kind === 'bloom') S.addInvX(s, 's_' + id, 2); if (n.kind === 'mush') S.collectX(s, id, out); out.snd = 'harvest'; }
+  return true;
+}
+
+// ---------- Campingplatz, Besuch und Umzüge ----------
+// Besuch zeltet, wenn der Campingplatz steht. Eingeladene ziehen auf ein Grundstück. Ausziehen nur, wenn ihr zustimmt.
+export const VISITORS = {
+  flocke: { name: 'Flocke', icon: '🐑', likes: ['kirsche', 'tulpe', 'sternsplitter', 'honig'], loves: ['beerenkuchen', 'kirschtorte'] },
+  pingo: { name: 'Pingo', icon: '🐧', likes: ['makrele', 'barsch', 'sorbet', 'krabbe'], loves: ['regenbogeneis', 'kugelfisch'] },
+  olli: { name: 'Olli', icon: '🦦', likes: ['krabbe', 'forelle', 'stein', 'koralle'], loves: ['perle', 'fischsuppe'] },
+  kruemel: { name: 'Krümel', icon: '🐹', likes: ['apfel', 'weizen', 'kiefernzapfen', 'blaubeere'], loves: ['honigbrot', 'apfelkuchen'] },
+  koko: { name: 'Koko', icon: '🐨', likes: ['orange', 'bambussprosse', 'pfirsich'], loves: ['waldtee', 'mondpudding'] },
+  pia: { name: 'Pia', icon: '🐼', likes: ['bambus', 'orchidee', 'lilie'], loves: ['bambussprosse', 'sternentorte'] },
+};
+export const VISITOR_KEYS = Object.keys(VISITORS);
+export const MAX_RESIDENTS = 4;
+const vname = id => `${VISITORS[id].icon} ${VISITORS[id].name}`;
+export const vhearts = f => Math.min(10, Math.floor((f || 0) / 30));
+function campMorning(s) {
+  s.residents ||= {}; s.pending ||= [];
+  // Zugestimmt: heute früh ausgezogen
+  for (const [id, r] of Object.entries(s.residents)) if (r.leave && r.leave < s.day) {
+    if (r.home && s.obj[r.home]?.who === id) delete s.obj[r.home];
+    delete s.residents[id];
+    note(s, `📦 ${vname(id)} ist weitergezogen`, `Ihr Lieben,
+ich bin heute früh losgereist – danke für die schöne Zeit auf eurer Insel! Ich schicke euch eine Postkarte von unterwegs.
+Das Grundstück lege ich euch bei, falls bald wieder jemand einziehen möchte.
+
+${vname(id)}`, 'grundstueck', 1);
+    (s.diary ||= []).push({ day: s.day, icon: '📦', text: `${VISITORS[id].name} ist weitergezogen.` });
+  }
+  // Eingeladene ziehen auf ein freies Grundstück
+  for (const id of [...s.pending]) {
+    const plot = Object.entries(s.obj).find(([, o]) => o?.k === 'grundstueck');
+    if (!plot) break;
+    s.obj[plot[0]] = { k: 'nachbarhaus', r: plot[1].r || 0, who: id };
+    s.residents[id] = { day: s.day, home: plot[0], f: s.camper?.id === id ? s.camper.f || 30 : 30 };
+    s.pending = s.pending.filter(x => x !== id);
+    if (s.camper?.id === id) s.camper = null;
+    note(s, `🏠 ${vname(id)} wohnt jetzt bei euch!`, `Hallo ihr Lieben!
+Ich bin eingezogen – mein Häuschen ist wunderschön geworden. Kommt mich doch mal besuchen!
+
+${vname(id)}`);
+    moment(s, 'movein:' + id, '🏠', `${VISITORS[id].name} zieht ein`, 'Aus einem Campingbesuch wurde ein neues Zuhause.');
+  }
+  // Besuch reist nach einem Tag weiter (außer er wartet aufs Grundstück)
+  if (s.camper && s.camper.day < s.day && !s.pending.includes(s.camper.id)) s.camper = null;
+  const camp = Object.values(s.obj || {}).some(o => o?.k === 'campingplatz');
+  if (camp && !s.camper && Math.random() < 0.6) {
+    const pool = VISITOR_KEYS.filter(id => !s.residents[id] && !s.pending.includes(id));
+    if (pool.length) {
+      const id = pick(pool);
+      s.camper = { id, day: s.day, f: 0 };
+      s.stats.campers = (s.stats.campers || 0) + 1;
+      note(s, `🏕️ Besuch auf dem Campingplatz: ${vname(id)}`, `Liebe Bürgermeister,
+heute zeltet ${vname(id)} auf dem Campingplatz. Sagt doch mal Hallo! Wer weiß – vielleicht gefällt es ${VISITORS[id].name} hier so gut, dass ${VISITORS[id].name} bleiben möchte.
+
+Eure Rosi 🦌`);
+    }
+  }
+  // Manchmal denkt jemand übers Weiterziehen nach – aber nur mit eurer Zustimmung
+  if (!Object.values(s.residents).some(r => r.ask || r.leave)) for (const [id, r] of Object.entries(s.residents)) {
+    if (s.day - r.day > 10 && Math.random() < 0.05) { r.ask = s.day; note(s, `💭 ${vname(id)} überlegt umzuziehen`, `Ihr Lieben,
+ich liebe eure Insel … aber ich träume auch von der weiten Welt. Was meint ihr? Kommt bei mir vorbei und sagt mir, ob ich gehen oder bleiben soll.
+
+${vname(id)}`); break; }
+  }
+}
+const vok = (s, id) => typeof id === 'string' && VISITORS[id] && (s.residents?.[id] || s.camper?.id === id);
+const vrec = (s, id) => s.residents?.[id] || (s.camper?.id === id ? s.camper : null);
+
 // ---------- Neue Felder für alte Spielstände ----------
 export function migrateX(s) {
   s.stats ||= {};
+  for (const n of Object.values(s.npc || {})) if (n && typeof n === 'object') { if (!Array.isArray(n.sent)) n.sent = []; if (!Number.isFinite(n.f)) n.f = 0; } // ältere Stände ohne Briefliste
   s.book = Array.isArray(s.book) ? s.book.filter(p => p && typeof p.k === 'string').slice(-150) : [];
   if (!s.book.length && s.day >= 1) s.book.push({ k: 'start', day: 1, icon: '🏝️', title: `${s.name || 'Die Insel'} wird gegründet`, text: 'Ein Zelt, ein paar Bäume, viel Meer – und ganz viel vor.', t: Date.now() });
   const a = s.anniv && typeof s.anniv === 'object' ? s.anniv : {};
@@ -362,6 +478,13 @@ export function migrateX(s) {
   s.tmap = s.tmap && Number.isInteger(s.tmap.n) ? { n: Math.min(4, Math.max(0, s.tmap.n)), spot: typeof s.tmap.spot === 'string' && /^-?\d+,-?\d+$/.test(s.tmap.spot) ? s.tmap.spot : null } : { n: 0, spot: null };
   if (s.fw && !(Number.isInteger(s.fw.day))) s.fw = null;
   fiveStars(s);
+  s.patterns = Array.from({ length: PAT_SLOTS }, (_, i) => { const p = Array.isArray(s.patterns) ? s.patterns[i] : null; return p && validPx(p.px) ? { name: String(p.name || 'Muster').slice(0, 20), px: p.px, by: String(p.by || '').slice(0, 16) } : null; });
+  if (s.melody && !(Array.isArray(s.melody.notes) && s.melody.notes.length === 16 && s.melody.notes.every(n => Number.isInteger(n) && n >= 0 && n < MEL_NOTES.length))) s.melody = null;
+  for (const k of ['flagPat', 'pathPat']) if (!(Number.isInteger(s[k]) && s.patterns[s[k]])) s[k] = null;
+  if (s.trip && !(Number.isInteger(s.trip.seed) && Number.isInteger(s.trip.day))) s.trip = null;
+  s.residents = s.residents && typeof s.residents === 'object' ? Object.fromEntries(Object.entries(s.residents).filter(([id, r]) => VISITORS[id] && r && typeof r === 'object')) : {};
+  s.pending = Array.isArray(s.pending) ? s.pending.filter(id => VISITORS[id] && !s.residents[id]).slice(0, MAX_RESIDENTS) : [];
+  if (s.camper && !VISITORS[s.camper.id]) s.camper = null;
   if (!s.stall || !Array.isArray(s.stall.offers)) s.stall = { offers: [], log: [] };
   s.stall.offers = s.stall.offers.filter(o => o && ITEMS[o.id] && Number.isInteger(o.n) && o.n > 0).slice(0, STALL_MAX);
   if (cookDay(s) && s.cook?.day !== s.day) cookStart(s);
@@ -379,6 +502,7 @@ export function morningX(s) {
   if (s.cook && !s.cook.done) cookFinish(s); // gestern nicht mehr ausgewertet
   cookStart(s);
   nightStock(s);
+  campMorning(s);
   makePaper(s);
 }
 // Nach jeder Aktion: Katalog, Fotobuch
@@ -492,6 +616,83 @@ export const X_ACTIONS = {
     if (st.log.length > 12) st.log.shift();
     out.msg = `🤝 Getauscht! ${o.n}× ${ITEMS[o.id].icon} ${ITEMS[o.id].name} ist jetzt deins.`;
     out.snd = 'love';
+    return true;
+  },
+  tripgo(s, a, out) { // mit Käpt'n Flossi zur Zufallsinsel (jeden Tag eine neue)
+    if (s.money < TRIP_PRICE) { out.msg = `Der Ausflug kostet ${fmt(TRIP_PRICE)} Taler.`; return false; }
+    s.money -= TRIP_PRICE;
+    if (s.trip?.day !== s.day) s.trip = { seed: 1 + rnd(2 ** 30), day: s.day, used: {} };
+    const K = TRIP_KINDS[tripLayout(s.trip.seed).kind];
+    s.stats.isleTrips = (s.stats.isleTrips || 0) + 1;
+    out.msg = `⛵ Heute geht's zur ${K.icon} ${K.name}! ${K.desc}.`;
+    out.trip = 1;
+    out.snd = 'splash';
+    return true;
+  },
+  tact,
+  vtalk(s, a, out) { // mit Besuch plaudern
+    if (!vok(s, a.id)) return false;
+    const r = vrec(s, a.id);
+    if (r.talked !== s.day) { r.talked = s.day; r.f = (r.f || 0) + 6; S.questEventX(s, 'talk', 1, out); }
+    return true;
+  },
+  vgift(s, a, out) { // Besuch beschenken
+    if (!vok(s, a.id) || typeof a.item !== 'string' || !ITEMS[a.item] || ITEMS[a.item].gear || !S.takeInvX(s, a.item, 1)) return false;
+    const r = vrec(s, a.id), V = VISITORS[a.id], love = V.loves.includes(a.item), like = V.likes.includes(a.item);
+    r.f = (r.f || 0) + (love ? 30 : like ? 15 : 6);
+    out.msg = `${V.icon} ${V.name}: ${love ? '„Waaas?! Das ist ja mein Allerliebstes! Danke, danke, danke!“' : like ? '„Oh, wie lieb! Das mag ich sehr.“' : '„Danke schön! Wie aufmerksam.“'}`;
+    out.snd = love ? 'love' : 'harvest';
+    S.questEventX(s, 'gift', 1, out);
+    return true;
+  },
+  vinvite(s, a, out) { // Besuch zum Bleiben einladen
+    if (s.camper?.id !== a.id || !VISITORS[a.id]) return false;
+    if (Object.keys(s.residents || {}).length + (s.pending || []).length >= MAX_RESIDENTS) { out.msg = `Es wohnen schon ${MAX_RESIDENTS} Gäste auf der Insel – mehr Platz gibt es nicht.`; return false; }
+    if ((s.pending ||= []).includes(a.id)) return false;
+    s.pending.push(a.id);
+    S.addInvX(s, 'grundstueck', 1);
+    out.msg = `🏡 ${vname(a.id)} möchte bleiben! Stell das 🪧 Grundstück im 🔨 Baumodus auf – am nächsten Morgen steht dort ein Häuschen.`;
+    out.got = 'grundstueck';
+    out.snd = 'fanfare';
+    return true;
+  },
+  vmove(s, a, out) { // Umzugsfrage beantworten
+    const r = s.residents?.[a.id];
+    if (!r?.ask || typeof a.ok !== 'boolean') return false;
+    if (a.ok) { r.leave = s.day; r.ask = 0; out.msg = `${vname(a.id)}: „Danke, dass ihr mich versteht. Morgen früh reise ich los. Ich werde euch vermissen!“`; }
+    else { r.ask = 0; r.f = (r.f || 0) + 20; out.msg = `${vname(a.id)}: „Ihr wollt, dass ich bleibe? … Dann bleibe ich! 💕“`; }
+    out.snd = 'love';
+    return true;
+  },
+  melody(s, a, out) { // eigene Inselmelodie (16 Schritte, 0 = Pause, 1–10 = Töne)
+    if (!Array.isArray(a.notes) || a.notes.length !== 16 || !a.notes.every(n => Number.isInteger(n) && n >= 0 && n < MEL_NOTES.length) || !a.notes.some(n => n)) return false;
+    s.melody = { notes: a.notes.slice(), made: s.day, by: (a.by || '').slice(0, 16) };
+    out.msg = '🎶 Die neue Inselmelodie ist gespeichert! Sie erklingt, wenn jemand ankommt, und mittags am Rathaus.';
+    out.snd = 'ach';
+    return true;
+  },
+  patsave(s, a, out) { // Muster speichern
+    if (!Number.isInteger(a.i) || a.i < 0 || a.i >= PAT_SLOTS || !validPx(a.px)) return false;
+    s.patterns ||= [];
+    s.patterns[a.i] = { name: (typeof a.name === 'string' && a.name.trim() ? a.name.trim() : 'Muster ' + (a.i + 1)).slice(0, 20), px: a.px, by: (a.by || '').slice(0, 16) };
+    out.msg = `🎨 „${s.patterns[a.i].name}“ gespeichert`;
+    out.snd = 'place';
+    return true;
+  },
+  patuse(s, a, out) { // als Inselfahne oder Muster-Weg benutzen
+    if (!Number.isInteger(a.i) || !s.patterns?.[a.i] || !['flag', 'path'].includes(a.as)) return false;
+    s[a.as === 'flag' ? 'flagPat' : 'pathPat'] = a.i;
+    out.msg = a.as === 'flag' ? '🚩 Die Inselfahne zeigt jetzt dein Muster!' : '🎨 Muster-Wege zeigen jetzt dieses Muster (Wege-Designer → 🎨 Muster-Weg).';
+    out.snd = 'love';
+    return true;
+  },
+  hpat(s, a, out) { // Bilderrahmen im Haus: nächstes Muster zeigen
+    const k = `${a.x},${a.z}`, o = s.home?.walls?.[k] || s.home?.items?.[k];
+    if (!o || !FURNITURE[o.k]?.pattern) return false;
+    const have = (s.patterns || []).map((p, i) => p ? i : -1).filter(i => i >= 0);
+    if (!have.length) { out.msg = '🎨 Male erst ein Muster im Muster-Editor (📱 → 🎨).'; return false; }
+    o.p = have[(have.indexOf(o.p) + 1) % have.length];
+    out.snd = 'click';
     return true;
   },
   catbuy(s, a, out) { // aus dem Katalog nachbestellen

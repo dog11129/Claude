@@ -4,10 +4,11 @@ import { settingsHtml } from './menu.js';
 import { boxCap, AREAS } from './state.js';
 import { itemIcon, fillIcons } from './icons.js';
 import { price, upgradeInfo, seasonOf, hearts, halfDay, turnipSeller, turnipPrice, festOf, birthdayOf, contestOpen, daySea } from './state.js';
-import { NPCS, letter, requestLine } from './npc.js';
+import { NPCS, letter, requestLine, npcLine } from './npc.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
-import { WEATHER, WEEK_GOALS, catalogPrice, annivToday, cookDay, cookOpen, nightOpen, STALL_MAX } from './extras.js';
+import { TRIP_KINDS, TRIP_PRICE, tripLayout } from './trips.js';
+import { VISITORS, vhearts, MEL_NOTES, MEL_DEFAULT, WEATHER, WEEK_GOALS, catalogPrice, annivToday, cookDay, cookOpen, nightOpen, STALL_MAX } from './extras.js';
 import {
   PROJECTS, ORDS, ORD_PRICE, ord, WARDROBE, SONGS, TOURS, MEDAL_SHOP, BOAT_PRICE, STREET_SHOPS, TROPIC_HUT, shopHours, shopOpen, concertNow,
   homeScore, hhaRank, HHA_RANKS, islandScore, buyPrice, fmt, hourOf,
@@ -26,10 +27,11 @@ export const TABS = {
   mayor: [['projects', '🏗️ Projekte'], ['areas', '🗺️ Erweiterungen'], ['ords', '📜 Verordnungen'], ['house', '🏡 Haus & Kredit'], ['hha', '🛋️ Wohnwert'], ['stars', '⭐ Inselbewertung']],
   garden: [['seeds', '🌱 Samen'], ['plants', '🌳 Pflanzen']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
+  piano: [['keys', '🎹 Klavier'], ['song', '🎶 Inselmelodie']],
   news: [['paper', '📰 Zeitung'], ['week', '🤝 Wochenziele']],
   book: [['pages', '📸 Momente'], ['photos', '🖼️ Fotos'], ['anniv', '🎂 Jahrestage']],
 };
-const TITLES = { night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
+const TITLES = { visitor: '💬 Besuch', piano: '🎹 Klavier & Inselmelodie', patterns: '🎨 Muster-Editor', night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -169,6 +171,7 @@ const PANELS = {
       let h = '<div class="note">Plaudert jeden Tag mit euren Nachbarn und macht ihnen Geschenke – je mehr Herzen, desto mehr verraten sie über sich (und schicken euch Briefe 💌).</div>';
       for (const [id, N] of Object.entries(NPCS)) {
         if (N.visitor) continue;
+        if (N.visitor) continue;
         const hh = hearts(s, id), n = s.npc[id] || {};
         const lk = hh >= 2 ? N.likes.map(i => ITEMS[i].icon).join(' ') : '❔❔', lv = hh >= 4 ? N.loves.map(i => ITEMS[i].icon).join(' ') : '❔';
         h += `<div class="row"><div class="ic">${N.icon}</div><div class="tx"><b>${N.name} <span class="lv">${N.role}</span></b><small>${N.bio}</small>
@@ -250,7 +253,7 @@ const PANELS = {
       ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
       ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
       ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0],
-      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
+      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
     const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
     return `<div class="phone-top"><b>${s.real ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : `${hh}:${String(mm).padStart(2, '0')}`}</b><span>${WEEKDAYS[weekday(s.day)]} · ${esc(s.name)}</span></div>
       <div class="apps">${apps.map(([id, ic, l, c, dot]) => `<button data-ui="app" data-app="${id}"><span class="ai" style="background:${c}">${ic}${dot ? `<i>${dot}</i>` : ''}</span><small>${l}</small></button>`).join('')}</div>`;
@@ -387,6 +390,47 @@ const PANELS = {
     const list = arr => arr.sort((a, b) => ITEMS[a].name.localeCompare(ITEMS[b].name)).map(id => { const c = catalogPrice(id); return row(itemIcon(id), ITEMS[id].name, `${s.inv[id] ? `${s.inv[id]}× in der Tasche · ` : ''}sofort nachbestellbar`, btn(`🪙 ${c.toLocaleString('de-DE')}`, { t: 'catbuy', id }, '', s.money < c)); }).join('');
     return `<div class="note">📦 Alles, was ihr je besessen habt (${ids.length} Sachen) – hier könnt ihr es nachbestellen.</div>${furn.length ? '<h3>🛋️ Möbel</h3>' + list(furn) : ''}${deco.length ? '<h3>🏮 Garten & Deko</h3>' + list(deco) : ''}`;
   },
+  visitor(s, g) {
+    const id = g.visitor, N = NPCS[id], V = VISITORS[id];
+    if (!N || !V) return '';
+    const r = s.residents?.[id], camp = s.camper?.id === id ? s.camper : null, rec = r || camp;
+    if (!rec) return '<div class="note">Nicht mehr da.</div>';
+    const h = vhearts(rec.f), line = g.vline?.[0] === id ? g.vline[1] : (g.vline = [id, npcLine(id, { hour: 6 + s.dayTime * 18, player: g.myName, hearts: h * 1 })])[1];
+    let out = hero(`${N.icon} ${N.name}`, `${N.species} · ${N.role}${r ? ' · wohnt hier' : ' · zeltet auf dem Campingplatz'}`, `„${esc(line)}“<br><small>${esc(N.bio)}</small><br>${'💗'.repeat(Math.ceil(h / 2))}${'🤍'.repeat(5 - Math.ceil(h / 2))}`);
+    if (r?.ask) out += `<div class="note">💭 <b>${N.name} überlegt umzuziehen.</b> Was meint ihr?</div><div class="pattools"><button class="btn small pink" data-act='${JSON.stringify({ t: 'vmove', id, ok: false })}'>💕 Bitte bleib!</button><button class="btn small white" data-act='${JSON.stringify({ t: 'vmove', id, ok: true })}'>🧳 Alles Gute, zieh ruhig</button></div>`;
+    if (r?.leave) out += `<div class="note">🧳 ${N.name} reist morgen früh weiter.</div>`;
+    if (camp && !(s.pending || []).includes(id)) out += `<div class="note">🏡 Gefällt es ${N.name} hier? Ladet ${N.name} ein zu bleiben – ihr bekommt ein Grundstück zum Aufstellen.</div><div class="pattools"><button class="btn small pink" data-act='${JSON.stringify({ t: 'vinvite', id })}'>🏡 Zum Bleiben einladen</button></div>`;
+    if ((s.pending || []).includes(id)) out += `<div class="note">🪧 ${N.name} wartet darauf, dass ihr das Grundstück aufstellt (🔨 Baumodus).</div>`;
+    const gifts = Object.keys(s.inv).filter(k => s.inv[k] > 0 && ITEMS[k] && !ITEMS[k].gear && !ITEMS[k].seed && k !== 'grundstueck').slice(0, 30);
+    if (gifts.length) out += `<h3>🎁 Etwas schenken</h3>${gifts.map(k => row(itemIcon(k), ITEMS[k].name + (V.loves.includes(k) ? ' 💖' : V.likes.includes(k) ? ' 💗' : ''), `${s.inv[k]}× in der Tasche`, btn('Schenken', { t: 'vgift', id, item: k }))).join('')}`;
+    return out;
+  },
+  piano(s, g, tab) {
+    if (tab === 'song') {
+      const notes = g.melEdit ||= (s.melody?.notes || MEL_DEFAULT).slice(), names = ['Pause', 'C', 'D', 'E', 'G', 'A', 'c', 'd', 'e', 'g', 'a'];
+      let grid = '';
+      for (let r = MEL_NOTES.length - 1; r >= 1; r--) grid += `<div class="melrow"><span>${names[r]}</span>${notes.map((n, i) => `<button data-ui="melset" data-i="${i}" data-n="${r}" class="${n === r ? 'on' : ''}${i % 4 === 0 ? ' beat' : ''}"></button>`).join('')}</div>`;
+      return `<div class="note">🎶 Komponiert eure eigene <b>Inselmelodie</b>: 16 Schritte, tippe in jeder Spalte einen Ton an (nochmal = Pause). Sie erklingt, wenn jemand auf der Insel ankommt, und jeden Mittag am Rathaus.${s.melody?.by ? ` Aktuell von ${esc(s.melody.by)}.` : ''}</div>
+        <div class="melgrid">${grid}</div><div class="pattools"><button class="btn small" data-ui="melplay">▶️ Anhören</button><button class="btn small pink" data-ui="melsave">💾 Als Inselmelodie speichern</button><button class="btn small white" data-ui="melreset">↩️ Zurücksetzen</button></div>`;
+    }
+    const keys = [];
+    for (let m = 60; m <= 84; m++) keys.push(m);
+    const black = m => [1, 3, 6, 8, 10].includes(m % 12);
+    return `<div class="note">🎹 Spiel Klavier! Mitspieler in der Nähe hören mit. PC: Tasten <b>A S D F G H J K L</b> (weiß) und <b>W E T Z U O P</b> (schwarz).</div>
+      <div class="piano">${keys.filter(m => !black(m)).map(m => `<div class="pk w" data-m="${m}">${black(m + 1) && m < 84 ? `<i class="pk b" data-m="${m + 1}"></i>` : ''}</div>`).join('')}</div>`;
+  },
+  patterns(s, g) {
+    const pats = s.patterns || [], cur = g.patEdit;
+    let h = '<div class="note">🎨 Malt eigene 16×16-Muster! Tragt sie als <b>Kleidung</b>, hisst sie auf der <b>🚩 Inselfahne</b> (im Laden), legt <b>🎨 Muster-Wege</b> oder hängt sie im Haus in einen <b>🖼️ Musterrahmen</b> (antippen = nächstes Muster).</div>';
+    h += `<div class="patslots">${Array.from({ length: 8 }, (_, i) => `<button class="patslot${cur?.i === i ? ' on' : ''}" data-ui="patpick" data-i="${i}"><canvas width="48" height="48" data-pat="${i}"></canvas><small>${pats[i] ? esc(pats[i].name) : 'leer'}</small></button>`).join('')}</div>`;
+    if (!cur) return h + '<div class="note">Tippe auf ein Feld, um zu malen.</div>';
+    const p = pats[cur.i];
+    h += `<div class="pated"><canvas id="patcv" width="320" height="320"></canvas><div class="patpal">${['transparent', '#ffffff', '#2b2321', '#ff6b6b', '#ff9a3c', '#ffd23f', '#8fd694', '#3fa66a', '#6cc4ff', '#3f6fd8', '#b39cff', '#ff8fab', '#f5c9a8', '#a0693f', '#9aa0a8', '#fff1c9'].map((c, i) => `<button data-ui="patcol" data-c="${i}" class="${cur.c === i ? 'on' : ''}" style="background:${i ? c : 'repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 50% / 10px 10px'}"></button>`).join('')}</div>
+      <div class="pattools"><button class="btn small white${cur.tool === 'pen' ? ' on' : ''}" data-ui="pattool" data-t="pen">✏️ Stift</button><button class="btn small white${cur.tool === 'fill' ? ' on' : ''}" data-ui="pattool" data-t="fill">🪣 Füllen</button><button class="btn small white" data-ui="patclear">🧽 Leeren</button></div>
+      <div class="diaryadd"><input id="patname" maxlength="20" placeholder="Name" value="${esc(p?.name || '')}"><button class="btn small pink" data-ui="patsave">💾 Speichern</button></div>
+      <div class="pattools">${p ? `<button class="btn small" data-ui="patwear">👕 Anziehen</button><button class="btn small" data-act='${JSON.stringify({ t: 'patuse', i: cur.i, as: 'flag' })}'>🚩 Als Inselfahne${s.flagPat === cur.i ? ' ✓' : ''}</button><button class="btn small" data-act='${JSON.stringify({ t: 'patuse', i: cur.i, as: 'path' })}'>🎨 Als Weg${s.pathPat === cur.i ? ' ✓' : ''}</button>` : '<small>Erst speichern, dann anziehen oder als Fahne/Weg benutzen.</small>'}</div></div>`;
+    return h;
+  },
   night(s) {
     let h = hero('🦋 Mottilda', 'Der Nachtmarkt', 'Psst … Ich bin nur freitagabends hier. Seltene Schätze, die es nirgends sonst gibt! Aber Vorsicht: Es sind Fälschungen im Umlauf. <b>Echte Ware trägt mein Siegel – eine silberne Motte mit VIER Punkten.</b>');
     if (!nightOpen(s) || s.night?.day !== s.day) return h + '<div class="note">🌙 Der Nachtmarkt öffnet freitags ab 18 Uhr auf dem Dorfplatz.</div>';
@@ -436,6 +480,7 @@ const PANELS = {
       🍎 Bäume schütteln: Obst fällt herunter (wächst in 3 Tagen nach). Mit der Axt 🪓 gibt's Holz.<br>
       🌷 Samen auf den Rasen pflanzen ➜ Gießkanne 💧 ➜ pflücken. Blumen blühen immer wieder.<br>
       🐚 Muscheln am Strand aufheben, 🌿 Unkraut zupfen, ✨ Stern-Risse mit der Schaufel ausgraben.<br>
+      🌟 <b>Neu:</b> 📰 Zeitung · 📸 Fotobuch & Postkarten · 🎂 Jahrestage · 📦 Katalog · 🎨 Muster · 🎹 Klavier & Inselmelodie (alles im Inselhandy) · 🪏 Baumschaufel · 🏆 Kochwettbewerb sonntags in der Gartenküche · 🏮 Nachtmarkt freitags ab 18 Uhr · 🏪 Tauschstand · ⛵ Ausflüge zu Zufallsinseln · 🏕️ Campingplatz (Rathaus) · ☁️ Cloud-Spielstand unter „Meine Inseln“.<br>
       🎣 Am Fluss, Teich, Meer oder vom Steg angeln: warten bis ❗ erscheint, dann schnell nochmal drücken.<br>
       🏛️ Fische, Insekten und Fossilien im Museum ausstellen.<br>
       🪑 Auf Bänke kannst du dich setzen, und deinen Lieblingsmenschen kannst du umarmen 🤗.<br>
@@ -536,7 +581,9 @@ Object.assign(PANELS, {
   },
   boat(s) {
     return hero('🦭 Käpt\'n Flossi', 'Ahoi! Zur Tropeninsel?', `Hinter dem Horizont liegt eine kleine Tropeninsel: immer Sommer, seltene Käfer, süße Früchte und Kikis Tauschhütte mit Touren. Die Überfahrt kostet ${money(BOAT_PRICE)} – zurück ist gratis.`)
-      + `<button class="big pink" data-ui="sail"${s.money < BOAT_PRICE ? ' disabled' : ''}><span class="i">⛵</span><span>Ablegen!<small>${fmt(BOAT_PRICE)} Taler</small></span></button>`;
+      + `<button class="big pink" data-ui="sail"${s.money < BOAT_PRICE ? ' disabled' : ''}><span class="i">⛵</span><span>Zur Tropeninsel<small>${fmt(BOAT_PRICE)} Taler</small></span></button>`
+      + `<div class="note" style="margin-top:10px">🎲 <b>Ausflug ins Blaue:</b> Jeden Tag fahre ich zu einer anderen kleinen Insel – mal Bambus, mal ein Wasserfall mit seltenen Fischen, mal Kristalle, Blüten, Obst oder ganz viele Krabbeltiere!${s.trip?.day === s.day ? ' Heute: <b>' + TRIP_KINDS[tripLayout(s.trip.seed).kind].icon + ' ' + TRIP_KINDS[tripLayout(s.trip.seed).kind].name + '</b>.' : ''}</div>`
+      + `<button class="big" data-ui="trip"${s.money < TRIP_PRICE ? ' disabled' : ''}><span class="i">🎲</span><span>Ausflug zur Zufallsinsel<small>${fmt(TRIP_PRICE)} Taler</small></span></button>`;
   },
   boatback(s) {
     return hero('🦭 Käpt\'n Flossi', 'Schon genug Sonne?', s.tour ? 'Achtung: Eure Tour läuft noch!' : 'Ich bringe dich zurück zum Steg auf eurer Insel.')
@@ -658,7 +705,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;

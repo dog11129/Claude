@@ -1,6 +1,7 @@
 // Spieler-Avatare: anpassbares Aussehen, Gelenke (Hüfte, Schultern, Hals) für Animationen, Werkzeug in der Hand, Haustiere.
 // Jedes Körperteil ist EIN Mesh mit Vertex-Farben (merge + MAT) -> 8 Draw-Calls pro Spieler, 5 pro Haustier.
 import * as THREE from '../vendor/three.module.min.js';
+import { patMesh } from './patterns.js';
 import { MAT, merge, box, ball, cyl, cone } from './models.js';
 import { keyedGeometry, hasModel } from './assets.js';
 
@@ -37,9 +38,10 @@ export function cleanLook(p) {
   const d = defaultLook(), o = p && typeof p === 'object' ? p : {}, ok = (k, v) => ids(k).includes(v), r = {};
   for (const k of KEYS) r[k] = ok(k, o[k]) ? o[k] : d[k];
   if (!ok('topColor', o.topColor) && ok('topColor', o.color)) r.topColor = o.color;
+  if (typeof o.pat === 'string' && /^[0-9a-f]{256}$/.test(o.pat)) r.pat = o.pat; // eigenes Muster auf dem Oberteil
   return r;
 }
-export const lookKey = l => KEYS.map(k => l[k]).join('|');
+export const lookKey = l => KEYS.map(k => l[k]).join('|') + (l.pat ? '|' + l.pat : '');
 
 // ---------- Bauteile ----------
 const part = (g, c, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => {
@@ -332,6 +334,12 @@ export function makeAvatar(look) {
   const l = cleanLook(look);
   const root = new THREE.Group(), rig = grp(root), hips = grp(rig, 0, HIP), torso = grp(hips);
   const body = mesh(bgeo(['av_torso_' + l.top], l, 'torso' + [l.top, l.topColor, l.bottomColor], () => torsoParts(l)), torso);
+  if (l.pat) { // Muster-Shirt: bedruckte Hülle ums Oberteil
+    const dress = l.top === 'dress', g = new THREE.CylinderGeometry(dress ? 0.175 : 0.171, dress ? 0.235 : 0.207, dress ? 0.3 : 0.25, 24, 1, true);
+    const pm = patMesh(g, l.pat, { repeat: 2 });
+    pm.position.y = dress ? 0.21 : 0.245;
+    torso.add(pm);
+  }
   const legG = bgeo([l.top === 'dress' ? 'av_leg_dress' : 'av_leg_pants'], l, 'leg' + [l.top, l.bottomColor, l.shoes, l.skin], () => legParts(l));
   const armG = bgeo([l.top === 'hoodie' ? 'av_arm_hoodie' : l.top === 'vest' ? 'av_arm_vest' : 'av_arm_short'], l, 'arm' + [l.top, l.topColor, l.skin], () => armParts(l));
   // Figur schaut nach +z: linke Seite = +x, rechte Seite = -x

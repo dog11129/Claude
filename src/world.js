@@ -39,6 +39,7 @@ import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE, FEST_DECO, CONTEST_AT, FESTS } from './data.js';
 import { grass as onGrass } from './island.js';
 import { nightOpen, NIGHT_AT } from './extras.js';
+import { patMesh, patTexture } from './patterns.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
 import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng, COAST_GLSL } from './island.js';
@@ -1016,7 +1017,7 @@ export class World {
     this.lanterns = [];
     this.sprinklers = [];
     for (const [k, o] of Object.entries(s.obj)) {
-      const p = PLACE[o.k], ready = p.kind === 'producer' && o.t >= p.every, sig = `${o.k}|${o.r}|${ready}`;
+      const p = PLACE[o.k], ready = p.kind === 'producer' && o.t >= p.every, flag = o.k === 'fahne' ? s.patterns?.[s.flagPat]?.px || '' : '', sig = `${o.k}|${o.r}|${ready}|${flag}`;
       seen.add(k);
       let e = this.objs.get(k);
       if (e && e.sig !== sig) { this.scene.remove(e.m); e = null; }
@@ -1027,13 +1028,26 @@ export class World {
         m.rotation.y = o.r * Math.PI / 2;
         if (!m.userData.asset && ['kirschbaum', 'blumen'].includes(o.k)) m.children[0].material = WIND_CROP;
         if (!m.userData.asset && p.kind === 'producer') m.children[0].material = WIND_TREE;
+        let cloth = null;
+        if (o.k === 'fahne') { // Inselfahne mit eigenem Muster
+          const g = new THREE.PlaneGeometry(0.84, 0.6, 6, 1);
+          g.translate(0.44, 0, 0);
+          cloth = patMesh(g, flag || '0'.repeat(256), { bg: flag ? '#ffffff' : '#ff8fab', side: THREE.DoubleSide, shadow: true });
+          cloth.position.set(0.03, 1.68, 0);
+          m.add(cloth);
+        }
         this.scene.add(m);
-        e = { m, sig, x, z, born: this.time };
+        e = { m, sig, x, z, born: this.time, cloth };
         this.objs.set(k, e);
       }
       const pop = Math.min(1, (this.time - e.born) * 4);
       e.m.scale.setScalar(pop < 1 ? 0.6 + 0.4 * pop + Math.sin(pop * Math.PI) * 0.2 : 1);
       if (p.glow) this.lanterns.push(e);
+      if (e.cloth) { // Fahne weht im Wind
+        const a = e.cloth.geometry.attributes.position;
+        for (let i = 0; i < a.count; i++) { const u = a.getX(i); a.setZ(i, Math.sin(this.time * 4 - u * 5 + e.x) * 0.06 * u); }
+        a.needsUpdate = true;
+      }
       if (p.kind === 'machine') {
         if (o.n > 0) e.m.scale.y = 1 + Math.sin(this.time * 10) * 0.03;
         if (o.o > 0) this.tag('o' + k, `${ITEMS[p.out].icon}<b>${o.o}</b>`, e.x, 1.4, e.z, 'bubble');
@@ -1065,12 +1079,17 @@ export class World {
     this.furnM ||= new Map();
     const seen = new Set();
     for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r'], [h.walls || {}, 'w']]) for (const [k, o] of Object.entries(map)) {
-      const id = tag + k + o.k + o.r, f = FURNITURE[o.k];
+      const px = FURNITURE[o.k]?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px;
       if (!f) continue;
       seen.add(id);
       if (this.furnM.has(id)) continue;
       const [x, z] = k.split(',').map(Number), [fw, fd] = o.r % 2 ? [f.d, f.w] : [f.w, f.d];
       const m = model(o.k) || makeFurniture(o.k);
+      if (f.pattern) { // Musterrahmen: eigenes Bild
+        const pic = patMesh(new THREE.PlaneGeometry(0.56, 0.56), px || '0'.repeat(256), { bg: px ? '#ffffff' : '#f4ece0' });
+        pic.position.set(0, 1.45, -0.425);
+        m.add(pic);
+      }
       m.position.set(HOME_X + x + (fw - 1) / 2, f.rug ? 0.005 : 0, z + (fd - 1) / 2);
       m.rotation.y = o.r * Math.PI / 2;
       m.traverse(c => { if (c.isMesh) { c.castShadow = !f.rug; c.receiveShadow = true; } });
@@ -1363,10 +1382,10 @@ export class World {
   }
   npcNear(x, z, r = 1.1) {
     let best = null, bd = r;
-    for (const [id, e] of this.npcM || []) {
+    for (const [id, e] of [...(this.npcM || []), ...(this.visM || [])]) {
       if (!e.awake) continue;
       const d = Math.hypot(e.x - x, e.z - z);
-      if (d < bd) { bd = d; best = { id, x: e.x, z: e.z }; }
+      if (d < bd) { bd = d; best = { id, x: e.x, z: e.z, visitor: !!e.visitor }; }
     }
     return best;
   }
@@ -1375,7 +1394,7 @@ export class World {
 
   // ---------- Insel-Designer: selbst verlegte Wege ----------
   syncPaths(s) {
-    const sig = JSON.stringify(s.paths || {});
+    const mpx = s.patterns?.[s.pathPat]?.px || '', sig = JSON.stringify(s.paths || {}) + mpx;
     if (sig === this.pathSig) return;
     this.pathSig = sig;
     if (!this.pathM) {
@@ -1387,6 +1406,7 @@ export class World {
         sand: (g, r) => { for (let i = 0; i < 120; i++) { g.fillStyle = `hsl(42 50% ${78 + r() * 14}%)`; g.fillRect(r() * 128, r() * 128, 2, 2); } },
         stein: (g, r) => { g.fillStyle = '#9c968e'; g.fillRect(0, 0, 128, 128); for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { g.fillStyle = `hsl(30 6% ${66 + r() * 14}%)`; g.beginPath(); g.roundRect(x * 32 + 2 + (y % 2) * 8, y * 32 + 2, 28, 28, 8); g.fill(); } },
         ziegel: (g, r) => { g.fillStyle = '#e8d5c0'; g.fillRect(0, 0, 128, 128); for (let y = 0; y < 8; y++) for (let x = -1; x < 4; x++) { g.fillStyle = `hsl(12 55% ${50 + r() * 12}%)`; g.fillRect(x * 32 + (y % 2) * 16 + 2, y * 16 + 2, 28, 12); } },
+        muster: g => { g.fillStyle = '#f2c9d8'; g.fillRect(0, 0, 128, 128); },
         holz: (g, r) => { for (let x = 0; x < 6; x++) { g.fillStyle = `hsl(28 45% ${52 + r() * 12}%)`; g.fillRect(x * 21.3, 0, 20, 128); g.fillStyle = 'rgba(80,50,30,.35)'; g.fillRect(x * 21.3 + 4, 20 + r() * 80, 2, 2); } },
       };
       for (const [k, P] of Object.entries(PAVE)) {
@@ -1399,6 +1419,7 @@ export class World {
         this.scene.add(m);
       }
     }
+    if (this.pathM.muster) { const mt = this.pathM.muster.material; mt.userData.base ||= mt.map; mt.map = mpx ? patTexture(mpx, 1, '#efe4d2') : mt.userData.base; mt.needsUpdate = true; }
     const n = {};
     for (const [k, t] of Object.entries(s.paths || {})) {
       const m = this.pathM[t];
@@ -1656,6 +1677,35 @@ export class World {
       this.burst(NIGHT_AT[0], NIGHT_AT[1], 'sparkle', 1);
     } else if (!open && this.nightM) { this.vanish(this.nightM); this.nightM = null; }
     if (this.nightM) this.tag('night', '🏮 Nachtmarkt', NIGHT_AT[0], 2.3, NIGHT_AT[1], 'bubble');
+    this.syncVisitors(s);
+  }
+  // Besuch vom Campingplatz und eingezogene Gäste: laufen gemütlich vor Zelt bzw. Häuschen herum
+  syncVisitors(s) {
+    this.visM ||= new Map();
+    const want = new Map(), hour = 6 + s.dayTime * 18, awake = hour >= 7 && hour < 21.5;
+    if (s.camper) { const camp = Object.entries(s.obj).find(([, o]) => o?.k === 'campingplatz'); if (camp) want.set(s.camper.id, camp[0]); }
+    for (const [id, r] of Object.entries(s.residents || {})) if (r.home && s.obj[r.home]) want.set(id, r.home);
+    for (const [id, e] of this.visM) if (!want.has(id)) { this.vanish(e.m); this.visM.delete(id); }
+    const dt = this.dt || 0.016;
+    for (const [id, home] of want) {
+      let e = this.visM.get(id);
+      const [hx, hz] = home.split(',').map(Number), ph = id.length * 1.7;
+      if (!e) { e = { m: makeNpc(id), x: hx + 1, z: hz + 1.6, ry: 0, speed: 0, awake: true, visitor: true }; this.scene.add(e.m); this.visM.set(id, e); }
+      e.m.visible = e.awake = awake;
+      if (!awake) continue;
+      const tx = hx + Math.sin(this.time * 0.11 + ph) * 1.6, tz = hz + 1.7 + Math.cos(this.time * 0.07 + ph) * 0.7, talk = this.npcTalk?.id === id;
+      const k = Math.min(1, dt * 1.5), ox = e.x, oz = e.z;
+      if (!talk) { e.x += (tx - e.x) * k; e.z += (tz - e.z) * k; }
+      const v = Math.hypot(e.x - ox, e.z - oz) / dt;
+      if (v > 0.05) e.ry = Math.atan2(e.x - ox, e.z - oz);
+      if (talk) e.ry = Math.atan2(this.npcTalk.x - e.x, this.npcTalk.z - e.z);
+      e.speed += (Math.min(0.7, v) - e.speed) * Math.min(1, dt * 6);
+      e.m.position.set(e.x, 0, e.z);
+      e.m.rotation.y += angDiff(e.m.rotation.y, e.ry) * Math.min(1, dt * 8);
+      e.m.userData.update(dt, { speed: e.speed, talking: talk, time: this.time });
+      const r = s.residents?.[id];
+      this.tag('vis' + id, `${NPCS[id].icon} ${NPCS[id].name}${r?.ask ? ' 💭' : s.camper?.id === id ? ' 🏕️' : ''}`, e.x, (e.m.userData.headTop || 1.2) + 0.3, e.z, 'name npc');
+    }
   }
 
   rotate(d) { this.yawT += d; }

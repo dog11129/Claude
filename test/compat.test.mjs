@@ -19,7 +19,7 @@ test('Alter Spielstand: nichts geht verloren', () => {
   assert.deepEqual(s.tiles, before.tiles, 'Beete bleiben');
   assert.deepEqual(s.museum, before.museum);
   assert.deepEqual(s.album, before.album);
-  assert.deepEqual(s.npc, before.npc);
+  for (const [id, n] of Object.entries(before.npc)) for (const [k, v] of Object.entries(n)) assert.deepEqual(s.npc[id][k], v, `Freundschaft ${id}.${k}`); // neue Felder (Briefliste) kommen nur dazu
   assert.deepEqual(s.ach, before.ach);
   assert.deepEqual(s.quest, before.quest);
   assert.deepEqual(s.daily, before.daily);
@@ -78,4 +78,29 @@ test('Insel auf neuem Gerät öffnen: eigene Tasche bleibt; Kopie einer Freundin
   claimHost(s, 'freundin123'); // die Freundin öffnet ihre Sicherheitskopie
   assert.equal(s.inv.mehl, 1, 'Freundin sieht ihre Tasche');
   assert.equal(s.pinv.u_abcdef1234.holz, 33, 'Tasche der Gastgeberin liegt sicher unter ihrem Schlüssel');
+});
+
+test('Alter Spielstand nach dem großen Inselleben-Update: alles bleibt, Neues kommt dazu', async () => {
+  const { tick, act } = await import('../src/state.js');
+  const before = old(), s = migrate(old());
+  // Neues ist da
+  for (const k of ['paper', 'book', 'anniv', 'catalog', 'week', 'patterns', 'stall', 'residents', 'tmap', 'trees']) assert.ok(s[k] !== undefined, k);
+  assert.equal(s.patterns.length, 8);
+  // Altes ist unverändert
+  assert.deepEqual(s.obj, before.obj);
+  assert.deepEqual(s.home.items, before.home.items);
+  assert.deepEqual(s.pinv.host, before.inv);
+  assert.equal(s.money, before.money);
+  // Ein ganzer Tag vergeht: nichts geht verloren, Möbel und Aufgestelltes bleiben
+  const objs = JSON.stringify(s.obj), home = JSON.stringify(s.home.items), mus = JSON.stringify(s.museum);
+  s.dayTime = 1; tick(s, 0.01, true);
+  assert.equal(JSON.stringify(s.obj), objs);
+  assert.equal(JSON.stringify(s.home.items), home);
+  assert.equal(JSON.stringify(s.museum), mus);
+  assert.equal(s.day, before.day + 1);
+  // Speichern & Laden (wie localStorage/Cloud) ändert nichts
+  const back = migrate(JSON.parse(JSON.stringify(s)));
+  for (const k of ['book', 'anniv', 'week', 'patterns', 'catalog', 'residents']) assert.deepEqual(back[k], s[k], k);
+  assert.ok(act(back, { t: 'patsave', i: 2, px: '3'.repeat(256), name: 'Herz' }).ok);
+  assert.equal(migrate(JSON.parse(JSON.stringify(back))).patterns[2].name, 'Herz');
 });

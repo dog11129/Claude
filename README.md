@@ -37,7 +37,31 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🔨 Neu: Bau- & Erweiterungs-Update
+### 🌟 Neu: Inselleben-Update
+- **Größere Hauptinsel:** Drei neue Landzungen im Osten, Süden und Südwesten mit eigenen Bäumen, Palmen und Felsen. Alte Spielstände bleiben unverändert – alle bisherigen Bäume stehen am selben Platz.
+- **🪏 Baumschaufel** (Krämerladen ➜ Werkzeug): Bäume und Palmen samt Wurzelballen ausgraben und woanders einpflanzen (Palmen auch auf Sand).
+- **📰 Inselbote (Zeitung):** Jeden Morgen neu – Wetter und Vorhersage, Rübenkurs, Inselgeflüster der Nachbarn, die Erfolge von gestern und die Wochenziele.
+- **🤝 Wochenziele:** Drei gemeinsame Aufgaben pro Woche (z. B. 20 Fische zusammen). Jedes Ziel gibt Taler, alle drei ein seltenes Möbelstück für jede/n.
+- **📸 Fotobuch:** Seiten füllen sich von selbst bei besonderen Momenten (erster Fisch, erstes Projekt, Feste, Opal-Fund, Besuch …) – mit automatischem Bild. Unter 🖼️ Fotos landen die Bilder aus dem Fotomodus; als 📮 Postkarte gehen sie an Mitspieler oder zum Teilen.
+- **🎂 Jahrestage:** Die Insel merkt sich ihren Gründungstag. Eigene Tage (z. B. euer Jahrestag) eintragen – an dem Tag gibt es Geschenke, eine Fotobuch-Seite und abends ein Feuerwerk.
+- **📦 Möbelkatalog:** Alles, was ihr je besessen habt, könnt ihr nachbestellen.
+- **Mehr Wetter:** ⛈️ Gewitter (Blitze, Donner), 🌫️ Nebel und klare Sternennächte – mit Fischen und Krabbeltieren, die es nur dann gibt (Blitzaal, Nebelhecht, Sternbarsch, Gewitterkäfer, Nebelfalter, Sternenfalter).
+- **Geräusche je Gebiet:** Specht und Vögel im Wald, Bienensummen auf der Wiese, Tropfen mit Echo in der Höhle.
+- **🌱 Gärtnerei-Ausbau:** Gewächshaus (Beete rundherum wachsen das ganze Jahr wie in ihrer Saison), Sprinkler und Sternsprinkler (gießen von allein).
+- **🗺️ Schatzkarten:** In der Flaschenpost steckt manchmal ein Kartenstück. Vier Stücke ➜ ein ❌ auf der Inselkarte ➜ mit der Schaufel den großen Schatz ausgraben.
+- **💎 Edelstein-Werkzeuge** (Werkbank, ohne Bauplan): Goldangel, Kristallaxt, Rubinschaufel, Saphirkescher, Opalkanne – jedes mit einem kleinen Vorteil.
+- **🏆 Kochwettbewerb:** Sonntags von 9 bis 18 Uhr in der Gartenküche. Drei Nachbarn bewerten eure Gerichte, der Sieg bringt ein geheimes Rezept.
+- **🏮 Nachtmarkt:** Freitags ab 18 Uhr auf dem Dorfplatz verkauft Mottilda seltene Möbel – aber Vorsicht vor Fälschungen! Echte Ware trägt eine silberne Motte mit vier Punkten.
+- **🏪 Tauschstand:** Sachen mit Preis auslegen (Nachbarn und Besuch kaufen sie im Lauf des Tages) oder als Tausch für Mitspieler anbieten.
+- **⛵ Ausflüge ins Blaue:** Käpt'n Flossi fährt jeden Tag zu einer anderen Zufallsinsel – Bambus, Wasserfall mit seltenen Fischen, Krabbeltiere, Obst, Kristalle oder Blüten.
+- **🏕️ Campingplatz** (Rathaus-Projekt): Besuch zeltet auf der Insel (Flocke, Pingo, Olli, Krümel, Koko, Pia). Ladet sie zum Bleiben ein – auf einem Grundstück entsteht ein Häuschen. Wer umziehen möchte, fragt vorher; ohne eure Zustimmung zieht niemand weg.
+- **🎨 Muster-Editor:** 16×16-Pixel-Muster malen – als Kleidung tragen, als 🚩 Inselfahne hissen, als 🎨 Muster-Weg legen oder im 🖼️ Musterrahmen aufhängen.
+- **🎹 Klavier & Inselmelodie:** Auf dem Klavier im Haus spielen (Mitspieler hören mit) und eine eigene Inselmelodie komponieren, die beim Ankommen und mittags am Rathaus erklingt.
+- **🌟 Fünf Inselsterne:** Sternenfest mit Feuerwerk – und die Sternenrakete, mit der ihr selbst ein Feuerwerk starten könnt.
+- **☁️ Cloud-Spielstand** (Meine Inseln ➜ Cloud): Inseln zusätzlich online sichern und mit einem Schlüssel auf Handy und PC spielen – auch wenn der Browser-Speicher gelöscht wird. Nichts wird ohne Sicherung ersetzt (der alte Stand landet in den Zwischenständen, die Cloud hebt eine Vorversion auf).
+- **Eigener Verbindungsserver:** Mehrspieler läuft jetzt über einen eigenen Cloudflare-Server statt nur über PeerJS. Ist er nicht erreichbar, klappt es wie bisher über PeerJS.
+
+### 🔨 Bau- & Erweiterungs-Update
 - **Baumodus (🔨 / G):** Aufstellen, Einrichten, Wege legen und Abbauen geht nur noch hier – draußen mit den Kategorien Deko, Garten, Projekte, Wege und Abbauen, im Haus nach Möbel-Art. Eine halb durchsichtige Vorschau zeigt, wo es landet (rot = geht nicht), 🔄 dreht.
 - **Inselprojekte abbauen:** Fertige Projekte vom Rathaus lassen sich im Baumodus einpacken und woanders neu aufstellen. Baustellen geben beim Abbauen die Spenden zurück.
 - **Eigene Taschen:** Jede/r hat ein eigenes Inventar. In 👥 Freunde gibt es „🎁 Geben“, um Sachen zu verschenken. Taler, Museum und Fortschritt bleiben gemeinsam.
@@ -102,8 +126,9 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Technik
 
-- Reine statische Webseite (`index.html`, `src/`, `vendor/`), kein Build-Schritt. Three.js für 3D, PeerJS (WebRTC) für den Multiplayer.
-- Der Host ist gleichzeitig der Server. Zum Finden des Partners wird der kostenlose PeerJS-Vermittlungsserver genutzt; danach laufen die Daten direkt zwischen den Geräten.
+- Reine statische Webseite (`index.html`, `src/`, `vendor/`), kein Build-Schritt. Three.js für 3D.
+- Der Host ist gleichzeitig der Server. Verbunden wird über den eigenen Cloudflare-Worker (`cloud/worker.js`, WebSocket-Raum je Insel-Code); als Rückfall und für ältere Versionen meldet sich der Host zusätzlich bei PeerJS (WebRTC) an.
+- Cloud-Spielstand: derselbe Worker speichert Inseln (gzip) in einem Durable Object mit SQLite – je geheimem 20-stelligen Schlüssel, mit Vorversion. Adresse: `https://kuschelinsel.shawnschwanitz.workers.dev` (für Tests überschreibbar mit `?cloud=…`, `?relay=0` schaltet den eigenen Server ab).
 - Gespeichert wird im Browser (`localStorage`), dazu automatische Zwischenstände in IndexedDB (`src/backup.js`). Browserdaten löschen = Insel weg (die Kopie beim Partner bleibt) – darum ab und zu 💾 als Datei sichern.
 - `sw.js` (Service Worker) legt alles Geladene für offline ab; immer zuerst aus dem Netz, damit Updates sofort da sind.
 
@@ -118,6 +143,10 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/newleaf.js`, `src/zones.js` | Bürgermeister-Update: Rathaus, Verordnungen, Wohnwert, Bummelgasse & Tropeninsel (Logik und 3D) |
 | `src/net.js`, `src/audio.js` | Netzwerk, Klang |
 | `src/backup.js`, `sw.js` | Insel-Sicherung (Datei & Zwischenstände), Offline-Speicher der App |
+| `src/extras.js` | Inselleben-Update: Zeitung, Fotobuch, Jahrestage, Katalog, Wochenziele, Wetter, Gärtnerei-Technik, Schatzkarte, Kochwettbewerb, Nachtmarkt, Tauschstand, Ausflüge, Campingplatz, Muster, Melodie |
+| `src/trips.js`, `src/patterns.js`, `src/photos.js` | Zufallsinseln, Pixel-Muster, Fotoalbum & Postkarten (IndexedDB) |
+| `src/cloud.js`, `cloud/worker.js`, `cloud/dev-server.mjs` | Cloud-Spielstand & Verbindungsserver (Browser-Seite, Cloudflare Worker, lokaler Nachbau für Tests) |
+| `src/models-extra.js` | Modelle der neuen Deko und Möbel |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |
 
 ### Grafik aus Blender
@@ -149,4 +178,7 @@ Irgendein statischer Webspace mit **https** reicht. GitHub Pages: *Settings → 
 python3 -m http.server 8080        # dann http://localhost:8080 öffnen
 npm test                           # Spiellogik
 npm i --no-save playwright peer && node test/multiplayer.e2e.cjs   # Host + Gast im Browser
+node cloud/dev-server.mjs 8787 & python3 test/cloud.e2e.py         # eigener Server & Cloud-Spielstand (lokaler Nachbau)
 ```
+
+Den Worker neu veröffentlichen: `cloud/worker.js` als Modul-Worker `kuschelinsel` mit den Durable-Object-Bindungen `ROOM` (Klasse `Room`) und `VAULT` (Klasse `Vault`, beide SQLite) hochladen, z. B. mit Wrangler oder über die Cloudflare-API.

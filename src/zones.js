@@ -10,6 +10,7 @@ import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT, TROPIC_TREES, TOURS, TOUR_ICO
 import { AREAS, NODES, nodeToday, nodeUses } from './areas.js';
 import { cropModel } from './nature.js';
 import { crop } from './plants.js';
+import { TRIP, TRIP_KINDS, tripLayout, tripUses, nodeThing } from './trips.js';
 
 function canvasTex(w, h, paint, rep) {
   const c = document.createElement('canvas');
@@ -220,6 +221,85 @@ function buildArea(id) {
   return g;
 }
 
+// ---------- Ausflugsinsel (jeden Tag eine andere) ----------
+function bamboo(v) {
+  const p = [];
+  for (let i = 0; i < 5; i++) {
+    const a = v * 0.7 + i * 1.3, r = i ? 0.22 + (i % 2) * 0.1 : 0, x = Math.cos(a) * r, z = Math.sin(a) * r, h = 1.8 + ((v + i * 37) % 10) / 8;
+    for (let j = 0; j < 5; j++) { p.push(M.cyl(0.055, 0.06, h / 5 - 0.03, 0x7cc44a, x, (j + 0.5) * h / 5, z, 7), M.cyl(0.068, 0.068, 0.04, 0x5fa83a, x, (j + 1) * h / 5 - 0.02, z, 7)); }
+    for (let j = 0; j < 3; j++) p.push(M.ball(0.12, 0x6cc04a, x + Math.cos(a + j * 2) * 0.16, h * (0.55 + j * 0.15), z + Math.sin(a + j * 2) * 0.16, 1.8, 0.25, 0.7, 6));
+  }
+  return M.model(p);
+}
+function bugBush(v) {
+  const p = [M.ball(0.45, 0x5fb84a, 0, 0.4, 0, 1.1, 0.85, 1, 9), M.ball(0.3, 0x6cc85a, 0.22, 0.55, 0.12, 1, 0.9, 1, 8)];
+  for (let i = 0; i < 10; i++) p.push(M.ball(0.06, [0xff8fab, 0xffe066, 0xffffff, 0xc9a8ff][(v + i) % 4], Math.cos(i * 2.4) * 0.42, 0.42 + Math.sin(i * 1.3) * 0.25, Math.sin(i * 2.4) * 0.36, 1, 1, 1, 6));
+  return M.model(p);
+}
+function pool() {
+  const g = new THREE.Group();
+  const w = new THREE.Mesh(new THREE.CircleGeometry(0.75, 24), new THREE.MeshLambertMaterial({ color: 0x4fb8e8, transparent: true, opacity: 0.9 }));
+  w.rotation.x = -Math.PI / 2; w.position.y = 0.03; g.add(w);
+  g.add(M.model(Array.from({ length: 12 }, (_, i) => M.ball(0.16, i % 2 ? 0x9a948e : 0xb0aaa2, Math.cos(i / 12 * Math.PI * 2) * 0.82, 0.06, Math.sin(i / 12 * Math.PI * 2) * 0.82, 1, 0.6, 1, 6))));
+  return g;
+}
+function buildTrip(seed) {
+  const L = tripLayout(seed), K = TRIP_KINDS[L.kind], g = new THREE.Group(), X = TRIP.x, Z = TRIP.z, R = TRIP.r;
+  const geo = new THREE.CircleGeometry(R + 1.2, 64);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), cs = new THREE.Color(0xf2dfa6), cg = new THREE.Color(K.ground), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const r = Math.hypot(pos.getX(i), pos.getZ(i));
+    pos.setY(i, r > R ? -0.45 * (r - R) : 0.1 * (1 - r / R));
+    c.copy(cg).lerp(cs, THREE.MathUtils.smoothstep(r, R - 2.2, R - 1.4));
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.computeVertexNormals();
+  const land = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: tex('grass', R + 1.2, R + 1.2) }));
+  land.position.set(X, 0, Z); land.receiveShadow = true; g.add(land);
+  const sea = new THREE.Mesh(new THREE.CircleGeometry(70, 48), new THREE.MeshLambertMaterial({ color: 0x3fb0d8, transparent: true, opacity: 0.92 }));
+  sea.rotation.x = -Math.PI / 2; sea.position.set(X, -0.24, Z); g.add(sea);
+  const shallow = new THREE.Mesh(new THREE.RingGeometry(R - 0.2, R + 4, 48), new THREE.MeshLambertMaterial({ color: 0x7fe0dc, transparent: true, opacity: 0.7 }));
+  shallow.rotation.x = -Math.PI / 2; shallow.position.set(X, -0.2, Z); g.add(shallow);
+  // Steg mit Boot im Süden
+  const P = [];
+  for (let i = 0; i < 9; i++) P.push(M.box(1.5, 0.08, 0.42, i % 2 ? 0xc99260 : 0xb8824f, 0, 0.12, R - 0.6 + i * 0.45));
+  for (const sx of [-0.7, 0.7]) for (let i = 0; i < 3; i++) P.push(M.cyl(0.07, 0.07, 0.7, 0x8f603c, sx, -0.15, R + i * 1.5, 6));
+  P.push(M.box(1.1, 0.4, 2.2, 0xff8fab, 1.6, -0.05, R + 2.6), M.box(0.9, 0.08, 1.9, 0xfff3e4, 1.6, 0.18, R + 2.6), M.cyl(0.04, 0.04, 1.6, 0xfff3e4, 1.6, 0.9, R + 2.5, 6), M.cone(0.55, 1.1, 0xffffff, 1.95, 1.1, R + 2.5, 3, 0, 0, -0.2));
+  g.add(put(new THREE.Group(), M.model(P), X, Z));
+  // Rand: Palmen, Sträucher, Bambus (je nach Insel-Art)
+  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(seed % 2147483646 + 1);
+  for (let i = 0; i < 14; i++) {
+    const a = i / 14 * Math.PI * 2 + rnd() * 0.3, r = R - 0.6 - rnd() * 0.6, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (z > R - 3 && Math.abs(x) < 2.6) continue;
+    const m = L.kind === 'bambus' && i % 2 ? bamboo(i * 31) : i % 3 === 2 ? placeable('hortensie') : N.wild('palm', 'summer', 3, 'kokosnuss', rnd() < 0.5);
+    put(g, m, X + x, Z + z, rnd() * 6);
+  }
+  if (L.kind === 'wasserfall') { // Felsklippe mit Wasserfall und Becken
+    const F = [M.ball(2.2, 0x8a8094, 0, 1.2, -6.2, 1.6, 1.3, 0.8, 9), M.ball(1.4, 0x9a90a4, -2.2, 0.8, -5.6, 1, 1, 1, 8), M.ball(1.3, 0x7e748a, 2.3, 0.7, -5.7, 1, 1, 1, 8), M.ball(0.5, 0x6cc04a, -1.2, 2.6, -6, 1.4, 0.4, 1, 7)];
+    g.add(put(new THREE.Group(), M.model(F), X, Z));
+    const fall = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 2.8), new THREE.MeshLambertMaterial({ color: 0xd6f4ff, transparent: true, opacity: 0.8 }));
+    fall.position.set(X, 1.5, Z - 4.95); g.add(fall);
+    const lake = new THREE.Mesh(new THREE.CircleGeometry(1.7, 28), new THREE.MeshLambertMaterial({ color: 0x4fb8e8, transparent: true, opacity: 0.9 }));
+    lake.rotation.x = -Math.PI / 2; lake.position.set(X, 0.05, Z - 3.8); g.add(lake);
+    g.userData.fall = [X, Z - 4.2];
+  }
+  const dyn = [];
+  for (const n of L.nodes) {
+    const x = X + n.x, z = Z + n.z;
+    if (n.kind === 'bamboo') put(g, bamboo(n.v), x, z, n.v);
+    else if (n.kind === 'ore') put(g, oreRock(n.v % 7), x, z, n.v);
+    else if (n.kind === 'pool') put(g, pool(), x, z);
+    else if (n.kind === 'bugs') dyn.push({ n, m: put(g, bugBush(n.v), x, z, n.v) });
+    else dyn.push({ n, x, z, m: null });
+  }
+  g.userData.dyn = dyn;
+  g.userData.seed = seed;
+  g.userData.lights = [[X - 0.8, Z + R], [X + 0.8, Z + R]];
+  return g;
+}
+
 export class Zones {
   constructor(scene) {
     this.scene = scene;
@@ -268,9 +348,11 @@ export class Zones {
   update(world, s, t, night, target) {
     this.tropic.userData.u.t.value = t;
     this.tropic.userData.u.night.value = night;
-    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 150 ? 'tropic' : null;
+    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
     this.street.visible = where === 'street';
     this.tropic.visible = where === 'tropic';
+    if (this.trip) this.trip.visible = where === 'trip';
+    if (where === 'trip') { this.updateTrip(world, s, t); return; }
     let here = null;
     if (where === 'area') { let bd = Infinity; for (const [id, A] of Object.entries(AREAS)) { const d = Math.abs(target.z - A.z); if (d < bd) { bd = d; here = id; } } }
     for (const id of Object.keys(AREAS)) if (this.areas[id]) this.areas[id].visible = id === here;
@@ -313,6 +395,27 @@ export class Zones {
     }
   }
   // Pilze, Blumen und Beeren je nach Tag zeigen oder verstecken
+  updateTrip(world, s, t) {
+    if (!s.trip) return;
+    if (this.trip?.userData.seed !== s.trip.seed) { if (this.trip) this.scene.remove(this.trip); this.trip = buildTrip(s.trip.seed); this.scene.add(this.trip); }
+    const g = this.trip, K = TRIP_KINDS[tripLayout(s.trip.seed).kind];
+    world.tag('tripname', `${K.icon} ${K.name}`, TRIP.x, 3, TRIP.z - 1, 'name npc');
+    world.tag('tripboat', '⛵ Nach Hause', TRIP.x + 1.6, 2.4, TRIP.z + TRIP.r + 2.6, 'name npc');
+    if (g.userData.fall && Math.random() < 0.3) world.burst(g.userData.fall[0] + (Math.random() - 0.5), g.userData.fall[1], 'mist', 0.1);
+    const sig = JSON.stringify(s.trip.used || {});
+    if (g.userData.sig === sig) return;
+    g.userData.sig = sig;
+    for (const e of g.userData.dyn) {
+      const used = (s.trip.used?.[e.n.i] || 0) >= tripUses(e.n);
+      if (e.n.kind === 'bugs') { e.m.visible = !used; continue; }
+      if (used && e.m) { g.remove(e.m); e.m = null; }
+      if (!used && !e.m) {
+        const thing = nodeThing(e.n);
+        e.m = e.n.kind === 'fruit' ? placeable(thing === 'banane' ? 'bananenbaum' : thing === 'mango' ? 'mangobaum' : 'apfelbaum', true) : e.n.kind === 'mush' ? mushroom(thing) : cropModel(thing, 3, crop);
+        put(g, e.m, e.x, e.z, e.n.i);
+      }
+    }
+  }
   updateArea(world, s, id, t) {
     const g = this.area(id), A = AREAS[id];
     world.tag('areaexit', '🏝️ Zur Insel', A.x, 2.2, A.z + A.d + 0.6, 'name npc');
@@ -333,6 +436,6 @@ export class Zones {
   }
   lights(target) {
     if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
-    return target.z < -150 ? this.street.userData.lights : target.z > 150 ? this.tropic.userData.lights : null;
+    return target.z < -150 ? this.street.userData.lights : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
   }
 }

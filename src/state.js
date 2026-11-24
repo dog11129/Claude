@@ -340,6 +340,7 @@ export function blocked(s, x, z, swim) {
     const lx = x - STREET.x, lz = z - STREET.z;
     return !(streetWalk(lx, lz) || (Math.abs(lx) <= 1.1 && lz > 0 && lz <= STREET.d + 0.9));
   }
+  if (z > 450) return X.tripBlocked(s, x, z); // Ausflugsinsel
   if (z > 150) { // Tropeninsel
     const lx = x - TROPIC.x, lz = z - TROPIC.z, tx = Math.round(lx), tz = Math.round(lz);
     if (!tropicWalk(lx, lz)) return true;
@@ -746,6 +747,7 @@ const addInv = (s, id, n) => { s.inv[id] = (s.inv[id] || 0) + n; if (n > 0 && X.
 export const addInvX = (s, id, n) => addInv(s, id, n);
 export const questEventX = (s, ev, n, out) => questEvent(s, ev, n, out);
 export const DAY_SECS = DAY;
+export const collectX = (s, id, out) => collect(s, id, out);
 export const takeInvX = (s, id, n) => takeInv(s, id, n);
 const takeInv = (s, id, n) => {
   if ((s.inv[id] || 0) < n) return false;
@@ -815,7 +817,7 @@ const ACTIONS = {
   },
   pickup(s, a, out) {
     const k = key(a.x, a.z), o = s.obj[k];
-    if (!o || !PLACE[o.k]) return false;
+    if (!o || !PLACE[o.k] || o.k === 'nachbarhaus') return false;
     if (o.k === 'baustelle') {
       if (o.paid > 0) { s.money += o.paid; out.msg = `🚩 Baustelle abgebaut – ${o.paid} Taler Spenden zurück in die Inselkasse. Ihr könnt sie im Baumodus neu abstecken.`; }
       s.mayor.plan = o.p;
@@ -1689,6 +1691,8 @@ function resolveHome(s, me, sel, at) {
     if (f.bed) return { ...base, sleep: { x: cx, z: cz, r: h.o.r, wide: f.w > 1 }, label: '😴 Schlafen gehen', tiles };
     if (h.o.k === 'herd') return { ...base, ui: 'cook', label: '🍳 Kochen', tiles };
     if (f.store) return { ...base, ui: 'chest', label: '🧰 Kiste öffnen', tiles };
+    if (f.pattern) return { ...base, a: { t: 'hpat', x: h.x, z: h.z }, label: '🎨 Anderes Muster zeigen', tiles };
+    if (h.o.k === 'klavier') return { ...base, ui: 'piano', label: '🎹 Klavier spielen', tiles };
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
   }
   if (ITEMS[sel]?.furn) return { ...base, label: '🔨 Einrichten geht im Baumodus', tiles: one };
@@ -1718,6 +1722,7 @@ export function resolveBuild(s, b, x, z) {
   const k = key(x, z);
   if (b.mode === 'remove') {
     const o = s.obj[k];
+    if (o?.k === 'nachbarhaus') return { label: `🏠 Hier wohnt jemand – nicht abbaubar`, tiles: one, bad: true };
     if (o && PLACE[o.k]) {
       const p = PLACE[o.k];
       const label = o.k === 'baustelle' ? (o.paid ? `🚩 Baustelle abbauen (+${o.paid} Taler zurück)` : '🚩 Bauplatz abbauen') : p.kind === 'project' ? `🏗️ ${p.name} abbauen` : `✋ ${p.icon} ${p.name} einpacken`;
@@ -1744,6 +1749,7 @@ export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
   if (me.x < -150) return resolveArea(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
+  if (me.z > 450) return X.resolveTrip(s, me, sel, at);
   if (me.z > 150) return resolveTropic(s, me, sel, at);
   if (me.sw) { // schwimmt: tauchen
     const d = (s.dives || []).map(d => [d, Math.hypot(d.x - me.x, d.z - me.z)]).sort((a, b) => a[1] - b[1])[0];

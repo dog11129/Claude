@@ -308,6 +308,30 @@ body.wantland.portrait.ingame #rotatehint { display: flex; }
 /* Fenster im Spiel */
 .slot.gem::after { content: '✨'; position: absolute; top: -6px; right: -4px; font-size: 13px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
 .backuprow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.piano { display: flex; justify-content: center; margin: 10px auto; user-select: none; touch-action: none; }
+.pk.w { position: relative; width: 34px; height: 150px; background: linear-gradient(#fff, #f6f1ea); border: 2px solid #e8dccc; border-radius: 0 0 9px 9px; margin: 0 1px; box-shadow: 0 3px 0 #d9c9b4; }
+.pk.w:active, .pk.w.hit { background: #ffe3ea; transform: translateY(2px); }
+.pk.b { position: absolute; z-index: 2; right: -12px; top: -2px; width: 22px; height: 92px; background: linear-gradient(#4a3a3a, #2b2321); border-radius: 0 0 6px 6px; display: block; }
+.pk.b:active, .pk.b.hit { background: #ff8fab; }
+@media (max-width: 600px) { .pk.w { width: 22px; height: 120px; } .pk.b { width: 15px; right: -8px; height: 74px; } }
+.melgrid { display: grid; gap: 2px; justify-content: center; margin: 8px 0; }
+.melrow { display: flex; gap: 2px; align-items: center; }
+.melrow span { width: 22px; font-size: 11px; text-align: right; margin-right: 4px; opacity: .7; }
+.melrow button { width: 18px; height: 18px; border-radius: 5px; border: 0; background: #fff; box-shadow: 0 1px 0 #e3d7c4; }
+.melrow button.beat { background: #fff6ec; }
+.melrow button.on { background: #ff8fab; }
+.patslots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 10px; }
+.patslot { background: #fff; border: 2px solid var(--line); border-radius: 10px; padding: 4px; display: grid; justify-items: center; gap: 2px; }
+.patslot.on { border-color: #ff8fab; box-shadow: 0 0 0 2px #ffd6e0; }
+.patslot canvas { width: 100%; max-width: 48px; image-rendering: pixelated; border-radius: 4px; background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 50% / 8px 8px; }
+.patslot small { font-size: 10px; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pated { display: grid; justify-items: center; gap: 8px; }
+#patcv { width: min(320px, 80vw); aspect-ratio: 1; image-rendering: pixelated; border-radius: 10px; border: 3px solid #fff; box-shadow: 0 2px 0 #efdcc6; touch-action: none; background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 50% / 20px 20px; cursor: crosshair; }
+.patpal { display: grid; grid-template-columns: repeat(8, 30px); gap: 5px; }
+.patpal button { width: 30px; height: 30px; border-radius: 8px; border: 2px solid #fff; box-shadow: 0 1px 0 #d9c9b4; }
+.patpal button.on { outline: 3px solid #ff8fab; }
+.pattools { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.pattools .on { background: #ffe3ea; }
 .stallform { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .stallform select, .stallform input { font: inherit; padding: 6px 8px; border-radius: 10px; border: 2px solid var(--line); background: #fff; }
 .stallform input[type=number] { width: 80px; }

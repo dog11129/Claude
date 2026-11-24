@@ -292,6 +292,65 @@ SHAPES.wanda = () => {
 };
 
 // ---------- Rig ----------
+
+// ---------- Besuch vom Campingplatz (eigene Figuren) ----------
+// Sie zelten ein paar Tage auf dem Campingplatz und ziehen auf Wunsch in ein eigenes Häuschen.
+const VIS = {
+  flocke: { name: 'Flocke', species: 'Schaf', icon: '🐑', role: 'Strickerin', color: '#f2efe6', voice: { pitch: 520, wave: 'triangle', speed: 24, wob: 3 },
+    fur: 0xf6f2ea, face: 0x3b3232, belly: 0xffffff, cloth: 0x9fd0ff, ears: 'side', snout: 'none', wool: true,
+    bio: 'Flocke strickt für alle Schals – auch im Sommer. Sie findet, man kann nie genug Kuschelwolle haben.' },
+  pingo: { name: 'Pingo', species: 'Pinguin', icon: '🐧', role: 'Eisverkäufer', color: '#3a4a6a', voice: { pitch: 430, wave: 'square', bright: 0.4, speed: 30, wob: 1 },
+    fur: 0x2f3a52, face: 0xffffff, belly: 0xffffff, cloth: 0xff6b6b, ears: 'none', snout: 'beak',
+    bio: 'Pingo reist mit seinem Eiswagen von Insel zu Insel und sammelt Postkarten von jedem Strand.' },
+  olli: { name: 'Olli', species: 'Otter', icon: '🦦', role: 'Muschelsammler', color: '#8a6040', voice: { pitch: 360, wave: 'triangle', speed: 34, wob: 2 },
+    fur: 0x8a6040, face: 0xe9d2b4, belly: 0xe9d2b4, cloth: 0x7fd8d0, ears: 'tiny', snout: 'muzzle', tail: 'flat',
+    bio: 'Olli schwimmt am liebsten auf dem Rücken und hat für jeden einen glatten Lieblingsstein in der Tasche.' },
+  kruemel: { name: 'Krümel', species: 'Hamster', icon: '🐹', role: 'Vorratsmeisterin', color: '#f0b46a', voice: { pitch: 700, wave: 'sine', speed: 22, wob: 4 },
+    fur: 0xf0b46a, face: 0xfff2e0, belly: 0xfff2e0, cloth: 0xffd23f, ears: 'round', snout: 'muzzle', cheeks: true,
+    bio: 'Krümel hat immer etwas Leckeres in den Backentaschen und teilt es auch – meistens.' },
+  koko: { name: 'Koko', species: 'Koala', icon: '🐨', role: 'Teeliebhaber', color: '#9aa0a8', voice: { pitch: 300, wave: 'sine', speed: 40, gap: 120, wob: 1 },
+    fur: 0x9aa0a8, face: 0xd8dce0, belly: 0xe8eaee, cloth: 0x8fd694, ears: 'fluffy', snout: 'nose',
+    bio: 'Koko macht alles ganz in Ruhe. Seine Teezeremonie dauert zwei Stunden – und ist jede Minute wert.' },
+  pia: { name: 'Pia', species: 'Panda', icon: '🐼', role: 'Malerin', color: '#ffffff', voice: { pitch: 560, wave: 'triangle', speed: 26, wob: 2 },
+    fur: 0xfbfbfb, face: 0xfbfbfb, belly: 0xfbfbfb, cloth: 0xff8fab, ears: 'round', earC: 0x2b2321, snout: 'muzzle', patches: true, limbs: 0x2b2321,
+    bio: 'Pia malt Bilder von jeder Insel, die sie besucht. Am liebsten Sonnenuntergänge – in Schwarz-Weiß.' },
+};
+// Allgemeine Form für Besucher: rundlicher Körper, Kleidchen/Shirt, Ohren und Schnauze je nach Tierart
+function critter(v) {
+  const F = v.fur, B = v.belly, C = v.cloth, L = v.limbs || F, E = v.earC || F, CD = new THREE.Color(C).offsetHSL(0, 0, -0.12).getHex();
+  const head = [ell(0.27, v.face === 0x3b3232 ? F : F, 0, 0, 0, 1.05, 0.96, 1, 0, 0, 0, 16)];
+  if (v.wool) for (let i = 0; i < 9; i++) head.push(ell(0.1, 0xffffff, Math.cos(i * 0.7) * 0.2, 0.17 + Math.sin(i * 1.7) * 0.03, Math.sin(i * 0.7) * 0.08 - 0.05, 1, 0.8, 1, 0, 0, 0, 8));
+  if (v.wool) head.push(ell(0.17, v.face, 0, -0.03, 0.15, 1.05, 1.1, 0.8));
+  if (v.patches) head.push(...[-1, 1].map(s => ell(0.075, 0x2b2321, 0.1 * s, 0.04, 0.215, 1, 1.25, 0.45, 0, 0.3 * s, -0.4 * s)));
+  if (v.snout === 'beak') head.push(cn(0.06, 0.14, 0xffa53a, 0, -0.04, 0.29, 1, Math.PI / 2), ell(0.2, B, 0, -0.04, 0.1, 1, 0.9, 0.8));
+  else if (v.snout === 'muzzle') head.push(ell(0.1, v.face, 0, -0.08, 0.22, 1.3, 0.8, 0.8), ell(0.035, 0x2b2321, 0, -0.04, 0.3, 1.3, 0.9, 0.8), ...wMouth(-0.11, 0.29, 0.022));
+  else if (v.snout === 'nose') head.push(ell(0.065, 0x3a3434, 0, -0.03, 0.27, 1, 1.25, 0.8), ...wMouth(-0.12, 0.25, 0.02));
+  else head.push(smile(-0.1, 0.22));
+  if (v.cheeks) head.push(...[-1, 1].map(s => ell(0.09, v.face, 0.16 * s, -0.08, 0.15, 1, 0.85, 0.8)));
+  head.push(...blush(0.17, -0.06, 0.2, 0.045));
+  const ears = v.ears === 'side' ? [-1, 1].map(s => ell(0.09, v.face, 0.28 * s, 0.02, 0, 1.3, 0.55, 0.5, 0, 0, -0.5 * s))
+    : v.ears === 'round' ? [-1, 1].flatMap(s => [ell(0.08, E, 0.18 * s, 0.22, -0.02, 1, 1, 0.6), ell(0.045, v.earC ? E : B, 0.18 * s, 0.22, 0.02, 1, 1, 0.4)])
+    : v.ears === 'fluffy' ? [-1, 1].flatMap(s => [ell(0.13, F, 0.25 * s, 0.14, -0.02, 1, 1, 0.55), ell(0.08, 0xffffff, 0.25 * s, 0.14, 0.03, 1, 1, 0.4)])
+    : v.ears === 'tiny' ? [-1, 1].map(s => ell(0.045, F, 0.2 * s, 0.17, -0.02, 1, 1, 0.6)) : [ell(0.01, F, 0, 0, 0)];
+  return {
+    hip: 0.22, legX: 0.11, armAt: [0.25, 0.33], neck: 0.46, headY: 0.24, eyeY: 0.04, earsAt: [0, 0.0, 0],
+    gait: { f: 8, leg: 0.5, arm: 0.3, bob: 0.02, roll: 0.12, lean: 0.06, twist: 0.12, flap: v.snout === 'beak' ? 0.4 : 0, tail: 0.5, tk: 1 },
+    leg: [cyl(0.075, 0.07, 0.14, L, 0, -0.07, 0, 10), ell(0.08, v.snout === 'beak' ? 0xffa53a : L, 0, -0.18, 0.04, 1, 0.5, 1.3)],
+    body: [ell(0.27, v.wool ? 0xffffff : F, 0, 0.2, 0, 1, 0.95, 0.95, 0, 0, 0, 16), ell(0.2, B, 0, 0.18, 0.1, 1, 1, 0.7), cyl(0.255, 0.29, 0.18, C, 0, 0.08, 0, 18), band(0.295, 0.295, 0.035, CD, 0.0),
+      ...(v.wool ? Array.from({ length: 10 }, (_, i) => ell(0.1, 0xffffff, Math.cos(i * 0.63) * 0.24, 0.3 + Math.sin(i * 1.9) * 0.04, Math.sin(i * 0.63) * 0.2, 1, 0.8, 1, 0, 0, 0, 8)) : []),
+      ell(0.045, CD, 0, 0.24, 0.27, 1, 1, 0.5)],
+    arm: [ell(0.07, L, 0, -0.08, 0, 0.9, 1.4, 0.95, 0, 0, 0, 12)],
+    head, eyes: eyes(0.1, 0.04, 0.23, 0.045), joy: joy(0.1, 0.04, 0.23, 0.045, 0.17, -0.06, 0.2),
+    ears: tf(ears, 0, 0, 0),
+    tail: v.tail === 'flat' ? [ell(0.08, F, 0, -0.05, -0.12, 0.8, 0.4, 1.6)] : [ell(0.06, v.wool ? 0xffffff : F, 0, 0, -0.03, 1, 1, 1, 0, 0, 0, 10)], tailAt: [0, 0.1, -0.25],
+  };
+}
+for (const [id, v] of Object.entries(VIS)) {
+  NPCS[id] = { voice: v.voice, name: v.name, species: v.species, icon: v.icon, role: v.role, color: v.color, likes: [], loves: [], dislikes: [], bio: v.bio, visitor: true };
+  SHAPES[id] = () => critter(v);
+}
+export const VISITOR_IDS = Object.keys(VIS);
+
 const KIT = {};
 function kit(id) {
   if (KIT[id]) return KIT[id];
@@ -715,6 +774,24 @@ const TEXT = {
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const fill = (s, v) => s.replace(/\{(\w)\}/g, (_, k) => v[k] ?? '');
 const txt = id => TEXT[id] || TEXT.mira;
+
+
+// Besucher-Sprüche: kurz und freundlich, je nach Charakter ein bisschen anders
+const VTEXT = {
+  flocke: ['Ich stricke gerade einen Schal für die Insel. Sie sieht so kuschelig aus!', 'Möchtest du auch einen Schal? Ich habe noch ganz viel Wolle!', 'Mäh! Oh, Verzeihung, das rutscht mir manchmal raus.'],
+  pingo: ['Eis gefällig? Heute im Angebot: Fisch-Vanille!', 'Ich war schon auf siebzehn Inseln. Eure hat die schönsten Strände!', 'Ein Pinguin auf einer Sommerinsel? Ich trage einfach immer Sonnencreme.'],
+  olli: ['Schau mal, dieser Stein ist ganz glatt! Ich nenne ihn Gustav.', 'Auf dem Rücken schwimmen ist das Beste. Man sieht dabei die Wolken!', 'Hast du schon die Muscheln am Strand gesehen? Ich zähle sie gerade. Bin bei 412.'],
+  kruemel: ['Mmpf … Entschuldigung, Backentaschen voll. Möchtest du eine Nuss?', 'Vorräte sind wichtig! Man weiß nie, wann man einen Snack braucht.', 'Ich renne gern im Kreis. Das ist mein Sport!'],
+  koko: ['Hallo … ganz … in … Ruhe. So ist das Leben am schönsten.', 'Tee braucht Zeit. Freundschaft auch. Und Nickerchen erst recht.', 'Ich habe heute schon zwölf Stunden geschlafen. Ein produktiver Tag!'],
+  pia: ['Halt still! Ich male dich gerade. … So, fertig. Du bist ein Kreis mit Hut.', 'Diese Insel hat so schöne Farben! Ich male trotzdem in Schwarz-Weiß.', 'Bambus ist mein Lieblingsessen – und mein Lieblingspinsel.'],
+};
+for (const [id, lines] of Object.entries(VTEXT)) {
+  const g = ['Hallo, {p}! Schön, dich zu sehen.', 'Was für ein herrlicher Tag auf eurer Insel!', 'Hast du heute schon etwas Schönes entdeckt?'];
+  TEXT[id] = { morning: [...lines, 'Guten Morgen, {p}!'], day: [...lines, ...g], evening: ['Guten Abend, {p}! Die Sterne hier sind wunderschön.', ...lines], night: ['Oh, du bist noch wach? Ich auch! Psst.'],
+    sun: lines, rain: ['Regen! Ich hoffe, mein Zelt ist dicht …'], snow: ['Schnee! Wie aufregend!'], spring: lines, summer: lines, autumn: lines, winter: lines,
+    tier: [lines, [...lines, 'Ich fühle mich hier richtig wohl, weißt du?'], ['Du bist eine wirklich gute Freundin – ein wirklich guter Freund!', ...lines], ['Ohne dich wäre die Insel nur halb so schön, {p}.', ...lines]],
+    tips: ['Tipp: Am Tauschstand kaufe ich gern ein!', 'Tipp: Käpt\'n Flossi fährt jeden Tag zu einer anderen Insel.'], gossip: lines };
+}
 
 export function npcLine(id, ctx = {}) {
   const L = txt(id), h = ctx.hour ?? 12, hearts = ctx.hearts || 0;
