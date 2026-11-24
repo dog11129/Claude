@@ -37,15 +37,19 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   const code = await A.evaluate(() => window.__game.G.code);
   check(/^[A-Z0-9]{5}$/.test(code), 'Host bekommt Einladungscode ' + code);
 
-  await A.evaluate(() => Object.assign(window.__game.G.players.h, { x: -6, z: -1, ry: 0 }));
+  // Baum vor der Figur schütteln (E), dann einen anderen Baum anklicken: hinlaufen & schütteln
+  const trees = await A.evaluate(async () => { const m = await import('./src/data.js'); return Object.keys(m.RES_SPOTS).filter(k => m.RES_SPOTS[k] === 'tree').slice(0, 2).map(k => k.split(',').map(Number)); });
+  await A.evaluate(([x, z]) => Object.assign(window.__game.G.players.h, { x, z: z + 0.95, ry: Math.PI }), trees[0]);
   await sleep(150);
   await A.keyboard.press('e');
-  await sleep(200);
-  check(await A.evaluate(() => !!window.__game.G.s.tiles['-6,0']), 'Host gräbt mit E um');
-  const pt = await A.evaluate(() => window.__game.world.project(-6, 0, 2));
+  await sleep(300);
+  check(await A.evaluate(() => window.__game.G.s.stats.fruit === 3), 'Host schüttelt mit E einen Baum – Obst fällt herunter');
+  const pt = await A.evaluate(([x, z]) => window.__game.world.project(x, 1.2, z), trees[1]);
   await A.mouse.click(pt[0], pt[1]);
-  await A.waitForFunction(() => !!window.__game.G.s.tiles['-6,2'], null, { timeout: 5000 }).catch(() => {});
-  check(await A.evaluate(() => !!window.__game.G.s.tiles['-6,2']), 'Klick aufs Feld: hinlaufen & umgraben');
+  await A.waitForFunction(() => window.__game.G.s.stats.fruit >= 6, null, { timeout: 8000 }).catch(() => {});
+  check(await A.evaluate(() => window.__game.G.s.stats.fruit >= 6), 'Klick auf Baum: hinlaufen & schütteln');
+  const spot = await A.evaluate(() => { const S = window.__game.S, s = window.__game.G.s; for (let x = -8; x < 0; x++) for (let z = 3; z < 9; z++) if (S.canPlace(s, x, z)) return [x, z]; });
+  await A.evaluate(([x, z]) => window.__game.S.act(window.__game.G.s, { t: 'plant', x, z, item: 's_tulpe' }), spot);
 
   const B = await open({ ...devices['Pixel 7'] }, 'guest');
   await B.goto(URL + '&join=' + code);
@@ -56,11 +60,11 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   await sleep(800);
   check(await A.evaluate(() => Object.keys(window.__game.G.players).length === 2), 'Gast tritt per Code bei');
 
-  await B.evaluate(() => { const g = window.__game.G; Object.assign(g.players[g.me], { x: -6, z: -1, ry: 0 }); g.sel = 'can'; });
+  await B.evaluate(([x, z]) => { const g = window.__game.G; Object.assign(g.players[g.me], { x, z: z - 1, ry: 0 }); g.sel = 'can'; }, spot);
   await sleep(200);
   await B.tap('#actbtn');
   await sleep(600);
-  check(await A.evaluate(() => window.__game.G.s.tiles['-6,0'].w > 0), 'Gast gießt – Host sieht nasses Feld');
+  check(await A.evaluate(([x, z]) => window.__game.G.s.tiles[x + ',' + z].w > 0, spot), 'Gast gießt – Host sieht die gegossene Blume');
 
   await B.evaluate(() => document.getElementById('chatbtn').click());
   await B.fill('#chatin', 'Hallo 💕');
@@ -68,11 +72,12 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   await sleep(500);
   check((await A.evaluate(() => document.getElementById('chatlog').textContent)).includes('Hallo'), 'Chat kommt beim Host an');
 
-  await A.evaluate(() => window.__game.S.act(window.__game.G.s, { t: 'buy', id: 's_karotte', n: 2 }));
+  await A.evaluate(() => window.__game.S.act(window.__game.G.s, { t: 'buy', id: 's_tulpe', n: 2 }));
   await A.evaluate(() => { window.__game.G.dirty = true; });
   await sleep(600);
-  check(await B.evaluate(() => window.__game.G.s.money === 130), 'Geteiltes Geld wird synchronisiert');
-  check(await B.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('kh.farms'))).length === 1), 'Gast hat eine Sicherheitskopie');
+  const hostMoney = await A.evaluate(() => window.__game.G.s.money);
+  check(await B.evaluate(m => window.__game.G.s.money === m, hostMoney), 'Geteilte Taler werden synchronisiert');
+  check(await B.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('ki.islands'))).length === 1), 'Gast hat eine Sicherheitskopie');
 
   await B.evaluate(() => { const g = window.__game.G; Object.assign(g.players[g.me], { x: -4, z: -2 }); });
   await A.evaluate(() => Object.assign(window.__game.G.players.h, { x: -4, z: -3, ry: 0 }));

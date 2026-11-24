@@ -7,6 +7,34 @@ export function cozy(sh) {
   sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>',
     'outgoingLight += vec3(1.0, 0.96, 0.9) * pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 3.0) * 0.2;\n#include <opaque_fragment>');
 }
+// "Rollende Welt": alles krümmt sich in der Ferne nach unten weg, wie auf einem Baumstamm.
+// Gilt für alle Materialien (außer Schattenkarte und NO_CURVE), daher direkt im Shader-Baustein.
+export const CURVE_K = 0.0078;
+THREE.ShaderChunk.project_vertex = `vec4 mvPosition = vec4( transformed, 1.0 );
+#ifdef USE_BATCHING
+  mvPosition = batchingMatrix * mvPosition;
+#endif
+#ifdef USE_INSTANCING
+  mvPosition = instanceMatrix * mvPosition;
+#endif
+#if defined( DEPTH_PACKING ) || defined( NO_CURVE )
+  mvPosition = modelViewMatrix * mvPosition;
+#else
+  vec4 cwp = modelMatrix * mvPosition;
+  vec3 cfw = -vec3( viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2] );
+  vec2 cfh = normalize( cfw.xz + vec2( 1e-5 ) );
+  float cD = cameraPosition.y * length( cfw.xz ) / max( -cfw.y, 0.08 );
+  float cd = dot( cwp.xz - cameraPosition.xz, cfh ) - cD;
+  cwp.y -= ${CURVE_K.toFixed(5)} * cd * cd;
+  mvPosition = viewMatrix * cwp;
+#endif
+gl_Position = projectionMatrix * mvPosition;`;
+// Dieselbe Krümmung in JS (für Beschriftungen und Antippen)
+export function curveDrop(camera, x, z) {
+  const e = camera.matrixWorld.elements, fx = -e[8], fy = -e[9], fz = -e[10], h = Math.hypot(fx, fz) || 1e-5;
+  const D = camera.position.y * h / Math.max(-fy, 0.08), d = ((x - camera.position.x) * fx + (z - camera.position.z) * fz) / h - D;
+  return CURVE_K * d * d;
+}
 export const MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 MAT.onBeforeCompile = cozy;
 MAT.customProgramCacheKey = () => 'cozy';
@@ -83,22 +111,79 @@ function cachedModel(k, fn) {
 
 const GREEN = 0x5fb84a, WOOD = 0x9c6b3f;
 
-// Wilde Bäume (Holz) und Felsen (Stein); left = wie viel heute noch geht
-export function wild(kind, season, left) {
-  return cachedModel('wild' + kind + season + (left > 0 ? 1 : 0), () => {
+// Wilde Bäume (Obst, Holz), Palmen und Felsen; left = wie oft man heute noch hacken kann, fruit/ready = Obst hängt dran
+const FRUIT_COL = { apfel: 0xff3b3b, kirsche: 0xd8102c, orange: 0xffa21f, pfirsich: 0xffa98a, birne: 0xd6dc4a, kokosnuss: 0x8a5a36 };
+export function wild(kind, season, left, fruit, ready) {
+  return cachedModel('wild' + kind + season + (left > 0 ? 1 : 0) + (ready ? fruit : ''), () => {
+    let seed = 9;
+    const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     if (kind === 'rock') {
-      const big = left > 0 ? 1 : 0.65;
-      return [ball(0.42 * big, 0x9a958e, 0, 0.18, 0, 1.25, 0.8, 1.05, 10), ball(0.28 * big, 0xb2ada6, 0.25, 0.12, 0.18, 1, 0.75, 1, 9), ball(0.2 * big, 0x8a857e, -0.28, 0.1, 0.12, 1, 0.7, 1, 8),
-        ...(season === 'winter' ? [ball(0.36 * big, 0xffffff, 0, 0.3 * big, 0, 1.2, 0.35, 1, 10)] : [ball(0.05, 0x7cc95a, -0.15, 0.32 * big, 0.2, 1.6, 0.5, 1)])];
+      const big = left > 0 ? 1 : 0.7;
+      return [ball(0.5 * big, 0xa9a49c, 0, 0.22 * big, 0, 1.2, 0.85, 1.05, 12), ball(0.3 * big, 0xbdb8b0, 0.3, 0.16 * big, 0.2, 1, 0.8, 1, 10), ball(0.24 * big, 0x958f87, -0.32, 0.12 * big, 0.12, 1, 0.75, 1, 9),
+        ...(season === 'winter' ? [ball(0.42 * big, 0xffffff, 0, 0.38 * big, 0, 1.15, 0.3, 1, 10)] : [ball(0.07, 0x7cc95a, -0.18, 0.4 * big, 0.22, 1.6, 0.5, 1)])];
     }
-    const L = { spring: [0xffc2d8, 0x8fdc72], summer: [0x5fb84a, 0x7fd06a], autumn: [0xf0a040, 0xe07b39], winter: [0xeef4f8, 0xffffff] }[season];
-    const p = [cyl(0.13, 0.2, 1.2, 0x8a5a36, 0, 0.6, 0, 10), ball(0.75, L[0], 0, 1.65, 0, 1.05, 0.9, 1.05, 12), ball(0.5, L[1], 0.38, 1.45, 0.25, 1, 0.9, 1, 10), ball(0.45, L[1], -0.35, 1.55, -0.2, 1, 0.9, 1, 10), ball(0.42, L[0], 0.05, 2.1, 0.1, 1, 0.9, 1, 10)];
-    if (left <= 0) p.push(ball(0.1, 0xc9a46b, 0.2, 0.06, 0.35, 1.6, 0.4, 1), ball(0.08, 0xc9a46b, -0.25, 0.05, 0.3, 1.6, 0.4, 1));
+    if (kind === 'palm') {
+      const p = [], snow = season === 'winter';
+      let x = 0, y = 0, z = 0;
+      for (let i = 0; i < 7; i++) { // leicht gebogener Stamm aus Ringen
+        const nx = i * i * 0.012, ny = (i + 1) * 0.36;
+        p.push(cyl(0.11 - i * 0.006, 0.13 - i * 0.006, 0.36, i % 2 ? 0xb88a56 : 0xa77b4a, nx, ny - 0.18, 0, 10, 0, 0, -i * 0.03));
+        x = nx; y = ny;
+      }
+      for (let i = 0; i < 7; i++) {
+        const a = i / 7 * Math.PI * 2, L = 1.25;
+        for (let k = 0; k < 5; k++) {
+          const t = (k + 0.5) / 5, d = t * L, dy = 0.15 - t * t * 0.75;
+          p.push(ball(0.22 * (1 - t * 0.5), snow ? 0xe8f0f2 : k % 2 ? 0x4fae46 : 0x5cbc4e, x + Math.cos(a) * d, y + dy, z + Math.sin(a) * d, 1.1, 0.22, 0.7, 7));
+        }
+      }
+      p.push(ball(0.16, 0x6aa84a, x, y + 0.08, z, 1, 0.8, 1, 8));
+      if (ready) for (let i = 0; i < 3; i++) { const a = i * 2.1; p.push(ball(0.12, 0x7a4e2e, x + Math.cos(a) * 0.15, y - 0.12, z + Math.sin(a) * 0.15, 1, 1, 1, 9)); }
+      if (left <= 0) p.push(ball(0.1, 0xc9a46b, 0.25, 0.04, 0.3, 1.6, 0.4, 1));
+      return p;
+    }
+    // runder, dichter Laubbaum mit kurzem Stamm
+    const L = { spring: [0x6fcf5a, 0x86dc6a, 0x5bbf4e], summer: [0x4fb548, 0x62c654, 0x43a43f], autumn: [0xf2a23a, 0xe9822f, 0xf6c14a], winter: [0xeef4f8, 0xffffff, 0xe2ecf2] }[season];
+    const p = [cyl(0.14, 0.2, 0.9, 0x8a5a36, 0, 0.45, 0, 10), ball(0.24, 0x8a5a36, 0, 0.04, 0, 1.2, 0.25, 1.2, 9)];
+    p.push(ball(0.95, L[0], 0, 1.55, 0, 1, 0.92, 1, 14));
+    for (let i = 0; i < 9; i++) {
+      const a = i / 9 * Math.PI * 2 + r(), e = (r() - 0.35) * 1.2, R = 0.78;
+      p.push(ball(0.42 + r() * 0.12, L[i % 3], Math.cos(a) * Math.cos(e) * R, 1.55 + Math.sin(e) * R * 0.85, Math.sin(a) * Math.cos(e) * R, 1, 0.9, 1, 10));
+    }
+    p.push(ball(0.45, L[1], 0, 2.35, 0, 1, 0.8, 1, 10));
+    if (ready && season !== 'winter') {
+      const c = FRUIT_COL[fruit] || 0xff3b3b;
+      for (const [a, e] of [[0.3, 0.1], [1.5, -0.1], [2.6, 0.25], [3.7, -0.05], [4.9, 0.2], [5.7, -0.2]]) {
+        const R = 1.05, fx = Math.cos(a) * Math.cos(e) * R, fy = 1.55 + Math.sin(e) * R * 0.8, fz = Math.sin(a) * Math.cos(e) * R;
+        p.push(ball(fruit === 'kirsche' ? 0.09 : 0.13, c, fx, fy, fz, 1, fruit === 'birne' ? 1.3 : 0.95, 1, 9));
+        if (fruit === 'kirsche') p.push(ball(0.09, c, fx + 0.1, fy - 0.03, fz, 1, 1, 1, 8));
+      }
+    }
+    if (left <= 0) p.push(ball(0.1, 0xc9a46b, 0.3, 0.06, 0.45, 1.6, 0.4, 1), ball(0.08, 0xc9a46b, -0.35, 0.05, 0.4, 1.6, 0.4, 1));
+    return p;
+  });
+}
+// Muschel am Strand (5 Formen) und Unkraut
+export function shell(kind) {
+  return cachedModel('shell' + kind, () => {
+    if (kind === 'koralle') return [cyl(0.03, 0.04, 0.2, 0xff6f7d, 0, 0.1, 0, 6), cyl(0.025, 0.03, 0.14, 0xff8a95, 0.06, 0.12, 0, 6, 0, 0, -0.6), cyl(0.025, 0.03, 0.14, 0xff8a95, -0.06, 0.12, 0.02, 6, 0, 0, 0.6), ball(0.03, 0xff9aa5, 0, 0.21, 0, 1, 1, 1, 6)];
+    if (kind === 'sanddollar') return [cyl(0.13, 0.13, 0.03, 0xf3e3c3, 0, 0.02, 0, 14), ball(0.02, 0xe0caa0, 0, 0.04, 0, 1, 0.3, 1, 6)];
+    if (kind === 'kauri') return [ball(0.1, 0xf7e7d6, 0, 0.05, 0, 1.3, 0.7, 0.9, 10), box(0.12, 0.01, 0.015, 0xb89a7a, 0, 0.11, 0)];
+    if (kind === 'jakobsmuschel') return [cone(0.15, 0.04, 0xffb98a, 0, 0.03, 0, 9, 0, 0, 0), ball(0.04, 0xff9f6b, 0, 0.03, -0.14, 1.4, 0.5, 0.6, 6)];
+    return [ball(0.12, 0xffd1dc, 0, 0.04, 0, 1, 0.45, 1.1, 10), ball(0.035, 0xffbccb, 0, 0.04, -0.12, 1.3, 0.6, 0.6, 6)];
+  });
+}
+export function weed() {
+  return cachedModel('weed', () => {
+    const p = [];
+    for (let i = 0; i < 7; i++) { const a = i * 0.9; p.push(cone(0.05, 0.3 + (i % 3) * 0.06, i % 2 ? 0x4e9e3a : 0x63b247, Math.cos(a) * 0.08, 0.14, Math.sin(a) * 0.08, 4, Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35)); }
+    p.push(ball(0.04, 0xffffff, 0.06, 0.3, 0.02, 1, 1, 1, 5), ball(0.035, 0xfff3a0, -0.05, 0.26, -0.04, 1, 1, 1, 5));
     return p;
   });
 }
 export function digMark() {
-  return cachedModel('dig', () => [box(0.42, 0.02, 0.07, 0x6e4a2a, 0, 0.012, 0, Math.PI / 4), box(0.42, 0.02, 0.07, 0x6e4a2a, 0, 0.014, 0, -Math.PI / 4), ball(0.05, 0x8a5a3a, 0.18, 0.02, 0.1, 1, 0.4, 1), ball(0.04, 0x8a5a3a, -0.16, 0.02, -0.12, 1, 0.4, 1)]);
+  return cachedModel('dig', () => [0, 1, 2, 3, 4].map(i => { const a = i / 5 * Math.PI * 2; return box(0.07, 0.02, 0.3, 0x5e3f24, Math.sin(a) * 0.13, 0.012 + i * 0.001, Math.cos(a) * 0.13, a); })
+    .concat([ball(0.06, 0x6e4a2a, 0, 0.015, 0, 1, 0.3, 1, 7)]));
 }
 
 // ---------- Landschaft (einmal gebaut, ein einziger Draw-Call) ----------
@@ -107,30 +192,32 @@ const LEAVES = {
   spring: [0xffb7d0, 0xffc8dc, 0x7fd06a, 0x8fdc72], summer: [0x5fb84a, 0x6cc455, 0x4fae46, 0xffb7d0],
   autumn: [0xf0a040, 0xd9583a, 0xf2c94c, 0xe07b39], winter: [0xeef4f8, 0xe2ecf2, 0xf6fafc, 0xdde8ef],
 };
-export function scenery(isFree, h = () => 0, season = 'summer') {
+export function scenery(isFree, h = () => 0, season = 'summer', plateau = () => false) {
   const p = [], L = LEAVES[season], snow = season === 'winter';
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < 240; i++) {
-    const a = rand() * Math.PI * 2, r = 17.5 + rand() * 18, x = Math.cos(a) * r, z = Math.sin(a) * r, s = 0.8 + rand() * 0.8, y = h(x, z) - 0.1;
-    const k = rand(), leaf = L[Math.floor(rand() * 4)];
-    // runde, weiche Formen (mehr Segmente), damit der Wald zu den Figuren passt
-    if (k < 0.45) p.push(cyl(0.12 * s, 0.18 * s, 1.2 * s, 0x7a4b2e, x, y + 0.6 * s, z, 7), cone(0.95 * s, 1.5 * s, 0x3f8f4a, x, y + 1.55 * s, z, 14), cone(0.75 * s, 1.25 * s, snow ? 0xdfeaf0 : 0x4a9f55, x, y + 2.2 * s, z, 14), cone(0.5 * s, 0.95 * s, snow ? 0xffffff : 0x5cb566, x, y + 2.8 * s, z, 12), ball(0.12 * s, snow ? 0xffffff : 0x66c070, x, y + 3.25 * s, z, 1, 1, 1, 6));
-    else if (k < 0.85) p.push(cyl(0.12 * s, 0.18 * s, 1 * s, 0x7a4b2e, x, y + 0.5 * s, z, 7), ball(0.8 * s, leaf, x, y + 1.4 * s, z, 1, 0.88, 1, 12), ball(0.5 * s, L[(i + 1) % 4], x + 0.35 * s, y + 1.75 * s, z + 0.2 * s, 1, 0.9, 1, 10), ball(0.45 * s, L[(i + 2) % 4], x - 0.38 * s, y + 1.6 * s, z - 0.15 * s, 1, 0.9, 1, 10));
-    else if (k < 0.95) p.push(ball(0.45 * s, snow ? 0xe6eef3 : 0x4fa85a, x, y + 0.3 * s, z, 1.3, 0.8, 1.1, 7), ...(snow ? [] : [ball(0.08, [0xff8fab, 0xffffff, 0xffe066][i % 3], x + 0.2, y + 0.6 * s, z + 0.3, 1, 1, 1, 5)]));
-    else p.push(ball(0.5 * s, 0xa8a39c, x, y + 0.15, z, 1.2, 0.6, 1, 6), ball(0.3 * s, snow ? 0xffffff : 0xb9b4ad, x + 0.4 * s, y + 0.1, z + 0.2, 1, 0.6, 1, 6));
+  // Wald oben auf den Klippen
+  for (let i = 0; i < 1400 && p.length < 900; i++) {
+    const x = (rand() - 0.5) * 50, z = -14 - rand() * 12;
+    if (!plateau(x, z) || !plateau(x, z + 1.4) || Math.abs(x - (6.6 + 2.6 * Math.sin(z * 0.2 + 0.5))) < 1.8) continue;
+    const s = 0.85 + rand() * 0.6, y = h(x, z) - 0.05, k = rand(), leaf = L[Math.floor(rand() * 4)];
+    if (k < 0.45) p.push(cyl(0.12 * s, 0.18 * s, 1.0 * s, 0x7a4b2e, x, y + 0.5 * s, z, 7), cone(0.95 * s, 1.5 * s, 0x3f8f4a, x, y + 1.4 * s, z, 12), cone(0.72 * s, 1.2 * s, snow ? 0xdfeaf0 : 0x4a9f55, x, y + 2.0 * s, z, 12), cone(0.45 * s, 0.9 * s, snow ? 0xffffff : 0x5cb566, x, y + 2.55 * s, z, 10));
+    else if (k < 0.9) p.push(cyl(0.12 * s, 0.18 * s, 0.9 * s, 0x7a4b2e, x, y + 0.45 * s, z, 7), ball(0.85 * s, leaf, x, y + 1.4 * s, z, 1, 0.9, 1, 12), ball(0.5 * s, L[(i + 1) % 4], x + 0.4 * s, y + 1.65 * s, z + 0.2 * s, 1, 0.9, 1, 10), ball(0.45 * s, L[(i + 2) % 4], x - 0.4 * s, y + 1.55 * s, z - 0.15 * s, 1, 0.9, 1, 10));
+    else p.push(ball(0.5 * s, snow ? 0xe6eef3 : 0x4fa85a, x, y + 0.3 * s, z, 1.3, 0.8, 1.1, 8));
   }
-  for (let i = 0; i < (snow ? 0 : 260); i++) {
-    const x = (rand() - 0.5) * 30, z = (rand() - 0.5) * 30;
+  // Grasbüschel und kleine Wildblumen auf dem Rasen
+  for (let i = 0; i < (snow ? 0 : 700); i++) {
+    const x = (rand() - 0.5) * 44, z = (rand() - 0.5) * 40;
     if (!isFree(Math.round(x), Math.round(z))) continue;
-    if (rand() < 0.75) p.push(cone(0.06, 0.22, rand() < 0.5 ? 0x6fc45a : 0x5aa94a, x, 0.1, z, 4), cone(0.05, 0.18, 0x7fd06a, x + 0.08, 0.08, z + 0.05, 4));
+    if (rand() < 0.8) p.push(cone(0.06, 0.22, rand() < 0.5 ? 0x6fc45a : 0x5aa94a, x, 0.1, z, 4), cone(0.05, 0.18, 0x7fd06a, x + 0.08, 0.08, z + 0.05, 4));
     else p.push(cyl(0.01, 0.01, 0.2, GREEN, x, 0.1, z, 3), ball(0.05, [0xff8fab, 0xffffff, 0xffe066, 0xb39cff][Math.floor(rand() * 4)], x, 0.22, z, 1, 0.7, 1, 5));
   }
-  for (let i = 0; i < 12; i++) {
-    const a = i / 12 * Math.PI * 2;
-    p.push(ball(0.25 + (i % 3) * 0.08, 0x9a958e, -11 + Math.cos(a) * 2.75, 0.05, -10 + Math.sin(a) * 2.75, 1, 0.5, 1, 5));
+  // Steine am Teich
+  for (let i = 0; i < 14; i++) {
+    const a = i / 14 * Math.PI * 2;
+    p.push(ball(0.25 + (i % 3) * 0.08, 0x9a958e, -15 + Math.cos(a) * 2.45, 0.02, -4 + Math.sin(a) * 2.45, 1, 0.5, 1, 6));
   }
-  p.push(cyl(0.3, 0.3, 0.03, 0x4fae4a, -10, 0.07, -9.5, 8), cyl(0.25, 0.25, 0.03, 0x4fae4a, -12, 0.07, -10.8, 8), ball(0.07, 0xffb7d0, -10, 0.12, -9.5));
+  p.push(cyl(0.3, 0.3, 0.03, 0x4fae4a, -14.2, -0.13, -3.4, 8), cyl(0.25, 0.25, 0.03, 0x4fae4a, -15.8, -0.13, -4.6, 8), ball(0.07, 0xffb7d0, -14.2, -0.08, -3.4));
   return model(p, [], false);
 }
 

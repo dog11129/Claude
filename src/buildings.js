@@ -672,8 +672,123 @@ function mail(l, P, G, s) {
   }
 }
 
+
+// ---------- Insel-Gebäude (lokal um den Ursprung gebaut, Vorderseite +z; die Welt setzt sie an ihre Stelle) ----------
+// Dreieck (Giebel) als dünne Platte
+function tri(w, h, d, c, x, y, z) {
+  const g = new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-w / 2, 0), new THREE.Vector2(w / 2, 0), new THREE.Vector2(0, h)]), { depth: d, bevelEnabled: false });
+  g.translate(0, 0, -d / 2);
+  return place(g, c, x, y, z);
+}
+// Inselbüro: großes, gestreiftes Zelt mit Wimpelkette
+function office(P, G, s) {
+  const W = 4.6, D = 2.7, H0 = 0.9, H1 = 2.5, snow = s === 'winter', A = 0x6cbf63, B = 0xfff4d6;
+  P.push(rb(W + 0.5, 0.12, D + 0.6, 0xd9c49a, 0, 0.06, 0, 0.05));
+  // senkrechte Seitenwände bis H0, darüber das Satteldach aus Stoffbahnen
+  for (let i = 0; i < 10; i++) {
+    const x = -W / 2 + (i + 0.5) * W / 10, c = i % 2 ? A : B;
+    P.push(box(W / 10 + 0.005, H0, 0.05, c, x, H0 / 2 + 0.1, -D / 2), box(W / 10 + 0.005, H0, 0.05, c, x, H0 / 2 + 0.1, D / 2));
+    const S = Math.hypot(D / 2 + 0.2, H1 - H0), a = Math.atan2(H1 - H0, D / 2 + 0.2);
+    for (const sz of [-1, 1]) P.push(box(W / 10 + 0.005, 0.05, S, c, x, (H0 + H1) / 2 + 0.1, sz * (D / 4 + 0.05), 0, sz * a));
+    P.push(semi(W / 20, 0.05, c, x, H0 + 0.1, D / 2 + 0.22, true));
+  }
+  for (const sx of [-1, 1]) P.push(box(0.05, H0, D, B, sx * W / 2, H0 / 2 + 0.1, 0), tri(D + 0.4, H1 - H0, 0.05, sx > 0 ? A : B, sx * W / 2, H0 + 0.1, 0));
+  P.push(cyl(0.06, 0.06, W + 0.3, 0xa8743f, 0, H1 + 0.12, 0, 8, 0, 0, H));
+  // Eingang: hochgeschlagene Plane
+  P.push(box(1.2, 1.5, 0.06, 0x5a4636, 0, 0.85, D / 2 + 0.02), tri(1.3, 0.5, 0.06, 0x5a4636, 0, 1.6, D / 2 + 0.02));
+  for (const sx of [-1, 1]) P.push(beam([sx * 0.62, 2.0, D / 2 + 0.06], [sx * 0.95, 0.4, D / 2 + 0.1], 0.18, A, 0.05));
+  G.push(box(1.0, 1.2, 0.02, 0, 0, 0.75, D / 2 + 0.06));
+  // Schild mit Blatt
+  P.push(rb(1.1, 0.5, 0.08, 0xfff7ea, 0, 2.05, D / 2 + 0.12, 0.04), rb(1.2, 0.08, 0.1, 0xa8743f, 0, 2.33, D / 2 + 0.12, 0.02),
+    ball(0.15, 0x5cb85c, -0.05, 2.05, D / 2 + 0.17, 1.4, 0.8, 0.3, 10), cyl(0.012, 0.012, 0.22, 0x3e8a3e, 0.12, 2.0, D / 2 + 0.18, 4, 0, 0, 0.8));
+  // Masten mit Wimpeln
+  for (const sx of [-1, 1]) {
+    const x = sx * (W / 2 + 0.35);
+    P.push(cyl(0.05, 0.06, 3.1, 0xa8743f, x, 1.55, D / 2 + 0.3, 8), ball(0.08, 0xffd23f, x, 3.15, D / 2 + 0.3, 1, 1, 1, 8));
+  }
+  const cols = [0xff6b8a, 0xffd23f, 0x6cc4ff, 0x8fd694, 0xb39cff];
+  for (let i = 0; i < 12; i++) {
+    const t = (i + 0.5) / 12, x = -W / 2 - 0.35 + t * (W + 0.7), y = 2.95 - Math.sin(t * PI) * 0.35;
+    P.push(cone(0.1, 0.22, cols[i % 5], x, y - 0.1, D / 2 + 0.3, 3, 0, 0, PI));
+  }
+  // Tisch mit Laterne und Blumentöpfen
+  P.push(rb(0.9, 0.06, 0.5, WOOD, 1.6, 0.72, D / 2 + 0.55, 0.02), rb(0.08, 0.7, 0.08, WOODD, 1.25, 0.36, D / 2 + 0.55, 0.02), rb(0.08, 0.7, 0.08, WOODD, 1.95, 0.36, D / 2 + 0.55, 0.02));
+  pot(P, -1.75, 0, D / 2 + 0.5, s);
+  pot(P, -1.35, 0, D / 2 + 0.7, s);
+  if (snow) P.push(rb(W, 0.08, D * 0.62, SNOW, 0, H1 - 0.35, -0.1, 0.04));
+}
+// Krämerladen: Holzhaus mit gestreifter Markise, großem Schaufenster und Kisten voller Obst
+function shop(P, G, s) {
+  const W = 4.5, D = 2.6, top = 2.0, snow = s === 'winter', prof = [[D / 2 + 0.4, 0], [0, 1.3]], gf = fill(W, D, prof, WOODL), fr = PRODUCE[s] || PRODUCE.summer;
+  P.push(rb(W + 0.2, 0.25, D + 0.2, STONE_D, 0, 0.125, 0, 0.05));
+  for (let i = 0; i < 9; i++) P.push(rb(W, 0.22, D, vary(i % 2 ? WOODL : WOOD, 0.03), 0, 0.36 + i * 0.205, 0, 0.03));
+  P.push(...tf([gf.p], 0, top, 0), ...tf(roofOf(W + 0.5, prof, 0x48a9a6, { snow, trim: CREAM, back: true, sw: 0.32, st: 0.21 }), 0, top, 0));
+  // Schaufenster + Tür
+  at(P, G, -1.05, 1.05, D / 2, 0, (p, g) => win(p, g, { w: 1.4, h: 0.8, frame: CREAM, s }));
+  at(P, G, 1.25, 0, D / 2, 0, (p, g) => {
+    p.push(rb(0.78, 1.5, 0.06, 0x6fb5a3, 0, 0.98, 0.03, 0.03), ball(0.045, BRASS, 0.26, 0.95, 0.08, 1, 1, 1, 8));
+    g.push(box(0.4, 0.45, 0.02, 0, 0, 1.3, 0.07));
+  });
+  // Markise
+  const a = Math.atan2(0.35, 0.9);
+  for (let i = 0; i < 13; i++) {
+    const x = -W / 2 + (i + 0.5) * W / 13, c = i % 2 ? CREAM : 0x5cb85c;
+    P.push(box(W / 13 + 0.005, 0.04, 0.95, c, x, 1.9, D / 2 + 0.42, 0, a), semi(W / 26, 0.03, c, x, 1.72, D / 2 + 0.88, true));
+  }
+  // Schild mit Blatt + Kisten
+  P.push(rb(1.3, 0.45, 0.08, CREAM, 0, 2.75, D / 2 + 0.3, 0.04), ball(0.16, 0x5cb85c, 0, 2.75, D / 2 + 0.36, 1.4, 0.8, 0.3, 10));
+  crate(P, -1.55, 0, D / 2 + 0.75, 0.5, 0.42, fr[0]);
+  crate(P, -0.95, 0, D / 2 + 0.75, 0.5, 0.42, fr[1]);
+  crate(P, -1.25, 0.2, D / 2 + 0.35, 0.5, 0.42, fr[2]);
+  if (s === 'autumn') pumpkin(P, 2.1, 0, D / 2 + 0.5);
+}
+// Museum: heller Steinbau mit Säulen, Giebel und Kuppel
+function museum(P, G, s) {
+  const W = 4.6, D = 3.4, snow = s === 'winter', MARB = 0xf4eee4, ROOF = 0x4e9fa8;
+  for (let i = 0; i < 3; i++) P.push(rb(W + 0.6 - i * 0.2, 0.14, D + 0.9 - i * 0.2, vary(STONE, 0.03), 0, 0.07 + i * 0.14, 0.15 + i * 0.05, 0.03));
+  P.push(rb(W, 2.0, D - 0.6, MARB, 0, 1.42, -0.3, 0.05));
+  for (let i = 0; i < 5; i++) { const x = -1.9 + i * 0.95; P.push(cyl(0.16, 0.18, 1.9, 0xfffaf2, x, 1.37, D / 2 - 0.05, 14), rb(0.44, 0.12, 0.44, MARB, x, 2.37, D / 2 - 0.05, 0.03), rb(0.44, 0.12, 0.44, MARB, x, 0.48, D / 2 - 0.05, 0.03)); }
+  P.push(rb(W + 0.3, 0.25, D + 0.1, MARB, 0, 2.55, -0.05, 0.04), tri(W + 0.3, 0.9, 0.3, MARB, 0, 2.66, D / 2 - 0.1), tri(W - 0.2, 0.65, 0.32, 0xe8dfd0, 0, 2.74, D / 2 - 0.09));
+  // Dach: zwei Flächen + Kuppel
+  const a = Math.atan2(0.9, W / 2);
+  for (const sx of [-1, 1]) P.push(box(Math.hypot(W / 2 + 0.2, 0.9), 0.1, D + 0.2, ROOF, sx * (W / 4 + 0.05), 3.13, -0.05, 0, 0, -sx * a));
+  P.push(cyl(0.95, 1.0, 0.5, MARB, 0, 3.4, -0.6, 20), ball(0.95, ROOF, 0, 3.6, -0.6, 1, 0.85, 1, 20), cyl(0.06, 0.06, 0.4, BRASS, 0, 4.55, -0.6, 8), ball(0.1, BRASS, 0, 4.78, -0.6, 1, 1, 1, 8));
+  // Tür, Fenster und Rundfenster im Giebel
+  at(P, G, 0, 0, D / 2 - 0.58, 0, (p, g) => { p.push(rb(1.0, 1.55, 0.08, 0x7a4e35, 0, 1.15, 0.04, 0.03), semi(0.5, 0.08, 0x7a4e35, 0, 1.92, 0.04)); g.push(semi(0.4, 0.02, 0, 0, 1.92, 0.09)); });
+  for (const sx of [-1, 1]) at(P, G, sx * 1.45, 1.5, D / 2 - 0.58, 0, (p, g) => win(p, g, { w: 0.5, h: 0.8, frame: MARB, s }));
+  at(P, G, 0, 3.05, D / 2 + 0.06, 0, (p, g) => roundWin(p, g, 0.2, MARB));
+  // Banner und Büsche
+  for (const sx of [-1, 1]) {
+    P.push(box(0.4, 1.0, 0.03, sx > 0 ? 0x6cc4ff : 0xff8fab, sx * 2.55, 1.9, D / 2 + 0.05), cone(0.2, 0.2, sx > 0 ? 0x6cc4ff : 0xff8fab, sx * 2.55, 1.3, D / 2 + 0.05, 4, 0, PI / 4, PI));
+    if (!snow) P.push(ball(0.35, vary(LEAF), sx * 2.7, 0.35, D / 2 + 0.55, 1, 0.8, 1, 9));
+  }
+  if (snow) P.push(ball(0.9, SNOW, 0, 3.85, -0.6, 1, 0.45, 1, 16));
+}
+// Dorfbaum auf dem Platz: großer Baum mit Steinring und Blumen
+function plazatree(P, G, s) {
+  const L = { spring: [0xffb7d0, 0xffc8dc], summer: [0x4fb548, 0x62c654], autumn: [0xf2a23a, 0xe9822f], winter: [0xeef4f8, 0xffffff] }[s] || [0x4fb548, 0x62c654];
+  P.push(cyl(0.95, 1.0, 0.3, STONE, 0, 0.15, 0, 18), cyl(0.85, 0.85, 0.32, 0x7a5232, 0, 0.17, 0, 18));
+  P.push(cyl(0.3, 0.45, 2.2, 0x8a5a36, 0, 1.2, 0, 12));
+  for (const [x, y, z, r, c] of [[0, 3.0, 0, 1.6, 0], [1.1, 2.6, 0.4, 1.0, 1], [-1.1, 2.7, -0.2, 1.05, 1], [0.3, 3.9, 0.1, 1.0, 1], [-0.4, 2.5, 1.0, 0.9, 0], [0.5, 2.7, -1.0, 0.95, 0]]) P.push(ball(r, vary(L[c], 0.03), x, y, z, 1, 0.9, 1, 14));
+  if (s !== 'winter') { const F = FLOWERS[s] || FLOWERS.summer; for (let k = 0; k < 10; k++) { const a = k / 10 * PI * 2; P.push(ball(0.08, F[k % F.length], Math.cos(a) * 0.65, 0.4, Math.sin(a) * 0.65, 1, 1, 1, 6)); } }
+  else P.push(cyl(0.86, 0.86, 0.05, SNOW, 0, 0.35, 0, 18));
+}
+// Häuschen der Nachbarn: in ihren Lieblingsfarben, mit Briefkasten
+const VH = { mira: [0xfff2e6, 0xff8fab, 0xb77a5a], bruno: [0xd9a46b, 0x4f8f5a, 0x7a4e35], pippa: [0xd6efff, 0x5aa0e0, 0xfff7ea], lio: [0xffc98f, 0xd9583a, 0x8f5a3c] };
+function vhouse(id, P, G, s) {
+  const [wall, roof, door] = VH[id] || VH.mira, W = 1.9, D = 1.6, top = 1.35, snow = s === 'winter', prof = [[D / 2 + 0.3, 0], [0, 0.95]], gf = fill(W, D, prof, wall);
+  P.push(rb(W + 0.14, 0.2, D + 0.14, STONE_D, 0, 0.1, -0.1, 0.04), rb(W, top - 0.2, D, wall, 0, 0.2 + (top - 0.2) / 2, -0.1, 0.05), ...tf([gf.p], 0, top, -0.1));
+  P.push(...tf(roofOf(W + 0.4, prof, roof, { snow, trim: CREAM, back: true, sw: 0.26, st: 0.18 }), 0, top, -0.1));
+  at(P, G, 0, 0, D / 2 - 0.1, 0, (p, g) => { p.push(rb(0.55, 0.95, 0.05, door, -0.35, 0.67, 0.03, 0.02), ball(0.035, BRASS, -0.18, 0.66, 0.07, 1, 1, 1, 6)); });
+  at(P, G, 0.45, 0.85, D / 2 - 0.1, 0, (p, g) => win(p, g, { w: 0.42, h: 0.42, frame: CREAM, s, box: true }));
+  P.push(cyl(0.04, 0.04, 0.8, WOODD, 1.15, 0.4, D / 2 + 0.25, 6), rb(0.24, 0.18, 0.32, roof, 1.15, 0.86, D / 2 + 0.25, 0.04));
+  if (!snow) { const F = FLOWERS[s] || FLOWERS.summer; for (let k = 0; k < 4; k++) P.push(ball(0.13, vary(LEAF), -0.9 + k * 0.18, 0.12, D / 2 + 0.1, 1, 0.8, 1, 7), ball(0.05, F[k % F.length], -0.9 + k * 0.18, 0.24, D / 2 + 0.15, 1, 1, 1, 6)); }
+}
+
 const BUILD = {
   house, coop, barn, mail,
+  office: (l, s, P, G) => office(P, G, s), shop: (l, s, P, G) => shop(P, G, s), museum: (l, s, P, G) => museum(P, G, s), plazatree: (l, s, P, G) => plazatree(P, G, s),
+  vhouse_mira: (l, s, P, G) => vhouse('mira', P, G, s), vhouse_bruno: (l, s, P, G) => vhouse('bruno', P, G, s), vhouse_pippa: (l, s, P, G) => vhouse('pippa', P, G, s), vhouse_lio: (l, s, P, G) => vhouse('lio', P, G, s),
   market: (l, s, P, G) => market(P, G, s), bin: (l, s, P, G) => bin(P, G, s), board: (l, s, P, G) => board(P, G, s),
   bench: (l, s, P, G) => bench(P, G, s), kitchen: (l, s, P, G) => kitchen(P, G, s),
 };

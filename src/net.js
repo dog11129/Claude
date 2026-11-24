@@ -1,6 +1,6 @@
 // Multiplayer über WebRTC (PeerJS). Der Host ist gleichzeitig der "Server", Freunde verbinden sich mit seinem Code.
 /* global Peer */
-const PREFIX = 'kuschelhof-v1-';
+const PREFIX = 'kuschelinsel-v1-';
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const newCode = () => Array.from({ length: 5 }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
 export const cleanCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
@@ -64,7 +64,7 @@ export function join(code, h) {
 
 export function errorText(e) {
   return {
-    'peer-unavailable': 'Keine Farm mit diesem Code gefunden. Ist der Host online?',
+    'peer-unavailable': 'Keine Insel mit diesem Code gefunden. Ist der Host online?',
     'unavailable-id': 'Dieser Code ist gerade belegt.',
     network: 'Keine Verbindung zum Vermittlungs-Server. Bist du online?',
     'server-error': 'Der Vermittlungs-Server antwortet nicht. Versuch es gleich nochmal.',

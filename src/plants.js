@@ -299,6 +299,27 @@ const CROP = {
   },
 };
 
+
+// ---------- Blumen (Tulpe, Kosmee, Stiefmütterchen, Rose, Hyazinthe) ----------
+const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff };
+function flowerPlant(k, st) {
+  const c = FCOL[k], p = [];
+  const n = st === 1 ? 4 : 6;
+  for (let i = 0; i < n; i++) p.push(leaf(k === 'tulpe' || k === 'hyazinthe' ? 0.2 : 0.13, k === 'tulpe' || k === 'hyazinthe' ? 0.06 : 0.08, i % 2 ? LEAF : LEAFL, 0, 0.01, 0, i * TAU / n + 0.3, 1.0, 0.35, 0.35, 4, 6));
+  if (st === 1) return p;
+  const heads = [[0, 0.3, 0], [0.13, 0.24, 0.06], [-0.1, 0.22, -0.09]].slice(0, st === 2 ? 1 : 3);
+  for (const [x, y, z] of heads) {
+    p.push(stick([x * 0.3, 0, z * 0.3], [x, y, z], 0.012, STEM, 4));
+    if (st === 2) { p.push(B(0.04, c, x, y + 0.03, z, 1, 1.4, 1, 6, 5), B(0.03, LEAF, x, y, z, 1.1, 0.8, 1.1, 6, 4)); continue; }
+    if (k === 'tulpe') p.push(B(0.06, c, x, y + 0.05, z, 1, 1.3, 1, 8, 6), ...[0, 1, 2].map(j => leaf(0.09, 0.065, c, x, y + 0.01, z, j * 2.1, 1.25, -0.05, 0.45, 4, 5)));
+    else if (k === 'rose') p.push(B(0.06, c, x, y + 0.04, z, 1, 0.85, 1, 9, 6), B(0.045, shade(c, 0.08), x, y + 0.07, z, 1, 0.8, 1, 8, 5), bloom(0.075, shade(c, -0.05), x, y + 0.02, z, 6, 0.55, 0.016));
+    else if (k === 'hyazinthe') for (let j = 0; j < 9; j++) { const a = j * 2.4; p.push(B(0.03, j % 2 ? c : shade(c, 0.1), x + Math.cos(a) * 0.035, y + 0.02 + j * 0.018, z + Math.sin(a) * 0.035, 1, 1, 1, 6, 4)); }
+    else p.push(bloom(k === 'kosmee' ? 0.09 : 0.075, c, x, y, z, k === 'kosmee' ? 8 : 5, k === 'kosmee' ? 0.15 : 0.25, 0.016, -0.35, x * 9), B(0.025, k === 'kosmee' ? 0xffa020 : 0xfff0a0, x, y + 0.012, z + 0.01, 1, 0.7, 1, 6, 4));
+  }
+  return p;
+}
+for (const k of Object.keys(FCOL)) CROP[k] = st => flowerPlant(k, st);
+
 // ---------- Platzierbares ----------
 const tree = (blobs) => blobs.map(([x, y, z, r, c, sy = 0.85]) => B(r, c, x, y, z, 1, sy, 1, 12, 9));
 const trunk = () => [C(0.1, 0.15, 1.05, BARK, 0, 0.52, 0, 9), stick([0, 0.8, 0], [0.32, 1.2, 0.08], 0.06, BARK, 6, 0.04), stick([0, 0.85, 0], [-0.3, 1.25, -0.1], 0.06, BARK, 6, 0.04),
@@ -476,19 +497,23 @@ const PLACE = {
     return p;
   },
 
-  apfelbaum(ready) {
+  apfelbaum(ready, fruitCol = 0xff3b3b, big = 1) {
     seed = 31;
     const G = [0x5fb84a, 0x4fa843, 0x6cc455, 0x47993f], p = [...trunk(), ...tree([
       [0, 1.55, 0, 0.55, G[0]], [0.42, 1.36, 0.12, 0.38, G[1]], [-0.4, 1.42, -0.06, 0.4, G[2]], [0.04, 1.95, 0.0, 0.38, G[2]],
       [-0.1, 1.32, 0.36, 0.34, G[3]], [0.22, 1.6, -0.34, 0.36, G[1]], [-0.3, 1.78, 0.22, 0.27, G[0]]])];
     if (ready) for (const [a, e] of [[0.1, 0.1], [0.9, -0.15], [-0.7, 0.05], [1.8, 0.2], [-1.6, -0.1], [0.4, 0.6], [-0.3, -0.35], [2.6, -0.05], [3.6, 0.3], [-0.9, 0.55]]) {
       const [x, y, z] = onBall(0, 1.55, 0.02, 0.6, a, e, 0.88);
-      p.push(B(0.075, 0xff3b3b, x, y, z, 1, 0.92, 1, 8, 6), stick([x, y + 0.06, z], [x + 0.01, y + 0.1, z], 0.008, BARK, 3), leaf(0.05, 0.03, LEAFL, x + 0.01, y + 0.09, z, a, 0.4, 0, 0.3, 4, 4));
+      p.push(B(0.075 * big, fruitCol, x, y, z, 1, 0.92, 1, 8, 6), stick([x, y + 0.06, z], [x + 0.01, y + 0.1, z], 0.008, BARK, 3), leaf(0.05, 0.03, LEAFL, x + 0.01, y + 0.09, z, a, 0.4, 0, 0.3, 4, 4));
     }
     else for (let i = 0; i < 10; i++) { const [x, y, z] = onBall(0, 1.55, 0.05, 0.62, rnd() * TAU, (rnd() - 0.2) * 1.1, 0.85); p.push(bloom(0.05, i % 2 ? WHITE : 0xffd6e4, x, y, z, 5, 0.2, 0.02, (rnd() - 0.5), rnd() * 3)); }
     for (const o of p) o.g.scale(0.92, 0.92, 0.92);
     return p;
   },
+  orangenbaum: ready => PLACE.apfelbaum(ready, 0xffa21f, 1.1),
+  pfirsichbaum: ready => PLACE.apfelbaum(ready, 0xffa98a, 1.05),
+  kirschenbaum: ready => PLACE.apfelbaum(ready, 0xd8102c, 0.8),
+  birnbaum: ready => PLACE.apfelbaum(ready, 0xd6dc4a, 1.05),
   bienenstock(ready) {
     const S = [0xf2c35a, 0xe2ad45], p = [C(0.3, 0.34, 0.22, BARK, 0, 0.11, 0, 14), C(0.29, 0.29, 0.02, 0xe8c48e, 0, 0.225, 0, 14), ring(0.16, 0.008, 0xc9a06a, 0, 0.236, 0, H, TAU, 16, 3),
       dome(0.27, S[0], 0, 0.23, 0, 1, 1.85, 1, 14, 7)];

@@ -31,31 +31,37 @@ import { makeAnimal } from './animals.js';
 import { crop, placeable } from './plants.js';
 import { building } from './buildings.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
-import { FIELDS, PENS, PLACE, POND, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, NPC_IDS } from './data.js';
-import { stage, animalPos, buildingAt, inPond, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize } from './state.js';
+import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS } from './data.js';
+import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady } from './state.js';
+import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng } from './island.js';
 
 const C = h => new THREE.Color(h);
-const SKY_TOP = [C(0x5fb4f5), C(0x2a3f86), C(0x0b1433)], SKY_HOR = [C(0xcfeeff), C(0xffb38a), C(0x26365e)];
+const SKY_TOP = [C(0x4fb3f6), C(0x3a4f96), C(0x14224d)], SKY_HOR = [C(0xd2f0ff), C(0xffb88f), C(0x34507e)];
 const SKY_RAIN_TOP = C(0x7d8a9c), SKY_RAIN_HOR = C(0xb7c1cc);
 const GLOW_DAY = C(0xd8cfa8), GLOW_NIGHT = C(0xffd65a).multiplyScalar(2.6);
 const SUN_DAY = C(0xfff6e8), SUN_DUSK = C(0xff9a50), SUN_MOON = C(0x7f9cff);
-const HEMI_DAY = C(0xe8f6ff), HEMI_NIGHT = C(0x5a6aa8), GROUND_DAY = C(0x6c9a50), GROUND_NIGHT = C(0x2a3550);
+const HEMI_DAY = C(0xeef8ff), HEMI_NIGHT = C(0x6f82c8), GROUND_DAY = C(0x7fb85a), GROUND_NIGHT = C(0x34446e);
 const WET = C(0x9a9098), WHITE = C(0xffffff);
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const angDiff = (a, b) => ((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const HAT_TOP = { straw: 1.5, bunny: 1.72, wizard: 1.86, crown: 1.58, cowboy: 1.55, beanie: 1.52, cat: 1.55, bow: 1.5 };
 
-// Wege auf dem Hof (x, z, Breite, Tiefe)
-const PATHS = [[0, -6.5, 1.6, 4], [0, -3.5, 9, 1.4], [-4.5, -7.8, 1.2, 1.6], [3, -7, 1.2, 1.2], [6, -3.5, 3, 1.2], [5, 2, 1.4, 10], [6.5, 7.5, 3, 1.4]];
-const onPath = (x, z) => PATHS.some(([px, pz, w, d]) => Math.abs(x - px) < w / 2 + 0.3 && Math.abs(z - pz) < d / 2 + 0.3);
-
-// Sanfte Hügel rund um das Tal der Farm
+// Gelände: flache Insel (y = 0), Klippen-Plateau im Norden, Strand fällt ins Meer ab, Fluss- und Teichbett
 const noise = (x, z) => Math.sin(x * 0.21 + 1.3) * Math.sin(z * 0.17 + 0.4) * 0.5 + Math.sin(x * 0.07 - z * 0.11 + 2) * 0.5;
+export const SEA_Y = -0.24;
 export function heightAt(x, z) {
-  const r = Math.pow(x ** 4 + z ** 4, 0.25);
-  return smooth(17, 34, r) * (3.2 + 2.6 * noise(x, z));
+  const cz = cliffZ(x);
+  let h = CLIFF_H * smooth(cz + 0.2, cz - 0.3, z) + smooth(cz - 3, cz - 9, z) * (0.6 + 0.5 * noise(x, z));
+  const c = coast(x, z);
+  if (c > -0.85) h = h * (1 - smooth(-0.6, 0.6, c)) - 1.6 * smooth(-0.85, 3.2, c);
+  const rd = Math.abs(x - riverX(z));
+  if (rd < RIVER_W + 0.35) h -= 0.6 * (1 - smooth(RIVER_W - 0.35, RIVER_W + 0.35, rd));
+  const pd = Math.hypot(x - POND.cx, z - POND.cz);
+  if (pd < POND.r + 0.35) h -= 0.55 * (1 - smooth(POND.r - 0.4, POND.r + 0.35, pd));
+  return h;
 }
+const plateau = (x, z) => z < cliffZ(x) - 0.4 && coast(x, z) < -1.2;
 
 // Wind: Pflanzen, Gras und Bäume wiegen sich (Vertex-Shader-Ergänzung)
 const windTime = { value: 0 };
@@ -81,6 +87,9 @@ function windy(base, amp) {
   return m;
 }
 const WIND_CROP = windy(M.MAT, 0.09), WIND_TREE = windy(M.MAT, 0.012);
+const CLOUD_MAT = new THREE.MeshLambertMaterial({ vertexColors: true, fog: false });
+CLOUD_MAT.defines = { NO_CURVE: '' };
+const SKY_MATS = [];
 
 export const QUALITY = {
   low: { ratio: 1, shadows: 0, bloom: false, grass: 0, lights: 0 },
@@ -97,13 +106,13 @@ export class World {
     r.toneMappingExposure = 1.05;
     r.shadowMap.type = THREE.PCFSoftShadowMap;
     const s = this.scene = new THREE.Scene();
-    s.fog = new THREE.Fog(SKY_HOR[0].clone(), 38, 95);
-    this.camera = new THREE.PerspectiveCamera(40, 1, 0.3, 400);
+    s.fog = new THREE.Fog(SKY_HOR[0].clone(), 34, 80);
+    this.camera = new THREE.PerspectiveCamera(36, 1, 0.3, 400);
     this.target = new THREE.Vector3(0, 0, -4);
     this.zoom = 1;
     this.yaw = 0;
     this.yawT = 0;
-    this.el = 0.83;
+    this.el = 0.74;
     this.ray = new THREE.Raycaster();
 
     this.hemi = new THREE.HemisphereLight(0xe8f6ff, 0x6c9a50, 1.3);
@@ -117,17 +126,9 @@ export class World {
 
     this.buildSky();
     this.buildGround();
-    this.buildPond();
 
-    const pen = p => [p.cx - p.rx - 0.6, p.cz - p.rz - 0.5, p.cx + p.rx + 0.6, p.cz + p.rz + 0.5];
-    const cp = pen(PENS.coop), bp = pen(PENS.barn);
-    s.add(M.fences([[...cp, cp[3]], [...bp, bp[1]]]));
-    for (const [x, z] of [[PENS.coop.cx + 2, PENS.coop.cz - 1.2], [PENS.barn.cx - 3, PENS.barn.cz + 1.5]]) {
-      s.add(M.model([M.box(1.2, 0.3, 0.4, 0x9c6b3f, x, 0.15, z), M.box(1.1, 0.05, 0.3, 0x9ccf5a, x, 0.3, z)]));
-    }
-
-    // Beete: Erde mit Furchen, einmal instanziert
-    const soilGeo = M.merge([M.box(0.96, 0.08, 0.96, 0x9a6a44, 0, 0.04, 0), ...[-0.3, 0, 0.3].map(z => M.box(0.88, 0.05, 0.14, 0x86583a, 0, 0.09, z))]);
+    // Pflanzstellen: kleiner, runder Erdfleck unter Blumen & Gemüse
+    const soilGeo = M.merge([M.cyl(0.24, 0.3, 0.03, 0x93764c, 0, 0.012, 0, 14)]);
     this.soil = new THREE.InstancedMesh(soilGeo, M.MAT, 400);
     this.soil.receiveShadow = true;
     this.soil.count = 0;
@@ -270,6 +271,7 @@ export class World {
       const p = [];
       for (let j = 0; j < 5; j++) p.push(M.ball(2 + Math.random() * 1.5, 0xffffff, j * 2.2 - 4.4, Math.random(), Math.random() * 1.5, 1, 0.6, 1, 7));
       const c = M.model(p, [], false);
+      c.children[0].material = CLOUD_MAT;
       c.userData = { a: i / 9 * Math.PI * 2, r: 60 + Math.random() * 50, y: 24 + Math.random() * 12 };
       this.clouds.push(c);
       this.scene.add(c);
@@ -296,35 +298,34 @@ export class World {
   }
 
   buildGround() {
-    const geo = this.groundGeo = new THREE.PlaneGeometry(220, 220, 110, 110);
+    const geo = this.groundGeo = new THREE.PlaneGeometry(96, 96, 288, 288);
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
     geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
-    this.colorGround('summer');
     geo.computeVertexNormals();
-    // Gras: helle und dunkle Halme, damit der Boden nicht wie Plastik wirkt
+    this.colorGround('summer');
+    // Gras mit dem typischen, feinen Rautenmuster
     const grassTex = this.detailTex((g, rnd) => {
-      for (let i = 0; i < 40; i++) { // weiche Flecken
-        const x = rnd() * 128, y = rnd() * 128, r = 6 + rnd() * 14;
-        g.fillStyle = `hsla(0 0% ${93 + rnd() * 5}% / .5)`;
+      for (let y = 0; y < 128; y += 16) for (let x = 0; x < 128; x += 16) {
+        const o = (y / 16) % 2 ? 8 : 0;
+        g.fillStyle = `hsl(0 0% ${90 + rnd() * 4}%)`;
+        g.beginPath(); g.moveTo(x + o, y + 3); g.lineTo(x + o + 5, y + 11); g.lineTo(x + o - 5, y + 11); g.closePath(); g.fill();
+      }
+      for (let i = 0; i < 30; i++) {
+        const x = rnd() * 128, y = rnd() * 128, r = 8 + rnd() * 14;
+        g.fillStyle = `hsla(0 0% ${95 + rnd() * 5}% / .45)`;
         g.beginPath(); g.ellipse(x, y, r, r * 0.7, rnd() * 3, 0, 7); g.fill();
       }
-      for (let i = 0; i < 140; i++) {
-        const x = rnd() * 128, y = rnd() * 128, l = 89 + rnd() * 11;
-        g.strokeStyle = `hsl(0 0% ${l}%)`;
-        g.lineWidth = 1;
-        g.beginPath(); g.moveTo(x, y); g.lineTo(x + rnd() * 3 - 1.5, y - 3 - rnd() * 4); g.stroke();
-      }
-    }, [55, 55]);
+    }, [48, 48]);
     const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: grassTex }));
     ground.receiveShadow = true;
     this.scene.add(ground);
-    // Sandweg mit Kieseln
+    // Sand-Erdwege und der runde Dorfplatz
     const pathTex = this.detailTex((g, rnd) => {
       for (let i = 0; i < 90; i++) {
         const x = rnd() * 128, y = rnd() * 128, r = 1.5 + rnd() * 3.5;
-        g.fillStyle = `hsl(35 25% ${70 + rnd() * 22}%)`;
+        g.fillStyle = `hsl(35 25% ${72 + rnd() * 22}%)`;
         g.beginPath(); g.ellipse(x, y, r, r * 0.75, rnd() * 3, 0, 7); g.fill();
       }
     }, [1, 1]);
@@ -332,21 +333,41 @@ export class World {
       const map = pathTex.clone();
       map.repeat.set(w / 3, d / 3);
       map.needsUpdate = true;
-      const p = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ color: 0xf2e2b4, map }));
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(w, d, Math.ceil(w * 2), Math.ceil(d * 2)), new THREE.MeshLambertMaterial({ color: 0xe9d29e, map })); // fein unterteilt, damit die Krümmung mitgeht
       p.rotation.x = -Math.PI / 2;
       p.position.set(x, 0.012, z);
       p.receiveShadow = true;
       this.scene.add(p);
     }
+    const pm = pathTex.clone();
+    pm.repeat.set(2.4, 2.4);
+    pm.needsUpdate = true;
+    const plaza = new THREE.Mesh(new THREE.RingGeometry(0, PLAZA.r, 40, 8), new THREE.MeshLambertMaterial({ color: 0xefdcaa, map: pm }));
+    plaza.rotation.x = -Math.PI / 2;
+    plaza.position.set(PLAZA.x, 0.014, PLAZA.z);
+    plaza.receiveShadow = true;
+    const ring = [];
+    for (let i = 0; i < 30; i++) { const a = i / 30 * Math.PI * 2; ring.push(M.ball(0.17 + (i % 3) * 0.03, i % 2 ? 0xd8cfc2 : 0xc9bfb1, PLAZA.x + Math.cos(a) * (PLAZA.r + 0.05), 0.02, PLAZA.z + Math.sin(a) * (PLAZA.r + 0.05), 1.2, 0.45, 1, 7)); }
+    this.scene.add(plaza, M.model(ring, [], false));
+    this.buildWater();
+    this.buildBridges();
   }
 
-  // Boden, Wald und Gras passend zur Jahreszeit färben
+  // Boden färben: Rasen (je Jahreszeit), Sand, Klippenwände, Fluss- und Meeresgrund
   colorGround(season) {
-    const [a, b, c] = { spring: [0x95d66e, 0x84c95e, 0xb2e284], summer: [0x86c95a, 0x72b94b, 0x9fd46a], autumn: [0xb4c46a, 0xc7a75a, 0xd6be78], winter: [0xeef3f6, 0xdfe8ee, 0xffffff] }[season].map(C);
-    const pos = this.groundGeo.attributes.position, col = this.groundGeo.attributes.color, tmp = new THREE.Color();
+    const [a, b, c] = { spring: [0x8ad65c, 0x77c94f, 0xa6e070], summer: [0x6cc24a, 0x5cb43f, 0x86d05a], autumn: [0xa9c45a, 0xc4b052, 0xd0b866], winter: [0xeef3f6, 0xdfe8ee, 0xffffff] }[season].map(C);
+    const SAND = C(season === 'winter' ? 0xf2efe6 : 0xf3e0aa), WET_SAND = C(0xd9c48e), ROCK = C(0xa07a55), ROCK2 = C(0x8a6646), BED = C(0x7fb7a8), DEEP = C(0x3f9bb5);
+    const pos = this.groundGeo.attributes.position, nrm = this.groundGeo.attributes.normal, col = this.groundGeo.attributes.color, tmp = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = pos.getZ(i), n = noise(x * 2.3, z * 2.1) * 0.5 + 0.5;
-      tmp.copy(a).lerp(b, n * 0.8).lerp(c, Math.min(1, pos.getY(i) / 6) * 0.6);
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), n = noise(x * 2.3, z * 2.1) * 0.5 + 0.5, cst = coast(x, z);
+      tmp.copy(a).lerp(b, n * 0.7);
+      if (y > 0.6) tmp.lerp(c, 0.25);
+      const beach = smooth(-4.2, -3.2, cst) * smooth(cliffZ(x) + 1.5, cliffZ(x) + 3, z);
+      tmp.lerp(SAND, beach);
+      if (cst > -0.9) tmp.lerp(WET_SAND, smooth(-0.9, 0, cst));
+      if (y < -0.08) tmp.lerp(cst > 0 ? DEEP : BED, smooth(-0.08, -0.5, y));
+      const steep = 1 - nrm.getY(i);
+      if (steep > 0.35 && y > 0.05) tmp.copy(Math.sin(y * 9) > 0 ? ROCK : ROCK2).lerp(c, 0.08);
       col.setXYZ(i, tmp.r, tmp.g, tmp.b);
     }
     col.needsUpdate = true;
@@ -357,42 +378,136 @@ export class World {
     this.season = season;
     this.colorGround(season);
     if (this.forest) this.scene.remove(this.forest);
-    this.forest = M.scenery((x, z) => !buildingAt(x, z) && !inPond(x, z) && !(x >= -14 && x <= 4 && z >= -5 && z <= 11) && !onPath(x, z), heightAt, season);
+    this.forest = M.scenery((x, z) => grass(x, z) && !buildingAt(x, z) && !onPath(x, z) && !onPlaza(x, z, 0.5) && !RES_SPOTS[key(x, z)], heightAt, season, plateau);
     this.forest.children[0].material = WIND_TREE;
     this.scene.add(this.forest);
     this.grassSig = null;
+    this.static.sig = null;
   }
 
-  buildPond() {
-    this.waterU = { t: { value: 0 }, night: { value: 0 }, ice: { value: 0 } };
-    const water = new THREE.Mesh(new THREE.CircleGeometry(POND.r + 0.3, 48), new THREE.ShaderMaterial({
-      uniforms: this.waterU, transparent: true,
-      vertexShader: 'varying vec2 vu; void main(){ vu = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: `uniform float t; uniform float night; uniform float ice; varying vec2 vu;
+  // Meer, Fluss mit Wasserfall, Teich – alle mit derselben Krümmung wie der Boden
+  buildWater() {
+    const U = this.waterU = { t: { value: 0 }, night: { value: 0 }, ice: { value: 0 } };
+    const vert = `varying vec3 vw; varying float vfall; attribute float fall;
+      void main(){ vec3 transformed = position; vec4 wq = modelMatrix * vec4(position, 1.0); vw = wq.xyz; vfall = fall;
+      #include <project_vertex>
+      }`;
+    const coastGL = `float coast(vec2 p){ float r = pow(pow(p.x,4.0)+pow(p.y,4.0), 0.25); float a = atan(p.y, p.x); return r + sin(a*3.0+0.7)*0.8 + sin(a*5.0-1.2)*0.45 - 21.2; }`;
+    // Meer: türkis am Ufer, tiefblau draußen, Schaumkante und Wellenglitzern
+    const seaGeo = new THREE.PlaneGeometry(260, 260, 130, 130);
+    seaGeo.rotateX(-Math.PI / 2);
+    seaGeo.setAttribute('fall', new THREE.Float32BufferAttribute(new Float32Array(seaGeo.attributes.position.count), 1));
+    const sea = new THREE.Mesh(seaGeo, new THREE.ShaderMaterial({
+      uniforms: U, transparent: true, depthWrite: false,
+      vertexShader: vert,
+      fragmentShader: `uniform float t, night; varying vec3 vw; ${coastGL}
         void main(){
-          float r = length(vu) / ${(POND.r + 0.3).toFixed(2)};
-          vec3 deep = vec3(0.16, 0.55, 0.78), shallow = vec3(0.45, 0.82, 0.92);
-          vec3 c = mix(deep, shallow, smoothstep(0.35, 1.0, r));
-          float w = sin(vu.x * 3.1 + t * 1.3) * sin(vu.y * 2.7 - t * 1.1) + sin((vu.x + vu.y) * 4.3 + t * 2.0) * 0.5;
+          float c = coast(vw.xz);
+          vec3 shallow = vec3(0.42, 0.88, 0.86), mid = vec3(0.18, 0.66, 0.84), deep = vec3(0.10, 0.42, 0.72);
+          vec3 col = mix(shallow, mid, smoothstep(0.0, 3.5, c));
+          col = mix(col, deep, smoothstep(4.0, 16.0, c));
+          float w = sin(vw.x * 0.9 + t * 0.8) * sin(vw.z * 0.7 - t * 0.6) + sin((vw.x - vw.z) * 1.7 + t * 1.6) * 0.5;
+          col += smoothstep(0.9, 1.4, w) * 0.12;
+          float foam = smoothstep(0.35, 0.0, abs(c - 0.35 - sin(t * 1.3 + vw.x * 0.4 + vw.z * 0.3) * 0.25));
+          col = mix(col, vec3(1.0), foam * 0.85);
+          col *= mix(1.0, 0.38, night);
+          float a = mix(0.7, 0.96, smoothstep(-0.5, 2.0, c));
+          gl_FragColor = vec4(col, a);
+        }`,
+    }));
+    sea.position.y = SEA_Y;
+    sea.renderOrder = 1;
+    this.scene.add(sea);
+    // Fluss als Band von der Hochebene bis ins Meer; am Klippenrand fällt es senkrecht ab = Wasserfall
+    const zs = [];
+    for (let z = -26; z <= 24; z += 0.5) {
+      const cz = cliffZ(riverX(z));
+      if (z > cz - 0.9 && z < cz + 0.4) for (let k = 0; k < 6; k++) zs.push(z + k * 0.1);
+      else zs.push(z);
+    }
+    const rp = [], rf = [], idx = [];
+    zs.forEach((z, i) => {
+      const x = riverX(z), cz = cliffZ(x), top = CLIFF_H - 0.22, low = SEA_Y + 0.04, u = (z - (cz - 0.05)) / 0.3;
+      const yy = u <= 0 ? top : u >= 1 ? low : top + (low - top) * u, fall = u > -0.5 && u < 1.6 ? 1 : 0;
+      rp.push(x - RIVER_W - 0.2, yy, z, x + RIVER_W + 0.2, yy, z);
+      rf.push(fall, fall);
+      if (i) { const a = (i - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+    });
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute('position', new THREE.Float32BufferAttribute(rp, 3));
+    rg.setAttribute('fall', new THREE.Float32BufferAttribute(rf, 1));
+    rg.setIndex(idx);
+    const river = new THREE.Mesh(rg, new THREE.ShaderMaterial({
+      uniforms: U, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      vertexShader: vert,
+      fragmentShader: `uniform float t, night, ice; varying vec3 vw; varying float vfall;
+        void main(){
+          float flow = sin(vw.z * 3.0 - t * 4.0 + sin(vw.x * 2.0) * 1.5) * 0.5 + 0.5;
+          vec3 col = mix(vec3(0.30, 0.74, 0.86), vec3(0.48, 0.86, 0.92), flow * 0.5);
+          float streak = smoothstep(0.55, 1.0, sin(vw.x * 13.0 + sin(vw.y * 3.0)) * 0.5 + 0.5) * (0.6 + 0.4 * sin(vw.y * 8.0 + t * 12.0));
+          col = mix(col, vec3(0.95, 0.99, 1.0), clamp(vfall * (0.55 + streak * 0.45), 0.0, 1.0));
+          col = mix(col, vec3(0.86, 0.94, 0.99), ice * 0.7 * (1.0 - vfall));
+          col *= mix(1.0, 0.38, night);
+          gl_FragColor = vec4(col, 0.9);
+        }`,
+    }));
+    river.renderOrder = 1;
+    this.scene.add(river);
+    this.fallAt = { x: riverX(cliffZ(riverX(-16))), z: cliffZ(riverX(-16)) + 0.3 };
+    // Teich
+    const pg = new THREE.RingGeometry(0, POND.r + 0.25, 48, 6);
+    pg.rotateX(-Math.PI / 2);
+    pg.setAttribute('fall', new THREE.Float32BufferAttribute(new Float32Array(pg.attributes.position.count), 1));
+    const pond = new THREE.Mesh(pg, new THREE.ShaderMaterial({
+      uniforms: U, transparent: true, depthWrite: false,
+      vertexShader: vert,
+      fragmentShader: `uniform float t, night, ice; varying vec3 vw;
+        void main(){
+          vec2 q = vw.xz - vec2(${POND.cx.toFixed(2)}, ${POND.cz.toFixed(2)});
+          float r = length(q) / ${(POND.r + 0.25).toFixed(2)};
+          vec3 c = mix(vec3(0.16, 0.55, 0.78), vec3(0.45, 0.82, 0.92), smoothstep(0.35, 1.0, r));
+          float w = sin(q.x * 3.1 + t * 1.3) * sin(q.y * 2.7 - t * 1.1) + sin((q.x + q.y) * 4.3 + t * 2.0) * 0.5;
           c += smoothstep(0.75, 1.3, w) * 0.22 * (1.0 - ice);
-          c = mix(c, vec3(0.86, 0.94, 0.99) + sin(vu.x * 7.0 + vu.y * 3.0) * 0.03, ice * 0.8);
-          c = mix(c, vec3(0.95, 0.98, 1.0), smoothstep(0.9, 1.0, r) * 0.55);
+          c = mix(c, vec3(0.86, 0.94, 0.99), ice * 0.8);
           c *= mix(1.0, 0.35, night);
           gl_FragColor = vec4(c, 0.92);
         }`,
     }));
-    water.rotation.x = -Math.PI / 2;
-    water.position.set(POND.cx, 0.035, POND.cz);
-    const edge = new THREE.Mesh(new THREE.CircleGeometry(POND.r + 0.6, 48), new THREE.MeshLambertMaterial({ color: 0xd9c99a }));
-    edge.rotation.x = -Math.PI / 2;
-    edge.position.set(POND.cx, 0.02, POND.cz);
-    edge.receiveShadow = true;
-    this.scene.add(edge, water);
+    pond.position.set(POND.cx, SEA_Y + 0.08, POND.cz);
+    pond.renderOrder = 1;
+    this.scene.add(pond);
+  }
+
+  // Holzbrücken über den Fluss und der Steg ins Meer
+  buildBridges() {
+    const p = [], W = 0xc9945e, WD = 0x9a6a40, L = 0xe3b47c;
+    for (const bz of BRIDGES) {
+      const x0 = riverX(bz), len = (RIVER_W + 0.75) * 2;
+      for (let i = 0; i < 11; i++) {
+        const t = i / 10 - 0.5, x = x0 + t * len, y = 0.06 + Math.cos(t * Math.PI) * 0.12;
+        p.push(M.box(len / 10.5, 0.08, BRIDGE_W * 2, i % 2 ? W : L, x, y, bz));
+      }
+      for (const sz of [-1, 1]) {
+        const z = bz + sz * (BRIDGE_W - 0.05);
+        for (let i = 0; i <= 4; i++) { const t = i / 4 - 0.5, x = x0 + t * len; p.push(M.cyl(0.05, 0.06, 0.55, WD, x, 0.3 + Math.cos(t * Math.PI) * 0.1, z, 7)); }
+        for (let i = 0; i < 8; i++) {
+          const t0 = i / 8 - 0.5, t1 = (i + 1) / 8 - 0.5, xa = x0 + t0 * len, xb = x0 + t1 * len;
+          const ya = 0.55 + Math.cos(t0 * Math.PI) * 0.12, yb = 0.55 + Math.cos(t1 * Math.PI) * 0.12;
+          p.push(M.box(xb - xa + 0.02, 0.07, 0.08, W, (xa + xb) / 2, (ya + yb) / 2, z, 0, 0, Math.atan2(yb - ya, xb - xa)));
+        }
+      }
+    }
+    // Steg
+    const { x, z0, z1, w } = PIER;
+    for (let z = z0; z < z1; z += 0.42) p.push(M.box(w * 2, 0.07, 0.38, Math.round(z * 3) % 2 ? W : L, x, 0.02, z + 0.21));
+    for (let z = z0 + 1.4; z < z1; z += 1.6) for (const sx of [-1, 1]) p.push(M.cyl(0.07, 0.08, 1.4, WD, x + sx * (w - 0.05), -0.55, z, 8));
+    for (const sx of [-1, 1]) p.push(M.cyl(0.08, 0.08, 0.55, WD, x + sx * (w - 0.05), 0.25, z1 - 0.2, 8));
+    this.scene.add(M.model(p));
   }
 
   // ---------- Gras (instanziert, wiegt im Wind) ----------
   syncGrass(s) {
-    const per = this.season === 'winter' ? 0 : this.Q.grass, sig = `${per}|${this.season}|${s.up.field}|${Object.keys(s.obj).join()}`;
+    const per = this.season === 'winter' ? 0 : this.Q.grass, sig = `${per}|${this.season}|${Object.keys(s.obj).join()}|${Object.keys(s.tiles).length}`;
     if (sig === this.grassSig) return;
     this.grassSig = sig;
     if (this.grass) { this.scene.remove(this.grass); this.grass.dispose(); this.grass = null; }
@@ -411,10 +526,9 @@ export class World {
       this.bladeGeo = g;
       this.bladeMat = windy(new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 1.3);
     }
-    const [fx0, fz0, fx1, fz1] = FIELDS[s.up.field], spots = [];
-    for (let x = -MAP - 3; x <= MAP + 3; x++) for (let z = -MAP - 3; z <= MAP + 3; z++) {
-      if (x >= fx0 - 1 && x <= fx1 + 1 && z >= fz0 - 1 && z <= fz1 + 1) continue;
-      if (buildingAt(x, z) || (x - POND.cx) ** 2 + (z - POND.cz) ** 2 < (POND.r + 1) ** 2 || onPath(x, z) || s.obj[key(x, z)]) continue;
+    const spots = [];
+    for (let x = -MAP; x <= MAP; x++) for (let z = -MAP; z <= MAP; z++) {
+      if (!grass(x, z) || buildingAt(x, z) || onPath(x, z) || onPlaza(x, z, 0.4) || s.obj[key(x, z)] || s.tiles[key(x, z)]) continue;
       spots.push([x, z]);
     }
     const im = new THREE.InstancedMesh(this.bladeGeo, this.bladeMat, spots.length * per);
@@ -452,6 +566,8 @@ export class World {
       dirt: [10, [0x8a5a3a, 0x6e4a2a, 0xa0714a], 1.8, 2.6, 9, 0.06, 0.6, 0.15],
       water: [14, [0x6cc4ff, 0xbfe9ff, 0x9fdcff], 1.4, 1.2, 9, 0.045, 0.7, 0.7],
       leaf: [12, [0x7cc96a, 0xb6e07a, 0xffe066], 2, 3, 7, 0.06, 0.9, 0.3],
+      fruit: [14, [0x6cc04a, 0x8fdc72, 0xff5d5d, 0xffd23f], 2.2, 1.5, 7, 0.07, 1.0, 1.8],
+      mist: [2, [0xffffff, 0xe6f6ff], 0.5, 0.8, -0.2, 0.18, 1.4, 0.1],
       sparkle: [1, [0xfff3a8, 0xffffff], 0.3, 0.8, -0.4, 0.035, 1.1, 0.5],
       seed: [6, [0xc9a46b, 0x8a5a3a], 1.1, 2, 9, 0.04, 0.5, 0.5],
       dust: [10, [0xe8dcc6, 0xffffff], 1.6, 0.8, 1, 0.08, 0.7, 0.15],
@@ -513,6 +629,36 @@ export class World {
     this.fireflies = new THREE.Points(fg, new THREE.PointsMaterial({ size: 0.16, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
     this.fireflies.frustumCulled = false;
     this.scene.add(this.fireflies);
+    // Fischschatten im Fluss, im Teich und vor der Küste
+    const fg2 = new THREE.CircleGeometry(1, 14);
+    fg2.rotateX(-Math.PI / 2);
+    this.fishM = new THREE.InstancedMesh(fg2, new THREE.MeshBasicMaterial({ color: 0x14394a, transparent: true, opacity: 0.38, depthWrite: false }), 20);
+    this.fishM.frustumCulled = false;
+    this.fishM.renderOrder = 0;
+    const r = rng(99);
+    this.fishData = Array.from({ length: 20 }, (_, i) => {
+      if (i < 7) return { k: 'river', z0: -13 + r() * 30, p: r() * 100, s: 0.25 + r() * 0.5 };
+      if (i < 9) return { k: 'pond', p: r() * 100, s: 0.3 + r() * 0.4 };
+      const a = r() * Math.PI * 2;
+      return { k: 'sea', a, p: r() * 100, s: 0.3 + r() * 0.8 };
+    });
+    this.scene.add(this.fishM);
+  }
+  updateFish() {
+    const d = this.dummy, t = this.time;
+    this.fishData.forEach((f, i) => {
+      let x, z, yaw;
+      if (f.k === 'river') { z = f.z0 + Math.sin(t * 0.05 * f.s + f.p) * 2.5; x = riverX(z) + Math.sin(t * 0.3 + f.p) * 0.35; yaw = Math.cos(t * 0.05 * f.s + f.p) > 0 ? 0 : Math.PI; }
+      else if (f.k === 'pond') { const a = t * 0.12 * f.s + f.p; x = POND.cx + Math.cos(a) * 1.1; z = POND.cz + Math.sin(a) * 0.9; yaw = -a; }
+      else { const a = f.a + Math.sin(t * 0.02 * f.s + f.p) * 0.12, R = 24.5 + Math.sin(t * 0.2 + f.p) * 1.2; x = Math.cos(a) * R; z = Math.sin(a) * R; for (let k = 0; k < 6 && coast(x, z) < 1.2; k++) { x *= 1.06; z *= 1.06; } yaw = a; }
+      const sz = (f.k === 'sea' ? 0.32 : 0.2) * (0.7 + f.s * 0.6);
+      d.position.set(x, SEA_Y - 0.06, z);
+      d.rotation.set(0, yaw, 0);
+      d.scale.set(sz * 0.55, 1, sz);
+      d.updateMatrix();
+      this.fishM.setMatrixAt(i, d.matrix);
+    });
+    this.fishM.instanceMatrix.needsUpdate = true;
   }
   updateCritters(info, rain) {
     const t = this.time, d = this.dummy, dayish = info.night < 0.5 && !rain;
@@ -548,7 +694,7 @@ export class World {
 
   // ---------- HTML-Beschriftungen über 3D-Objekten ----------
   project(x, y, z) {
-    const v = this.v.set(x, y, z).project(this.camera);
+    const v = this.v.set(x, y - M.curveDrop(this.camera, x, z), z).project(this.camera);
     return v.z > 1 || Math.abs(v.x) > 1.3 || Math.abs(v.y) > 1.3 ? null : [(v.x + 1) / 2 * this.w, (1 - v.y) / 2 * this.h];
   }
   tag(id, html, x, y, z, cls = '') {
@@ -579,7 +725,12 @@ export class World {
   pick(cx, cy) {
     this.ray.setFromCamera(new THREE.Vector2(cx / this.w * 2 - 1, -(cy / this.h) * 2 + 1), this.camera);
     const { origin: o, direction: d } = this.ray.ray;
-    const t = -o.y / d.y;
+    let t = -o.y / d.y;
+    if (!(t > 0)) return null;
+    for (let i = 0; i < 6; i++) { // Boden ist in der Ferne nach unten gekrümmt
+      const y = -M.curveDrop(this.camera, o.x + d.x * t, o.z + d.z * t);
+      t = (y - o.y) / d.y;
+    }
     return t > 0 ? { x: o.x + d.x * t, z: o.z + d.z * t } : null;
   }
 
@@ -590,24 +741,18 @@ export class World {
 
   // ---------- statische Teile, die sich mit Upgrades ändern ----------
   syncStatic(s) {
-    const sig = `${s.up.house}|${s.up.coop}|${s.up.barn}|${s.mail?.length ? 1 : 0}|${this.season}`, b = (id, l) => building(id, l, this.season);
-    if (this.static.sig !== sig) {
-      if (this.static.group) this.scene.remove(this.static.group);
-      const g = new THREE.Group();
-      g.add(b('house', s.up.house), b('coop', s.up.coop), b('barn', s.up.barn), b('market', 1), b('bin', 1), b('board', 1),
-        b('bench', 1), b('kitchen', 1), b('mail', s.mail?.length ? 1 : 0));
-      this.scene.add(g);
-      this.static = { ...this.static, sig, group: g };
+    const sig = `${s.up.house}|${s.mail?.length ? 1 : 0}|${this.season}`;
+    if (this.static.sig === sig) return;
+    if (this.static.group) this.scene.remove(this.static.group);
+    const g = new THREE.Group();
+    for (const [id, B] of Object.entries(BUILDINGS)) {
+      const model = id.startsWith('vh_') ? 'vhouse_' + B.npc : id === 'plaza' ? 'plazatree' : id;
+      const m = building(model, id === 'house' ? s.up.house : id === 'mail' ? (s.mail?.length ? 1 : 0) : 1, this.season);
+      if (B.ox !== undefined) m.position.set(B.ox, 0, B.oz); else m.position.set(B.cx, 0, B.cz);
+      g.add(m);
     }
-    if (this.static.field !== s.up.field + this.season) {
-      if (this.static.fieldMesh) this.scene.remove(this.static.fieldMesh);
-      const [x0, z0, x1, z1] = FIELDS[s.up.field], c = 0x8a5a3a, p = [];
-      const w = x1 - x0 + 1, d = z1 - z0 + 1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-      p.push(M.box(w + 0.2, 0.12, 0.1, c, cx, 0.06, z0 - 0.55), M.box(w + 0.2, 0.12, 0.1, c, cx, 0.06, z1 + 0.55), M.box(0.1, 0.12, d + 0.2, c, x0 - 0.55, 0.06, cz), M.box(0.1, 0.12, d + 0.2, c, x1 + 0.55, 0.06, cz));
-      this.static.fieldMesh = M.model(p, [], false);
-      this.static.field = s.up.field + this.season;
-      this.scene.add(this.static.fieldMesh);
-    }
+    this.scene.add(g);
+    this.static = { ...this.static, sig, group: g };
   }
 
   syncTiles(s) {
@@ -640,15 +785,15 @@ export class World {
         const [x, z] = k.split(',').map(Number);
         const m = crop(t.c.k, st);
         m.children[0].material = WIND_CROP;
-        m.position.set(x, 0.08, z);
+        m.position.set(x, 0.04, z);
         m.rotation.y = ((x * 7 + z * 13) % 4) * 0.4;
         this.scene.add(m);
-        e = { m, sig: sig2, x, z, born: this.time };
+        e = { m, sig: sig2, x, z, born: this.time, base: CROPS[t.c.k].cat === 'fruit' ? 1.7 : 1.25 };
         this.crops.set(k, e);
       }
       if (st === 3) this.ripe.push(e);
       const pop = Math.min(1, (this.time - e.born) * 4);
-      e.m.scale.setScalar(0.5 + 0.5 * (1 - (1 - pop) ** 3) + (pop < 1 ? Math.sin(pop * Math.PI) * 0.15 : 0));
+      e.m.scale.setScalar(e.base * (0.5 + 0.5 * (1 - (1 - pop) ** 3) + (pop < 1 ? Math.sin(pop * Math.PI) * 0.15 : 0)));
     }
     for (const [k, e] of this.crops) if (!seen.has(k)) { this.scene.remove(e.m); this.crops.delete(k); }
   }
@@ -667,7 +812,8 @@ export class World {
         const m = placeable(o.k, ready);
         m.position.set(x, 0, z);
         m.rotation.y = o.r * Math.PI / 2;
-        if (['kirschbaum', 'apfelbaum', 'blumen'].includes(o.k)) m.children[0].material = WIND_CROP;
+        if (['kirschbaum', 'blumen'].includes(o.k)) m.children[0].material = WIND_CROP;
+        if (p.kind === 'producer') m.children[0].material = WIND_TREE;
         this.scene.add(m);
         e = { m, sig, x, z, born: this.time };
         this.objs.set(k, e);
@@ -680,7 +826,7 @@ export class World {
         if (o.o > 0) this.tag('o' + k, `${ITEMS[p.out].icon}<b>${o.o}</b>`, e.x, 1.4, e.z, 'bubble');
         else if (o.n > 0) this.tag('o' + k, `⚙️ ${o.n}`, e.x, 1.4, e.z, 'bubble small');
       }
-      if (ready) this.tag('o' + k, ITEMS[p.item].icon, e.x, o.k === 'apfelbaum' ? 2.3 : 1.3, e.z, 'bubble');
+      if (ready) this.tag('o' + k, ITEMS[p.item].icon, e.x, 2.3, e.z, 'bubble');
       if (p.kind === 'sprinkler') { e.m.rotation.y = this.time * 2; this.sprinklers.push(e); }
     }
     for (const [k, e] of this.objs) if (!seen.has(k)) { this.scene.remove(e.m); this.objs.delete(k); }
@@ -729,15 +875,15 @@ export class World {
   syncNature(s) {
     this.wildM ||= new Map();
     for (const [k, kind] of Object.entries(RES_SPOTS)) {
-      const left = s.res?.[k] ?? 3, sig = kind + this.season + (left > 0);
+      const left = s.res?.[k] ?? 3, ready = kind !== 'rock' && fruitReady(s, k), sig = kind + this.season + (left > 0) + ready;
       let e = this.wildM.get(k);
       if (e && e.sig !== sig) { this.scene.remove(e.m); e = null; }
       if (!e) {
         const [x, z] = k.split(',').map(Number);
-        const m = M.wild(kind, this.season, left);
+        const m = M.wild(kind, this.season, left, TREE_FRUIT[k], ready);
         m.position.set(x, 0, z);
         m.rotation.y = (x * 3 + z) % 6;
-        if (kind === 'tree') m.children[0].material = WIND_TREE;
+        if (kind !== 'rock') m.children[0].material = WIND_TREE;
         this.scene.add(m);
         e = { m, sig, x, z };
         this.wildM.set(k, e);
@@ -754,6 +900,23 @@ export class World {
       this.digM.set(k, { m, x, z });
     }
     for (const [k, e] of this.digM) if (!seen.has(k)) { this.scene.remove(e.m); this.digM.delete(k); this.burst(e.x, e.z, 'dirt'); }
+    // Muscheln am Strand und Unkraut
+    this.pickM ||= new Map();
+    const want = new Map();
+    for (const [k, id] of Object.entries(s.shells || {})) want.set(k, 's' + id);
+    for (const k of Object.keys(s.weeds || {})) if (!want.has(k)) want.set(k, 'w');
+    for (const [k, v] of want) {
+      const e = this.pickM.get(k);
+      if (e && e.v === v) continue;
+      if (e) this.scene.remove(e.m);
+      const [x, z] = k.split(',').map(Number), m = v === 'w' ? M.weed() : M.shell(v.slice(1));
+      m.position.set(x + ((x * 7) % 3) * 0.08, 0.01, z + ((z * 5) % 3) * 0.08);
+      m.rotation.y = x * 1.7 + z;
+      if (v === 'w') m.children[0].material = WIND_CROP;
+      this.scene.add(m);
+      this.pickM.set(k, { m, v, x, z });
+    }
+    for (const [k, e] of this.pickM) if (!want.has(k)) { this.scene.remove(e.m); this.pickM.delete(k); this.burst(e.x, e.z, e.v === 'w' ? 'leaf' : 'sparkle', 0.2); }
   }
   shakeTree(x, z) { const e = this.wildM?.get(x + ',' + z); if (e) e.shake = 1; }
 
@@ -923,9 +1086,9 @@ export class World {
     if (rain) { top.lerp(SKY_RAIN_TOP, 0.6 * (0.3 + day * 0.7)); hor.lerp(SKY_RAIN_HOR, 0.6 * (0.3 + day * 0.7)); }
     this.scene.fog.color.copy(hor);
     this.stars.material.opacity = smooth(0.6, 1, night) * (rain ? 0.2 : 1);
-    this.sun.intensity = (rain ? 1.1 : 2.4) * (0.18 + 0.82 * day);
+    this.sun.intensity = (rain ? 1.1 : 2.3) * (0.22 + 0.78 * day);
     this.sun.color.copy(SUN_DAY).lerp(SUN_MOON, night).lerp(SUN_DUSK, dusk * 0.75);
-    this.hemi.intensity = 0.3 + 1.0 * day;
+    this.hemi.intensity = 0.55 + 0.95 * day;
     this.hemi.color.copy(HEMI_DAY).lerp(HEMI_NIGHT, night);
     this.hemi.groundColor.copy(GROUND_DAY).lerp(GROUND_NIGHT, night);
     this.lamp.intensity = night * 12;
@@ -980,9 +1143,9 @@ export class World {
     const pl = players[me];
     if (opt.orbit) {
       const a = this.time * 0.05;
-      this.target.set(-2, 0, 0);
-      this.camera.position.set(Math.sin(a) * 30, 15 + Math.sin(this.time * 0.1) * 2, Math.cos(a) * 30);
-      this.camera.lookAt(-2, 0.6, 0);
+      this.target.set(0, 0, 0);
+      this.camera.position.set(Math.sin(a) * 24, 12 + Math.sin(this.time * 0.1) * 1.5, Math.cos(a) * 24);
+      this.camera.lookAt(0, 0.6, 0);
     } else if (opt.preview) {
       const p = opt.preview, d = 3.6 * this.zoom * Math.max(1, 0.8 / this.camera.aspect);
       this.target.set(p.x, 0, p.z);
@@ -995,7 +1158,7 @@ export class World {
         this.target.z += (pl.z - this.target.z) * Math.min(1, dt * 6);
       }
       const portrait = Math.min(1.7, Math.max(1, 1.25 / this.camera.aspect)), home = this.target.x > HOME_X / 2;
-      const d = 14.9 * this.zoom * portrait * (home ? 0.72 : 1), el = opt.photo ? this.el : 0.83;
+      const d = 13.4 * this.zoom * portrait * (home ? 0.78 : 1), el = opt.photo ? this.el : home ? 0.83 : 0.74;
       this.camera.position.set(this.target.x + Math.sin(this.yaw) * Math.cos(el) * d, Math.max(0.6, Math.sin(el) * d), this.target.z + Math.cos(this.yaw) * Math.cos(el) * d);
       this.camera.lookAt(this.target.x, 0.6, this.target.z);
     }
@@ -1024,7 +1187,8 @@ export class World {
     // kleine Effekte: Kaminrauch, Sprinkler, Funkeln über reifen Pflanzen, Regentropfen
     if (this.time > this.nextFx) {
       this.nextFx = this.time + 0.12;
-      if (Math.random() < 0.35) this.burst(1.3 + (Math.random() - 0.5) * 0.2, -11, 'smoke', 3.9);
+      if (Math.random() < 0.35) this.burst(-7.7 + (Math.random() - 0.5) * 0.2, -11, 'smoke', 3.9);
+      if (this.fallAt && Math.random() < 0.8) this.burst(this.fallAt.x + (Math.random() - 0.5) * 1.8, this.fallAt.z + 0.2, 'mist', -0.1);
       for (const e of this.sprinklers || []) if (Math.random() < 0.6) this.burst(e.x, e.z, 'drop', 0.4);
       for (const e of this.digM?.values() || []) if (Math.random() < 0.15) this.burst(e.x + (Math.random() - 0.5) * 0.3, e.z + (Math.random() - 0.5) * 0.3, 'sparkle', 0.15);
       if (this.ripe.length && Math.random() < 0.7) { const e = this.ripe[Math.floor(Math.random() * this.ripe.length)]; this.burst(e.x + (Math.random() - 0.5) * 0.5, e.z + (Math.random() - 0.5) * 0.5, 'sparkle', 0.4 + Math.random() * 0.5); }
@@ -1035,6 +1199,7 @@ export class World {
     }
     this.updateParticles(dt);
     this.updateCritters(info, rain);
+    this.updateFish();
 
     // Schnee
     this.snow.visible = snowing;
@@ -1065,7 +1230,7 @@ export class World {
 
     // Angel-Schwimmer
     this.bobber.visible = !!opt.bobber;
-    if (opt.bobber) this.bobber.position.set(opt.bobber.x, opt.bobber.bite ? -0.02 + Math.sin(this.time * 30) * 0.05 : 0.1 + Math.sin(this.time * 3) * 0.03, opt.bobber.z);
+    if (opt.bobber) this.bobber.position.set(opt.bobber.x, opt.bobber.bite ? -0.3 + Math.sin(this.time * 30) * 0.05 : -0.16 + Math.sin(this.time * 3) * 0.03, opt.bobber.z);
 
     this.draw();
 

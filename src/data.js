@@ -1,225 +1,236 @@
-// Spielinhalte: alles, was man kaufen, anbauen, züchten und verbessern kann.
+// Spielinhalte der Insel: Pflanzen, Obst, Fische, Insekten, Muscheln, Fossilien, Deko, Ausbau, Quests.
+import { MAP, SPAWN, POND, PATHS, grass, sand, onPath, onPlaza, rng, walkable } from './island.js';
+export { MAP, SPAWN, POND };
 
-export const DAY = 300;          // Sekunden pro Spieltag
-export const WET = 120;          // so lange bleibt gegossener Boden nass
-export const MAP = 15;           // Spielfeld geht von -MAP bis +MAP
-export const SPAWN = { x: 0, z: -6 };
+export const DAY = 420;          // Sekunden pro Spieltag
+export const WET = 150;          // so lange bleibt gegossener Boden nass
 
-// Jahreszeiten: je 7 Tage. Pflanzen wachsen in ihrer Saison doppelt so schnell.
+// Jahreszeiten: je 7 Tage. Pflanzen wachsen in ihrer Saison schneller.
 export const SEASON_LEN = 7;
 export const SEASONS = { spring: ['Frühling', '🌸'], summer: ['Sommer', '☀️'], autumn: ['Herbst', '🍂'], winter: ['Winter', '❄️'] };
 export const SEASON_IDS = Object.keys(SEASONS);
 const ALL = SEASON_IDS;
 
+// Blumen blühen immer wieder nach (regrow), Gemüse wird geerntet.
 export const CROPS = {
-  weizen:      { name: 'Weizen',      icon: '🌾', seed: 5,   sell: 12,  grow: 40,  lvl: 1, cat: 'veg',   xp: 1,  yield: 2, sea: ['spring', 'summer', 'autumn'] },
-  karotte:     { name: 'Karotte',     icon: '🥕', seed: 10,  sell: 28,  grow: 60,  lvl: 1, cat: 'veg',   xp: 2, sea: ['spring', 'autumn', 'winter'] },
-  salatkopf:   { name: 'Salat',       icon: '🥬', seed: 15,  sell: 38,  grow: 70,  lvl: 2, cat: 'veg',   xp: 2, sea: ['spring'] },
-  kartoffel:   { name: 'Kartoffel',   icon: '🥔', seed: 20,  sell: 55,  grow: 100, lvl: 2, cat: 'veg',   xp: 3, sea: ['spring', 'autumn'] },
-  erdbeere:    { name: 'Erdbeere',    icon: '🍓', seed: 40,  sell: 45,  grow: 120, lvl: 3, cat: 'fruit', xp: 3, regrow: 60, sea: ['spring', 'summer'] },
-  brokkoli:    { name: 'Brokkoli',    icon: '🥦', seed: 45,  sell: 110, grow: 150, lvl: 3, cat: 'veg',   xp: 4, sea: ['autumn', 'winter'] },
-  tomate:      { name: 'Tomate',      icon: '🍅', seed: 50,  sell: 50,  grow: 140, lvl: 4, cat: 'veg',   xp: 4, regrow: 70, sea: ['summer'] },
-  melone:      { name: 'Melone',      icon: '🍉', seed: 90,  sell: 260, grow: 240, lvl: 5, cat: 'fruit', xp: 9, sea: ['summer'] },
-  mais:        { name: 'Mais',        icon: '🌽', seed: 60,  sell: 130, grow: 180, lvl: 5, cat: 'veg',   xp: 6, sea: ['summer', 'autumn'] },
-  traube:      { name: 'Trauben',     icon: '🍇', seed: 100, sell: 120, grow: 200, lvl: 6, cat: 'fruit', xp: 6, regrow: 90, sea: ['autumn'] },
-  sonnenblume: { name: 'Sonnenblume', icon: '🌻', seed: 80,  sell: 170, grow: 200, lvl: 6, cat: 'fruit', xp: 7, sea: ['summer'] },
-  kuerbis:     { name: 'Kürbis',      icon: '🎃', seed: 120, sell: 400, grow: 300, lvl: 7, cat: 'veg',   xp: 12, sea: ['autumn'] },
+  tulpe:       { name: 'Tulpe',          icon: '🌷', seed: 20,  sell: 40,  grow: 90,  lvl: 1, cat: 'fruit', xp: 1, flower: 0xff5d7a, regrow: 80, sea: ['spring', 'summer', 'autumn'] },
+  kosmee:      { name: 'Kosmee',         icon: '🌼', seed: 20,  sell: 40,  grow: 90,  lvl: 1, cat: 'fruit', xp: 1, flower: 0xffd23f, regrow: 80, sea: ['summer', 'autumn'] },
+  stiefmuetterchen: { name: 'Stiefmütterchen', icon: '🌸', seed: 20, sell: 40, grow: 90, lvl: 1, cat: 'fruit', xp: 1, flower: 0xb48cff, regrow: 80, sea: ['spring', 'autumn', 'winter'] },
+  rose:        { name: 'Rose',           icon: '🌹', seed: 40,  sell: 80,  grow: 140, lvl: 2, cat: 'fruit', xp: 2, flower: 0xe8283c, regrow: 110 },
+  hyazinthe:   { name: 'Hyazinthe',      icon: '🪻', seed: 40,  sell: 80,  grow: 140, lvl: 3, cat: 'fruit', xp: 2, flower: 0x8f7bff, regrow: 110, sea: ['spring', 'winter'] },
+  sonnenblume: { name: 'Sonnenblume',    icon: '🌻', seed: 60,  sell: 120, grow: 200, lvl: 4, cat: 'fruit', xp: 3, regrow: 150, sea: ['summer'] },
+  weizen:      { name: 'Weizen',         icon: '🌾', seed: 10,  sell: 25,  grow: 80,  lvl: 2, cat: 'veg',   xp: 1, yield: 2, sea: ['spring', 'summer', 'autumn'] },
+  karotte:     { name: 'Karotte',        icon: '🥕', seed: 15,  sell: 45,  grow: 90,  lvl: 2, cat: 'veg',   xp: 2, sea: ['spring', 'autumn', 'winter'] },
+  kartoffel:   { name: 'Kartoffel',      icon: '🥔', seed: 25,  sell: 70,  grow: 130, lvl: 3, cat: 'veg',   xp: 3, sea: ['spring', 'autumn'] },
+  tomate:      { name: 'Tomate',         icon: '🍅', seed: 50,  sell: 60,  grow: 160, lvl: 4, cat: 'veg',   xp: 3, regrow: 80, sea: ['summer'] },
+  kuerbis:     { name: 'Kürbis',         icon: '🎃', seed: 120, sell: 380, grow: 300, lvl: 6, cat: 'veg',   xp: 10, sea: ['autumn'] },
 };
 for (const c of Object.values(CROPS)) c.sea ||= ALL;
+export const isFlower = k => !!CROPS[k] && CROPS[k].cat === 'fruit';
 
-export const ANIMALS = {
-  huhn:    { name: 'Huhn',    icon: '🐔', cost: 250,  lvl: 2, home: 'coop', product: 'ei',       time: 90 },
-  kuh:     { name: 'Kuh',     icon: '🐄', cost: 900,  lvl: 3, home: 'barn', product: 'milch',    time: 150 },
-  schaf:   { name: 'Schaf',   icon: '🐑', cost: 800,  lvl: 4, home: 'barn', product: 'wolle',    time: 200 },
-  schwein: { name: 'Schwein', icon: '🐖', cost: 1500, lvl: 6, home: 'barn', product: 'trueffel', time: 240 },
-};
-
-export const ANIMAL_NAMES = ['Bella', 'Lotte', 'Flocke', 'Wolke', 'Krümel', 'Muffin', 'Pünktchen', 'Rosi', 'Kiki',
-  'Butterblume', 'Hanni', 'Nanni', 'Keks', 'Mimi', 'Paula', 'Schnuffel', 'Tilda', 'Fritzi', 'Bommel', 'Zimt'];
-
-// Wo die Tiere herumlaufen (Gehege) und wo die Gebäude stehen.
-export const PENS = {
-  coop: { cx: 9,  cz: -2.5, rx: 3,   rz: 1.6 },
-  barn: { cx: 10, cz: 10.5, rx: 3.5, rz: 2.2 },
-};
+export const ANIMALS = {};       // Nutztiere gibt es auf der Insel nicht mehr
+export const ANIMAL_NAMES = [];
+export const PENS = {};
 
 // Feste Gebäude: Fläche in Kacheln (x0..x1, z0..z1), was beim Benutzen passiert.
+// cx/cz = Mitte des 3D-Modells, ox/oz = Verschiebung älterer Modelle, die in eigenen Koordinaten gebaut sind.
 export const BUILDINGS = {
-  house:  { x0: -2, x1: 2,  z0: -12, z1: -9, use: 'farm',   name: 'Haus' },
-  bin:    { x0: 3,  x1: 3,  z0: -8,  z1: -8, use: 'sell',   name: 'Verkaufskiste' },
-  market: { x0: -5, x1: -4, z0: -9,  z1: -9, use: 'shop',   name: 'Marktstand' },
-  board:  { x0: -7, x1: -7, z0: -8,  z1: -8, use: 'orders', name: 'Auftragsbrett' },
-  coop:   { x0: 8,  x1: 11, z0: -7,  z1: -5, use: 'animals', name: 'Hühnerstall' },
-  barn:   { x0: 8,  x1: 12, z0: 5,   z1: 7,  use: 'animals', name: 'Stall' },
-  bench:  { x0: 5,  x1: 6,  z0: -10, z1: -10, use: 'craft', name: 'Werkbank' },
-  kitchen:{ x0: -6, x1: -5, z0: -12, z1: -12, use: 'cook',  name: 'Gartenküche' },
-  mail:   { x0: -2, x1: -2, z0: -8,  z1: -8,  use: 'mail',  name: 'Briefkasten' },
+  office:   { x0: -2,  x1: 2,   z0: -5,  z1: -3,  use: 'orders', name: 'Inselbüro' },
+  plaza:    { x0: 0,   x1: 0,   z0: 1,   z1: 1,   use: 'plaza',  name: 'Dorfbaum' },
+  board:    { x0: -3,  x1: -3,  z0: -2,  z1: -2,  use: 'orders', name: 'Schwarzes Brett', ox: 4, oz: 6 },
+  shop:     { x0: -10, x1: -6,  z0: -2,  z1: 0,   use: 'shop',   name: 'Krämerladen' },
+  bin:      { x0: -5,  x1: -5,  z0: 0,   z1: 0,   use: 'sell',   name: 'Ankaufkiste', ox: -8, oz: 8 },
+  museum:   { x0: 11,  x1: 15,  z0: -11, z1: -7,  use: 'museum', name: 'Museum' },
+  house:    { x0: -11, x1: -7,  z0: -12, z1: -9,  use: 'farm',   name: 'Dein Haus', ox: -9, oz: 0 },
+  mail:     { x0: -12, x1: -12, z0: -8,  z1: -8,  use: 'mail',   name: 'Briefkasten', ox: -10, oz: 0 },
+  bench:    { x0: -5,  x1: -4,  z0: -11, z1: -11, use: 'craft',  name: 'Werkbank', ox: -10, oz: -1 },
+  kitchen:  { x0: -16, x1: -15, z0: -12, z1: -12, use: 'cook',   name: 'Gartenküche', ox: -10, oz: 0 },
+  vh_mira:  { x0: -15, x1: -14, z0: 6,   z1: 7,   use: 'visit',  name: 'Miras Haus', npc: 'mira' },
+  vh_pippa: { x0: -5,  x1: -4,  z0: 12,  z1: 13,  use: 'visit',  name: 'Pippas Haus', npc: 'pippa' },
+  vh_bruno: { x0: 12,  x1: 13,  z0: 8,   z1: 9,   use: 'visit',  name: 'Brunos Haus', npc: 'bruno' },
+  vh_lio:   { x0: 15,  x1: 16,  z0: -1,  z1: 0,   use: 'visit',  name: 'Lios Haus', npc: 'lio' },
 };
+for (const b of Object.values(BUILDINGS)) { b.cx = (b.x0 + b.x1) / 2; b.cz = (b.z0 + b.z1) / 2; }
+const nearBuilding = (x, z, m) => Object.values(BUILDINGS).some(b => x >= b.x0 - m && x <= b.x1 + m && z >= b.z0 - m && z <= b.z1 + m);
 
-// Wilde Bäume (Holz, schütteln) und Felsen (Stein) – füllen sich jeden Morgen wieder auf
-export const RES_SPOTS = {
-  '-13,-7': 'tree', '-12,13': 'tree', '-6,13': 'tree', '0,13': 'tree', '13,-12': 'tree', '7,-13': 'tree', '13,2': 'tree',
-  '-14,-1': 'rock', '4,13': 'rock', '14,-8': 'rock', '-9,-14': 'rock',
-};
+// Wilde Bäume (Obst, Holz), Palmen (Kokosnüsse) und Felsen (Stein, Eisen) – auf allen Geräten gleich verteilt
+export const FRUITS = ['apfel', 'kirsche', 'orange', 'pfirsich', 'birne'];
+export const RES_SPOTS = {};
+export const TREE_FRUIT = {};
+{
+  const r = rng(4242), free = (x, z, m) => grass(x, z) && !nearBuilding(x, z, m) && !onPath(x, z, 1) && !onPlaza(x, z, 2.2) && Math.hypot(x - SPAWN.x, z - SPAWN.z) > 2.5;
+  const taken = [];
+  const far = (x, z, d) => taken.every(([a, b]) => Math.hypot(a - x, b - z) >= d);
+  for (let i = 0; i < 900 && taken.length < 38; i++) {
+    const x = Math.round((r() - 0.5) * 2 * MAP), z = Math.round((r() - 0.5) * 2 * MAP);
+    if (!free(x, z, 1.6) || !far(x, z, 3.6)) continue;
+    taken.push([x, z]);
+    const k = x + ',' + z;
+    RES_SPOTS[k] = 'tree';
+    TREE_FRUIT[k] = r() < 0.6 ? 'apfel' : FRUITS[1 + Math.floor(r() * 4)];
+  }
+  for (let i = 0; i < 600 && Object.values(RES_SPOTS).filter(v => v === 'palm').length < 12; i++) {
+    const x = Math.round((r() - 0.5) * 2 * MAP), z = Math.round((r() - 0.5) * 2 * MAP);
+    if (!sand(x, z) || !far(x, z, 3.4) || nearBuilding(x, z, 1.5) || Math.abs(x + 9) < 2.5) continue;
+    taken.push([x, z]);
+    RES_SPOTS[x + ',' + z] = 'palm';
+    TREE_FRUIT[x + ',' + z] = 'kokosnuss';
+  }
+  for (let i = 0, n = 0; i < 600 && n < 7; i++) {
+    const x = Math.round((r() - 0.5) * 2 * MAP), z = Math.round((r() - 0.5) * 2 * MAP);
+    if (!free(x, z, 1.5) || !far(x, z, 2.8)) continue;
+    taken.push([x, z]);
+    RES_SPOTS[x + ',' + z] = 'rock';
+    n++;
+  }
+}
+export const FRUIT_REGROW = 3; // Tage, bis ein geschüttelter Baum wieder Obst trägt
 
-export const POND = { cx: -11, cz: -10, r: 2.6 };
+// Felder gibt es nicht mehr – gepflanzt wird überall auf dem Rasen
+export const FIELDS = [null, [0, 0, -1, -1]];
 
-// Feldgröße je Ausbaustufe: [x0, z0, x1, z1]
-export const FIELDS = [null,
-  [-6, 0, -1, 4],
-  [-7, -1, 0, 5],
-  [-9, -2, 1, 6],
-  [-11, -3, 2, 8],
-  [-13, -4, 3, 10],
-];
-
-// Alle Gegenstände im Lager. cat = Warengruppe für Qualitäts-Upgrades.
+// Alle Gegenstände. cat = Warengruppe für Preis-Ausbauten und Museum.
 export const ITEMS = {
-  futter:    { name: 'Futter',      icon: '🌿', buy: 8 },
-  ei:        { name: 'Ei',          icon: '🥚', sell: 40,  cat: 'animal', xp: 2 },
-  milch:     { name: 'Milch',       icon: '🥛', sell: 110, cat: 'animal', xp: 4 },
-  wolle:     { name: 'Wolle',       icon: '🧶', sell: 180, cat: 'animal', xp: 5 },
-  trueffel:  { name: 'Trüffel',     icon: '🌰', sell: 300, cat: 'animal', xp: 7 },
-  apfel:     { name: 'Apfel',       icon: '🍎', sell: 60,  cat: 'fruit',  xp: 2 },
-  honig:     { name: 'Honig',       icon: '🍯', sell: 200, cat: 'animal', xp: 5 },
-  mayo:      { name: 'Mayonnaise',  icon: '🥣', sell: 110, cat: 'craft',  xp: 3 },
-  kaese:     { name: 'Käse',        icon: '🧀', sell: 260, cat: 'craft',  xp: 5 },
-  stoff:     { name: 'Stoff',       icon: '🧵', sell: 420, cat: 'craft',  xp: 7 },
-  marmelade: { name: 'Marmelade',   icon: '🫙', sell: 140, cat: 'craft',  xp: 3 },
-  oel:       { name: 'Sonnenöl',    icon: '🧴', sell: 400, cat: 'craft',  xp: 6 },
-  barsch:    { name: 'Barsch',      icon: '🐟', sell: 35,  cat: 'fish',   xp: 2 },
-  forelle:   { name: 'Forelle',     icon: '🐠', sell: 80,  cat: 'fish',   xp: 4 },
-  krebs:     { name: 'Flusskrebs',  icon: '🦀', sell: 140, cat: 'fish',   xp: 6 },
-  kugelfisch:{ name: 'Kugelfisch',  icon: '🐡', sell: 240, cat: 'fish',   xp: 9 },
-  schatz:    { name: 'Schatztruhe', icon: '💎', sell: 700, cat: 'fish',   xp: 20 },
-  karpfen:   { name: 'Karpfen',     icon: '🎏', sell: 70,  cat: 'fish',   xp: 3 },
-  frosch:    { name: 'Frosch',      icon: '🐸', sell: 90,  cat: 'fish',   xp: 4 },
-  hecht:     { name: 'Hecht',       icon: '🦈', sell: 260, cat: 'fish',   xp: 9 },
-  flaschenpost: { name: 'Flaschenpost', icon: '📜', sell: 150, cat: 'fish', xp: 6 },
-  holz:      { name: 'Holz',        icon: '🪵', sell: 10,  cat: 'mat',    xp: 1 },
-  stein:     { name: 'Stein',       icon: '🪨', sell: 12,  cat: 'mat',    xp: 1 },
-  brot:      { name: 'Bauernbrot',  icon: '🍞', sell: 60,  cat: 'dish',   xp: 3 },
-  pfannkuchen: { name: 'Pfannkuchen', icon: '🥞', sell: 230, cat: 'dish', xp: 5 },
-  salat:     { name: 'Gartensalat', icon: '🥗', sell: 200, cat: 'dish',   xp: 5 },
-  suppe:     { name: 'Kürbissuppe', icon: '🍲', sell: 620, cat: 'dish',   xp: 9 },
-  kuchen:    { name: 'Erdbeerkuchen', icon: '🍰', sell: 380, cat: 'dish', xp: 7 },
-  fischsuppe:{ name: 'Fischsuppe',  icon: '🍜', sell: 210, cat: 'dish',   xp: 5 },
-  honigtee:  { name: 'Apfel-Honig-Tee', icon: '🍵', sell: 330, cat: 'dish', xp: 6 },
-  eintopf:   { name: 'Gemüseeintopf', icon: '🥘', sell: 340, cat: 'dish', xp: 6 },
-  sorbet:    { name: 'Melonensorbet', icon: '🍧', sell: 420, cat: 'dish', xp: 7 },
-  saft:      { name: 'Traubensaft', icon: '🧃', sell: 420, cat: 'dish',   xp: 7 },
+  apfel:     { name: 'Apfel',        icon: '🍎', sell: 100, cat: 'fruit', xp: 1 },
+  kirsche:   { name: 'Kirschen',     icon: '🍒', sell: 100, cat: 'fruit', xp: 1 },
+  orange:    { name: 'Orange',       icon: '🍊', sell: 100, cat: 'fruit', xp: 1 },
+  pfirsich:  { name: 'Pfirsich',     icon: '🍑', sell: 100, cat: 'fruit', xp: 1 },
+  birne:     { name: 'Birne',        icon: '🍐', sell: 100, cat: 'fruit', xp: 1 },
+  kokosnuss: { name: 'Kokosnuss',    icon: '🥥', sell: 250, cat: 'fruit', xp: 2 },
+  holz:      { name: 'Holz',         icon: '🪵', sell: 60,  cat: 'mat', xp: 1 },
+  ast:       { name: 'Ast',          icon: '🥢', sell: 5,   cat: 'mat', xp: 1 },
+  stein:     { name: 'Stein',        icon: '🪨', sell: 75,  cat: 'mat', xp: 1 },
+  lehm:      { name: 'Lehm',         icon: '🧱', sell: 100, cat: 'mat', xp: 1 },
+  eisen:     { name: 'Eisennugget',  icon: '🔩', sell: 375, cat: 'mat', xp: 3 },
+  unkraut:   { name: 'Unkraut',      icon: '🌿', sell: 10,  cat: 'mat', xp: 1 },
+  mehl:      { name: 'Mehl',         icon: '🥡', buy: 40 },
+  zucker:    { name: 'Zucker',       icon: '🧂', buy: 40 },
+  milch:     { name: 'Milch',        icon: '🥛', buy: 60 },
+  ei:        { name: 'Ei',           icon: '🥚', buy: 40 },
+  // Gerichte
+  brot:      { name: 'Inselbrot',    icon: '🍞', sell: 260, cat: 'dish', xp: 3 },
+  pfannkuchen: { name: 'Pfannkuchen', icon: '🥞', sell: 380, cat: 'dish', xp: 4 },
+  apfelkuchen: { name: 'Apfelkuchen', icon: '🥧', sell: 620, cat: 'dish', xp: 6 },
+  kirschtorte: { name: 'Kirschtorte', icon: '🍰', sell: 640, cat: 'dish', xp: 6 },
+  saft:      { name: 'Orangensaft',  icon: '🧃', sell: 420, cat: 'dish', xp: 4 },
+  sorbet:    { name: 'Pfirsich-Sorbet', icon: '🍧', sell: 480, cat: 'dish', xp: 5 },
+  kokosmilch:{ name: 'Kokos-Shake',  icon: '🥤', sell: 700, cat: 'dish', xp: 6 },
+  fischsuppe:{ name: 'Fischsuppe',   icon: '🍜', sell: 520, cat: 'dish', xp: 5 },
+  suppe:     { name: 'Kürbissuppe',  icon: '🍲', sell: 900, cat: 'dish', xp: 8 },
+  eintopf:   { name: 'Gemüseeintopf', icon: '🥘', sell: 560, cat: 'dish', xp: 5 },
+  salat:     { name: 'Tomatensalat', icon: '🥗', sell: 300, cat: 'dish', xp: 3 },
 };
 for (const [k, c] of Object.entries(CROPS)) {
   ITEMS[k] = { name: c.name, icon: c.icon, sell: c.sell, cat: c.cat, xp: c.xp };
-  ITEMS['s_' + k] = { name: c.name + '-Samen', icon: c.icon, buy: c.seed, lvl: c.lvl, seed: k };
+  ITEMS['s_' + k] = { name: c.name + (isFlower(k) ? '-Samen' : '-Saat'), icon: c.icon, buy: c.seed, lvl: c.lvl, seed: k };
 }
 
-export const FISH = [ // [id, Gewicht je Angel-Stufe 1..3, Jahreszeiten]
-  ['barsch', [60, 45, 30]],
-  ['forelle', [30, 32, 30], ['spring', 'autumn', 'winter']],
-  ['karpfen', [25, 25, 22], ['summer', 'autumn']],
-  ['frosch', [12, 12, 10], ['spring', 'summer']],
-  ['krebs', [9, 15, 22]],
-  ['hecht', [3, 8, 14], ['autumn', 'winter']],
-  ['kugelfisch', [1, 7, 14], ['summer']],
-  ['flaschenpost', [1, 3, 5]],
-  ['schatz', [0, 1, 4]],
+// Fische: [id, Name, Symbol, Preis, Gewicht je Angel-Stufe 1..3, Jahreszeiten|null, Ort: 'river' | 'sea' | 'pond']
+export const FISH = [
+  ['barsch', 'Barsch', '🐟', 80, [40, 30, 22], null, 'river'],
+  ['forelle', 'Forelle', '🐠', 160, [26, 26, 24], ['spring', 'autumn', 'winter'], 'river'],
+  ['krebs', 'Flusskrebs', '🦞', 200, [12, 16, 18], null, 'river'],
+  ['hecht', 'Hecht', '🐟', 1100, [2, 6, 10], ['autumn', 'winter'], 'river'],
+  ['lachs', 'Lachs', '🍣', 700, [3, 7, 10], ['autumn'], 'river'],
+  ['karpfen', 'Karpfen', '🎏', 300, [30, 26, 22], null, 'pond'],
+  ['goldfisch', 'Goldfisch', '🐠', 1300, [3, 6, 9], null, 'pond'],
+  ['frosch', 'Frosch', '🐸', 120, [20, 18, 14], ['spring', 'summer'], 'pond'],
+  ['makrele', 'Makrele', '🐟', 150, [40, 30, 22], null, 'sea'],
+  ['tintenfisch', 'Tintenfisch', '🦑', 500, [16, 18, 18], ['spring', 'summer', 'autumn'], 'sea'],
+  ['kugelfisch', 'Kugelfisch', '🐡', 250, [12, 14, 14], ['summer'], 'sea'],
+  ['krabbe', 'Krabbe', '🦀', 180, [18, 16, 14], null, 'sea'],
+  ['rochen', 'Rochen', '🐟', 3000, [1, 4, 7], ['summer', 'autumn'], 'sea'],
+  ['hai', 'Hai', '🦈', 8000, [0, 2, 5], ['summer'], 'sea'],
+  ['flaschenpost', 'Flaschenpost', '📜', 300, [3, 4, 5], null, 'sea'],
+  ['schatz', 'Schatztruhe', '💎', 2000, [0, 1, 3], null, 'sea'],
 ];
+const NOT_MUSEUM = ['flaschenpost', 'schatz'];
+for (const [id, name, icon, sell] of FISH) ITEMS[id] = { name, icon, sell, cat: NOT_MUSEUM.includes(id) ? 'misc' : 'fish', xp: Math.ceil(sell / 150) };
 
 // Insekten (Kescher): [id, Name, Symbol, Preis, Jahreszeiten, 'day'|'night'|'any', Gewicht]
 export const BUGS = [
-  ['kohlweissling', 'Kohlweißling', '🦋', 60, ['spring', 'summer'], 'day', 30],
-  ['zitronenfalter', 'Zitronenfalter', '🦋', 90, ['spring'], 'day', 20],
-  ['blaeuling', 'Bläuling', '🦋', 220, ['summer'], 'day', 8],
-  ['marienkaefer', 'Marienkäfer', '🐞', 70, ['spring', 'summer'], 'day', 22],
-  ['biene', 'Honigbiene', '🐝', 80, ['spring', 'summer'], 'day', 18],
-  ['raupe', 'Raupe', '🐛', 40, ['spring', 'autumn'], 'any', 18],
-  ['grashuepfer', 'Grashüpfer', '🦗', 100, ['summer', 'autumn'], 'day', 16],
-  ['ameise', 'Ameise', '🐜', 30, ['spring', 'summer', 'autumn'], 'any', 14],
-  ['schnecke', 'Weinbergschnecke', '🐌', 50, ['spring', 'summer', 'autumn'], 'any', 10],
-  ['gluehwuermchen', 'Glühwürmchen', '✨', 150, ['summer'], 'night', 30],
-  ['hirschkaefer', 'Hirschkäfer', '🪲', 400, ['summer'], 'night', 6],
-  ['spinne', 'Kreuzspinne', '🕷️', 120, ['autumn'], 'night', 16],
-  ['nachtfalter', 'Nachtfalter', '🦋', 110, ['spring', 'summer', 'autumn'], 'night', 22],
-  ['wintermuecke', 'Wintermücke', '🦟', 60, ['winter'], 'any', 30],
-  ['schneefloh', 'Schneefloh', '❄️', 160, ['winter'], 'day', 12],
+  ['kohlweissling', 'Kohlweißling', '🦋', 160, ['spring', 'summer'], 'day', 30],
+  ['zitronenfalter', 'Zitronenfalter', '🦋', 240, ['spring'], 'day', 20],
+  ['blaeuling', 'Bläuling', '🦋', 600, ['summer'], 'day', 8],
+  ['marienkaefer', 'Marienkäfer', '🐞', 200, ['spring', 'summer'], 'day', 22],
+  ['biene', 'Honigbiene', '🐝', 200, ['spring', 'summer'], 'day', 18],
+  ['raupe', 'Raupe', '🐛', 100, ['spring', 'autumn'], 'any', 18],
+  ['grashuepfer', 'Grashüpfer', '🦗', 280, ['summer', 'autumn'], 'day', 16],
+  ['ameise', 'Ameise', '🐜', 80, ['spring', 'summer', 'autumn'], 'any', 14],
+  ['schnecke', 'Weinbergschnecke', '🐌', 250, ['spring', 'summer', 'autumn'], 'any', 10],
+  ['gluehwuermchen', 'Glühwürmchen', '✨', 300, ['summer'], 'night', 30],
+  ['hirschkaefer', 'Hirschkäfer', '🪲', 2000, ['summer'], 'night', 6],
+  ['spinne', 'Kreuzspinne', '🕷️', 480, ['autumn'], 'night', 16],
+  ['nachtfalter', 'Nachtfalter', '🦋', 300, ['spring', 'summer', 'autumn'], 'night', 22],
+  ['wintermuecke', 'Wintermücke', '🦟', 130, ['winter'], 'any', 30],
+  ['schneefloh', 'Schneefloh', '❄️', 400, ['winter'], 'day', 12],
 ];
 
-// Ausgrabungen (Schaufel an glitzernden Stellen): [id, Name, Symbol, Preis, Gewicht]
+// Ausgrabungen (Schaufel an den Stern-Rissen): [id, Name, Symbol, Preis, Gewicht]
 export const FOSSILS = [
-  ['ammonit', 'Ammonit', '🐚', 350, 22],
-  ['knochen', 'Saurierknochen', '🦴', 300, 22],
-  ['zahn', 'Saurierzahn', '🦷', 450, 14],
-  ['abdruck', 'Pfotenabdruck', '🐾', 400, 14],
-  ['altmuenze', 'Alte Münze', '🪙', 250, 12],
-  ['amphore', 'Amphore', '🏺', 600, 8],
-  ['kristall', 'Kristall', '🔮', 700, 6],
-  ['eiszapfen', 'Ur-Eis', '🧊', 520, 2],
+  ['ammonit', 'Ammonit', '🐚', 1100, 22],
+  ['knochen', 'Saurierknochen', '🦴', 1000, 22],
+  ['zahn', 'Saurierzahn', '🦷', 1500, 14],
+  ['abdruck', 'Pfotenabdruck', '🐾', 1200, 14],
+  ['schaedel', 'Saurierschädel', '💀', 2500, 8],
+  ['bernstein', 'Bernstein', '🟠', 1300, 10],
+  ['amphore', 'Uralte Amphore', '🏺', 1800, 8],
+  ['kristall', 'Kristall', '🔮', 2000, 6],
 ];
 
-// Platzierbare Dinge: Deko, Sprinkler, Maschinen, Bäume.
-// solid = man kann nicht hindurchlaufen. glow = leuchtet nachts.
+// Muscheln & Strandgut (liegen jeden Morgen neu am Strand): [id, Name, Symbol, Preis, Gewicht]
+export const SHELLS = [
+  ['herzmuschel', 'Herzmuschel', '🐚', 120, 34],
+  ['kauri', 'Kaurischnecke', '🫧', 60, 30],
+  ['jakobsmuschel', 'Jakobsmuschel', '🦪', 200, 18],
+  ['sanddollar', 'Sanddollar', '🍪', 120, 12],
+  ['koralle', 'Koralle', '🪸', 500, 6],
+];
+export const SHELLS_PER_DAY = 7, WEEDS_PER_DAY = 9;
+
+// Platzierbare Dinge: Deko und Obstbäume. solid = man kann nicht hindurchlaufen. glow = leuchtet nachts.
 export const PLACE = {
-  weg:        { name: 'Steinweg',     icon: '🧱', buy: 5,    lvl: 1, kind: 'deco' },
-  blumen:     { name: 'Blumenbeet',   icon: '🌷', buy: 25,   lvl: 1, kind: 'deco' },
-  zaun:       { name: 'Zaun',         icon: '🪵', buy: 10,   lvl: 1, kind: 'deco', solid: 1 },
-  heu:        { name: 'Strohballen',  icon: '🟨', buy: 30,   lvl: 1, kind: 'deco', solid: 1 },
-  pilz:       { name: 'Fliegenpilz',  icon: '🍄', buy: 40,   lvl: 1, kind: 'deco' },
-  laterne:    { name: 'Laterne',      icon: '🏮', buy: 90,   lvl: 2, kind: 'deco', solid: 1, glow: 1 },
-  zwerg:      { name: 'Gartenzwerg',  icon: '🧙', buy: 120,  lvl: 2, kind: 'deco', solid: 1 },
-  bank:       { name: 'Gartenbank',   icon: '🪑', buy: 150,  lvl: 2, kind: 'deco', solid: 1 },
-  kirschbaum: { name: 'Kirschbaum',   icon: '🌸', buy: 250,  lvl: 3, kind: 'deco', solid: 1 },
-  vogelhaus:  { name: 'Vogelhäuschen', icon: '🐦', buy: 200,  lvl: 2, kind: 'deco', solid: 1 },
-  herz:       { name: 'Herzbogen',    icon: '💕', buy: 400,  lvl: 3, kind: 'deco' },
-  brunnen:    { name: 'Brunnen',      icon: '⛲', buy: 600,  lvl: 5, kind: 'deco', solid: 1 },
-  sprinkler:  { name: 'Sprinkler',      icon: '💦', buy: 400,  lvl: 3, kind: 'sprinkler', r: 1, desc: 'Gießt 3×3 Felder automatisch' },
-  supersprinkler: { name: 'Super-Sprinkler', icon: '🌊', buy: 1500, lvl: 6, kind: 'sprinkler', r: 2, desc: 'Gießt 5×5 Felder automatisch' },
-  apfelbaum:  { name: 'Apfelbaum',    icon: '🌳', buy: 500,  lvl: 2, kind: 'producer', solid: 1, item: 'apfel', n: 2, every: 200, desc: 'Trägt regelmäßig 2 Äpfel' },
-  bienenstock:{ name: 'Bienenstock',  icon: '🐝', buy: 1200, lvl: 4, kind: 'producer', solid: 1, item: 'honig', n: 1, every: 240, desc: 'Bienen machen Honig' },
-  m_mayo:     { name: 'Mayo-Maschine', icon: '🥣', buy: 600,  lvl: 2, kind: 'machine', solid: 1, in: ['ei'], out: 'mayo', time: 60 },
-  m_jam:      { name: 'Einmachtopf',   icon: '🫙', buy: 1000, lvl: 3, kind: 'machine', solid: 1, in: ['erdbeere', 'apfel'], out: 'marmelade', time: 80 },
-  m_kaese:    { name: 'Käserei',       icon: '🧀', buy: 1500, lvl: 3, kind: 'machine', solid: 1, in: ['milch'], out: 'kaese', time: 90 },
-  m_web:      { name: 'Webstuhl',      icon: '🧵', buy: 2000, lvl: 4, kind: 'machine', solid: 1, in: ['wolle'], out: 'stoff', time: 120 },
-  m_oel:      { name: 'Ölpresse',      icon: '🧴', buy: 2500, lvl: 6, kind: 'machine', solid: 1, in: ['sonnenblume'], out: 'oel', time: 100 },
+  weg:        { name: 'Steinweg',      icon: '🧱', buy: 20,   lvl: 1, kind: 'deco' },
+  blumen:     { name: 'Blumenbeet',    icon: '🌷', buy: 120,  lvl: 1, kind: 'deco' },
+  zaun:       { name: 'Holzzaun',      icon: '🪵', buy: 60,   lvl: 1, kind: 'deco', solid: 1 },
+  heu:        { name: 'Strohballen',   icon: '🟨', buy: 150,  lvl: 2, kind: 'deco', solid: 1 },
+  pilz:       { name: 'Fliegenpilz',   icon: '🍄', buy: 200,  lvl: 1, kind: 'deco' },
+  laterne:    { name: 'Laterne',       icon: '🏮', buy: 400,  lvl: 2, kind: 'deco', solid: 1, glow: 1 },
+  zwerg:      { name: 'Gartenzwerg',   icon: '🧙', buy: 600,  lvl: 2, kind: 'deco', solid: 1 },
+  bank:       { name: 'Parkbank',      icon: '🪑', buy: 800,  lvl: 2, kind: 'deco', solid: 1 },
+  vogelhaus:  { name: 'Vogelhäuschen', icon: '🐦', buy: 700,  lvl: 3, kind: 'deco', solid: 1 },
+  kirschbaum: { name: 'Kirschblütenbaum', icon: '🌸', buy: 1800, lvl: 3, kind: 'deco', solid: 1 },
+  herz:       { name: 'Herzbogen',     icon: '💕', buy: 2000, lvl: 4, kind: 'deco' },
+  brunnen:    { name: 'Brunnen',       icon: '⛲', buy: 3000, lvl: 5, kind: 'deco', solid: 1 },
+  apfelbaum:  { name: 'Apfelbaum',     icon: '🌳', buy: 900,  lvl: 2, kind: 'producer', solid: 1, item: 'apfel', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Äpfel' },
+  orangenbaum:{ name: 'Orangenbaum',   icon: '🌳', buy: 900,  lvl: 3, kind: 'producer', solid: 1, item: 'orange', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Orangen' },
+  pfirsichbaum:{ name: 'Pfirsichbaum', icon: '🌳', buy: 900,  lvl: 3, kind: 'producer', solid: 1, item: 'pfirsich', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Pfirsiche' },
+  kirschenbaum:{ name: 'Kirschbaum',   icon: '🌳', buy: 900,  lvl: 4, kind: 'producer', solid: 1, item: 'kirsche', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Kirschen' },
+  birnbaum:   { name: 'Birnbaum',      icon: '🌳', buy: 900,  lvl: 4, kind: 'producer', solid: 1, item: 'birne', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Birnen' },
 };
 for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k };
 export const MACHINE_CAP = 20;
 
-// Upgrades: cost[i] = Preis für Stufe i+2 (bzw. i+1 bei Start 0), req[i] = benötigtes Farm-Level.
+// Ausbau: cost[i] = Preis für die nächste Stufe, req[i] = benötigtes Insel-Level.
 export const UPGRADES = {
-  field:  { tab: 'farm',  name: 'Feld erweitern', icon: '🟫', start: 1, cost: [500, 1500, 4000, 9000], req: [2, 4, 6, 8],
-            desc: l => `Feldgröße ${fieldSize(l)}` },
-  house:  { tab: 'farm',  name: 'Haus ausbauen', icon: '🏡', start: 1, cost: [2500, 8000], req: [3, 6],
-            desc: l => ['', 'Kleines Häuschen', 'Gemütliches Landhaus', 'Traumhaus mit Turm'][l] },
-  coop:   { tab: 'farm',  name: 'Hühnerstall', icon: '🐔', start: 0, cost: [500, 2000], req: [2, 5],
-            desc: l => l ? `Platz für ${l * 4} Hühner` : 'Noch nicht gebaut' },
-  barn:   { tab: 'farm',  name: 'Stall', icon: '🐄', start: 0, cost: [1500, 4500], req: [3, 5],
-            desc: l => l ? `Platz für ${l * 4} Kühe, Schafe & Schweine` : 'Noch nicht gebaut' },
-  hoe:    { tab: 'tools', name: 'Hacke', icon: '⛏️', start: 1, cost: [400, 1500, 5000], req: [2, 4, 7],
-            desc: l => `Bearbeitet & sät ${AREA_NAME[l]}` },
-  can:    { tab: 'tools', name: 'Gießkanne', icon: '💧', start: 1, cost: [400, 1500, 5000], req: [2, 4, 7],
+  house:  { tab: 'farm',  name: 'Haus ausbauen', icon: '🏡', start: 1, cost: [9800, 39800], req: [3, 6],
+            desc: l => ['', 'Kleines Häuschen', 'Gemütliches Haus mit Anbau', 'Traumhaus mit Turm'][l] },
+  can:    { tab: 'tools', name: 'Gießkanne', icon: '💧', start: 1, cost: [800, 2500, 6000], req: [2, 4, 7],
             desc: l => `Gießt ${AREA_NAME[l]}` },
-  sickle: { tab: 'tools', name: 'Sichel', icon: '🌙', start: 1, cost: [300, 1200, 4000], req: [2, 4, 7],
-            desc: l => `Erntet ${AREA_NAME[l]}` },
-  boots:  { tab: 'tools', name: 'Stiefel', icon: '👢', start: 1, cost: [300, 1200, 3500], req: [1, 3, 6],
+  boots:  { tab: 'tools', name: 'Laufschuhe', icon: '👟', start: 1, cost: [600, 2000, 5000], req: [1, 3, 6],
             desc: l => `Tempo ${Math.round(SPEED[l] / SPEED[1] * 100)}%` },
-  rod:    { tab: 'tools', name: 'Angel', icon: '🎣', start: 1, cost: [500, 2500], req: [2, 5],
-            desc: l => ['', 'Einfache Angel', 'Bessere Fische, schnellerer Biss', 'Profi-Angel: Schätze!'][l] },
-  q_veg:    { tab: 'goods', name: 'Gemüse-Qualität', icon: '🥕', start: 0, cost: [300, 800, 2000, 4500, 9000], req: [1, 2, 4, 6, 8], desc: l => `+${l * 20}% Verkaufspreis` },
-  q_fruit:  { tab: 'goods', name: 'Obst & Blumen', icon: '🍓', start: 0, cost: [300, 800, 2000, 4500, 9000], req: [3, 3, 5, 7, 9], desc: l => `+${l * 20}% Verkaufspreis` },
-  q_animal: { tab: 'goods', name: 'Tierprodukte', icon: '🥚', start: 0, cost: [400, 1000, 2500, 5000, 10000], req: [2, 3, 5, 7, 9], desc: l => `+${l * 20}% Verkaufspreis` },
-  q_craft:  { tab: 'goods', name: 'Handwerkswaren', icon: '🧀', start: 0, cost: [500, 1200, 3000, 6000, 12000], req: [2, 4, 6, 8, 10], desc: l => `+${l * 20}% Verkaufspreis` },
-  q_dish:   { tab: 'goods', name: 'Feinkost', icon: '🍰', start: 0, cost: [500, 1200, 3000, 6000, 12000], req: [3, 4, 6, 8, 10], desc: l => `+${l * 20}% für Gekochtes` },
-  q_bug:    { tab: 'goods', name: 'Naturkunde', icon: '🦋', start: 0, cost: [300, 800, 2000, 4500, 9000], req: [2, 3, 5, 7, 9], desc: l => `+${l * 20}% für Insekten & Funde` },
-  q_fish:   { tab: 'goods', name: 'Fisch-Händler', icon: '🐟', start: 0, cost: [300, 800, 2000, 4500, 9000], req: [2, 3, 5, 7, 9], desc: l => `+${l * 20}% Verkaufspreis` },
+  rod:    { tab: 'tools', name: 'Angel', icon: '🎣', start: 1, cost: [1200, 4800], req: [2, 5],
+            desc: l => ['', 'Einfache Angel', 'Seltenere Fische, schnellerer Biss', 'Profi-Angel: Haie & Schätze!'][l] },
+  q_fruit:  { tab: 'goods', name: 'Obst & Blumen', icon: '🍑', start: 0, cost: [600, 1600, 4000, 9000, 18000], req: [1, 2, 4, 6, 8], desc: l => `+${l * 20}% Verkaufspreis` },
+  q_veg:    { tab: 'goods', name: 'Gemüse', icon: '🥕', start: 0, cost: [600, 1600, 4000, 9000, 18000], req: [2, 3, 5, 7, 9], desc: l => `+${l * 20}% Verkaufspreis` },
+  q_fish:   { tab: 'goods', name: 'Fischhändler', icon: '🐟', start: 0, cost: [600, 1600, 4000, 9000, 18000], req: [2, 3, 5, 7, 9], desc: l => `+${l * 20}% Verkaufspreis` },
+  q_bug:    { tab: 'goods', name: 'Naturkunde', icon: '🦋', start: 0, cost: [600, 1600, 4000, 9000, 18000], req: [2, 3, 5, 7, 9], desc: l => `+${l * 20}% für Insekten, Fossilien & Muscheln` },
+  q_mat:    { tab: 'goods', name: 'Rohstoffe', icon: '🪵', start: 0, cost: [500, 1400, 3500, 8000, 16000], req: [2, 3, 5, 7, 9], desc: l => `+${l * 20}% für Holz, Steine & Eisen` },
+  q_dish:   { tab: 'goods', name: 'Feinkost', icon: '🍰', start: 0, cost: [800, 2000, 5000, 10000, 20000], req: [3, 4, 6, 8, 10], desc: l => `+${l * 20}% für Gekochtes` },
 };
 export const AREA_NAME = ['', '1 Feld', '3 Felder', '3×3 Felder', '5×5 Felder'];
 export const SPEED = [0, 4, 5, 6, 7.2];
-
-export function fieldSize(l) {
-  const [x0, z0, x1, z1] = FIELDS[l];
-  return `${x1 - x0 + 1}×${z1 - z0 + 1}`;
-}
+export const fieldSize = () => '';
 
 export const needXp = lvl => 40 * lvl * lvl;
 export const MAX_LEVEL = 20;
@@ -234,78 +245,83 @@ export const EMOTE_LIST = [['❤️', 'Liebe'], ['👋', 'Winken'], ['😂', 'La
 export const EMOTES = EMOTE_LIST.map(e => e[0]);
 export const SOCIAL = { hug: ['🤗', 'Umarmen'], kiss: ['😘', 'Küsschen'], highfive: ['✋', 'High-Five'], dance: ['💃', 'Zusammen tanzen'] };
 
+for (const [id, name, icon, sell] of BUGS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 150) };
+for (const [id, name, icon, sell] of FOSSILS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 200) };
+for (const [id, name, icon, sell] of SHELLS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: 1 };
+export const ALBUM = { fish: FISH.filter(f => !NOT_MUSEUM.includes(f[0])).map(f => f[0]), bug: BUGS.map(b => b[0]), fossil: FOSSILS.map(f => f[0]), shell: SHELLS.map(s => s[0]) };
+// Was ins Museum darf
+export const MUSEUM = { fish: ALBUM.fish, bug: ALBUM.bug, fossil: ALBUM.fossil };
+export const MUSEUM_ALL = [...MUSEUM.fish, ...MUSEUM.bug, ...MUSEUM.fossil];
+
 // Erfolge: gemeinsame Ziele mit Belohnung (Taler)
 const decos = s => Object.values(s.obj).filter(o => PLACE[o.k]?.kind === 'deco').length;
-const hasAnimal = (s, k) => s.animals.some(a => a.k === k);
+const donated = s => Object.keys(s.museum || {}).length;
 export const ACHIEVEMENTS = [
-  ['ernte1', '🌱', 'Erste Ernte', 'Erntet zum ersten Mal etwas', s => s.stats.harvested >= 1, 50],
-  ['ernte100', '🧺', 'Fleißige Hände', '100 Pflanzen geerntet', s => s.stats.harvested >= 100, 300],
-  ['ernte1000', '🏆', 'Erntekönige', '1000 Pflanzen geerntet', s => s.stats.harvested >= 1000, 2500],
-  ['kuerbis', '🎃', 'Riesenkürbis', 'Einen Kürbis geerntet', s => (s.stats.h_kuerbis || 0) >= 1, 400],
-  ['tier1', '🐣', 'Neue Freunde', 'Das erste Tier gekauft', s => s.animals.length >= 1, 100],
-  ['zoo', '🐾', 'Bauernhof-Zoo', 'Huhn, Kuh, Schaf und Schwein auf der Farm', s => ['huhn', 'kuh', 'schaf', 'schwein'].every(k => hasAnimal(s, k)), 1500],
-  ['liebe', '💞', 'Ganz viel Liebe', 'Ein Tier hat 10 Herzen', s => s.animals.some(a => a.love >= 10), 800],
-  ['fisch10', '🎣', 'Anglerglück', '10 Fische gefangen', s => s.stats.fish >= 10, 250],
-  ['schatz', '💎', 'Schatzsucher', 'Eine Schatztruhe geangelt', s => (s.stats.treasure || 0) >= 1, 500],
-  ['maschine', '⚙️', 'Handwerker', 'Die erste Maschine aufgestellt', s => Object.values(s.obj).some(o => PLACE[o.k]?.kind === 'machine'), 200],
-  ['auftrag10', '📋', 'Dorfhelden', '10 Aufträge erledigt', s => s.stats.orders >= 10, 600],
-  ['reich', '💰', 'Gut betucht', '10.000 Taler verdient', s => s.stats.earned >= 10000, 500],
-  ['reich2', '👑', 'Großgrundbesitzer', '100.000 Taler verdient', s => s.stats.earned >= 100000, 5000],
-  ['deko20', '🌷', 'Gartenkünstler', '20 Deko-Stücke aufgestellt', s => decos(s) >= 20, 400],
-  ['herz', '💕', 'Für immer zusammen', 'Einen Herzbogen aufgestellt', s => Object.values(s.obj).some(o => o.k === 'herz'), 200],
-  ['feld', '🟫', 'Großbauern', 'Das Feld voll ausgebaut', s => s.up.field >= 5, 3000],
-  ['haus', '🏰', 'Traumhaus', 'Das Haus voll ausgebaut', s => s.up.house >= 3, 3000],
-  ['werkzeug', '🛠️', 'Profi-Ausrüstung', 'Hacke, Gießkanne und Sichel auf Stufe 4', s => s.up.hoe >= 4 && s.up.can >= 4 && s.up.sickle >= 4, 2000],
-  ['level5', '⭐', 'Aufsteiger', 'Farm-Level 5 erreicht', s => s.level >= 5, 300],
-  ['level10', '🌟', 'Meisterhof', 'Farm-Level 10 erreicht', s => s.level >= 10, 2000],
-  ['tag10', '📅', 'Treue Seelen', '10 Tage zusammen gefarmt', s => s.day >= 10, 500],
-  ['regen', '🌧️', 'Regentänzer', 'Einen Regen- oder Schneetag erlebt', s => s.weather !== 'sun', 100],
-  ['kescher10', '🦋', 'Insektenfreunde', '10 Insekten gefangen', s => (s.stats.bugs || 0) >= 10, 300],
-  ['fossil5', '🦴', 'Hobby-Archäologen', '5 verschiedene Funde ausgegraben', s => FOSSILS.filter(f => s.album?.[f[0]]).length >= 5, 600],
-  ['album30', '📖', 'Naturforscher', '30 verschiedene Einträge im Sammelbuch', s => Object.keys(s.album || {}).length >= 30, 2000],
-  ['koch', '🍳', 'Sternekoch', 'Das erste Gericht gekocht', s => (s.stats.cooked || 0) >= 1, 150],
-  ['koch25', '👩‍🍳', 'Kuschelküche', '25 Gerichte gekocht', s => (s.stats.cooked || 0) >= 25, 1200],
-  ['holz', '🪵', 'Holzfäller', '50 Holz gesammelt', s => (s.stats.wood || 0) >= 50, 300],
-  ['werk', '🔨', 'Selbstgemacht', 'Etwas an der Werkbank gebaut', s => (s.stats.crafted || 0) >= 1, 150],
-  ['freund', '💛', 'Beste Nachbarn', 'Mit einem Nachbarn 5 Herzen erreicht', s => Object.values(s.npc || {}).some(n => n.f >= 500), 800],
-  ['dorf', '🏘️', 'Das ganze Dorf mag euch', 'Mit allen Nachbarn 3 Herzen erreicht', s => ['mira', 'bruno', 'pippa', 'lio'].every(k => (s.npc?.[k]?.f || 0) >= 300), 1500],
-  ['jahr', '🎂', 'Ein ganzes Jahr', 'Alle vier Jahreszeiten zusammen erlebt', s => s.day >= 29, 3000],
+  ['obst1', '🍎', 'Frisch vom Baum', 'Zum ersten Mal Obst gepflückt', s => (s.stats.fruit || 0) >= 1, 100],
+  ['obst100', '🧺', 'Obstkörbe voll', '100 Obst gepflückt', s => (s.stats.fruit || 0) >= 100, 1500],
+  ['blume', '🌷', 'Grüner Daumen', '10 Blumen gepflanzt', s => (s.stats.planted || 0) >= 10, 400],
+  ['ernte100', '🌻', 'Blütenmeer', '100 Blumen & Gemüse geerntet', s => s.stats.harvested >= 100, 1500],
+  ['kuerbis', '🎃', 'Riesenkürbis', 'Einen Kürbis geerntet', s => (s.stats.h_kuerbis || 0) >= 1, 800],
+  ['fisch10', '🎣', 'Anglerglück', '10 Fische gefangen', s => s.stats.fish >= 10, 500],
+  ['fisch100', '🐟', 'Meister-Angler', '100 Fische gefangen', s => s.stats.fish >= 100, 4000],
+  ['hai', '🦈', 'Der große Fang', 'Einen Hai gefangen', s => (s.album?.hai || 0) >= 1, 2000],
+  ['schatz', '💎', 'Schatzsucher', 'Eine Schatztruhe geangelt', s => (s.stats.treasure || 0) >= 1, 1000],
+  ['kescher10', '🦋', 'Insektenfreunde', '10 Insekten gefangen', s => (s.stats.bugs || 0) >= 10, 500],
+  ['muschel', '🐚', 'Strandgut', '20 Muscheln gesammelt', s => (s.stats.shells || 0) >= 20, 600],
+  ['unkraut', '🌿', 'Inselpflege', '50 Unkraut gezupft', s => (s.stats.weeds || 0) >= 50, 800],
+  ['fossil5', '🦴', 'Hobby-Archäologen', '5 verschiedene Funde ausgegraben', s => FOSSILS.filter(f => s.album?.[f[0]]).length >= 5, 1000],
+  ['museum1', '🏛️', 'Eröffnung!', 'Das erste Stück im Museum ausgestellt', s => donated(s) >= 1, 300],
+  ['museum20', '🖼️', 'Sammlerherzen', '20 Stücke im Museum', s => donated(s) >= 20, 3000],
+  ['museum', '🏆', 'Komplettes Museum', 'Alle Fische, Insekten und Fossilien ausgestellt', s => donated(s) >= MUSEUM_ALL.length, 30000],
+  ['auftrag10', '📋', 'Inselhelden', '10 Wünsche der Nachbarn erfüllt', s => s.stats.orders >= 10, 1200],
+  ['reich', '💰', 'Gut betucht', '10.000 Taler verdient', s => s.stats.earned >= 10000, 800],
+  ['reich2', '👑', 'Insel-Millionäre', '1.000.000 Taler verdient', s => s.stats.earned >= 1000000, 20000],
+  ['deko20', '🏮', 'Inselgestalter', '20 Deko-Stücke aufgestellt', s => decos(s) >= 20, 1000],
+  ['herz', '💕', 'Für immer zusammen', 'Einen Herzbogen aufgestellt', s => Object.values(s.obj).some(o => o.k === 'herz'), 500],
+  ['haus', '🏰', 'Traumhaus', 'Das Haus voll ausgebaut', s => s.up.house >= 3, 5000],
+  ['level5', '⭐', 'Aufsteiger', 'Insel-Level 5 erreicht', s => s.level >= 5, 600],
+  ['level10', '🌟', 'Trauminsel', 'Insel-Level 10 erreicht', s => s.level >= 10, 4000],
+  ['tag10', '📅', 'Treue Seelen', '10 Tage zusammen auf der Insel', s => s.day >= 10, 1000],
+  ['regen', '🌧️', 'Regentänzer', 'Einen Regen- oder Schneetag erlebt', s => s.weather !== 'sun', 200],
+  ['koch', '🍳', 'Sterneköche', 'Das erste Gericht gekocht', s => (s.stats.cooked || 0) >= 1, 300],
+  ['holz', '🪓', 'Holzfäller', '50 Holz gesammelt', s => (s.stats.wood || 0) >= 50, 600],
+  ['werk', '🔨', 'Selbstgemacht', 'Etwas an der Werkbank gebaut', s => (s.stats.crafted || 0) >= 1, 300],
+  ['freund', '💛', 'Beste Nachbarn', 'Mit einem Nachbarn 5 Herzen erreicht', s => Object.values(s.npc || {}).some(n => n.f >= 500), 1500],
+  ['dorf', '🏘️', 'Die ganze Insel mag euch', 'Mit allen Nachbarn 3 Herzen erreicht', s => ['mira', 'bruno', 'pippa', 'lio'].every(k => (s.npc?.[k]?.f || 0) >= 300), 3000],
+  ['jahr', '🎂', 'Ein ganzes Jahr', 'Alle vier Jahreszeiten zusammen erlebt', s => s.day >= 29, 5000],
 ].map(([id, icon, name, desc, test, reward]) => ({ id, icon, name, desc, test, reward }));
-
-for (const [id, name, icon, sell] of BUGS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 40) };
-for (const [id, name, icon, sell] of FOSSILS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 50) };
-export const ALBUM = { fish: FISH.map(f => f[0]), bug: BUGS.map(b => b[0]), fossil: FOSSILS.map(f => f[0]) };
 
 // Rezepte: Werkbank (craft) und Küche (cook)
 export const RECIPES = {
   r_zaun: { st: 'craft', out: 'zaun', n: 2, in: { holz: 2 } },
   r_weg: { st: 'craft', out: 'weg', n: 4, in: { stein: 2 } },
-  r_futter: { st: 'craft', out: 'futter', n: 3, in: { weizen: 2 } },
-  r_heu: { st: 'craft', out: 'heu', n: 1, in: { weizen: 6 } },
-  r_bank: { st: 'craft', out: 'bank', n: 1, in: { holz: 6 } },
-  r_vogelhaus: { st: 'craft', out: 'vogelhaus', n: 1, in: { holz: 5 } },
-  r_laterne: { st: 'craft', out: 'laterne', n: 1, in: { holz: 2, stein: 3 } },
-  r_sprinkler: { st: 'craft', out: 'sprinkler', n: 1, in: { stein: 6, holz: 3 }, lvl: 3 },
-  r_brunnen: { st: 'craft', out: 'brunnen', n: 1, in: { stein: 15 }, lvl: 5 },
+  r_heu: { st: 'craft', out: 'heu', n: 1, in: { weizen: 6 }, lvl: 2 },
+  r_bank: { st: 'craft', out: 'bank', n: 1, in: { holz: 6, ast: 2 } },
+  r_vogelhaus: { st: 'craft', out: 'vogelhaus', n: 1, in: { holz: 5, ast: 3 } },
+  r_laterne: { st: 'craft', out: 'laterne', n: 1, in: { eisen: 1, stein: 2 } },
+  r_zwerg: { st: 'craft', out: 'zwerg', n: 1, in: { lehm: 3 } },
+  r_blumen: { st: 'craft', out: 'blumen', n: 1, in: { holz: 2, tulpe: 3 } },
+  r_brunnen: { st: 'craft', out: 'brunnen', n: 1, in: { stein: 12, eisen: 2 }, lvl: 5 },
   brot: { st: 'cook', out: 'brot', n: 1, in: { weizen: 3 } },
-  pfannkuchen: { st: 'cook', out: 'pfannkuchen', n: 1, in: { weizen: 2, ei: 1, milch: 1 } },
-  salat: { st: 'cook', out: 'salat', n: 1, in: { salatkopf: 1, tomate: 1, karotte: 1 } },
-  fischsuppe: { st: 'cook', out: 'fischsuppe', n: 1, in: { barsch: 2, kartoffel: 1 } },
-  eintopf: { st: 'cook', out: 'eintopf', n: 1, in: { kartoffel: 2, karotte: 1, brokkoli: 1 } },
-  kuchen: { st: 'cook', out: 'kuchen', n: 1, in: { erdbeere: 3, weizen: 2, ei: 1 } },
-  honigtee: { st: 'cook', out: 'honigtee', n: 1, in: { honig: 1, apfel: 1 } },
+  pfannkuchen: { st: 'cook', out: 'pfannkuchen', n: 1, in: { mehl: 1, ei: 1, milch: 1 } },
+  apfelkuchen: { st: 'cook', out: 'apfelkuchen', n: 1, in: { apfel: 3, mehl: 1, zucker: 1 } },
+  kirschtorte: { st: 'cook', out: 'kirschtorte', n: 1, in: { kirsche: 3, mehl: 1, ei: 1 } },
+  saft: { st: 'cook', out: 'saft', n: 1, in: { orange: 3 } },
+  sorbet: { st: 'cook', out: 'sorbet', n: 1, in: { pfirsich: 2, zucker: 1 } },
+  kokosmilch: { st: 'cook', out: 'kokosmilch', n: 1, in: { kokosnuss: 1, milch: 1 } },
+  fischsuppe: { st: 'cook', out: 'fischsuppe', n: 1, in: { barsch: 1, makrele: 1, kartoffel: 1 } },
+  salat: { st: 'cook', out: 'salat', n: 1, in: { tomate: 2, karotte: 1 } },
+  eintopf: { st: 'cook', out: 'eintopf', n: 1, in: { kartoffel: 2, karotte: 1, tomate: 1 } },
   suppe: { st: 'cook', out: 'suppe', n: 1, in: { kuerbis: 1, milch: 1 } },
-  sorbet: { st: 'cook', out: 'sorbet', n: 1, in: { melone: 1, milch: 1 } },
-  saft: { st: 'cook', out: 'saft', n: 1, in: { traube: 3 } },
 };
-export const DIG_SPOTS_PER_DAY = 4;
+export const DIG_SPOTS_PER_DAY = 5;
 
 // Nachbarn: Vorlieben (Geschenke), Lieblingsort (sie spazieren dort herum), Dankesgeschenk im Brief
 export const NPC_DATA = {
-  mira: { name: 'Mira', icon: '🦔', likes: ['erdbeere', 'honig', 'milch', 'weizen'], loves: ['kuchen', 'marmelade'], dislikes: ['kugelfisch', 'krebs'], spot: [-4.5, -6.9, 2.4, 1.1], gift: ['kuchen', 2] },
-  bruno: { name: 'Bruno', icon: '🐻', likes: ['holz', 'apfel', 'brot', 'forelle'], loves: ['honig', 'eintopf'], dislikes: ['stein', 'mayo'], spot: [5.5, -8.4, 1.8, 0.7], gift: ['holz', 15] },
-  pippa: { name: 'Pippa', icon: '🦆', likes: ['barsch', 'forelle', 'mais', 'weizen'], loves: ['kugelfisch', 'fischsuppe'], dislikes: ['ei', 'mayo'], spot: [-8.2, -5.8, 1.6, 1.2], gift: ['forelle', 3] },
-  lio: { name: 'Lio', icon: '🦊', likes: ['oel', 'stoff', 'kaese', 'honigtee'], loves: ['sonnenblume', 'trueffel'], dislikes: ['kartoffel', 'stein'], spot: [0, -3.7, 3.4, 0.5], gift: ['kirschbaum', 1] },
+  mira: { name: 'Mira', icon: '🦔', likes: ['apfel', 'kirsche', 'tulpe', 'weizen'], loves: ['kirschtorte', 'apfelkuchen'], dislikes: ['kugelfisch', 'krebs'], spot: [-12, 4, 2.6, 1.6], gift: ['apfelkuchen', 1] },
+  bruno: { name: 'Bruno', icon: '🐻', likes: ['holz', 'apfel', 'brot', 'forelle'], loves: ['lachs', 'eintopf'], dislikes: ['stein', 'unkraut'], spot: [12.6, 4.6, 1.8, 1.3], gift: ['holz', 15] },
+  pippa: { name: 'Pippa', icon: '🦆', likes: ['barsch', 'makrele', 'herzmuschel', 'weizen'], loves: ['kugelfisch', 'fischsuppe'], dislikes: ['ei', 'unkraut'], spot: [-6, 9.5, 2.6, 1.4], gift: ['makrele', 3] },
+  lio: { name: 'Lio', icon: '🦊', likes: ['rose', 'koralle', 'pfirsich', 'saft'], loves: ['sonnenblume', 'bernstein'], dislikes: ['kartoffel', 'stein'], spot: [12.8, 2.3, 1.9, 0.9], gift: ['kirschbaum', 1] },
 };
 export const NPC_IDS = Object.keys(NPC_DATA);
 
@@ -316,33 +332,34 @@ for (const [id, f] of Object.entries(FURN)) {
   if (f.craft) RECIPES['f_' + id] = { st: 'craft', out: id, n: 1, in: f.craft, lvl: f.lvl };
 }
 
-// Quests: die Hof-Geschichte (nacheinander) und tägliche Aufgaben. ev = Ereignis, n = Ziel
+// Quests: die Insel-Geschichte (nacheinander) und tägliche Aufgaben. ev = Ereignis, n = Ziel
 export const STORY = [
-  { title: 'Der erste Samen', desc: 'Sät 4 Samen auf umgegrabene Felder.', ev: 'plant', n: 4, money: 100, items: { s_karotte: 5 } },
-  { title: 'Wasser marsch!', desc: 'Gießt 6 Felder mit der Gießkanne.', ev: 'water', n: 6, money: 80 },
-  { title: 'Erntezeit', desc: 'Erntet 8 Pflanzen.', ev: 'harvest', n: 8, money: 150, items: { s_kartoffel: 4 } },
-  { title: 'Hallo Nachbarn!', desc: 'Plaudert mit allen vier Nachbarn.', ev: 'met', n: 4, money: 200, items: { kuchen: 1 } },
-  { title: 'Kleine Händler', desc: 'Verdient 500 Taler durch Verkäufe.', ev: 'sell', n: 500, items: { blumen: 2, weg: 6 } },
-  { title: 'Holzfäller', desc: 'Hackt 5 Holz an wilden Bäumen (Axt).', ev: 'chop', n: 5, money: 150 },
-  { title: 'Steinreich', desc: 'Baut 3 Steine an Felsen ab (Schaufel).', ev: 'mine', n: 3, money: 150 },
+  { title: 'Willkommen auf der Insel!', desc: 'Schüttelt 3 Bäume – mal sehen, was herunterfällt.', ev: 'shake', n: 3, money: 300, items: { s_tulpe: 4 } },
+  { title: 'Obstkorb', desc: 'Sammelt 6 Stück Obst von den Bäumen.', ev: 'fruit', n: 6, money: 300 },
+  { title: 'Blumenkinder', desc: 'Pflanzt 4 Blumensamen auf den Rasen.', ev: 'plant', n: 4, money: 200, items: { s_kosmee: 4 } },
+  { title: 'Hallo Nachbarn!', desc: 'Plaudert mit allen vier Nachbarn.', ev: 'met', n: 4, money: 400, items: { apfelkuchen: 1 } },
+  { title: 'Strandspaziergang', desc: 'Sammelt 5 Muscheln am Strand.', ev: 'shell', n: 5, money: 300 },
+  { title: 'Kleine Händler', desc: 'Verdient 1.000 Taler im Krämerladen.', ev: 'sell', n: 1000, items: { blumen: 1, weg: 8 } },
+  { title: 'Holzfäller', desc: 'Hackt 5 Holz mit der Axt.', ev: 'chop', n: 5, money: 300 },
+  { title: 'Steinreich', desc: 'Schlagt 3-mal mit der Schaufel auf Felsen.', ev: 'mine', n: 3, money: 300 },
   { title: 'Selbstgebaut', desc: 'Baut etwas an der Werkbank.', ev: 'craft', n: 1, items: { stuhl: 1, hocker: 1 } },
-  { title: 'Erste Federn', desc: 'Kauft ein Tier (der Hühnerstall kostet 500 Taler).', ev: 'buyAnimal', n: 1, money: 300, items: { futter: 10 } },
-  { title: 'Kuschelzeit', desc: 'Streichelt eure Tiere 5-mal (an verschiedenen Tagen oder Tieren).', ev: 'pet', n: 5, money: 250 },
-  { title: 'Am Teich', desc: 'Fangt 3 Fische.', ev: 'fish', n: 3, money: 200, items: { s_erdbeere: 4 } },
-  { title: 'Krabbeltiere', desc: 'Fangt 3 Insekten mit dem Kescher.', ev: 'bug', n: 3, money: 250 },
-  { title: 'Schatzsuche', desc: 'Grabt 2 Funde an glitzernden Stellen aus.', ev: 'dig', n: 2, money: 300 },
+  { title: 'Am Wasser', desc: 'Fangt 3 Fische – im Fluss, im Teich oder im Meer.', ev: 'fish', n: 3, money: 400 },
+  { title: 'Krabbeltiere', desc: 'Fangt 3 Insekten mit dem Kescher.', ev: 'bug', n: 3, money: 400 },
+  { title: 'Schatzsuche', desc: 'Grabt 2 Funde an den Stern-Rissen aus.', ev: 'dig', n: 2, money: 500 },
+  { title: 'Das Museum öffnet', desc: 'Stellt 3 Fundstücke im Museum aus.', ev: 'donate', n: 3, money: 1000, items: { s_rose: 4 } },
+  { title: 'Inselpflege', desc: 'Zupft 8 Unkraut.', ev: 'weed', n: 8, money: 400 },
   { title: 'Kochstunde', desc: 'Kocht 2 Gerichte in der Gartenküche.', ev: 'cook', n: 2, items: { herd: 1, kuechenzeile: 1 } },
   { title: 'Ein gemütliches Zuhause', desc: 'Stellt 5 Möbel im Haus auf.', ev: 'furnish', n: 5, items: { teppich_rund: 1, kerzen: 1, topfpflanze: 1 } },
-  { title: 'Herzensgeschenk', desc: 'Schenkt einem Nachbarn etwas, das er liebt.', ev: 'gift_love', n: 1, money: 500 },
-  { title: 'Zu zweit', desc: 'Umarmt euch auf dem Hof 🤗', ev: 'hug', n: 1, items: { herz: 1, herzteppich: 1 } },
+  { title: 'Herzensgeschenk', desc: 'Schenkt einem Nachbarn etwas, das er liebt.', ev: 'gift_love', n: 1, money: 1000 },
+  { title: 'Zu zweit', desc: 'Umarmt euch auf der Insel 🤗', ev: 'hug', n: 1, items: { herz: 1, herzteppich: 1 } },
   { title: 'Gute Nacht', desc: 'Schlaft eine Nacht im Bett durch.', ev: 'sleep', n: 1, items: { stehlampe: 1, teddy: 1 } },
-  { title: 'Größer träumen', desc: 'Erweitert das Feld (Laden ➜ Farm).', ev: 'field', n: 1, money: 800 },
-  { title: 'Hof-Stars', desc: 'Erreicht Farm-Level 8.', ev: 'level', n: 8, money: 2000, items: { bett: 1 } },
+  { title: 'Museumsfreunde', desc: 'Stellt insgesamt 15 Stücke im Museum aus.', ev: 'museum', n: 15, money: 3000 },
+  { title: 'Insel-Stars', desc: 'Erreicht Insel-Level 8.', ev: 'level', n: 8, money: 5000, items: { bett: 1 } },
 ];
 export const DAILY = [
-  ['Gießt 12 Felder', 'water', 12, 120], ['Erntet 10 Pflanzen', 'harvest', 10, 150], ['Streichelt 3 Tiere', 'pet', 3, 120],
-  ['Fangt 2 Fische', 'fish', 2, 150], ['Fangt 2 Insekten', 'bug', 2, 150], ['Plaudert mit 2 Nachbarn', 'talk', 2, 100],
-  ['Hackt 4 Holz', 'chop', 4, 120], ['Kocht ein Gericht', 'cook', 1, 200], ['Verkauft Waren für 400 Taler', 'sell', 400, 150],
-  ['Erfüllt einen Auftrag', 'order', 1, 250], ['Umarmt euch 💕', 'hug', 1, 150], ['Macht einem Nachbarn ein Geschenk', 'gift', 1, 120],
-  ['Grabt etwas aus', 'dig', 1, 150], ['Sät 8 Samen', 'plant', 8, 100],
+  ['Gießt 8 Blumen', 'water', 8, 300], ['Erntet 6 Blumen oder Gemüse', 'harvest', 6, 400], ['Pflückt 6 Obst', 'fruit', 6, 400],
+  ['Fangt 3 Fische', 'fish', 3, 500], ['Fangt 2 Insekten', 'bug', 2, 500], ['Plaudert mit 2 Nachbarn', 'talk', 2, 300],
+  ['Hackt 4 Holz', 'chop', 4, 300], ['Kocht ein Gericht', 'cook', 1, 500], ['Verkauft Waren für 1.500 Taler', 'sell', 1500, 400],
+  ['Erfüllt einen Nachbarwunsch', 'order', 1, 600], ['Umarmt euch 💕', 'hug', 1, 300], ['Macht einem Nachbarn ein Geschenk', 'gift', 1, 300],
+  ['Grabt etwas aus', 'dig', 1, 400], ['Sammelt 4 Muscheln', 'shell', 4, 300], ['Zupft 5 Unkraut', 'weed', 5, 300], ['Stellt etwas im Museum aus', 'donate', 1, 600],
 ];

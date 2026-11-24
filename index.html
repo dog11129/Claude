@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#9fd9ff">
+<meta name="theme-color" content="#6fd0e8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Kuschelhof</title>
+<title>Kuschelinsel</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -21,7 +21,7 @@
   --r: 22px; --safe-l: env(safe-area-inset-left); --safe-r: env(safe-area-inset-right); --safe-t: env(safe-area-inset-top); --safe-b: env(safe-area-inset-bottom);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #9fd9ff; color: var(--ink);
+html, body { margin: 0; height: 100%; overflow: hidden; background: #6fd0e8; color: var(--ink);
   font-family: 'Fredoka', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
 canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
@@ -125,6 +125,9 @@ input[type=text]:focus { border-color: var(--pink); }
 #lvlbar { width: 70px; height: 9px; background: var(--line); border-radius: 9px; overflow: hidden; }
 #lvlbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--yellow)); width: 0; transition: width .4s; }
 #invite { background: var(--pink); color: #fff; pointer-events: auto; }
+#clockpill { flex-direction: column; align-items: flex-start; gap: 0; padding: 4px 16px 6px; line-height: 1; border-radius: 18px; }
+#ctime { font-size: 26px; font-weight: 700; letter-spacing: .5px; color: var(--ink); }
+#clock { font-size: 12px; font-weight: 600; color: var(--soft); margin-top: 3px; }
 #questpill { pointer-events: auto; font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #questpill.ready { background: linear-gradient(135deg, #fff3b0, var(--yellow)); animation: wiggle 1.6s ease-in-out infinite; }
 @keyframes wiggle { 0%, 70%, 100% { rotate: 0deg; } 80% { rotate: -2deg; } 90% { rotate: 2deg; } }
@@ -328,7 +331,7 @@ body:has(#panel:not(.hidden)) #toasts { top: auto; bottom: max(16px, var(--safe-
 <div id="hud" class="hidden">
   <div id="stats">
     <span class="pill">🪙 <span id="money">0</span></span>
-    <span class="pill"><span id="clock">☀️ Tag 1 · 06:00</span></span>
+    <span class="pill" id="clockpill"><span id="ctime">6:00</span><small id="clock">☀️ Frühling 1</small></span>
     <span class="pill">⭐ <span id="lvl">1</span> <span id="lvlbar"><i></i></span></span>
     <button class="pill hidden" id="invite">💌 Einladen: <b id="invcode"></b></button>
     <button class="pill hidden" id="questpill"></button>
@@ -359,21 +362,21 @@ body:has(#panel:not(.hidden)) #toasts { top: auto; bottom: max(16px, var(--safe-
 
 <div id="menu" class="hidden">
   <section id="m-title" class="screen">
-    <div class="logo"><span class="sun">🌻</span><h1>Kuschelhof</h1><p>Eure gemeinsame kleine Farm</p></div>
+    <div class="logo"><span class="sun">🏝️</span><h1>Kuschelinsel</h1><p>Euer gemeinsames Inselleben</p></div>
     <div class="mainbtns">
       <button class="big pink hidden" id="b-continue"><span class="i">▶️</span><span>Weiterspielen<small id="continue-sub"></small></span></button>
       <button class="big hidden" id="b-rejoin"><span class="i">💞</span><span>Wieder zu Besuch<small id="rejoin-sub"></small></span></button>
-      <button class="big" data-go="farms"><span class="i">🏡</span><span>Meine Farmen<small>Neue Farm gründen oder weitermachen</small></span></button>
-      <button class="big" data-go="join"><span class="i">💌</span><span>Mit Code beitreten<small>Auf die Farm deines Lieblingsmenschen</small></span></button>
+      <button class="big" data-go="farms"><span class="i">🏝️</span><span>Meine Inseln<small>Neue Insel besiedeln oder weitermachen</small></span></button>
+      <button class="big" data-go="join"><span class="i">💌</span><span>Mit Code beitreten<small>Auf die Insel deines Lieblingsmenschen fliegen</small></span></button>
       <button class="big" data-go="char"><span class="i">👗</span><span>Charakter<small>Aussehen & Haustier</small></span></button>
       <button class="big" data-go="settings"><span class="i">⚙️</span><span>Einstellungen<small>Grafik, Ton, Querformat</small></span></button>
     </div>
     <div class="hello" id="hello"></div>
   </section>
   <section id="m-farms" class="screen card hidden">
-    <header><button class="back" data-go="title">←</button><h2>🏡 Meine Farmen</h2></header>
+    <header><button class="back" data-go="title">←</button><h2>🏝️ Meine Inseln</h2></header>
     <div id="farms"></div>
-    <div class="joinrow"><input type="text" id="fname" maxlength="24" placeholder="Name der neuen Farm"><button class="btn" id="newbtn">Gründen</button></div>
+    <div class="joinrow"><input type="text" id="fname" maxlength="24" placeholder="Name der neuen Insel"><button class="btn" id="newbtn">Besiedeln</button></div>
   </section>
   <section id="m-join" class="screen card hidden">
     <header><button class="back" data-go="title">←</button><h2>💌 Beitreten</h2></header>
@@ -430,12 +433,12 @@ body:has(#panel:not(.hidden)) #toasts { top: auto; bottom: max(16px, var(--safe-
 <div id="fshelp" class="hidden"><div class="card">
   <h3>📱 Vollbild auf dem iPhone</h3>
   <p>Safari erlaubt auf dem iPhone kein Vollbild für Spiele. So geht's trotzdem:</p>
-  <ol><li>Unten auf <b>Teilen</b> <span class="shr">⬆︎</span> tippen</li><li><b>„Zum Home-Bildschirm“</b> wählen</li><li>Kuschelhof über das neue Symbol starten – ohne Adressleiste, ganz im Vollbild</li></ol>
-  <p class="note">Achtung: Die Home-Bildschirm-App hat einen eigenen Speicher. Eine in Safari gegründete Farm siehst du dort nicht – am besten dort neu gründen oder beim Partner beitreten.</p>
+  <ol><li>Unten auf <b>Teilen</b> <span class="shr">⬆︎</span> tippen</li><li><b>„Zum Home-Bildschirm“</b> wählen</li><li>Kuschelinsel über das neue Symbol starten – ohne Adressleiste, ganz im Vollbild</li></ol>
+  <p class="note">Achtung: Die Home-Bildschirm-App hat einen eigenen Speicher. Eine in Safari besiedelte Insel siehst du dort nicht – am besten dort neu gründen oder beim Partner beitreten.</p>
   <button class="btn pink" id="fsok">Alles klar</button>
 </div></div>
 <div id="rotatehint"><span>📱</span>Dreh dein Handy ins Querformat<button class="btn white" id="rotoff">Querformat ausschalten</button></div>
-<div id="loading"><div><span>🌻</span><br>Kuschelhof lädt…</div></div>
+<div id="loading"><div><span>🏝️</span><br>Kuschelinsel lädt…</div></div>
 
 <script src="vendor/peerjs.min.js"></script>
 <script type="module" src="src/main.js"></script>

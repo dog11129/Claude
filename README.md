@@ -1,60 +1,62 @@
-# 🌻 Kuschelhof
+# 🏝️ Kuschelinsel
 
-Ein gemütliches 3D-Farmspiel für zwei (oder bis zu vier) – im Browser, auf Handy und PC, ohne Installation.
-Ihr baut zusammen eine Farm auf: Geld, Lager, Tiere und Fortschritt sind geteilt.
+Ein gemütliches 3D-Inselleben für zwei (oder bis zu vier) – im Browser, auf Handy und PC, ohne Installation.
+Im Stil der bekannten Insel-Lebenssimulationen, aber mit eigenen Figuren und Multiplayer per Einladungscode:
+Taler, Taschen, Museum und Fortschritt sind geteilt.
 
 **Spielen:** https://dog11129.github.io/Claude/
 
 ## Los geht's
 
-1. Seite öffnen und deine Figur gestalten (Name, Haut, Frisur, Outfit, Hut, Brille, Haustier – auch ein Schweinchen 🐷).
-2. **Meine Farmen → Gründen** – oben erscheint ein Einladungscode (z. B. `7KXPA`).
+1. Seite öffnen und deine Figur gestalten (Name, Haut, Frisur, Outfit, Hut, Brille, Haustier).
+2. **Meine Inseln → Besiedeln** – oben erscheint ein Einladungscode (z. B. `7KXPA`).
 3. Dein Lieblingsmensch öffnet dieselbe Seite und tippt den Code bei **Mit Code beitreten** ein – oder öffnet den Link aus 👥 → „Link teilen“.
    Beim nächsten Mal reicht ein Tipp auf **Wieder zu Besuch**.
 
-**Vollbild:** Auf Android-Handys und dem iPad geht Kuschelhof beim ersten Tipp automatisch ins Vollbild; oben rechts schaltet der Vollbild-Knopf um (abschaltbar unter ⚙️ → Optionen).
-Das iPhone erlaubt Webseiten kein Vollbild – dort **Teilen → „Zum Home-Bildschirm“** wählen und Kuschelhof über das Symbol starten (eigener Speicher, Farm dort neu gründen oder beitreten).
-Unter ⚙️ → Optionen gibt es außerdem den **Querformat-Modus**.
+**Vollbild:** Auf Android-Handys und dem iPad geht das Spiel beim ersten Tipp automatisch ins Vollbild; oben rechts schaltet der Vollbild-Knopf um (abschaltbar unter ⚙️ → Optionen).
+Das iPhone erlaubt Webseiten kein Vollbild – dort **Teilen → „Zum Home-Bildschirm“** wählen und die Kuschelinsel über das Symbol starten (eigener Speicher, Insel dort neu besiedeln oder beitreten).
 
-Wer die Farm gegründet hat, ist „Host“: dort läuft und speichert das Spiel. Gäste bekommen automatisch eine Sicherheitskopie
-und können die Farm später auch selbst hosten. Der Code bleibt pro Farm gleich, solange er frei ist.
+Wer die Insel besiedelt hat, ist „Host“: dort läuft und speichert das Spiel. Gäste bekommen automatisch eine Sicherheitskopie
+und können die Insel später auch selbst hosten. Der Code bleibt pro Insel gleich, solange er frei ist.
 
 ### Steuerung
 
 | | PC | Handy |
 |---|---|---|
 | Laufen | WASD / Pfeiltasten | links wischen |
-| Hinlaufen & benutzen | Klick auf Feld, Tier, Gebäude … | irgendwo antippen |
+| Hinlaufen & benutzen | Klick auf Baum, Muschel, Gebäude … | irgendwo antippen |
 | Aktion vor der Figur | E / Leertaste (halten = wiederholen) | großer rosa Knopf |
-| Werkzeug / Samen | 1–9 oder anklicken (Hacke, Kanne, Hand, Axt, Schaufel, Kescher) | unten antippen |
+| Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne) | unten antippen |
 | Kamera | Mausrad = Zoom, rechte Maustaste ziehen oder Z/C = drehen | zwei Finger = Zoom & drehen, 🔄 |
 | Chat / Emotes | Enter / Q | 💬 / 😊 |
-| Laden, Lager, Hof-Buch, Freunde | B, I, O, F | Knöpfe oben rechts |
+| Laden, Taschen, Inselbuch, Freunde | B, I, O, F | Knöpfe oben rechts |
 | Fotomodus | P | 📷 |
 
 ## Was es gibt
 
-- **Anbau:** 12 Pflanzen mit Jahreszeiten (in ihrer Saison wachsen sie doppelt so schnell), umgraben → säen → gießen → ernten, manche tragen mehrfach. Regen, Schnee und Sprinkler gießen automatisch.
-- **Jahreszeiten:** Frühling mit Blütenblättern, Sommer, Herbstlaub, Winter mit Schnee und gefrorenem Teich – je 7 Tage.
-- **Tiere:** Hühner, Kühe, Schafe, Schweine – füttern, streicheln (sie hüpfen vor Freude), Produkte einsammeln.
-- **Quests:** Hof-Geschichte mit 20 Kapiteln und jeden Morgen drei neue Tagesaufgaben – mit Geld, Sternen und Geschenken als Belohnung.
-- **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin) und Lio (Fuchs-Künstler) spazieren über den Hof. Plaudern, Geschenke machen, Freundschaft (10 Herzen), Briefe mit Geschenken, ihre Aufträge erfüllen.
-- **Sammeln:** Angeln (Fische je Jahreszeit), Kescher für Schmetterlinge & Käfer, Schaufel für Fossilien an glitzernden Stellen, Bäume schütteln – alles landet im **Sammelbuch**.
-- **Herstellen:** Holz (Axt) und Steine (Schaufel) sammeln, an der Werkbank Deko & Möbel bauen, in der Gartenküche oder am Herd 10 Gerichte kochen.
-- **Zuhause:** Das Haus betreten und gemeinsam einrichten – 36 Möbel, Teppiche, Wandbilder, 8 Tapeten & 8 Böden. Aufs Sofa setzen, im Bett schlafen (wenn alle schlafen, ist es Morgen).
-- **Upgrades:** Feld, Haus (größeres Zimmer), Ställe, Werkzeuge, Warenqualität.
-- **Miteinander:** Einladungscode, bis zu 4 Spieler, Chat, 20 Emotes mit Animationen, Zusammen-Aktionen (Umarmen, Küsschen, High-Five, Tanzen), Hinbeamen, automatisches Neu-Verbinden.
-- **Außerdem:** Aufträge, 32 Erfolge, Farm-Level, Tag & Nacht, Fotomodus, Charakter-Editor mit Haustier, Musik & Umgebungsgeräusche.
+- **Die Insel:** Sandstrand rundherum, Klippen mit Wald und Wasserfall im Norden, ein Fluss mit zwei Holzbrücken, ein Teich, ein Steg ins Meer und ein Dorfplatz mit großem Baum. Die Welt rollt sich in der Ferne wie ein Baumstamm weg.
+- **Obst & Bäume:** Bäume schütteln – Äpfel, Kirschen, Orangen, Pfirsiche, Birnen und Kokosnüsse fallen herunter und wachsen nach drei Tagen nach. Manchmal fallen Äste, Taler, Möbel … oder ein Wespennest. Mit der Axt gibt's Holz.
+- **Jeden Morgen neu:** Muscheln am Strand, Unkraut zum Zupfen, fünf Stern-Risse mit Fossilien, ein Glücksfelsen voller Taler.
+- **Blumen & Gemüse:** Überall auf den Rasen pflanzen, gießen, pflücken – Blumen blühen immer wieder nach. Obstbäume zum Aufstellen.
+- **Museum:** Fische, Insekten und Fossilien ausstellen (Aquarium, Insektenhaus, Fossilienhalle).
+- **Angeln:** Fluss, Teich und Meer haben eigene Fische (vom Barsch bis zum Hai), Fischschatten zeigen, wo etwas schwimmt.
+- **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin) und Lio (Fuchs-Künstler) haben eigene Häuschen. Plaudern, Geschenke, Freundschaft (10 Herzen), Briefe, Wünsche erfüllen.
+- **Krämerladen, Inselbüro, Werkbank, Gartenküche:** Samen, Bäume, Zutaten, Möbel und Deko kaufen, verkaufen, heimwerken und kochen.
+- **Zuhause:** Das Haus betreten und gemeinsam einrichten, im Bett schlafen (wenn alle schlafen, ist es Morgen).
+- **Quests:** Insel-Geschichte mit 21 Kapiteln und jeden Morgen drei Tagesaufgaben. Dazu 32 Erfolge und Insel-Level.
+- **Miteinander:** Einladungscode, bis zu 4 Spieler, Chat, 20 Emotes, Umarmen/Küsschen/High-Five/Tanzen, Hinbeamen, automatisches Neu-Verbinden.
+- **Außerdem:** Jahreszeiten, Tag & Nacht, Regen & Schnee, Fotomodus, Charakter-Editor mit Haustier, Musik & Umgebungsgeräusche.
 
 ## Technik
 
 - Reine statische Webseite (`index.html`, `src/`, `vendor/`), kein Build-Schritt. Three.js für 3D, PeerJS (WebRTC) für den Multiplayer.
 - Der Host ist gleichzeitig der Server. Zum Finden des Partners wird der kostenlose PeerJS-Vermittlungsserver genutzt; danach laufen die Daten direkt zwischen den Geräten.
-- Gespeichert wird im Browser (`localStorage`). Browserdaten löschen = Farm weg (die Kopie beim Partner bleibt).
+- Gespeichert wird im Browser (`localStorage`). Browserdaten löschen = Insel weg (die Kopie beim Partner bleibt).
 
 | Datei | Inhalt |
 |---|---|
-| `src/data.js` | Pflanzen, Tiere, Gegenstände, Upgrades, Erfolge |
+| `src/island.js` | Inselform: Küste, Klippen, Fluss, Brücken, Teich, Steg, Wege |
+| `src/data.js` | Pflanzen, Obst, Fische, Insekten, Muscheln, Fossilien, Gebäude, Ausbau, Quests, Erfolge |
 | `src/state.js` | Spiellogik (läuft beim Host) |
 | `src/world.js`, `src/models.js`, `src/avatar.js` | 3D-Welt, Modelle, Spielfiguren |
 | `src/npc.js`, `src/furniture.js`, `src/furni-data.js` | Nachbarn (Modelle & Dialoge), Möbel & Zimmer |

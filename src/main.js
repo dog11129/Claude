@@ -1,13 +1,14 @@
 // Spielablauf: Menü, Steuerung, Host/Gast-Logik, Speichern.
 import { World, esc, cropInfo } from './world.js';
 import * as S from './state.js';
-import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY } from './data.js';
+import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT } from './data.js';
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience, blip, musicFor } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { Editor, settingsHtml } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
 import { NPCS, npcLine, giftReply } from './npc.js';
+import { isWater } from './island.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -43,7 +44,7 @@ const r3 = v => Math.round(v * 1000) / 1000;
 const pack = s => JSON.parse(JSON.stringify(s, (k, v) => typeof v === 'number' && !Number.isInteger(v) ? r3(v) : v));
 const ACTS = ['hoe', 'can', 'sickle', 'plant', 'pet', 'fish', 'use', 'hug', 'shake', 'highfive', 'kiss', 'net'];
 const HELD = ['hoe', 'can', 'sickle', 'rod', 'seeds', 'box', 'net', 'shovel', 'axe'];
-const ANIM_OF = { till: 'hoe', water: 'can', plant: 'plant', harvest: 'sickle', place: 'use', pickup: 'use', use: 'use', animal: 'pet', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake' };
+const ANIM_OF = { water: 'can', plant: 'plant', harvest: 'use', place: 'use', pickup: 'use', pick: 'plant', use: 'shake', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake' };
 
 // ---------- kleine Helfer fürs HUD ----------
 function toast(text, kind) {
@@ -65,16 +66,16 @@ $('coverbtn').onclick = () => leave();
 
 // ---------- Spieler & Sitzung ----------
 const cleanProfile = p => ({ name: String(p?.name || '').trim().slice(0, 16) || 'Gast', look: cleanLook(p?.look || p) });
-const newPlayer = (id, p) => ({ id, ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: 'hoe', pose: null, fishing: false });
-const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hoe', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0, get myName() { return profile.name; } });
+const newPlayer = (id, p) => ({ id, ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: null, pose: null, fishing: false });
+const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hand', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0, get myName() { return profile.name; } });
 
 // Gast-Kopien liegen unter eigenem Schlüssel, damit sie nie die eigene Farm überschreiben.
 function saveFarm() {
   if (!G?.s || !G.key) return;
   G.lastSave = performance.now();
-  const f = store.get('kh.farms', {});
+  const f = store.get('ki.islands', {});
   f[G.key] = { name: G.s.name, saved: Date.now(), s: G.s, guest: G.role === 'guest' ? G.players.h?.name || '?' : G.copyOf };
-  store.set('kh.farms', f);
+  store.set('ki.islands', f);
 }
 addEventListener('pagehide', saveFarm);
 document.addEventListener('visibilitychange', () => {
@@ -167,7 +168,7 @@ function handleAct(id, a) {
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
   if (out.quest) questDone(out.quest);
-  if (out.ok && out.msg && ['buyAnimal', 'upgrade', 'order'].includes(a.t)) {
+  if (out.ok && out.msg && ['upgrade', 'order', 'donate'].includes(a.t)) {
     const text = `${G.players[id]?.name}: ${out.msg}`;
     G.net?.broadcast({ t: 'toast', text }, id);
     if (id !== G.me) toast(text);
@@ -187,7 +188,7 @@ function emote(id, e) {
   showEmote(id, e);
 }
 function questDone(title) {
-  const text = `📜 Quest geschafft: ${title} – Belohnung im 📋 Hof-Buch abholen!`;
+  const text = `📜 Quest geschafft: ${title} – Belohnung im 📋 Inselbuch abholen!`;
   G.net?.broadcast({ t: 'toast', text, snd: 'ach' });
   toast(text, 'ach');
   play('ach');
@@ -249,7 +250,7 @@ function guestData(d) {
       if (old) Object.assign(G.players[G.me], { x: old.x, z: old.z, ry: old.ry });
       G.code = d.code;
       G.key = 'copy:' + G.s.id;
-      store.set('kh.lastJoin', { code: G.joinCode, host: G.players.h?.name || '', farm: G.s.name });
+      store.set('ki.lastJoin', { code: G.joinCode, host: G.players.h?.name || '', farm: G.s.name });
       G.onWelcome?.();
       if (!G.ready) enterGame(); else hideCover();
       saveFarm();
@@ -272,8 +273,8 @@ function guestData(d) {
     case 'soc': if (Object.hasOwn(SOCIAL, d.k)) onSocial(d.a, d.b, d.k); break;
     case 'toast': toast(d.text); if (d.snd) play(d.snd); break;
     case 'wake': wake(); break;
-    case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Farm geschickt.', true); break;
-    case 'bye': G.ended = true; G.conn?.close(); saveFarm(); cover('🏡 Der Host hat die Farm verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Farmen“.', true); break;
+    case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Insel geschickt.', true); break;
+    case 'bye': G.ended = true; G.conn?.close(); saveFarm(); cover('🏝️ Der Host hat die Insel verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Inseln“.', true); break;
   }
 }
 
@@ -298,7 +299,7 @@ async function lostConnection() {
       return;
     } catch { await sleep(3000); }
   }
-  if (G === g) cover('Der Host ist nicht erreichbar. Deine Kopie der Farm ist gespeichert – unter „Meine Farmen“ kannst du sie selbst weiterspielen.', true);
+  if (G === g) cover('Der Host ist nicht erreichbar. Deine Kopie der Insel ist gespeichert – unter „Meine Inseln“ kannst du sie selbst weiterspielen.', true);
 }
 
 // ---------- gemeinsam ----------
@@ -459,9 +460,9 @@ function enterGame() {
   G.hotSig = null;
   wakeLock();
   applyLandscape();
-  if (!store.get('kh.tutorial2', false)) {
-    store.set('kh.tutorial2', true);
-    setTimeout(() => toast(touch ? '🌱 Tipp: Tippe aufs Feld – deine Figur läuft hin und gräbt um. Links wischen = laufen.' : '🌱 Tipp: Klicke aufs Feld – deine Figur läuft hin und gräbt um. WASD = laufen, E = Aktion.', true), 800);
+  if (!store.get('ki.tutorial', false)) {
+    store.set('ki.tutorial', true);
+    setTimeout(() => toast(touch ? '🌳 Tipp: Tippe auf einen Baum – deine Figur läuft hin und schüttelt ihn. Links wischen = laufen.' : '🌳 Tipp: Klicke auf einen Baum – deine Figur läuft hin und schüttelt ihn. WASD = laufen, E = Aktion.', true), 800);
   }
 }
 
@@ -494,7 +495,7 @@ function showMenu(screen = 'title') {
   $('menu').classList.remove('hidden');
   menuScreen = screen;
   for (const el of document.querySelectorAll('#menu .screen')) el.classList.toggle('hidden', el.id !== 'm-' + screen);
-  const farms = Object.entries(store.get('kh.farms', {})).filter(([, f]) => Number.isFinite(f?.s?.money)).sort((a, b) => b[1].saved - a[1].saved);
+  const farms = Object.entries(store.get('ki.islands', {})).filter(([, f]) => Number.isFinite(f?.s?.money)).sort((a, b) => b[1].saved - a[1].saved);
   if (screen === 'title') {
     const own = farms.find(([, f]) => !f.guest);
     $('b-continue').classList.toggle('hidden', !own);
@@ -502,17 +503,17 @@ function showMenu(screen = 'title') {
       $('b-continue').dataset.key = own[0];
       $('continue-sub').textContent = `${own[1].name} · Tag ${own[1].s.day} · Level ${own[1].s.level}`;
     }
-    const lj = store.get('kh.lastJoin', null);
+    const lj = store.get('ki.lastJoin', null);
     $('b-rejoin').classList.toggle('hidden', !lj?.code);
-    if (lj?.code) $('rejoin-sub').textContent = `${lj.farm || 'Farm'}${lj.host ? ' von ' + lj.host : ''} · Code ${lj.code}`;
+    if (lj?.code) $('rejoin-sub').textContent = `${lj.farm || 'Insel'}${lj.host ? ' von ' + lj.host : ''} · Code ${lj.code}`;
     $('hello').textContent = profile.name ? `Hallo ${profile.name}! 👋` : '';
   }
   if (screen === 'farms') {
     $('farms').innerHTML = farms.length ? farms.map(([id, f]) => `<div class="farm"><div class="tx"><b>${esc(f.name)}</b>
-      <small>Tag ${f.s.day} · Level ${f.s.level} · 🪙 ${f.s.money.toLocaleString('de-DE')}${f.guest ? ` · Kopie von ${esc(f.guest)}s Farm` : ''}</small>
+      <small>Tag ${f.s.day} · Level ${f.s.level} · 🪙 ${f.s.money.toLocaleString('de-DE')}${f.guest ? ` · Kopie von ${esc(f.guest)}s Insel` : ''}</small>
       <small>${new Date(f.saved).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</small></div>
       <button class="btn small" data-play="${esc(id)}">Spielen</button><button class="btn small white" data-del="${esc(id)}">🗑️</button></div>`).join('')
-      : '<div class="note">Noch keine Farm – gründe unten eure erste! 🌱</div>';
+      : '<div class="note">Noch keine Insel – gründet unten eure erste! 🏝️</div>';
   }
   if (screen === 'settings') $('msettings').innerHTML = settingsHtml(settings, touch);
   if (screen === 'join') setTimeout(() => $('jcode').focus(), 50);
@@ -525,27 +526,27 @@ for (const b of document.querySelectorAll('[data-go]')) {
   };
 }
 $('b-continue').onclick = () => {
-  const f = store.get('kh.farms', {})[$('b-continue').dataset.key];
+  const f = store.get('ki.islands', {})[$('b-continue').dataset.key];
   if (f && !needName()) startHost(f.s, $('b-continue').dataset.key, f.guest);
 };
 $('b-rejoin').onclick = () => {
-  const lj = store.get('kh.lastJoin', null);
+  const lj = store.get('ki.lastJoin', null);
   if (lj?.code && !needName()) startGuest(lj.code);
 };
 $('farms').onclick = e => {
   const b = e.target.closest('button');
   if (!b) return;
-  const farms = store.get('kh.farms', {});
+  const farms = store.get('ki.islands', {});
   if (b.dataset.del && confirm(`„${farms[b.dataset.del]?.name}“ wirklich löschen?`)) {
     delete farms[b.dataset.del];
-    store.set('kh.farms', farms);
+    store.set('ki.islands', farms);
     showMenu('farms');
   }
   if (b.dataset.play && farms[b.dataset.play] && !needName()) startHost(farms[b.dataset.play].s, b.dataset.play, farms[b.dataset.play].guest);
 };
 $('newbtn').onclick = () => {
   if (needName()) return;
-  startHost(S.newFarm($('fname').value.trim().slice(0, 24) || `${profile.name}s Kuschelhof`));
+  startHost(S.newFarm($('fname').value.trim().slice(0, 24) || `${profile.name}s Insel`));
   $('fname').value = '';
 };
 $('jbtn').onclick = () => {
@@ -675,7 +676,7 @@ const panels = new Panels({
     const link = $('invlink')?.value;
     if (kind === 'copy' && link) navigator.clipboard?.writeText(link).then(() => toast('📋 Link kopiert!'), () => toast(link));
     if (kind === 'share' && link) {
-      if (navigator.share) navigator.share({ title: 'Kuschelhof', text: `Komm auf unsere Farm! 🌻 Code: ${G.code}`, url: link }).catch(() => {});
+      if (navigator.share) navigator.share({ title: 'Kuschelinsel', text: `Komm auf unsere Insel! 🏝️ Code: ${G.code}`, url: link }).catch(() => {});
       else navigator.clipboard?.writeText(link).then(() => toast('📋 Link kopiert!'), () => toast(link));
     }
     if (kind === 'goto' && Object.hasOwn(G.players, d.id)) {
@@ -725,10 +726,10 @@ $('shutter').onclick = async () => {
   play('shutter');
   $('flash').classList.add('on');
   setTimeout(() => $('flash').classList.remove('on'), 60);
-  const url = world.snapshot(), name = `kuschelhof-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.jpg`;
+  const url = world.snapshot(), name = `kuschelinsel-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.jpg`;
   try {
     const file = new File([await (await fetch(url)).blob()], name, { type: 'image/jpeg' });
-    if (touch && navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: 'Kuschelhof' }); return; }
+    if (touch && navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: 'Kuschelinsel' }); return; }
   } catch { /* Teilen abgebrochen oder nicht möglich: herunterladen */ }
   const a = document.createElement('a');
   a.href = url;
@@ -922,19 +923,22 @@ function execute(r, fresh) {
     G.netCool = performance.now() + 900;
     animate('net');
     const c = world.nearCritter(r.net.x, r.net.z), k = S.key(Math.round(r.net.x), Math.round(r.net.z));
-    const flowers = ['blumen', 'kirschbaum'].includes(G.s.obj[k]?.k) || G.s.tiles[k]?.c?.k === 'sonnenblume';
+    const flowers = ['blumen', 'kirschbaum'].includes(G.s.obj[k]?.k) || CROPS[G.s.tiles[k]?.c?.k]?.cat === 'fruit';
     if (c || (flowers && Math.random() < 0.45) || (S.seasonOf(G.s.day) === 'winter' && Math.random() < 0.35)) {
       if (c) world.catchCritter(c);
       send({ t: 'bug', x: Math.round(me.x), z: Math.round(me.z) });
     } else { toast('🦋 Daneben! Schleich dich an Schmetterlinge oder Blumen an.'); play('fail'); }
     return;
   }
+  if (r.visit) {
+    if (fresh) { const n = NPCS[r.visit], away = world.npcM?.get(r.visit)?.awake; toast(away ? `🚪 Klopf, klopf … ${n.icon} ${n.name} ist gerade draußen auf der Insel unterwegs.` : `🌙 ${n.icon} ${n.name} schläft schon. Pssst!`); play('door'); }
+    return;
+  }
   if (r.petals) { if (fresh) { animate('shake'); for (let i = 0; i < 6; i++) world.burst(r.petals.x, r.petals.z, 'petal', 2.2); play('water'); } return; }
   if (r.ui) {
     if (!fresh) return;
     interrupt();
-    if (r.ui === 'animals') panels.show('shop', 'animals');
-    else if (r.ui === 'farm') panels.show('shop', 'farm');
+    if (r.ui === 'farm') panels.show('shop', 'farm');
     else panels.show(r.ui);
     play('click');
   } else if (r.enter || r.exit) {
@@ -944,7 +948,7 @@ function execute(r, fresh) {
     play('door');
     const [, d] = S.roomSize(G.s);
     if (r.enter) Object.assign(me, { x: S.HOME_X, z: d / 2 - 0.7, ry: Math.PI, pose: null });
-    else Object.assign(me, { x: 0, z: -7.6, ry: 0, pose: null });
+    else Object.assign(me, { x: BUILDINGS.house.cx, z: BUILDINGS.house.z1 + 1.4, ry: 0, pose: null });
   } else if (r.sleep) {
     if (!fresh) return;
     const a = r.sleep.r * Math.PI / 2, side = r.sleep.wide ? (G.me === 'h' ? -0.45 : 0.45) : 0; // Fußende, im Doppelbett nebeneinander
@@ -959,7 +963,6 @@ function execute(r, fresh) {
     send(r.a);
     animate(ANIM_OF[r.a.t] || 'use');
     if (r.a.t === 'shake' || r.a.t === 'chop') world.shakeTree(r.a.x, r.a.z);
-    if (r.a.t === 'harvest') G.sickleUntil = performance.now() + 600;
   }
 }
 
@@ -1113,7 +1116,10 @@ $('dialog').addEventListener('click', e => {
 // ---------- Angeln ----------
 function startFishing(me) {
   const l = G.s.up.rod;
-  G.fishing = { phase: 'wait', t: 0, bite: (1.5 + Math.random() * 3.5) / (1 + (l - 1) * 0.35), win: 0.75 + l * 0.15, x: me.x + Math.sin(me.ry) * 1.8, z: me.z + Math.cos(me.ry) * 1.8 };
+  let d = 1.8; // Schwimmer landet im Wasser (Fluss ist schmal)
+  for (let t = 1.0; t <= 2.4; t += 0.2) if (isWater(me.x + Math.sin(me.ry) * t, me.z + Math.cos(me.ry) * t)) { d = t + 0.35; break; }
+  if (!isWater(me.x + Math.sin(me.ry) * d, me.z + Math.cos(me.ry) * d)) d -= 0.35;
+  G.fishing = { phase: 'wait', t: 0, bite: (1.5 + Math.random() * 3.5) / (1 + (l - 1) * 0.35), win: 0.75 + l * 0.15, x: me.x + Math.sin(me.ry) * d, z: me.z + Math.cos(me.ry) * d };
   me.fishing = true;
   animate('fish');
   play('splash');
@@ -1157,18 +1163,19 @@ function infoAt(r) {
   if (t?.c) return cropInfo(t);
   if (o) {
     const p = PLACE[o.k];
-    if (p.kind === 'machine') return o.o ? `${p.name}: fertig!` : o.n ? `${p.name}: arbeitet (${o.n})` : `${p.name}: leer`;
     if (p.kind === 'producer') return o.t >= p.every ? `${p.name}: reif!` : `${p.name}: ${Math.floor(o.t / p.every * 100)}%`;
     return r.sit ? '' : 'Mit ✋ aufheben';
   }
   if (t) return t.w > 0 ? '💧 gegossen' : 'trocken';
+  const k = S.key(x, z), res = RES_SPOTS[k];
+  if (res === 'tree' || res === 'palm') { const f = ITEMS[TREE_FRUIT[k]]; return S.fruitReady(s, k) ? `${f.icon} ${f.name} hängen dran` : '🌱 Das Obst wächst nach'; }
+  if (s.digs.includes(k)) return '✨ Hier ist etwas vergraben – Schaufel!';
   return '';
 }
 
 function heldItem() {
   if (G.fishing) return 'rod';
-  if (performance.now() < (G.sickleUntil || 0)) return 'sickle';
-  if (['hoe', 'can', 'net', 'shovel', 'axe'].includes(G.sel)) return G.sel;
+  if (['can', 'net', 'shovel', 'axe'].includes(G.sel)) return G.sel;
   if (ITEMS[G.sel]?.seed) return 'seeds';
   if (PLACE[G.sel]) return 'box';
   return null;
@@ -1269,16 +1276,17 @@ function gameFrame(dt, now) {
   const sky = s.weather === 'rain' ? '🌧️' : s.weather === 'snow' ? '🌨️' : hour >= 20 ? '🌙' : hour >= 18 ? '🌇' : '☀️';
   const [seaName, seaIcon] = SEASONS[S.seasonOf(s.day)];
   setText('money', s.money.toLocaleString('de-DE'));
-  setText('clock', `${sky} ${seaIcon} ${seaName} ${((s.day - 1) % 7) + 1} · ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+  setText('ctime', `${hh}:${String(mm).padStart(2, '0')}`);
+  setText('clock', `${sky} ${seaIcon} ${seaName}, Tag ${((s.day - 1) % 7) + 1}`);
   setText('lvl', String(s.level));
   const pct = Math.min(100, s.xp / (40 * s.level * s.level) * 100) + '%';
   if (hud.pct !== pct) { hud.pct = pct; document.querySelector('#lvlbar i').style.width = pct; }
   const ready = s.orders.filter(o => (s.inv[o.item] || 0) >= o.n).length + (s.quest.done ? 1 : 0) + s.daily.filter(d => d.done && !d.claimed).length;
-  // Quest-Anzeige: aktuelles Kapitel der Hof-Geschichte
+  // Quest-Anzeige: aktuelles Kapitel der Insel-Geschichte
   const q = STORY[s.quest.i];
   const qt = !q ? '' : s.quest.done ? `🎁 ${q.title}: Belohnung abholen!` : `📜 ${q.title} · ${Math.min(s.quest.p, q.n)}/${q.n}`;
   setText('questpill', qt);
-  $('questpill').classList.toggle('hidden', !qt || G.photo);
+  $('questpill').classList.toggle('hidden', !qt || !!G.photo);
   $('questpill').classList.toggle('ready', !!s.quest.done);
   setText('orderdot', ready ? String(ready) : '');
   $('orderdot').classList.toggle('hidden', !ready);
@@ -1289,7 +1297,7 @@ function gameFrame(dt, now) {
   if (inv) setText('invcode', G.code);
 
   const items = hotbarItems(s);
-  if (!items.includes(G.sel)) G.sel = 'hoe';
+  if (!items.includes(G.sel)) G.sel = 'hand';
   const sig = items.map(i => i + (s.inv[i] || '')).join() + G.sel;
   if (sig !== G.hotSig && !uiPress) {
     G.hotSig = sig;
@@ -1313,24 +1321,17 @@ function frame(now) {
   if (!loaded) {
     loaded = true;
     $('loading').classList.add('off');
-    if (!profile.name) { toast('🌻 Willkommen auf dem Kuschelhof! Erstelle zuerst deine Figur.', true); openEditor(); }
+    if (!profile.name) { toast('🏝️ Willkommen auf der Kuschelinsel! Erstelle zuerst deine Figur.', true); openEditor(); }
   }
 }
 
-// Hübsche Beispiel-Farm für den Menü-Hintergrund
+// Hübsche Beispiel-Insel für den Menü-Hintergrund
 function demoFarm() {
   const s = S.newFarm('Demo');
-  Object.assign(s.up, { field: 3, house: 2, coop: 1, barn: 1 });
-  s.dayTime = 0.35;
-  const ks = Object.keys(CROPS);
-  for (let x = -9; x <= 1; x++) for (let z = -2; z <= 6; z++) {
-    if (x === -4) continue;
-    const k = ks[(x + 9) % ks.length];
-    s.tiles[S.key(x, z)] = { w: (x + z) % 3 ? 50 : 0, c: { k, g: CROPS[k].grow * Math.min(1, (z + 3) / 8) } };
-  }
-  s.animals = ['huhn', 'huhn', 'huhn', 'kuh', 'schaf', 'schwein', 'kuh'].map((k, i) => ({ id: i + 1, k, name: '', fed: 1, p: 0, ready: i === 1, love: 0, pet: 0 }));
-  for (const [x, z, k] of [[2, -6, 'kirschbaum'], [-2, -6, 'laterne'], [2, -3, 'blumen'], [-2, -3, 'blumen'], [4, -10, 'apfelbaum'], [-8, -6, 'bank'], [3, 3, 'herz'], [-3, 8, 'sprinkler'], [6, -10, 'brunnen'], [-12, -6, 'zwerg']]) {
-    s.obj[S.key(x, z)] = { k, r: 0, t: 0 };
+  s.dayTime = 0.3;
+  s.up.house = 2;
+  for (const [x, z, k] of [[2, 4, 'laterne'], [-2, 4, 'laterne'], [3, -1, 'bank'], [-3, 6, 'blumen'], [3, 6, 'blumen'], [-6, 4, 'apfelbaum'], [6, 3, 'kirschbaum'], [-1, 8, 'herz'], [-12, -6, 'zwerg']]) {
+    if (S.canPlace(s, x, z)) s.obj[S.key(x, z)] = { k, r: 0, t: 1e9 };
   }
   return s;
 }
