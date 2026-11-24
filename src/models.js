@@ -1,6 +1,6 @@
 // Alle 3D-Modelle, aus einfachen Formen zusammengesetzt (keine externen Dateien nötig).
 // Jedes Modell wird zu EINER Geometrie mit Vertex-Farben verschmolzen -> wenig Draw-Calls, läuft flüssig auf dem Handy.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three.module.min.js';
 
 export const MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 export const GLOW = new THREE.MeshBasicMaterial({ color: 0xffe27a });

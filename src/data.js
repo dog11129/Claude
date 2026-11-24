@@ -38,8 +38,8 @@ export const BUILDINGS = {
   bin:    { x0: 3,  x1: 3,  z0: -8,  z1: -8, use: 'sell',   name: 'Verkaufskiste' },
   market: { x0: -5, x1: -4, z0: -9,  z1: -9, use: 'shop',   name: 'Marktstand' },
   board:  { x0: -7, x1: -7, z0: -8,  z1: -8, use: 'orders', name: 'Auftragsbrett' },
-  coop:   { x0: 8,  x1: 10, z0: -7,  z1: -5, use: 'animals', name: 'Hühnerstall' },
-  barn:   { x0: 8,  x1: 11, z0: 5,   z1: 7,  use: 'animals', name: 'Stall' },
+  coop:   { x0: 8,  x1: 11, z0: -7,  z1: -5, use: 'animals', name: 'Hühnerstall' },
+  barn:   { x0: 8,  x1: 12, z0: 5,   z1: 7,  use: 'animals', name: 'Stall' },
 };
 
 export const POND = { cx: -11, cz: -10, r: 2.6 };

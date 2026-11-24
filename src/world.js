@@ -1,5 +1,5 @@
 // Die 3D-Darstellung: baut aus dem Spielzustand die Szene und hält sie aktuell.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
 import { FIELDS, PENS, PLACE, POND, ANIMALS, ITEMS } from './data.js';
 import { stage, animalPos, buildingAt, inPond } from './state.js';
@@ -15,7 +15,7 @@ export class World {
   constructor(canvas, labels) {
     this.labels = labels;
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: devicePixelRatio < 2, powerPreference: 'high-performance' });
-    r.setPixelRatio(Math.min(devicePixelRatio, 2));
+    r.setPixelRatio(Math.min(devicePixelRatio, matchMedia('(pointer: coarse)').matches ? 1.5 : 2)); // Handy: etwas weniger Pixel = flüssiger & kühler
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFSoftShadowMap;
     const s = this.scene = new THREE.Scene();
