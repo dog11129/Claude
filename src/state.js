@@ -4,6 +4,7 @@ import {
   MACHINE_CAP, UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS, SEASON_LEN, SEASON_IDS,
   RES_SPOTS, BUGS, FOSSILS, RECIPES, DIG_SPOTS_PER_DAY, NPC_DATA, NPC_IDS,
 } from './data.js';
+import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 
 export const key = (x, z) => x + ',' + z;
 export const seasonOf = day => SEASON_IDS[Math.floor((day - 1) / SEASON_LEN) % 4];
@@ -19,6 +20,7 @@ export function newFarm(name = 'Kuschelhof') {
     inv: { s_weizen: 10, s_karotte: 6, futter: 0 },
     up: {}, tiles: {}, obj: {}, animals: [], orders: [], nextId: 1, ach: {},
     album: {}, res: {}, shook: {}, digs: [], mail: [], npc: {},
+    home: { wall: 'vanille', floor: 'dielen', items: {}, rugs: {} },
     stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0 },
   };
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
@@ -31,6 +33,7 @@ export function newFarm(name = 'Kuschelhof') {
   return s;
 }
 
+export const STYLE_PRICE = 350;
 export const friend = (s, id) => (s.npc[id] ||= { f: 0, talk: 0, gift: 0, sent: [] });
 export const hearts = (s, id) => Math.min(10, Math.floor((s.npc[id]?.f || 0) / 100));
 
@@ -98,8 +101,49 @@ export function canPlace(s, x, z) {
   return Math.abs(x) < MAP && Math.abs(z) < MAP && !buildingAt(x, z) && !inPond(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k];
 }
 
+// ---------- Zuhause (Innenraum liegt weit weg bei x = HOME_X, damit es eine eigene Welt ist) ----------
+export const HOME_X = 300;
+export const ROOMS = [null, [7, 5], [9, 7], [11, 7]];
+export const roomSize = s => ROOMS[s.up.house] || ROOMS[1];
+export const inside = p => p.x > HOME_X / 2;
+// Kacheln eines Möbels: (x, z) = nordwestliche Kachel, gedreht -> Breite/Tiefe tauschen
+export function footprint(k, x, z, r) {
+  const f = FURNITURE[k], [w, d] = r % 2 ? [f.d, f.w] : [f.w, f.d], out = [];
+  for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) out.push([x + i, z + j]);
+  return out;
+}
+export function homeAt(s, x, z, rugs) { // welches Möbel liegt auf dieser Kachel?
+  const map = rugs ? s.home.rugs : s.home.items;
+  for (const [k, o] of Object.entries(map)) {
+    const [ax, az] = k.split(',').map(Number);
+    if (footprint(o.k, ax, az, o.r).some(([i, j]) => i === x && j === z)) return { key: k, o, x: ax, z: az };
+  }
+  return null;
+}
+const inRoom = (s, x, z) => { const [w, d] = roomSize(s); return Math.abs(x) <= (w - 1) / 2 && Math.abs(z) <= (d - 1) / 2; };
+export function wallRot(s, x, z) { // Wandschmuck: Rückwand, sonst linke/rechte Wand
+  const [w, d] = roomSize(s);
+  return z === -(d - 1) / 2 ? 0 : x === -(w - 1) / 2 ? 1 : x === (w - 1) / 2 ? 3 : -1;
+}
+export function canFurnish(s, k, x, z, r) {
+  const f = FURNITURE[k];
+  if (!f) return false;
+  if (f.wall) {
+    const wr = wallRot(s, x, z);
+    return wr >= 0 && footprint(k, x, z, wr).every(([i, j]) => inRoom(s, i, j) && !Object.entries(s.home.items).some(([kk, o]) => FURNITURE[o.k].wall && footprint(o.k, ...kk.split(',').map(Number), o.r).some(([a, b]) => a === i && b === j)));
+  }
+  return footprint(k, x, z, r).every(([i, j]) => inRoom(s, i, j) && !(f.rug ? homeAt(s, i, j, true) : (homeAt(s, i, j) && !FURNITURE[homeAt(s, i, j).o.k].wall)));
+}
+function homeBlocked(s, x, z) {
+  const [w, d] = roomSize(s), lx = x - HOME_X, door = Math.abs(lx) < 0.6;
+  if (Math.abs(lx) > w / 2 - 0.28 || z < -d / 2 + 0.28 || z > d / 2 + (door ? 0.6 : -0.28)) return true;
+  const h = homeAt(s, Math.round(lx), Math.round(z));
+  return !!(h && FURNITURE[h.o.k].solid);
+}
+
 // Kann man an dieser Weltposition stehen?
 export function blocked(s, x, z) {
+  if (x > HOME_X / 2) return homeBlocked(s, x, z);
   if (Math.abs(x) > MAP || Math.abs(z) > MAP) return true;
   if ((x - POND.cx) ** 2 + (z - POND.cz) ** 2 < (POND.r - 0.1) ** 2) return true;
   const tx = Math.round(x), tz = Math.round(z);
@@ -218,6 +262,13 @@ function weighted(list, w) {
 function collect(s, id, out) { // ins Sammelbuch eintragen
   if (!s.album[id]) out.newAlbum = id;
   s.album[id] = (s.album[id] || 0) + 1;
+}
+
+// Alle liegen im Bett und es ist Abend? Dann beginnt gleich der nächste Morgen.
+export function sleepThrough(s) {
+  if (6 + s.dayTime * 18 < 18) return false;
+  newDay(s);
+  return true;
 }
 
 // ---------- Aufträge ----------
@@ -521,6 +572,34 @@ const ACTIONS = {
     out.snd = r === 'dislike' ? 'fail' : 'love';
     return true;
   },
+  hplace(s, a, out) {
+    if (!has(FURNITURE, a.item) || !(s.inv[a.item] > 0)) return false;
+    const f = FURNITURE[a.item], r = f.wall ? wallRot(s, a.x, a.z) : [0, 1, 2, 3].includes(a.r) ? a.r : 0;
+    if (!canFurnish(s, a.item, a.x, a.z, r)) { out.msg = 'Hier ist kein Platz.'; return false; }
+    takeInv(s, a.item, 1);
+    (f.rug ? s.home.rugs : s.home.items)[key(a.x, a.z)] = { k: a.item, r };
+    out.snd = 'place';
+    return true;
+  },
+  hpick(s, a, out) {
+    const h = homeAt(s, a.x, a.z) || homeAt(s, a.x, a.z, true);
+    if (!h) return false;
+    delete (FURNITURE[h.o.k].rug ? s.home.rugs : s.home.items)[h.key];
+    addInv(s, h.o.k, 1);
+    out.snd = 'place';
+    return true;
+  },
+  hstyle(s, a, out) {
+    const list = a.kind === 'wall' ? WALLS : a.kind === 'floor' ? FLOORS : null;
+    if (!list?.some(w => w[0] === a.id)) return false;
+    if (s.home[a.kind] === a.id) return false;
+    if (s.money < STYLE_PRICE) { out.msg = 'Nicht genug Taler.'; return false; }
+    s.money -= STYLE_PRICE;
+    s.home[a.kind] = a.id;
+    out.msg = a.kind === 'wall' ? '🖌️ Neue Tapete!' : '🪵 Neuer Boden!';
+    out.snd = 'coin';
+    return true;
+  },
   mail(s, a, out) {
     const m = s.mail[a.i];
     if (!m) return false;
@@ -612,7 +691,7 @@ const ACTIONS = {
 export function act(s, a) {
   const out = { ok: false, fx: [], snd: null, msg: null };
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
-  const needsTile = ['till', 'water', 'plant', 'harvest', 'place', 'pickup', 'use', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish'].includes(a.t);
+  const needsTile = ['till', 'water', 'plant', 'harvest', 'place', 'pickup', 'use', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick'].includes(a.t);
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
   if (['till', 'water', 'plant', 'harvest'].includes(a.t) && !isDir(a.dx, a.dz)) return out;
   if ((a.t === 'order' || a.t === 'mail') && !Number.isInteger(a.i)) return out;
@@ -639,7 +718,33 @@ export function facing(ry) {
 }
 
 // at = angetippter Punkt {x, z}; ohne at zählt das Feld vor der Figur.
+// Im Haus: Möbel benutzen, hinstellen, aufheben; Tür = hinaus
+function resolveHome(s, me, sel, at) {
+  const lx = (at ? at.x : me.x + Math.sin(me.ry) * 0.9) - HOME_X, lz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
+  const x = Math.round(lx), z = Math.round(lz), [, d] = roomSize(s), W = ([i, j]) => [i + HOME_X, j], one = [W([x, z])];
+  if (lz > (d - 1) / 2 + 0.3 && Math.abs(lx) < 0.8) return { exit: true, label: '🚪 Hinausgehen', tiles: [], px: lx + HOME_X, pz: lz };
+  const h = homeAt(s, x, z), rug = homeAt(s, x, z, true), base = { px: lx + HOME_X, pz: lz };
+  if (h) {
+    const f = FURNITURE[h.o.k], tiles = footprint(h.o.k, h.x, h.z, h.o.r).map(W);
+    const cx = h.x + ((h.o.r % 2 ? f.d : f.w) - 1) / 2 + HOME_X, cz = h.z + ((h.o.r % 2 ? f.w : f.d) - 1) / 2;
+    if (sel === 'hand') return { ...base, a: { t: 'hpick', x, z }, label: '✋ Aufheben', tiles };
+    if (f.sit) return { ...base, sit: { x: cx, z: cz, r: h.o.r }, label: '🪑 Hinsetzen', tiles };
+    if (f.bed) return { ...base, sleep: { x: cx, z: cz, r: h.o.r, wide: f.w > 1 }, label: '😴 Schlafen gehen', tiles };
+    if (h.o.k === 'herd') return { ...base, ui: 'cook', label: '🍳 Kochen', tiles };
+    return { ...base, label: `${f.icon} ${f.name}`, tiles };
+  }
+  if (rug && sel === 'hand') return { ...base, a: { t: 'hpick', x, z }, label: '✋ Teppich aufheben', tiles: footprint(rug.o.k, rug.x, rug.z, rug.o.r).map(W) };
+  if (ITEMS[sel]?.furn) {
+    const f = FURNITURE[sel], r = f.wall ? wallRot(s, x, z) : (Math.round(me.ry / (Math.PI / 2)) + 2 + 400) % 4; // schaut zu dir
+    const ok = r >= 0 && canFurnish(s, sel, x, z, r);
+    return { ...base, ...(ok ? { a: { t: 'hplace', x, z, item: sel, r }, label: '📍 Hinstellen' } : { label: f.wall ? 'Nur an eine Wand' : 'Hier ist kein Platz' }), tiles: r >= 0 ? footprint(sel, x, z, r).map(W) : one };
+  }
+  if (PLACE[sel] || ITEMS[sel]?.seed) return { ...base, label: 'Das gehört nach draußen', tiles: one };
+  return { ...base, label: '', tiles: one };
+}
+
 export function resolve(s, me, sel, at) {
+  if (inside(me)) return resolveHome(s, me, sel, at);
   const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
   const x = Math.round(px), z = Math.round(pz), k = key(x, z);
   const toward = at && (x !== Math.round(me.x) || z !== Math.round(me.z)) ? Math.atan2(x - me.x, z - me.z) : me.ry;
@@ -657,6 +762,7 @@ export function resolve(s, me, sel, at) {
   }
 
   const b = buildingAt(x, z);
+  if (b === 'house') return { enter: true, label: '🚪 Hineingehen', tiles: one };
   if (b) {
     const B = BUILDINGS[b];
     const label = { sell: '💰 Verkaufen', shop: '🛒 Einkaufen', orders: '📋 Aufträge', farm: '🏡 Farm', animals: '🐾 Tiere', craft: '🔨 Werkeln', cook: '🍳 Kochen', mail: s.mail.length ? `💌 Post (${s.mail.length})` : '📭 Briefkasten' }[B.use];

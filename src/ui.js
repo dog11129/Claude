@@ -3,6 +3,7 @@ import { CROPS, ANIMALS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEM
 import { settingsHtml } from './menu.js';
 import { price, upgradeInfo, capacity, animalCount, seasonOf, hearts } from './state.js';
 import { NPCS, letter, requestLine } from './npc.js';
+import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
 
 const $ = id => document.getElementById(id);
@@ -13,7 +14,7 @@ const pips = (l, max) => `<span class="pips">${'●'.repeat(l)}${'○'.repeat(Ma
 const time = s => s >= 60 ? `${Math.round(s / 6) / 10} Min` : `${s} s`;
 
 export const TABS = {
-  shop: [['seeds', '🌱 Samen'], ['animals', '🐾 Tiere'], ['farm', '🏡 Farm'], ['tools', '🛠️ Werkzeug'], ['goods', '💎 Waren'], ['deco', '🌷 Deko']],
+  shop: [['seeds', '🌱 Samen'], ['animals', '🐾 Tiere'], ['furn', '🛋️ Möbel'], ['deco', '🌷 Deko'], ['farm', '🏡 Farm'], ['tools', '🛠️ Werkzeug'], ['goods', '💎 Waren']],
   orders: [['orders', '📋 Aufträge'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Statistik']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
 };
@@ -86,6 +87,23 @@ const SHOP = {
   goods(s) {
     let h = '<div class="note">Bessere Qualität = höhere Preise beim Verkaufen.</div>';
     for (const [id, u] of Object.entries(UPGRADES)) if (u.tab === 'goods') h += upgradeRow(s, id);
+    return h;
+  },
+  furn(s) {
+    const cats = { sitzen: '🪑 Sitzen', tische: '🍽️ Tische', betten: '🛏️ Schlafen & Schränke', licht: '💡 Licht', kueche: '🍳 Küche', teppiche: '🟫 Teppiche', pflanzen: '🪴 Pflanzen', deko: '🧸 Deko', wand: '🖼️ Wand' };
+    let h = '<div class="note">Möbel fürs Haus: kaufen ➜ ins Haus gehen 🚪 ➜ in der Leiste wählen ➜ hinstellen (zeigt zu dir). Mit der Hand ✋ wieder aufheben. Manche Möbel könnt ihr auch an der Werkbank bauen.</div>';
+    const sw = (kind, list) => `<div class="swatches">${list.map(([id, l, c]) => `<button title="${l}" style="background:${c};width:44px;height:44px;border-radius:12px" data-act='${JSON.stringify({ t: 'hstyle', kind, id })}' class="${s.home[kind] === id ? 'on' : ''}"></button>`).join('')}</div>`;
+    h += `<div class="row"><div class="ic">🖌️</div><div class="tx"><b>Tapete <span class="lv">🪙 350</span></b><small>${WALLS.find(w => w[0] === s.home.wall)?.[1] || ''}</small>${sw('wall', WALLS)}</div></div>`;
+    h += `<div class="row"><div class="ic">🪵</div><div class="tx"><b>Boden <span class="lv">🪙 350</span></b><small>${FLOORS.find(w => w[0] === s.home.floor)?.[1] || ''}</small>${sw('floor', FLOORS)}</div></div>`;
+    for (const [c, label] of Object.entries(cats)) {
+      h += `<h3>${label}</h3>`;
+      for (const [id, f] of Object.entries(FURNITURE)) {
+        if (f.cat !== c) continue;
+        const locked = f.lvl > s.level, have = s.inv[id] || 0;
+        h += row(f.icon, f.name + (locked ? lvTag(f.lvl) : ''), `${f.w}×${f.d}${f.sit ? ' · zum Sitzen' : ''}${f.bed ? ' · zum Schlafen' : ''}${f.craft ? ' · auch an der Werkbank' : ''}${have ? ` · <b>${have}× im Lager</b>` : ''}`,
+          btn(`🪙 ${f.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < f.buy), locked);
+      }
+    }
     return h;
   },
   deco(s) {
@@ -257,7 +275,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor]);
     if (sig === this.sig) return;
     this.sig = sig;
     const body = $('pbody'), y = body.scrollTop;
@@ -283,6 +301,7 @@ export function hotbarItems(s) {
   const items = ['hoe', 'can', 'hand', 'axe', 'shovel', 'net'];
   for (const k of Object.keys(CROPS)) if (s.inv['s_' + k] > 0) items.push('s_' + k);
   for (const k of Object.keys(PLACE)) if (s.inv[k] > 0) items.push(k);
+  for (const k of Object.keys(FURNITURE)) if (s.inv[k] > 0) items.push(k);
   return items;
 }
 export function slotHtml(s, id, i, sel) {

@@ -86,6 +86,13 @@ const SFX = {
   splash: t => { noise(t, 0.25, 1200, 0.4); tone(300, t, 0.15, 'sine', 0.1, sfxGain, 600); },
 };
 
+// Plapper-Stimme der Nachbarn: kurze, weiche Silben in eigener Tonlage
+export function blip(base) {
+  if (!ctx || !audio.sound) return;
+  const t = ctx.currentTime + 0.005, f = base * (0.85 + Math.random() * 0.35);
+  tone(f, t, 0.07, 'triangle', 0.06, sfxGain, f * (0.9 + Math.random() * 0.25));
+}
+
 export function play(name) {
   if (!ctx || !audio.sound || !SFX[name]) return;
   SFX[name](ctx.currentTime + 0.01);

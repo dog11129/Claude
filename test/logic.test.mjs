@@ -194,3 +194,29 @@ test('Nachbarn: Gespräche, Geschenke, Briefe', async () => {
   assert.ok(s.inv.kuchen >= 2, 'Geschenk aus dem Brief');
   assert.ok(s.orders.every(o => o.npc), 'Aufträge kommen von Nachbarn');
 });
+
+test('Zuhause: Möbel stellen, Teppiche, Wandschmuck, Kollision, Schlafen', async () => {
+  const S = await import('../src/state.js');
+  const s = newFarm();
+  s.inv.bett = 1; s.inv.teppich = 1; s.inv.bild = 2; s.inv.stuhl = 1;
+  assert.ok(act(s, { t: 'hplace', x: 1, z: -2, item: 'bett', r: 0 }).ok, 'Doppelbett 2×2');
+  assert.equal(act(s, { t: 'hplace', x: 2, z: -1, item: 'stuhl', r: 0 }).ok, false, 'Bett belegt die Kachel');
+  assert.ok(act(s, { t: 'hplace', x: -2, z: 0, item: 'teppich', r: 0 }).ok, 'Teppich');
+  assert.ok(act(s, { t: 'hplace', x: -2, z: 0, item: 'stuhl', r: 0 }).ok, 'Stuhl auf dem Teppich');
+  assert.ok(act(s, { t: 'hplace', x: -1, z: -2, item: 'bild', r: 0 }).ok, 'Bild an der Rückwand');
+  assert.equal(act(s, { t: 'hplace', x: 0, z: 0, item: 'bild', r: 0 }).ok, false, 'Bild nicht mitten im Raum');
+  assert.equal(act(s, { t: 'hplace', x: 3, z: 0, item: 'bett', r: 0 }).ok, false, 'nicht über den Rand');
+  assert.ok(S.blocked(s, S.HOME_X + 1.5, -1.5), 'man läuft nicht durchs Bett');
+  assert.ok(!S.blocked(s, S.HOME_X, 1), 'freier Boden');
+  assert.ok(act(s, { t: 'hpick', x: 2, z: -1 }).ok, 'Bett wieder aufheben (beliebige Kachel)');
+  assert.equal(s.inv.bett, 1);
+  s.money = 1000;
+  assert.ok(act(s, { t: 'hstyle', kind: 'wall', id: 'rosa' }).ok);
+  assert.equal(act(s, { t: 'hstyle', kind: 'wall', id: '<x>' }).ok, false);
+  s.dayTime = 0.5;
+  assert.equal(S.sleepThrough(s), false, 'tagsüber nicht');
+  s.dayTime = 0.8;
+  const d = s.day;
+  assert.ok(S.sleepThrough(s));
+  assert.equal(s.day, d + 1);
+});

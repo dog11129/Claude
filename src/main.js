@@ -3,7 +3,7 @@ import { World, esc, cropInfo } from './world.js';
 import * as S from './state.js';
 import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL } from './data.js';
 import * as net from './net.js';
-import { audio, unlock, play, setMusic, setVolumes, ambience } from './audio.js';
+import { audio, unlock, play, setMusic, setVolumes, ambience, blip } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { Editor, settingsHtml } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
@@ -120,14 +120,15 @@ function hostData(id, d) {
   }
   if (!p) return;
   if (d.t === 'm' && [d.x, d.z, d.ry].every(Number.isFinite)) {
-    p.x = Math.max(-MAP, Math.min(MAP, d.x));
+    const home = d.x > S.HOME_X / 2; // drinnen liegt das Haus bei x = HOME_X
+    p.x = home ? Math.max(S.HOME_X - 8, Math.min(S.HOME_X + 8, d.x)) : Math.max(-MAP, Math.min(MAP, d.x));
     p.z = Math.max(-MAP, Math.min(MAP, d.z));
     p.ry = d.ry;
     p.m = !!d.m;
     p.ak = ACTS.includes(d.ak) ? d.ak : null;
     p.an = Number.isInteger(d.an) ? d.an : 0;
     p.held = HELD.includes(d.held) ? d.held : null;
-    p.pose = d.pose === 'sit' ? 'sit' : null;
+    p.pose = d.pose === 'sit' || d.pose === 'sleep' ? d.pose : null;
     p.fishing = d.fishing === true;
   }
   if (d.t === 'look') Object.assign(p, cleanProfile(d));
@@ -257,6 +258,7 @@ function guestData(d) {
     case 'emote': showEmote(d.id, d.e); break;
     case 'soc': if (Object.hasOwn(SOCIAL, d.k)) onSocial(d.a, d.b, d.k); break;
     case 'toast': toast(d.text); if (d.snd) play(d.snd); break;
+    case 'wake': wake(); break;
     case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Farm geschickt.', true); break;
     case 'bye': G.ended = true; G.conn?.close(); saveFarm(); cover('🏡 Der Host hat die Farm verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Farmen“.', true); break;
   }
@@ -381,7 +383,22 @@ function simulate(now) {
   G.lastSim = now;
   const day = G.s.day;
   if (S.tick(G.s, dt, true)) G.dirty = true;
+  // Alle im Bett? Dann ist gleich Morgen.
+  const ps = Object.values(G.players);
+  if (ps.length && ps.every(p => p.pose === 'sleep') && S.sleepThrough(G.s)) { G.dirty = true; G.net?.broadcast({ t: 'wake' }); wake(); }
   if (G.s.day !== day) announceDay();
+}
+function wake() {
+  const me = G?.players[G.me];
+  if (me?.pose !== 'sleep') return;
+  standUp(me);
+  fade();
+  toast('☀️ Guten Morgen! Ausgeschlafen in einen neuen Tag.', true);
+}
+// kurzer Übergang (Tür, Schlafen)
+function fade() {
+  $('fade').classList.add('on');
+  setTimeout(() => $('fade').classList.remove('on'), 350);
 }
 
 function netTick() {
@@ -882,6 +899,20 @@ function execute(r, fresh) {
     else if (r.ui === 'farm') panels.show('shop', 'farm');
     else panels.show(r.ui);
     play('click');
+  } else if (r.enter || r.exit) {
+    if (!fresh) return;
+    interrupt();
+    fade();
+    play('place');
+    const [, d] = S.roomSize(G.s);
+    if (r.enter) Object.assign(me, { x: S.HOME_X, z: d / 2 - 0.7, ry: Math.PI, pose: null });
+    else Object.assign(me, { x: 0, z: -7.6, ry: 0, pose: null });
+  } else if (r.sleep) {
+    if (!fresh) return;
+    const a = r.sleep.r * Math.PI / 2, side = r.sleep.wide ? (G.me === 'h' ? -0.45 : 0.45) : 0; // Fußende, im Doppelbett nebeneinander
+    Object.assign(me, { x: r.sleep.x + Math.sin(a) * 0.6 + Math.cos(a) * side, z: r.sleep.z + Math.cos(a) * 0.6 - Math.sin(a) * side, ry: a, pose: 'sleep' });
+    const h = 6 + G.s.dayTime * 18;
+    toast(h >= 18 ? (Object.keys(G.players).length > 1 ? '😴 Gute Nacht! Wenn alle im Bett liegen, beginnt ein neuer Tag.' : '😴 Gute Nacht!') : '😴 Ein kleines Nickerchen … (Schlafen geht ab 18 Uhr bis zum Morgen)');
   } else if (r.sit) {
     if (fresh) Object.assign(me, { x: r.sit.x, z: r.sit.z, ry: r.sit.r * Math.PI / 2, pose: 'sit' });
   } else if (r.fish) {
@@ -895,9 +926,10 @@ function execute(r, fresh) {
 }
 
 function standUp(me) {
+  const sleep = me.pose === 'sleep';
   me.pose = null;
-  me.x += Math.sin(me.ry) * 0.8;
-  me.z += Math.cos(me.ry) * 0.8;
+  if (sleep) { me.x += Math.cos(me.ry) * 1.3; me.z -= Math.sin(me.ry) * 1.3; } // neben das Bett
+  else { me.x += Math.sin(me.ry) * 0.8; me.z += Math.cos(me.ry) * 0.8; }
 }
 
 function tapAt(cx, cy) {
@@ -988,15 +1020,18 @@ function openTalk(id) {
   play('chat');
 }
 let typeTimer = null;
-function say2(text) { // Tippen wie in einer Sprechblase
+const VOICE = { mira: 620, bruno: 210, pippa: 760, lio: 440 };
+function say2(text) { // Tippen wie in einer Sprechblase, mit Plapper-Stimme
   clearInterval(typeTimer);
   let i = 0;
+  const v = VOICE[G?.talk?.id] || 500;
   $('dlgtext').textContent = '';
   typeTimer = setInterval(() => {
     i += 2;
     $('dlgtext').textContent = text.slice(0, i);
+    if (i % 4 === 0 && /[a-zäöüß]/i.test(text[i] || '')) blip(v);
     if (i >= text.length) clearInterval(typeTimer);
-  }, 22);
+  }, 24);
 }
 function closeTalk() {
   clearInterval(typeTimer);
@@ -1139,6 +1174,7 @@ function gameFrame(dt, now) {
     if (stuck || free(me.x, me.z + wz * sp)) me.z += wz * sp;
     me.ry = Math.atan2(wx, wz);
     if (G.fishing) stopFishing();
+    if (S.inside(me) && me.z > S.roomSize(s)[1] / 2 + 0.25) execute({ exit: true }, true); // durch die Tür hinaus
   }
   me.held = heldItem();
 
@@ -1178,6 +1214,12 @@ function gameFrame(dt, now) {
     preview: editor.isOpen ? previewCam(me.x, me.z) : null,
   });
   ambience({ day: info.day, night: info.night, rain: s.weather === 'rain', walking: me.m });
+  // Nachbarn sagen ab und zu etwas, wenn man in der Nähe ist
+  if (now > (G.nextChatter || 0) && !G.talk) {
+    G.nextChatter = now + 14000 + Math.random() * 12000;
+    const near = [...(world.npcM || [])].filter(([, e]) => e.awake && Math.hypot(e.x - me.x, e.z - me.z) < 7);
+    if (near.length) { const [id] = near[Math.floor(Math.random() * near.length)]; world.npcBubble(id, npcLine(id, talkCtx(id))); }
+  }
 
   // HUD
   const hour = 6 + s.dayTime * 18, hh = Math.floor(hour) % 24, mm = Math.floor((hour % 1) * 6) * 10;

@@ -4,68 +4,8 @@
 // Jedes Modell wird einmal gebaut und zwischengespeichert; Kopien teilen sich die Geometrie.
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, ball, cyl, cone } from './models.js';
-
-// cat: sitzen | tische | betten | licht | deko | pflanzen | teppiche | kueche | wand
-export const FURNITURE = {
-  stuhl:          { name: 'Holzstuhl',       icon: '🪑', buy: 140,  lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true, craft: { holz: 6 } },
-  hocker:         { name: 'Pilzhocker',      icon: '🍄', buy: 80,   lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true, craft: { holz: 3 } },
-  sessel:         { name: 'Sessel',          icon: '💺', buy: 480,  lvl: 2, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
-  sofa:           { name: 'Sofa',            icon: '🛋️', buy: 1100, lvl: 3, cat: 'sitzen',   w: 2, d: 1, solid: true, sit: true },
-  esstisch:       { name: 'Esstisch',        icon: '🍽️', buy: 520,  lvl: 2, cat: 'tische',   w: 2, d: 1, solid: true, craft: { holz: 16 } },
-  rundtisch:      { name: 'Teetisch',        icon: '🫖', buy: 260,  lvl: 1, cat: 'tische',   w: 1, d: 1, solid: true, craft: { holz: 8 } },
-  couchtisch:     { name: 'Couchtisch',      icon: '☕', buy: 300,  lvl: 2, cat: 'tische',   w: 1, d: 1, solid: true, craft: { holz: 10 } },
-  schreibtisch:   { name: 'Schreibtisch',    icon: '✏️', buy: 450,  lvl: 3, cat: 'tische',   w: 1, d: 1, solid: true },
-  einzelbett:     { name: 'Einzelbett',      icon: '🛏️', buy: 600,  lvl: 1, cat: 'betten',   w: 1, d: 2, solid: true, bed: true, craft: { holz: 14 } },
-  bett:           { name: 'Doppelbett',      icon: '🛏️', buy: 1500, lvl: 3, cat: 'betten',   w: 2, d: 2, solid: true, bed: true },
-  kommode:        { name: 'Kommode',         icon: '🗄️', buy: 420,  lvl: 2, cat: 'betten',   w: 1, d: 1, solid: true, craft: { holz: 12 } },
-  kleiderschrank: { name: 'Kleiderschrank',  icon: '🚪', buy: 900,  lvl: 3, cat: 'betten',   w: 1, d: 1, solid: true },
-  stehlampe:      { name: 'Stehlampe',       icon: '💡', buy: 320,  lvl: 1, cat: 'licht',    w: 1, d: 1, solid: true, glow: true },
-  tischlampe:     { name: 'Nachttischlampe', icon: '🪔', buy: 240,  lvl: 2, cat: 'licht',    w: 1, d: 1, solid: true, glow: true },
-  kerzen:         { name: 'Kerzen',          icon: '🕯️', buy: 110,  lvl: 1, cat: 'licht',    w: 1, d: 1, solid: true, glow: true },
-  lichterkette:   { name: 'Lichterkette',    icon: '✨', buy: 280,  lvl: 2, cat: 'licht',    w: 2, d: 1, solid: false, wall: true, glow: true },
-  kamin:          { name: 'Kamin',           icon: '🔥', buy: 2800, lvl: 6, cat: 'licht',    w: 2, d: 1, solid: true, glow: true, craft: { stein: 30, holz: 6 } },
-  herd:           { name: 'Herd',            icon: '🍳', buy: 650,  lvl: 1, cat: 'kueche',   w: 1, d: 1, solid: true },
-  kuechenzeile:   { name: 'Küchentheke',     icon: '🔪', buy: 320,  lvl: 1, cat: 'kueche',   w: 1, d: 1, solid: true, craft: { holz: 8, stein: 6 } },
-  kuehlschrank:   { name: 'Kühlschrank',     icon: '🧊', buy: 950,  lvl: 3, cat: 'kueche',   w: 1, d: 1, solid: true },
-  teppich_rund:   { name: 'Runder Teppich',  icon: '⭕', buy: 260,  lvl: 1, cat: 'teppiche', w: 2, d: 2, solid: false, rug: true },
-  teppich:        { name: 'Streifenteppich', icon: '🟫', buy: 340,  lvl: 2, cat: 'teppiche', w: 2, d: 2, solid: false, rug: true },
-  herzteppich:    { name: 'Herzteppich',     icon: '💗', buy: 180,  lvl: 2, cat: 'teppiche', w: 1, d: 1, solid: false, rug: true },
-  topfpflanze:    { name: 'Topfpflanze',     icon: '🪴', buy: 120,  lvl: 1, cat: 'pflanzen', w: 1, d: 1, solid: true },
-  kaktus:         { name: 'Kaktus',          icon: '🌵', buy: 90,   lvl: 1, cat: 'pflanzen', w: 1, d: 1, solid: true },
-  blumenvase:     { name: 'Tulpenvase',      icon: '🌷', buy: 180,  lvl: 2, cat: 'pflanzen', w: 1, d: 1, solid: true },
-  monstera:       { name: 'Monstera',        icon: '🌿', buy: 420,  lvl: 3, cat: 'pflanzen', w: 1, d: 1, solid: true },
-  teddy:          { name: 'Teddybär',        icon: '🧸', buy: 220,  lvl: 1, cat: 'deko',     w: 1, d: 1, solid: true },
-  katzenbett:     { name: 'Katzenkörbchen',  icon: '🐈', buy: 380,  lvl: 2, cat: 'deko',     w: 1, d: 1, solid: true },
-  buecherregal:   { name: 'Bücherregal',     icon: '📚', buy: 560,  lvl: 2, cat: 'deko',     w: 1, d: 1, solid: true, craft: { holz: 14 } },
-  plattenspieler: { name: 'Plattenspieler',  icon: '🎶', buy: 750,  lvl: 4, cat: 'deko',     w: 1, d: 1, solid: true },
-  aquarium:       { name: 'Aquarium',        icon: '🐠', buy: 1600, lvl: 5, cat: 'deko',     w: 1, d: 1, solid: true, glow: true },
-  klavier:        { name: 'Klavier',         icon: '🎹', buy: 4000, lvl: 8, cat: 'deko',     w: 2, d: 1, solid: true },
-  bild:           { name: 'Gemälde',         icon: '🖼️', buy: 300,  lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true },
-  wandregal:      { name: 'Wandregal',       icon: '🪵', buy: 150,  lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true, craft: { holz: 4 } },
-  wanduhr:        { name: 'Wanduhr',         icon: '🕰️', buy: 380,  lvl: 2, cat: 'wand',     w: 1, d: 1, solid: false, wall: true },
-};
-
-// [id, Name, Grundfarbe, Muster, Akzentfarbe] – Grundfarbe taugt auch als Farbfeld in der Oberfläche.
-export const WALLS = [
-  ['vanille',   'Vanille',         '#fff1dc', 'plain'],
-  ['rosa',      'Rosa Streifen',   '#ffe6ea', 'stripes', '#ffc9d4'],
-  ['bluemchen', 'Blümchen',        '#fff5d9', 'flowers', '#ffb6c8'],
-  ['holz',      'Holzvertäfelung', '#d39f6a', 'boards',  '#c58f5b'],
-  ['ziegel',    'Backstein',       '#f4e6d6', 'bricks',  '#e3a28e'],
-  ['sterne',    'Sternennacht',    '#3f4b80', 'stars',   '#ffe9a8'],
-  ['karo',      'Himmelkaro',      '#e2f0ff', 'checker', '#b5d6f6'],
-  ['mint',      'Mint',            '#cdeee0', 'wainscot', '#fffaf2'],
-];
-export const FLOORS = [
-  ['dielen',  'Helle Dielen',  '#e6c595', 'planks'],
-  ['dunkel',  'Dunkles Holz',  '#a0704a', 'planks'],
-  ['schach',  'Schachbrett',   '#fff4e4', 'checker', '#f4bcc6'],
-  ['teppich', 'Rosa Teppich',  '#f7c6d0', 'carpet',  '#fbdbe2'],
-  ['stein',   'Steinboden',    '#cdc3b8', 'stones',  '#9e948a'],
-  ['moos',    'Moosboden',     '#93c97c', 'moss',    '#aedb92'],
-  ['parkett', 'Parkett',       '#dcaa70', 'parquet', '#c8925a'],
-  ['fliesen', 'Blaue Fliesen', '#94bfe8', 'tiles',   '#fdfbf6'],
-];
+import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
+export { FURNITURE, WALLS, FLOORS };
 
 const PI = Math.PI, H = PI / 2;
 const WOOD = 0xd9a86c, WOODL = 0xeac894, WOODD = 0xa87449, CREAM = 0xfff3e0, WHITE = 0xffffff, PINK = 0xffb7c8, ROSE = 0xff8fab,
@@ -251,7 +191,7 @@ const MAKE = {
       soft(0.24, 0.3, 0.04, ROSE, 0.55, 1.45, -0.28, 0.4, 0, -0.1), box(0.17, 0.22, 0.01, BUTTER, 0.55, 1.45, -0.255, 0, -0.1),
       C(0.05, 0.04, 0.08, TERRA, 0.25, 1.34, -0.15, 12), B(0.06, LEAF, 0.25, 1.42, -0.15),
     ];
-    const stone = (x, y, z, w) => soft(w, 0.15, 0.05, shade(STONE, -0.03 - rnd() * 0.09), x, y, z, 0.5);
+    const stone = (x, y, z, w) => box(w - 0.02, 0.14, 0.04 + rnd() * 0.02, shade(STONE, -0.03 - rnd() * 0.09), x, y, z);
     for (let r = 0; r < 5; r++) for (const s of [-1, 1]) for (const [x, w] of r % 2 ? [[0.79, 0.19], [0.59, 0.19]] : [[0.69, 0.38]]) p.push(stone(s * x, 0.22 + r * 0.18, 0.055, w));
     for (const x of [-0.27, 0, 0.27]) p.push(stone(x, 1.12, 0.055, 0.25));
     for (let r = 0; r < 6; r++) for (let x = -0.6 + (r % 2) * 0.15; x < 0.6; x += 0.3) p.push(stone(Math.max(-0.5, Math.min(0.5, x)), 1.4 + r * 0.18, -0.08, x < -0.5 || x > 0.5 ? 0.18 : 0.27));
@@ -421,7 +361,7 @@ const MAKE = {
   ],
   wanduhr: () => [
     C(0.21, 0.21, 0.06, ROSE, 0, 1.62, -0.45, 24, H), C(0.175, 0.175, 0.02, CREAM, 0, 1.62, -0.415, 24, H),
-    ...[...Array(12)].map((_, i) => B(0.012, i % 3 ? 0xd9a0a0 : DARK, Math.sin(i * PI / 6) * 0.14, 1.62 + Math.cos(i * PI / 6) * 0.14, -0.403)),
+    ...[...Array(12)].map((_, i) => box(0.02, i % 3 ? 0.02 : 0.04, 0.01, i % 3 ? 0xd9a0a0 : DARK, Math.sin(i * PI / 6) * 0.14, 1.62 + Math.cos(i * PI / 6) * 0.14, -0.403, 0, 0, -i * PI / 6)),
     box(0.018, 0.09, 0.008, DARK, 0.02, 1.65, -0.4, 0, 0, -0.5), box(0.014, 0.12, 0.008, DARK, -0.035, 1.64, -0.398, 0, 0, 1.1), B(0.018, DARK, 0, 1.62, -0.398),
     B(0.06, BRASS, -0.15, 1.82, -0.45, 1, 0.8, 0.8), B(0.06, BRASS, 0.15, 1.82, -0.45, 1, 0.8, 0.8), B(0.025, BRASS, 0, 1.85, -0.45),
     soft(0.16, 0.3, 0.05, WOOD, 0, 1.3, -0.465, 0.3), box(0.012, 0.2, 0.01, BRASS, 0, 1.3, -0.435), C(0.045, 0.045, 0.015, BRASS, 0, 1.2, -0.43, 16, H),
@@ -505,7 +445,7 @@ function wallParts(p, gl, w, d, [, , base, pat, acc]) {
   const put = (k, u, v, sw, sh, c, dz = 0.02, rot = 0, list = p) => list.push(
     k === 0 ? box(sw, sh, dz, c, u, v, -hd + dz / 2, 0, 0, rot) : box(dz, sh, sw, c, k === 1 ? -hw + dz / 2 : hw - dz / 2, v, u, 0, rot));
   const disc = (k, u, v, r, c, dz = 0.02, list = p) => list.push(
-    k === 0 ? C(r, r, dz, c, u, v, -hd + dz / 2, 12, H) : C(r, r, dz, c, k === 1 ? -hw + dz / 2 : hw - dz / 2, v, u, 12, 0, 0, H));
+    place(new THREE.CircleGeometry(r, 10), c, k === 0 ? u : k === 1 ? -hw + dz : hw - dz, v, k === 0 ? -hd + dz : u, 0, k === 0 ? 0 : k === 1 ? H : -H));
   const span = (k, a, b, v, sh, c, dz) => { const L = (k ? d : w) / 2; a = Math.max(a, -L); b = Math.min(b, L); if (b - a > 0.04) put(k, (a + b) / 2, v, b - a, sh, c, dz); };
   for (const k of [0, 1, 2]) {
     const L = k ? d : w;

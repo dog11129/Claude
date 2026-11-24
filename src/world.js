@@ -7,8 +7,9 @@ import { OutputPass } from '../vendor/post/OutputPass.js';
 import * as M from './models.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS } from './npc.js';
+import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { FIELDS, PENS, PLACE, POND, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, NPC_IDS } from './data.js';
-import { stage, animalPos, buildingAt, inPond, key, seasonOf, npcPos, npcAwake } from './state.js';
+import { stage, animalPos, buildingAt, inPond, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize } from './state.js';
 
 const C = h => new THREE.Color(h);
 const SKY_TOP = [C(0x5fb4f5), C(0x2a3f86), C(0x0b1433)], SKY_HOR = [C(0xcfeeff), C(0xffb38a), C(0x26365e)];
@@ -86,7 +87,8 @@ export class World {
     this.sun.shadow.bias = -0.0006;
     this.sun.shadow.normalBias = 0.03;
     this.lamp = new THREE.PointLight(0xffc878, 0, 9, 1.6);
-    s.add(this.hemi, this.sun, this.sun.target, this.lamp);
+    this.roomLight = new THREE.PointLight(0xffd9a8, 0, 14, 1.4);
+    s.add(this.hemi, this.sun, this.sun.target, this.lamp, this.roomLight);
 
     this.buildSky();
     this.buildGround();
@@ -615,6 +617,45 @@ export class World {
     for (const [k, e] of this.objs) if (!seen.has(k)) { this.scene.remove(e.m); this.objs.delete(k); }
   }
 
+  // Unser Zuhause: Zimmer + Möbel (liegt weit weg bei x = HOME_X)
+  syncHome(s) {
+    const h = s.home || { wall: 'vanille', floor: 'dielen', items: {}, rugs: {} }, [w, d] = roomSize(s);
+    const sig = `${w}|${d}|${h.wall}|${h.floor}`;
+    if (this.roomSig !== sig) {
+      this.roomSig = sig;
+      if (this.room) this.scene.remove(this.room);
+      this.room = new THREE.Group();
+      const r = makeRoom(w, d, h.wall, h.floor);
+      const base = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
+      base.rotation.x = -Math.PI / 2;
+      base.position.y = -0.02;
+      this.room.add(r, base);
+      this.room.position.set(HOME_X, 0, 0);
+      this.room.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
+      this.scene.add(this.room);
+    }
+    this.furnM ||= new Map();
+    const seen = new Set();
+    for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r']]) for (const [k, o] of Object.entries(map)) {
+      const id = tag + k + o.k + o.r, f = FURNITURE[o.k];
+      if (!f) continue;
+      seen.add(id);
+      if (this.furnM.has(id)) continue;
+      const [x, z] = k.split(',').map(Number), [fw, fd] = o.r % 2 ? [f.d, f.w] : [f.w, f.d];
+      const m = makeFurniture(o.k);
+      m.position.set(HOME_X + x + (fw - 1) / 2, f.rug ? 0.005 : 0, z + (fd - 1) / 2);
+      m.rotation.y = o.r * Math.PI / 2;
+      m.traverse(c => { if (c.isMesh) { c.castShadow = !f.rug; c.receiveShadow = true; } });
+      this.scene.add(m);
+      this.furnM.set(id, { m, born: this.time, x: m.position.x, z: m.position.z });
+    }
+    for (const [id, e] of this.furnM) {
+      if (!seen.has(id)) { this.scene.remove(e.m); this.furnM.delete(id); this.burst(e.x, e.z, 'dust'); continue; }
+      const pop = Math.min(1, (this.time - e.born) * 4);
+      e.m.scale.setScalar(pop < 1 ? 0.6 + 0.4 * pop + Math.sin(pop * Math.PI) * 0.15 : 1);
+    }
+  }
+
   // Bäume, Felsen und Grabstellen
   syncNature(s) {
     this.wildM ||= new Map();
@@ -705,6 +746,7 @@ export class World {
       const md = this.npcMood[id];
       e.m.userData.update(dt, { speed: e.speed, talking: talk, mood: md && md.until > this.time ? md.mood : null, time: this.time });
       this.tag('npc' + id, `${NPCS[id].icon} ${NPCS[id].name}`, e.x, (e.m.userData.headTop || 1.3) + 0.3, e.z, 'name npc');
+      if (e.bubble && e.bubble.until > this.time && !talk) this.tag('npcb' + id, esc(e.bubble.text), e.x, (e.m.userData.headTop || 1.3) + 0.7, e.z, 'chat');
     }
   }
   npcNear(x, z, r = 1.1) {
@@ -717,6 +759,7 @@ export class World {
     return best;
   }
   npcSay(id, mood) { this.npcMood[id] = { mood, until: this.time + 2.5 }; }
+  npcBubble(id, text) { const e = this.npcM?.get(id); if (e) e.bubble = { text, until: this.time + 5 }; }
 
   syncAnimals(s) {
     const seen = new Set();
@@ -840,6 +883,7 @@ export class World {
     this.syncAnimals(s);
     this.syncNature(s);
     this.syncNpcs(s, dt);
+    this.syncHome(s);
     this.syncGrass(s);
     this.syncPlayers(players, me, dt, !opt.hideNames);
     const info = this.light(s), rain = s.weather === 'rain', snowing = s.weather === 'snow';
@@ -872,11 +916,12 @@ export class World {
       this.camera.lookAt(p.x + Math.cos(this.yaw) * (p.shift || 0), 0.7 - (p.lift || 0), p.z - Math.sin(this.yaw) * (p.shift || 0));
     } else {
       if (pl) {
+        if (Math.abs(pl.x - this.target.x) > 40) this.target.set(pl.x, 0, pl.z); // Tür: Kamera springt mit
         this.target.x += (pl.x - this.target.x) * Math.min(1, dt * 6);
         this.target.z += (pl.z - this.target.z) * Math.min(1, dt * 6);
       }
-      const portrait = Math.min(1.7, Math.max(1, 1.25 / this.camera.aspect));
-      const d = 14.9 * this.zoom * portrait, el = opt.photo ? this.el : 0.83;
+      const portrait = Math.min(1.7, Math.max(1, 1.25 / this.camera.aspect)), home = this.target.x > HOME_X / 2;
+      const d = 14.9 * this.zoom * portrait * (home ? 0.72 : 1), el = opt.photo ? this.el : 0.83;
       this.camera.position.set(this.target.x + Math.sin(this.yaw) * Math.cos(el) * d, Math.max(0.6, Math.sin(el) * d), this.target.z + Math.cos(this.yaw) * Math.cos(el) * d);
       this.camera.lookAt(this.target.x, 0.6, this.target.z);
     }
@@ -888,6 +933,9 @@ export class World {
     this.sun.position.copy(this.target).addScaledVector(this.sunDir, 35);
     this.sun.target.position.copy(this.target);
     this.lamp.position.set(this.target.x, 3.2, this.target.z + 1.2);
+    const indoor = this.target.x > HOME_X / 2;
+    this.roomLight.intensity = indoor ? 3 + info.night * 9 : 0;
+    this.roomLight.position.set(HOME_X, 2.3, 0.5);
 
     // Laternen beleuchten nachts ihre Umgebung (nur die nächsten, Grafik "Hoch")
     if (this.lanternLights.length) {

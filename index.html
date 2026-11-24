@@ -265,6 +265,8 @@ body.talking #hotbar, body.talking #actwrap { display: none; }
 #shutter { width: 72px; height: 72px; border-radius: 50%; background: #fff; border: 6px solid var(--pink); font-size: 28px; box-shadow: var(--shadow); }
 #flash { position: fixed; inset: 0; background: #fff; pointer-events: none; opacity: 0; transition: opacity .4s; }
 #flash.on { opacity: .85; transition: none; }
+#fade { position: fixed; inset: 0; background: #2b2238; pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 4; }
+#fade.on { opacity: 1; transition: none; }
 #photohint { position: fixed; top: max(14px, var(--safe-t)); left: 50%; transform: translateX(-50%); }
 
 #toasts { position: fixed; left: 50%; top: 70px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: 92vw; z-index: 5; }
@@ -373,6 +375,7 @@ body.talking #hotbar, body.talking #actwrap { display: none; }
 </div>
 <div id="photohint" class="pill hidden">Ziehen = drehen & neigen · Zoomen = Mausrad / zwei Finger</div>
 <div id="flash"></div>
+<div id="fade"></div>
 
 <div id="panel" class="hidden">
   <div class="card">

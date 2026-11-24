@@ -267,6 +267,8 @@ export const ACHIEVEMENTS = [
   ['koch25', '👩‍🍳', 'Kuschelküche', '25 Gerichte gekocht', s => (s.stats.cooked || 0) >= 25, 1200],
   ['holz', '🪵', 'Holzfäller', '50 Holz gesammelt', s => (s.stats.wood || 0) >= 50, 300],
   ['werk', '🔨', 'Selbstgemacht', 'Etwas an der Werkbank gebaut', s => (s.stats.crafted || 0) >= 1, 150],
+  ['freund', '💛', 'Beste Nachbarn', 'Mit einem Nachbarn 5 Herzen erreicht', s => Object.values(s.npc || {}).some(n => n.f >= 500), 800],
+  ['dorf', '🏘️', 'Das ganze Dorf mag euch', 'Mit allen Nachbarn 3 Herzen erreicht', s => ['mira', 'bruno', 'pippa', 'lio'].every(k => (s.npc?.[k]?.f || 0) >= 300), 1500],
   ['jahr', '🎂', 'Ein ganzes Jahr', 'Alle vier Jahreszeiten zusammen erlebt', s => s.day >= 29, 3000],
 ].map(([id, icon, name, desc, test, reward]) => ({ id, icon, name, desc, test, reward }));
 
@@ -306,3 +308,10 @@ export const NPC_DATA = {
   lio: { name: 'Lio', icon: '🦊', likes: ['oel', 'stoff', 'kaese', 'honigtee'], loves: ['sonnenblume', 'trueffel'], dislikes: ['kartoffel', 'stein'], spot: [0, -3.7, 3.4, 0.5], gift: ['kirschbaum', 1] },
 };
 export const NPC_IDS = Object.keys(NPC_DATA);
+
+// Möbel fürs Haus (Daten in furni-data.js): kaufen im Laden, manche selbst bauen
+import { FURNITURE as FURN } from './furni-data.js';
+for (const [id, f] of Object.entries(FURN)) {
+  ITEMS[id] = { name: f.name, icon: f.icon, buy: f.buy, lvl: f.lvl, furn: id };
+  if (f.craft) RECIPES['f_' + id] = { st: 'craft', out: id, n: 1, in: f.craft, lvl: f.lvl };
+}
