@@ -1,5 +1,5 @@
 // Fenster-Inhalte (Laden, Lager, Aufträge, Freunde, Einstellungen). Reines HTML, Klicks gehen an Callbacks.
-import { CROPS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SHELLS, SOCIAL, STORY, DAILY, MUSEUM, MUSEUM_ALL, isFlower, PAVE, WEEKDAYS, weekday, TURNIP_STACK } from './data.js';
+import { CROPS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SHELLS, SEA, SOCIAL, STORY, DAILY, MUSEUM, MUSEUM_ALL, isFlower, PAVE, WEEKDAYS, weekday, TURNIP_STACK, DIY_IDS } from './data.js';
 import { settingsHtml } from './menu.js';
 import { price, upgradeInfo, seasonOf, hearts, halfDay, turnipSeller, turnipPrice } from './state.js';
 import { NPCS, letter, requestLine } from './npc.js';
@@ -73,6 +73,8 @@ const SHOP = {
   tools(s) {
     let h = `<div class="note">Bessere Werkzeuge: Die Gießkanne gießt mehr Blumen auf einmal (${AREA_NAME.slice(1).join(' ➜ ')}), mit der besseren Angel beißen seltene Fische.</div>`;
     for (const [id, u] of Object.entries(UPGRADES)) if (u.tab === 'tools') h += upgradeRow(s, id);
+    const ws = s.inv.neopren > 0;
+    h += row('🤿', 'Neoprenanzug' + (ws ? ' <span class="lv">✓ gekauft</span>' : ''), 'Damit könnt ihr alle im Meer schwimmen und bei Luftblasen 🫧 nach Meerestieren tauchen.', ws ? '' : btn('🪙 3000', { t: 'buy', id: 'neopren', n: 1 }, 'pink', s.money < 3000));
     return h;
   },
   goods(s) {
@@ -157,16 +159,16 @@ const PANELS = {
       return h;
     }
     if (tab === 'album') {
-      const n = Object.keys(s.album).filter(k => !['flaschenpost', 'schatz'].includes(k)).length, all = ALBUM.fish.length + ALBUM.bug.length + ALBUM.fossil.length + ALBUM.shell.length;
+      const n = Object.keys(s.album).filter(k => !['flaschenpost', 'schatz', 'sternsplitter'].includes(k)).length, all = ALBUM.fish.length + ALBUM.sea.length + ALBUM.bug.length + ALBUM.fossil.length + ALBUM.shell.length;
       const where = { river: '🏞️ Fluss', sea: '🌊 Meer', pond: '🪷 Teich' };
-      const info = { ...Object.fromEntries(FISH.map(f => [f[0], `${where[f[6]]} ${(f[5] || []).map(x => SEASONS[x][1]).join('') || ''}`])), ...Object.fromEntries(SHELLS.map(f => [f[0], '🏖️ Strand'])),
+      const info = { ...Object.fromEntries(FISH.map(f => [f[0], `${where[f[6]]} ${(f[5] || []).map(x => SEASONS[x][1]).join('') || ''}`])), ...Object.fromEntries(SHELLS.map(f => [f[0], '🏖️ Strand'])), ...Object.fromEntries(SEA.map(f => [f[0], '🤿 Tauchen'])),
         ...Object.fromEntries(BUGS.map(b => [b[0], b[4].map(x => SEASONS[x][1]).join('') + (b[5] === 'night' ? ' 🌙' : b[5] === 'day' ? ' ☀️' : '')])),
         ...Object.fromEntries(FOSSILS.map(f => [f[0], 'Ausgraben'])) };
       const sec = (t, ids) => `<h3>${t}</h3><div class="album">${ids.map(id => s.album[id]
         ? `<div class="got" title="${ITEMS[id].name}"><span>${ITEMS[id].icon}</span><small>${ITEMS[id].name}</small><i>${s.album[id]}×</i></div>`
         : `<div title="${info[id] || ''}"><span>❔</span><small>${info[id] || '???'}</small></div>`).join('')}</div>`;
       return `<div class="note">Alles, was ihr fangt und ausgrabt, wird hier eingetragen. Gesammelt: <b>${n}/${all}</b></div><div class="bar"><i style="width:${n / all * 100}%"></i></div>` +
-        sec('🎣 Fische', ALBUM.fish) + sec('🦋 Insekten', ALBUM.bug) + sec('🦴 Funde', ALBUM.fossil) + sec('🐚 Muscheln', ALBUM.shell);
+        sec('🎣 Fische', ALBUM.fish) + sec('🤿 Meerestiere', ALBUM.sea) + sec('🦋 Insekten', ALBUM.bug) + sec('🦴 Funde', ALBUM.fossil) + sec('🐚 Muscheln', ALBUM.shell);
     }
     if (tab === 'stats') {
       const st = s.stats, pct = Math.round(s.xp / needXp(s.level) * 100);
@@ -244,11 +246,13 @@ const PANELS = {
     return h + `<div class="note">Bisheriger Börsen-Gewinn: ${money(s.stats.turnipProfit || 0)}</div>`;
   },
   recipes(s) {
-    let h = '<div class="note">Alle Baupläne und Rezepte. Bauen könnt ihr an der 🔨 Werkbank neben eurem Haus, kochen in der 🍳 Gartenküche.</div>';
+    const known = DIY_IDS.filter(k => s.recipes?.[k]).length;
+    let h = `<div class="note">Bauen könnt ihr an der 🔨 Werkbank neben eurem Haus, kochen in der 🍳 Gartenküche. Baupläne gelernt: <b>${known}/${DIY_IDS.length}</b> – neue findet ihr in der 🍾 Flaschenpost am Strand, in 🎈 Geschenkballons oder bekommt sie von Nachbarn.</div><div class="bar"><i style="width:${known / DIY_IDS.length * 100}%"></i></div>`;
     for (const [st, t] of [['craft', '🔨 Werkbank'], ['cook', '🍳 Gartenküche']]) {
       h += `<h3>${t}</h3>`;
-      for (const r of Object.values(RECIPES)) {
+      for (const [rid, r] of Object.entries(RECIPES)) {
         if (r.st !== st) continue;
+        if (st === 'craft' && !s.recipes?.[rid]) continue;
         const it = ITEMS[r.out], can = Object.entries(r.in).every(([k, n]) => (s.inv[k] || 0) >= n);
         h += row(it.icon, `${r.n > 1 ? r.n + '× ' : ''}${it.name}${(r.lvl || 1) > s.level ? lvTag(r.lvl) : ''}`, Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#a08a76'}">${ITEMS[k].icon} ${s.inv[k] || 0}/${n}</span>`).join(' · '), can ? '<span class="lv">✓ bereit</span>' : '');
       }
@@ -257,7 +261,7 @@ const PANELS = {
   },
   museum(s) {
     const n = Object.keys(s.museum || {}).length;
-    let h = `<div class="note">Hier stellt ihr eure Fische 🐟, Insekten 🦋 und Fossilien 🦴 aus – jedes Stück einmal. Ausgestellt: <b>${n}/${MUSEUM_ALL.length}</b></div><div class="bar"><i style="width:${n / MUSEUM_ALL.length * 100}%"></i></div>`;
+    let h = `<div class="note">Hier stellt ihr eure Fische 🐟, Meerestiere 🤿, Insekten 🦋 und Fossilien 🦴 aus – jedes Stück einmal. Ausgestellt: <b>${n}/${MUSEUM_ALL.length}</b></div><div class="bar"><i style="width:${n / MUSEUM_ALL.length * 100}%"></i></div>`;
     const can = MUSEUM_ALL.filter(id => !s.museum?.[id] && s.inv[id] > 0);
     if (can.length) {
       h += '<h3>🎁 Kann ausgestellt werden</h3>';
@@ -266,7 +270,7 @@ const PANELS = {
     const sec = (t, ids) => `<h3>${t} <span class="lv">${ids.filter(id => s.museum?.[id]).length}/${ids.length}</span></h3><div class="album">${ids.map(id => s.museum?.[id]
       ? `<div class="got" title="${ITEMS[id].name}"><span>${ITEMS[id].icon}</span><small>${ITEMS[id].name}</small></div>`
       : `<div><span>❔</span><small>???</small></div>`).join('')}</div>`;
-    return h + sec('🐟 Aquarium', MUSEUM.fish) + sec('🦋 Insektenhaus', MUSEUM.bug) + sec('🦴 Fossilienhalle', MUSEUM.fossil);
+    return h + sec('🐟 Aquarium', MUSEUM.fish) + sec('🤿 Meeresbecken', MUSEUM.sea) + sec('🦋 Insektenhaus', MUSEUM.bug) + sec('🦴 Fossilienhalle', MUSEUM.fossil);
   },
   craft: (s, g) => recipes(s, 'craft'),
   cook: (s, g) => recipes(s, 'cook'),
@@ -297,9 +301,9 @@ const PANELS = {
 
 function recipes(s, st) {
   let h = st === 'cook' ? '<div class="note">Aus Obst, Gemüse, Fisch und Zutaten aus dem Laden werden leckere Gerichte – die bringen viel mehr Taler und sind tolle Geschenke für die Nachbarn.</div>'
-    : '<div class="note">Heimwerken: Holz 🪵 (Axt an Bäumen), Äste 🥢 (Bäume schütteln), Steine 🪨, Lehm 🧱 und Eisen 🔩 (Schaufel an Felsen).</div>';
+    : `<div class="note">Heimwerken: Holz 🪵 (Axt an Bäumen), Äste 🥢 (Bäume schütteln), Steine 🪨, Lehm 🧱 und Eisen 🔩 (Schaufel an Felsen). Ihr kennt <b>${DIY_IDS.filter(k => s.recipes?.[k]).length}/${DIY_IDS.length}</b> Baupläne – neue gibt's in der 🍾 Flaschenpost am Strand!</div>`;
   for (const [id, r] of Object.entries(RECIPES)) {
-    if (r.st !== st) continue;
+    if (r.st !== st || (st === 'craft' && !s.recipes?.[id])) continue;
     const it = ITEMS[r.out], locked = (r.lvl || 1) > s.level, can = Object.entries(r.in).every(([k, n]) => (s.inv[k] || 0) >= n);
     const need = Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#d64545'}">${ITEMS[k].icon} ${s.inv[k] || 0}/${n}</span>`).join(' · ');
     h += row(it.icon, `${r.n > 1 ? r.n + '× ' : ''}${it.name}${locked ? lvTag(r.lvl) : ''}`, need + (it.sell ? ` · Wert ${money(price(s, r.out))}` : ''), btn(st === 'cook' ? 'Kochen' : 'Bauen', { t: 'craft', id }, 'pink', locked || !can), locked);
@@ -349,7 +353,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily]);
     if (sig === this.sig) return;
     this.sig = sig;
     const body = $('pbody'), y = body.scrollTop;

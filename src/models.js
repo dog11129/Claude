@@ -251,3 +251,28 @@ export function balloon() {
     return p;
   });
 }
+
+// Gegenstände, die auf dem Boden liegen (eigene, einfache Formen): Obst, Äste, Holz, Steine, Geldsack, Geschenk, Blatt (Möbel), Flaschenpost
+const GROUND_FRUIT = { apfel: 0xff3b3b, kirsche: 0xd8102c, orange: 0xffa21f, pfirsich: 0xffa98a, birne: 0xd6dc4a, kokosnuss: 0x7a4e2e };
+export function groundItem(kind) {
+  return cachedModel('g' + kind, () => {
+    if (GROUND_FRUIT[kind]) {
+      const c = GROUND_FRUIT[kind];
+      if (kind === 'kirsche') return [ball(0.09, c, -0.06, 0.09, 0, 1, 1, 1, 9), ball(0.09, c, 0.07, 0.09, 0.02, 1, 1, 1, 9), cyl(0.008, 0.008, 0.16, 0x5a8a3a, 0, 0.22, 0, 4, 0, 0, 0.3)];
+      return [ball(kind === 'kokosnuss' ? 0.17 : 0.15, c, 0, 0.14, 0, 1, kind === 'birne' ? 1.25 : 0.95, 1, 11), cyl(0.012, 0.015, 0.07, 0x6b4a2a, 0, 0.3, 0, 5), ball(0.05, 0x6cc04a, 0.05, 0.3, 0, 1.6, 0.4, 0.8, 6)];
+    }
+    if (kind === 'ast') return [cyl(0.03, 0.04, 0.6, 0x8a5a36, 0, 0.04, 0, 6, 0, 0, Math.PI / 2), cyl(0.02, 0.025, 0.22, 0x8a5a36, 0.12, 0.06, 0.08, 5, 0, -0.8, Math.PI / 2), ball(0.05, 0x6cc04a, -0.25, 0.06, 0, 1.4, 0.5, 1, 6)];
+    if (kind === 'holz') return [cyl(0.12, 0.12, 0.5, 0xa8743f, 0, 0.12, 0, 10, 0, 0, Math.PI / 2), cyl(0.1, 0.1, 0.51, 0xe8c48e, 0, 0.12, 0, 10, 0, 0, Math.PI / 2), cyl(0.12, 0.12, 0.48, 0xa8743f, 0, 0.12, 0, 10, 0, 0, Math.PI / 2)];
+    if (kind === 'stein' || kind === 'lehm' || kind === 'eisen') {
+      const c = kind === 'stein' ? 0x9a958e : kind === 'lehm' ? 0xc07a4e : 0x7d8694;
+      return [ball(0.16, c, 0, 0.1, 0, 1.2, 0.7, 1, 6), ...(kind === 'eisen' ? [ball(0.05, 0xdfe6ee, 0.06, 0.18, 0.05, 1, 1, 1, 5)] : [])];
+    }
+    if (kind === 'money') return [ball(0.2, 0xd8b27a, 0, 0.18, 0, 1, 1.05, 1, 10), cyl(0.06, 0.09, 0.08, 0xc89a5e, 0, 0.38, 0, 8), ball(0.08, 0xffd23f, 0, 0.18, 0.18, 1, 1, 0.3, 10), box(0.2, 0.03, 0.03, 0xa8743f, 0, 0.35, 0)];
+    if (kind === 'present') return [box(0.34, 0.28, 0.34, 0xff8fab, 0, 0.14, 0), box(0.36, 0.06, 0.08, 0xffffff, 0, 0.14, 0), box(0.08, 0.29, 0.36, 0xffffff, 0, 0.14, 0), ball(0.07, 0xffffff, -0.06, 0.31, 0, 1, 0.6, 1, 6), ball(0.07, 0xffffff, 0.06, 0.31, 0, 1, 0.6, 1, 6)];
+    if (kind === 'bottle') return [cyl(0.08, 0.08, 0.32, 0xbfe8d8, 0, 0.08, 0, 10, 0, 0, Math.PI / 2 - 0.15), cyl(0.035, 0.05, 0.1, 0xbfe8d8, 0.2, 0.11, 0, 8, 0, 0, Math.PI / 2 - 0.15), cyl(0.03, 0.03, 0.05, 0xa8743f, 0.26, 0.12, 0, 6, 0, 0, Math.PI / 2), box(0.18, 0.08, 0.02, 0xfff3dc, -0.02, 0.09, 0)];
+    if (kind === 'diy') return [box(0.36, 0.02, 0.26, 0xfff3dc, 0, 0.02, 0), box(0.2, 0.025, 0.03, 0xe0605a, 0, 0.03, -0.05), box(0.24, 0.025, 0.02, 0x8fd694, 0, 0.03, 0.04)];
+    // Blatt: Platzhalter für Möbel & Deko
+    const p = [ball(0.2, 0x7ccf5a, 0, 0.06, 0, 1.25, 0.22, 0.75, 10), ball(0.12, 0x9fdc7a, 0.06, 0.08, 0, 1.2, 0.18, 0.6, 8), cyl(0.012, 0.012, 0.32, 0x4f9a3a, 0, 0.09, 0, 4, 0, 0, Math.PI / 2)];
+    return p;
+  });
+}

@@ -10,6 +10,7 @@ const freeTile = (s, from = [-6, 2]) => {
   for (let r = 0; r < 20; r++) for (let x = from[0] - r; x <= from[0] + r; x++) for (let z = from[1] - r; z <= from[1] + r; z++) if (canPlace(s, x, z)) return [x, z];
   throw new Error('kein Platz');
 };
+const pickAll = s => { for (const k of Object.keys(s.ground)) { const [x, z] = k.split(',').map(Number); if (s.ground[k].id !== 'bottle') act(s, { t: 'pick', x, z }); } };
 const firstRes = kind => Object.keys(RES_SPOTS).find(k => RES_SPOTS[k] === kind).split(',').map(Number);
 
 test('Insel: Wasser, Brücken, Steg, Startpunkt', () => {
@@ -84,14 +85,18 @@ test('Bäume schütteln: Obst, wächst nach drei Tagen nach', () => {
   const r = resolve(s, { x, z: z - 0.9, ry: 0 }, 'hand');
   assert.equal(r.a.t, 'shake');
   assert.ok(act(s, r.a).ok);
+  assert.equal(Object.values(s.ground).filter(g => g.id === fruit).length, 3, 'Obst fällt auf den Boden');
+  pickAll(s);
   assert.equal(s.inv[fruit], 3);
   assert.equal(fruitReady(s, k), false);
   act(s, { t: 'shake', x, z }); // danach höchstens Äste & Co.
+  pickAll(s);
   assert.equal(s.inv[fruit], 3);
   for (let i = 0; i < 3; i++) tick(s, DAY, true);
   assert.ok(fruitReady(s, k), 'nach 3 Tagen wieder Obst');
   const [px, pz] = firstRes('palm');
   act(s, { t: 'shake', x: px, z: pz });
+  pickAll(s);
   assert.equal(s.inv.kokosnuss, 2);
 });
 
@@ -100,13 +105,16 @@ test('Holz, Felsen, Muscheln, Unkraut, Ausgraben, Insekten, Kochen & Werkeln', (
   const tree = firstRes('tree');
   for (let i = 0; i < 3; i++) assert.ok(act(s, { t: 'chop', x: tree[0], z: tree[1] }).ok);
   assert.equal(act(s, { t: 'chop', x: tree[0], z: tree[1] }).ok, false, 'nur 3× pro Tag');
+  pickAll(s);
   assert.ok(s.inv.holz >= 3);
   const rocks = Object.keys(RES_SPOTS).filter(k => RES_SPOTS[k] === 'rock');
   const normal = rocks.find(k => k !== s.rock).split(',').map(Number), lucky = s.rock.split(',').map(Number);
   assert.ok(act(s, { t: 'mine', x: normal[0], z: normal[1] }).ok);
+  pickAll(s);
   assert.ok((s.inv.stein || 0) + (s.inv.lehm || 0) + (s.inv.eisen || 0) === 1);
   const m = s.money;
   assert.ok(act(s, { t: 'mine', x: lucky[0], z: lucky[1] }).ok);
+  pickAll(s);
   assert.ok(s.money > m, 'Glücksfelsen gibt Taler');
   const [sx, sz] = Object.keys(s.shells)[0].split(',').map(Number), shell = s.shells[key(sx, sz)];
   assert.equal(resolve(s, { x: sx, z: sz - 0.9, ry: 0 }, 'net').a?.t, 'pick', 'Muschel mit jedem Werkzeug aufheben');
@@ -197,7 +205,9 @@ test('Doppeltipp kauft/liefert nicht doppelt', () => {
 test('Erfolge werden einmal vergeben und belohnt', () => {
   const s = newFarm();
   const [x, z] = firstRes('tree');
-  const money = s.money, out = act(s, { t: 'shake', x, z });
+  act(s, { t: 'shake', x, z });
+  const k = Object.keys(s.ground).find(k => s.ground[k].id !== 'bottle'), [gx, gz] = k.split(',').map(Number);
+  const money = s.money, out = act(s, { t: 'pick', x: gx, z: gz });
   assert.deepEqual(out.ach, ['obst1']);
   assert.equal(s.money, money + ACHIEVEMENTS.find(a => a.id === 'obst1').reward);
   for (const a of ACHIEVEMENTS) a.test(newFarm()); // keine Ausnahme bei leerer Insel
@@ -277,9 +287,9 @@ test('Geschenkballon: kommt tagsüber, mit der Schleuder abschießen', async () 
   assert.ok(p.y > 2);
   const r = resolve(s, { x: p.x, z: p.z, ry: 0 }, 'sling');
   assert.equal(r.a?.t, 'pop');
-  const m = s.money, inv = JSON.stringify(s.inv);
-  assert.ok(act(s, r.a).ok);
-  assert.ok(s.money > m || JSON.stringify(s.inv) !== inv, 'Geschenk erhalten');
+  const ground = Object.keys(s.ground).length, out = act(s, r.a);
+  assert.ok(out.ok);
+  assert.ok(Object.keys(s.ground).length === ground + 1 || /Wasser/.test(out.msg), 'Geschenk fällt herunter (oder ins Wasser)');
   assert.equal(s.balloon, null);
   assert.equal(act(s, r.a).ok, false, 'nicht doppelt');
 });
@@ -295,6 +305,8 @@ test('Sternschnuppen: Wünsche werden zu Sternsplittern', () => {
   assert.equal(Object.values(s.shells).filter(v => v === 'sternsplitter').length, 4);
   assert.equal(s.wishes, 0);
   s.inv.sternsplitter = 3; s.inv.eisen = 1;
+  assert.equal(act(s, { t: 'craft', id: 'r_sternlampe' }).ok, false, 'Bauplan unbekannt');
+  s.recipes.r_sternlampe = 1;
   assert.ok(act(s, { t: 'craft', id: 'r_sternlampe' }).ok);
 });
 
@@ -342,4 +354,44 @@ test('Echte Uhrzeit: Uhr folgt dem Gerät, um Mitternacht beginnt ein neuer Tag'
   const d = s.day;
   realClock(s, new Date(2026, 10, 25, 0, 30));
   assert.equal(s.day, d + 1);
+});
+
+test('Flaschenpost & Baupläne', async () => {
+  const { DIY_IDS, STARTER_DIY } = await import('../src/data.js');
+  const s = newFarm();
+  assert.equal(Object.keys(s.recipes).length, STARTER_DIY.length);
+  const bk = Object.keys(s.ground).find(k => s.ground[k].id === 'bottle');
+  assert.ok(bk, 'Flaschenpost am Strand');
+  const [x, z] = bk.split(',').map(Number);
+  assert.match(resolve(s, { x, z: z - 0.9, ry: 0 }, 'axe').label, /Flaschenpost/);
+  const out = act(s, { t: 'pick', x, z });
+  assert.ok(out.ok && out.learned && s.recipes[out.learned], 'Bauplan gelernt');
+  assert.ok(DIY_IDS.includes(out.learned));
+  s.inv.holz = 99; s.inv.stein = 99;
+  assert.equal(act(s, { t: 'craft', id: 'f_kamin' }).ok, !!s.recipes.f_kamin);
+});
+
+test('Schwimmen & Tauchen mit Neoprenanzug', async () => {
+  const { swimmable } = await import('../src/state.js');
+  const s = newFarm();
+  assert.equal(s.dives.length, 8);
+  const d = s.dives[0];
+  assert.ok(swimmable(d.x, d.z));
+  assert.ok(blocked(s, d.x, d.z), 'ohne Anzug kein Schwimmen');
+  assert.ok(!blocked(s, d.x, d.z, true), 'mit Anzug im Meer');
+  assert.ok(blocked(s, riverX(3), 3, true), 'Fluss bleibt gesperrt');
+  const r = resolve(s, { x: d.x, z: d.z, ry: 0, sw: true }, 'hand');
+  assert.equal(r.a.t, 'dive');
+  const out = act(s, r.a);
+  assert.ok(out.ok && ITEMS[out.caught]);
+  assert.equal(s.dives.length, 8, 'neue Luftblasen tauchen auf');
+  assert.equal(act(s, r.a).ok, false);
+});
+
+test('Angeln: Schattengröße bestimmt den Fisch', () => {
+  const s = newFarm();
+  s.up.rod = 3; s.day = 8; // Sommer
+  for (let i = 0; i < 30; i++) assert.equal(act(s, { t: 'fish', x: 0, z: 26, size: 6 }).caught, 'hai', 'Flosse = Hai (im Sommer)');
+  s.day = 1; // Frühling: keine Haie – dann irgendein Meeresfisch
+  assert.ok(act(s, { t: 'fish', x: 0, z: 26, size: 6 }).ok);
 });

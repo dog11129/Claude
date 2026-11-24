@@ -568,6 +568,9 @@ export class World {
       leaf: [12, [0x7cc96a, 0xb6e07a, 0xffe066], 2, 3, 7, 0.06, 0.9, 0.3],
       fruit: [14, [0x6cc04a, 0x8fdc72, 0xff5d5d, 0xffd23f], 2.2, 1.5, 7, 0.07, 1.0, 1.8],
       mist: [2, [0xffffff, 0xe6f6ff], 0.5, 0.8, -0.2, 0.18, 1.4, 0.1],
+      plop: [6, [0xe8dcc6, 0xffffff], 1.0, 1.6, 6, 0.05, 0.5, 0.2],
+      bubble: [1, [0xffffff, 0xdff6ff], 0.15, 0.4, -0.6, 0.06, 0.9, -0.2],
+      ripple: [2, [0xffffff, 0xcfeeff], 0.9, 0.6, 5, 0.04, 0.45, -0.2],
       sparkle: [1, [0xfff3a8, 0xffffff], 0.3, 0.8, -0.4, 0.035, 1.1, 0.5],
       seed: [6, [0xc9a46b, 0x8a5a3a], 1.1, 2, 9, 0.04, 0.5, 0.5],
       dust: [10, [0xe8dcc6, 0xffffff], 1.6, 0.8, 1, 0.08, 0.7, 0.15],
@@ -637,21 +640,50 @@ export class World {
     this.fishM.renderOrder = 0;
     const r = rng(99);
     this.fishData = Array.from({ length: 20 }, (_, i) => {
-      if (i < 7) return { k: 'river', z0: -13 + r() * 30, p: r() * 100, s: 0.25 + r() * 0.5 };
-      if (i < 9) return { k: 'pond', p: r() * 100, s: 0.3 + r() * 0.4 };
+      const size = 1 + Math.floor(r() * 5);
+      if (i < 7) return { k: 'river', z0: -13 + r() * 30, p: r() * 100, s: 0.25 + r() * 0.5, size };
+      if (i < 9) return { k: 'pond', p: r() * 100, s: 0.3 + r() * 0.4, size: 1 + Math.floor(r() * 3) };
       const a = r() * Math.PI * 2;
-      return { k: 'sea', a, p: r() * 100, s: 0.3 + r() * 0.8 };
+      return { k: 'sea', a, p: r() * 100, s: 0.3 + r() * 0.8, size: r() < 0.12 ? 6 : size };
     });
     this.scene.add(this.fishM);
+  }
+  fishSize(f) { return f.size === 6 ? 0.55 : 0.12 + f.size * 0.07; }
+  // Angeln: nächster Fischschatten beim Schwimmer (gleiches Gewässer) beißt an
+  hookFish(x, z, kind) {
+    let best = -1, bd = 4.5;
+    this.fishData.forEach((f, i) => { if (f.hook || f.gone > this.time || f.k !== kind || f.x === undefined) return; const d = Math.hypot(f.x - x, f.z - z); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) this.fishData[best].hook = { x, z, nib: false };
+    return best;
+  }
+  fishAt(i) { return this.fishData[i]; }
+  releaseFish(i, caught) {
+    const f = this.fishData[i];
+    if (!f) return;
+    f.hook = null;
+    if (caught) { f.gone = this.time + 30; f.size = 1 + Math.floor(Math.random() * 5); if (f.k === 'sea' && Math.random() < 0.12) f.size = 6; }
+    else f.p += 20; // schwimmt erschrocken weg
   }
   updateFish() {
     const d = this.dummy, t = this.time;
     this.fishData.forEach((f, i) => {
       let x, z, yaw;
+      if (f.gone > t) { d.position.set(0, -50, 0); d.updateMatrix(); this.fishM.setMatrixAt(i, d.matrix); return; }
+      if (f.hook) { // schwimmt zum Köder und knabbert
+        const h = f.hook, dx = h.x - f.x, dz = h.z - f.z, dist = Math.hypot(dx, dz), want = 0.35 + (h.nib ? Math.max(0, Math.sin(t * 9)) * 0.15 : 0);
+        if (dist > want) { const st = Math.min(dist - want, this.dt * (h.fast ? 2.4 : 0.9)); f.x += dx / dist * st; f.z += dz / dist * st; }
+        f.yaw = Math.atan2(dx, dz);
+        const sz = this.fishSize(f);
+        d.position.set(f.x, SEA_Y - 0.06, f.z); d.rotation.set(0, f.yaw, 0); d.scale.set(sz * 0.55, 1, sz); d.updateMatrix();
+        this.fishM.setMatrixAt(i, d.matrix);
+        f.dist = dist;
+        return;
+      }
       if (f.k === 'river') { z = f.z0 + Math.sin(t * 0.05 * f.s + f.p) * 2.5; x = riverX(z) + Math.sin(t * 0.3 + f.p) * 0.35; yaw = Math.cos(t * 0.05 * f.s + f.p) > 0 ? 0 : Math.PI; }
       else if (f.k === 'pond') { const a = t * 0.12 * f.s + f.p; x = POND.cx + Math.cos(a) * 1.1; z = POND.cz + Math.sin(a) * 0.9; yaw = -a; }
       else { const a = f.a + Math.sin(t * 0.02 * f.s + f.p) * 0.12, R = 24.5 + Math.sin(t * 0.2 + f.p) * 1.2; x = Math.cos(a) * R; z = Math.sin(a) * R; for (let k = 0; k < 6 && coast(x, z) < 1.2; k++) { x *= 1.06; z *= 1.06; } yaw = a; }
-      const sz = (f.k === 'sea' ? 0.32 : 0.2) * (0.7 + f.s * 0.6);
+      const sz = this.fishSize(f);
+      f.x = x; f.z = z;
       d.position.set(x, SEA_Y - 0.06, z);
       d.rotation.set(0, yaw, 0);
       d.scale.set(sz * 0.55, 1, sz);
@@ -1034,6 +1066,33 @@ export class World {
     for (const [t, m] of Object.entries(this.pathM)) { m.count = n[t] || 0; m.instanceMatrix.needsUpdate = true; }
   }
 
+  // ---------- Gegenstände am Boden (fallen herunter, man hebt sie auf) ----------
+  syncGround(s) {
+    this.groundM ||= new Map();
+    const seen = new Set();
+    for (const [k, g] of Object.entries(s.ground || {})) {
+      const kind = g.id === 'bottle' || g.id === 'diy' || g.id === 'money' ? g.id : g.box ? 'present' : ITEMS[g.id]?.furn || ITEMS[g.id]?.place ? 'leaf' : g.id, sig = k + kind;
+      seen.add(sig);
+      let e = this.groundM.get(sig);
+      if (!e) {
+        const [x, z] = k.split(',').map(Number), m = M.groundItem(kind);
+        m.position.set(x, 0.02, z);
+        m.rotation.y = (x * 2.3 + z * 1.7) % 6.28;
+        this.scene.add(m);
+        e = { m, x, z, born: this.time };
+        this.groundM.set(sig, e);
+      }
+      const t = this.time - e.born; // kurzer Hüpfer beim Herunterfallen
+      e.m.position.y = 0.02 + (t < 0.6 ? Math.abs(Math.sin(t * 10)) * 0.5 * (1 - t / 0.6) : 0);
+    }
+    for (const [sig, e] of this.groundM) if (!seen.has(sig)) { this.scene.remove(e.m); this.groundM.delete(sig); this.burst(e.x, e.z, 'sparkle', 0.2); }
+    // Luftblasen über den Meerestieren
+    if (this.time > (this.nextBubble || 0)) {
+      this.nextBubble = this.time + 0.18;
+      for (const d of s.dives || []) if (Math.random() < 0.5 && Math.abs(d.x - this.target.x) < 22 && Math.abs(d.z - this.target.z) < 22) this.burst(d.x + (Math.random() - 0.5) * 0.3, d.z + (Math.random() - 0.5) * 0.3, 'bubble', SEA_Y);
+    }
+  }
+
   // ---------- Geschenkballon ----------
   syncBalloon(s) {
     if (!this.balloonM) { this.balloonM = M.balloon(); this.scene.add(this.balloonM); }
@@ -1150,15 +1209,19 @@ export class World {
       e.z += (p.z - e.z) * k;
       e.ry += angDiff(e.ry, p.ry) * Math.min(1, dt * 15);
       const v = Math.hypot(e.x - ox, e.z - oz) / Math.max(dt, 1e-3);
-      e.speed += ((local ? (p.m ? 1 : 0) : Math.min(1, v / 3.5)) - e.speed) * Math.min(1, dt * 10);
+      e.speed += ((local ? (p.m ? 1 : 0) : Math.min(1, v / (p.run ? 5.5 : 3.5))) - e.speed) * Math.min(1, dt * 10);
       if (p.an !== e.an) { e.an = p.an; e.ak = p.ak; e.actT = 0; }
       e.actT = Math.min(1, e.actT + dt / 0.45);
       const fishing = p.ak === 'fish' && p.fishing;
       if (e.held !== p.held) { e.held = p.held; e.m.userData.setHeld(p.held || null); }
-      e.m.position.set(e.x, 0, e.z);
+      const sw = p.sw ? 1 : 0;
+      e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
+      e.m.position.set(e.x, -0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0), e.z);
       e.m.rotation.y = e.ry;
+      e.m.visible = p.pose !== 'dive';
+      if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
       const emote = p.emoteUntil > now ? p.emote : null;
-      e.m.userData.update(dt, { speed: p.pose ? 0 : e.speed, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: p.pose || null, emote, time: this.time });
+      e.m.userData.update(dt, { speed: p.pose ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
 
       if (e.pet) { // Haustier läuft hinterher und setzt sich neben dich
         const side = p.pose ? 0.7 : 0.55, back = p.pose ? 0 : 0.85;
@@ -1172,7 +1235,7 @@ export class World {
         e.pet.userData.update(dt, { speed: Math.min(1, sp / 3), time: this.time });
       }
 
-      const top = (HAT_TOP[p.look.hat] || 1.45) - (p.pose ? 0.35 : 0); // Kopf-/Hutoberkante der Figur
+      const top = (HAT_TOP[p.look.hat] || 1.45) - (p.pose ? 0.35 : 0) - (p.sw ? 0.75 : 0); // Kopf-/Hutoberkante der Figur
       if (showNames) this.tag('pn' + p.id, esc(p.name), e.x, top + 0.22, e.z, 'name' + (local ? ' me' : ''));
       if (p.chatUntil > now) this.tag('pc' + p.id, esc(p.chat), e.x, top + 0.6, e.z, 'chat');
       if (emote) this.tag('pe' + p.id, emote, e.x, top + (p.chatUntil > now ? 1.35 : 0.75), e.z, 'emote');
@@ -1225,6 +1288,7 @@ export class World {
     this.syncAnimals(s);
     this.syncNature(s);
     this.syncPaths(s);
+    this.syncGround(s);
     this.syncBalloon(s);
     this.syncNpcs(s, dt);
     this.syncHome(s);
@@ -1345,7 +1409,7 @@ export class World {
 
     // Angel-Schwimmer
     this.bobber.visible = !!opt.bobber;
-    if (opt.bobber) this.bobber.position.set(opt.bobber.x, opt.bobber.bite ? -0.3 + Math.sin(this.time * 30) * 0.05 : -0.16 + Math.sin(this.time * 3) * 0.03, opt.bobber.z);
+    if (opt.bobber) this.bobber.position.set(opt.bobber.x, opt.bobber.bite ? -0.34 + Math.sin(this.time * 30) * 0.05 : opt.bobber.nib ? -0.22 : -0.16 + Math.sin(this.time * 3) * 0.03, opt.bobber.z);
 
     this.draw();
 

@@ -305,10 +305,15 @@ export function makeAvatar(look) {
     const t = { ...REST }, s = cl(st.speed || 0), a = cl(st.actT || 0), e = Math.sin(Math.PI * a);
     let eye = 1;
     // Gehen + Atmen
-    if (s > 0.01) ph += dt * (5 + 11 * s);
+    if (s > 0.01) ph += dt * (5 + 11 * s) * (st.run ? 1.5 : 1);
     const sw = Math.sin(ph) * s, br = Math.sin(T * 2.2);
     t.lLx = sw * 0.75; t.lRx = -sw * 0.75; t.aLx = -sw * 0.8; t.aRx = sw * 0.8;
     t.y = Math.abs(Math.cos(ph)) * 0.05 * s; t.rz = Math.sin(ph) * 0.04 * s; t.tx = 0.08 * s;
+    if (st.run) { t.tx = 0.22 * s; t.aLz += 0.25; t.aRz += 0.25; t.y *= 1.6; }
+    if (st.swim) { // Kraulen: Arme drehen, Kopf über Wasser
+      const w = T * (3 + 4 * s);
+      t.aLx = Math.sin(w) * 1.5 - 1.0; t.aRx = Math.sin(w + Math.PI) * 1.5 - 1.0; t.aLz = t.aRz = 0.35; t.tx = 0.15 + 0.2 * s; t.lLx = t.lRx = 0; t.y = 0;
+    }
     t.aLz += br * 0.03; t.aRz += br * 0.03; t.hx = br * 0.02;
     if (held === 'box') { t.aLx = t.aRx = -0.85; t.aLz = t.aRz = -0.25; }
     if (st.pose === 'sit') { t.y = 0.13; t.rz = 0; t.tx = 0; t.lLx = t.lRx = -1.45; t.lLz = t.lRz = 0.08; t.aLx = t.aRx = -0.35; }

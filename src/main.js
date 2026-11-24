@@ -1,7 +1,8 @@
 // Spielablauf: Menü, Steuerung, Host/Gast-Logik, Speichern.
 import { World, esc, cropInfo } from './world.js';
 import * as S from './state.js';
-import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT, PAVE, WEEKDAYS, weekday } from './data.js';
+import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT, PAVE, WEEKDAYS, weekday, FOSSILS } from './data.js';
+const FOSSIL_IDS = FOSSILS.map(f => f[0]);
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience, blip, musicFor } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
@@ -66,7 +67,7 @@ $('coverbtn').onclick = () => leave();
 
 // ---------- Spieler & Sitzung ----------
 const cleanProfile = p => ({ name: String(p?.name || '').trim().slice(0, 16) || 'Gast', look: cleanLook(p?.look || p) });
-const newPlayer = (id, p) => ({ id, ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: null, pose: null, fishing: false });
+const newPlayer = (id, p) => ({ id, ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: null, pose: null, fishing: false, run: false, sw: false });
 const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hand', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0, get myName() { return profile.name; } });
 
 // Gast-Kopien liegen unter eigenem Schlüssel, damit sie nie die eigene Farm überschreiben.
@@ -122,15 +123,17 @@ function hostData(id, d) {
   if (!p) return;
   if (d.t === 'm' && [d.x, d.z, d.ry].every(Number.isFinite)) {
     const home = d.x > S.HOME_X / 2; // drinnen liegt das Haus bei x = HOME_X
-    p.x = home ? Math.max(S.HOME_X - 8, Math.min(S.HOME_X + 8, d.x)) : Math.max(-MAP, Math.min(MAP, d.x));
-    p.z = Math.max(-MAP, Math.min(MAP, d.z));
+    p.x = home ? Math.max(S.HOME_X - 8, Math.min(S.HOME_X + 8, d.x)) : Math.max(-MAP - 6, Math.min(MAP + 6, d.x));
+    p.z = Math.max(-MAP - 6, Math.min(MAP + 6, d.z));
     p.ry = d.ry;
     p.m = !!d.m;
     p.ak = ACTS.includes(d.ak) ? d.ak : null;
     p.an = Number.isInteger(d.an) ? d.an : 0;
     p.held = HELD.includes(d.held) ? d.held : null;
-    p.pose = d.pose === 'sit' || d.pose === 'sleep' ? d.pose : null;
+    p.pose = d.pose === 'sit' || d.pose === 'sleep' || d.pose === 'dive' ? d.pose : null;
     p.fishing = d.fishing === true;
+    p.run = d.run === true;
+    p.sw = d.sw === true;
   }
   if (d.t === 'look') Object.assign(p, cleanProfile(d));
   if (d.t === 'act') handleAct(id, d.a);
@@ -163,7 +166,7 @@ function handleAct(id, a) {
   const out = S.act(G.s, a);
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -328,7 +331,8 @@ function onRes(r) {
   if (r.snd) play(r.snd);
   else if (r.msg && !r.ok) play('fail');
   if (r.msg) toast(r.msg);
-  if (r.caught) toast(`${ITEMS[r.caught].cat === 'fish' ? '🎣' : r.caught === 'kristall' || ['ammonit', 'knochen', 'zahn', 'abdruck', 'altmuenze', 'amphore', 'eiszapfen'].includes(r.caught) ? '⛏️' : '🦋'} ${ITEMS[r.caught].icon} ${ITEMS[r.caught].name}!`);
+  if (r.caught) toast(`${ITEMS[r.caught].cat === 'fish' ? '🎣' : ITEMS[r.caught].cat === 'bug' && !FOSSIL_IDS.includes(r.caught) ? '🦋' : '⛏️'} ${ITEMS[r.caught].icon} ${ITEMS[r.caught].name}!`);
+  if (r.learned) { play('level'); world.float(G.players[G.me].x, G.players[G.me].z, '📜✨', 2); }
   if (r.newAlbum) { toast(`📖 Neu im Sammelbuch: ${ITEMS[r.newAlbum].icon} ${ITEMS[r.newAlbum].name}`, 'ach'); play('ach'); }
 }
 function onLevel(l) {
@@ -439,7 +443,7 @@ function netTick() {
   } else {
     const me = G.players[G.me];
     if (!me || G.reconnecting || G.ended) return;
-    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing };
+    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw };
     const sig = JSON.stringify(msg);
     if (sig !== G.lastMove || now - (G.lastMoveT || 0) > 1000) { G.conn?.send(msg); G.lastMove = sig; G.lastMoveT = now; }
     if (now - G.lastHost > 9000) lostConnection();
@@ -949,6 +953,18 @@ function execute(r, fresh) {
   const me = G.players[G.me];
   if (r.npc === 'hoppel') { if (fresh) { interrupt(); panels.show('turnip'); world.npcSay('hoppel', 'happy'); world.npcBubble('hoppel', 'Rüben! Frische Rüben!'); play('chat'); } return; }
   if (r.npc) { if (fresh) openTalk(r.npc); return; }
+  if (r.dive) {
+    if (!fresh || me.pose === 'dive') return;
+    me.pose = 'dive';
+    world.burst(me.x, me.z, 'splash', -0.2); play('splash');
+    setTimeout(() => {
+      if (!G?.ready) return;
+      me.pose = null;
+      world.burst(me.x, me.z, 'splash', -0.2);
+      if (r.a) send(r.a); else toast('🫧 Nur Sand und Seegras da unten. Such nach Luftblasen!');
+    }, 1100);
+    return;
+  }
   if (r.wish) {
     if (!fresh || performance.now() < (G.wishCool || 0)) return;
     G.wishCool = performance.now() + 1500;
@@ -1209,42 +1225,72 @@ $('dialog').addEventListener('click', e => {
 });
 
 // ---------- Angeln ----------
+// Angeln wie man es kennt: Köder vor einen Fischschatten werfen – der Fisch schwimmt heran, knabbert ein paarmal,
+// dann taucht der Schwimmer richtig ab. Erst DANN ziehen! Zu früh gezogen = Fisch weg. Die Schattengröße verrät den Fisch.
+const waterOf = (x, z) => inPond(x, z) ? 'pond' : inRiver(x, z) && !onBridge(x, z) ? 'river' : 'sea';
 function startFishing(me) {
   const l = G.s.up.rod;
   let d = 1.8; // Schwimmer landet im Wasser (Fluss ist schmal)
   for (let t = 1.0; t <= 2.4; t += 0.2) if (isWater(me.x + Math.sin(me.ry) * t, me.z + Math.cos(me.ry) * t)) { d = t + 0.35; break; }
   if (!isWater(me.x + Math.sin(me.ry) * d, me.z + Math.cos(me.ry) * d)) d -= 0.35;
-  G.fishing = { phase: 'wait', t: 0, bite: (1.5 + Math.random() * 3.5) / (1 + (l - 1) * 0.35), win: 0.75 + l * 0.15, x: me.x + Math.sin(me.ry) * d, z: me.z + Math.cos(me.ry) * d };
+  const x = me.x + Math.sin(me.ry) * d, z = me.z + Math.cos(me.ry) * d;
+  G.fishing = { phase: 'wait', t: 0, x, z, kind: waterOf(x, z), fish: -1, nibbles: 1 + Math.floor(Math.random() * 3), win: 0.65 + l * 0.15, retry: 0 };
   me.fishing = true;
   animate('fish');
   play('splash');
+  world.burst(x, z, 'ripple', -0.2);
 }
-function stopFishing() {
+function stopFishing(caught) {
+  const f = G.fishing;
+  if (f && f.fish >= 0) world.releaseFish(f.fish, !!caught);
   G.fishing = null;
   G.players[G.me].fishing = false;
 }
 function reelIn() {
-  const f = G.fishing, me = G.players[G.me];
-  if (f.phase === 'bite') send({ t: 'fish', x: Math.round(f.x), z: Math.round(f.z) });
-  else { toast('🎣 Zu früh gezogen!'); play('fail'); }
-  stopFishing();
+  const f = G.fishing;
+  if (f.phase === 'bite') {
+    const size = world.fishAt(f.fish)?.size;
+    send({ t: 'fish', x: Math.round(f.x), z: Math.round(f.z), size });
+    stopFishing(true);
+  } else {
+    toast(f.phase === 'wait' ? '🎣 Eingeholt.' : '💨 Zu früh gezogen – der Fisch ist weggeschwommen!');
+    if (f.phase !== 'wait') play('fail');
+    stopFishing(false);
+  }
   animate('use');
   world.burst(f.x, f.z, 'water', 0.1);
 }
 function updateFishing(dt) {
-  const f = G.fishing;
-  $('fishbar').classList.toggle('hidden', !f);
+  const f = G.fishing, bar = $('fishbar');
+  bar.classList.toggle('hidden', !f);
   if (!f) return;
   f.t += dt;
+  bar.classList.toggle('bite', f.phase === 'bite');
   if (f.phase === 'wait') {
-    $('fishbar').textContent = '🎣 Warte auf einen Biss…';
-    $('fishbar').classList.remove('bite');
-    if (f.t >= f.bite) { f.phase = 'bite'; f.t = 0; play('bite'); world.burst(f.x, f.z, 'splash', 0.05); }
+    bar.textContent = '🎣 Warte, bis ein Fischschatten herankommt…';
+    if ((f.retry -= dt) <= 0) {
+      f.retry = 1;
+      f.fish = world.hookFish(f.x, f.z, f.kind);
+      if (f.fish >= 0) { f.phase = 'approach'; f.t = 0; }
+    }
+    if (f.t > 12) { stopFishing(); toast('🐟 Hier beißt nichts. Wirf den Köder direkt vor einen Fischschatten!'); }
+  } else if (f.phase === 'approach') {
+    bar.textContent = '👀 Ein Fisch schwimmt heran … noch nicht ziehen!';
+    const fish = world.fishAt(f.fish);
+    if (fish?.dist !== undefined && fish.dist < 0.75) { f.phase = 'nibble'; f.t = 0; f.nextNib = 0.6 + Math.random() * 0.8; fish.hook.nib = true; }
+    if (f.t > 9) { stopFishing(); toast('🐟 Der Fisch hatte keinen Hunger.'); }
+  } else if (f.phase === 'nibble') {
+    bar.textContent = '🫧 Er knabbert … warte …';
+    if (f.t >= f.nextNib) {
+      f.nibbles--; f.t = 0; f.nextNib = 0.7 + Math.random() * 1.1;
+      if (f.nibbles < 0) { f.phase = 'bite'; f.t = 0; play('bite'); world.burst(f.x, f.z, 'splash', -0.1); navigator.vibrate?.(120); }
+      else { f.nib = 0.25; play('click'); world.burst(f.x, f.z, 'ripple', -0.2); navigator.vibrate?.(25); }
+    }
   } else {
-    $('fishbar').textContent = touch ? '❗ JETZT tippen! ❗' : '❗ JETZT ziehen (E / Klick)! ❗';
-    $('fishbar').classList.add('bite');
-    if (f.t > f.win) { stopFishing(); toast('🐟 Der Fisch ist entwischt…'); play('fail'); }
+    bar.textContent = touch ? '❗ JETZT tippen! ❗' : '❗ JETZT ziehen (E / Klick)! ❗';
+    if (f.t > f.win) { stopFishing(false); toast('🐟 Der Fisch ist entwischt…'); play('fail'); }
   }
+  f.nib = Math.max(0, (f.nib || 0) - dt);
 }
 
 // Info-Zeile für das markierte Feld
@@ -1384,15 +1430,20 @@ function gameFrame(dt, now) {
   if (me.m && G.skyView) toggleSky(false);
   if (me.m) {
     if (me.pose) standUp(me);
-    const sp = SPEED[s.up.boots] * dt;
-    const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b));
+    const swim = (s.inv.neopren || 0) > 0 && !S.inside(me);
+    me.run = !me.sw && (keys.has('shift') || Math.hypot(joy.x, joy.y) > 0.92);
+    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.run ? 1.6 : 1);
+    const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b, swim));
     const stuck = !free(me.x, me.z);
     if (stuck || free(me.x + wx * sp, me.z)) me.x += wx * sp;
     if (stuck || free(me.x, me.z + wz * sp)) me.z += wz * sp;
     me.ry = Math.atan2(wx, wz);
     if (G.fishing) stopFishing();
     if (S.inside(me) && me.z > S.roomSize(s)[1] / 2 + 0.25) execute({ exit: true }, true); // durch die Tür hinaus
-  }
+  } else me.run = false;
+  const wasSw = me.sw;
+  me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit';
+  if (me.sw && !wasSw) { world.burst(me.x, me.z, 'splash', -0.2); play('splash'); if (!G.swimTip) { G.swimTip = 1; toast('🤿 Du schwimmst! Bei Luftblasen 🫧 Aktion drücken zum Tauchen.'); } }
   me.held = heldItem();
 
   // Ziel: Maus (wenn gerade bewegt), sonst Feld vor der Figur
@@ -1427,7 +1478,7 @@ function gameFrame(dt, now) {
   const info = world.render(s, ps, G.me, dt, {
     tiles: G.photo || editor.isOpen ? [] : shown?.tiles, hlOn: !!(shown?.a || shown?.ui || shown?.fish || shown?.sit || shown?.hug), hlBad: shown && !shown.a && !shown.ui && !shown.fish && !shown.sit && /kein|Nur|Erst/.test(shown.label || ''),
     prompt: G.photo || editor.isOpen ? null : prompt, photo: G.photo, hideNames: G.photo || !settings.names,
-    bobber: G.fishing && { x: G.fishing.x, z: G.fishing.z, bite: G.fishing.phase === 'bite' },
+    bobber: G.fishing && { x: G.fishing.x, z: G.fishing.z, bite: G.fishing.phase === 'bite', nib: G.fishing.nib > 0 },
     preview: editor.isOpen ? previewCam(me.x, me.z) : null, sky: G.skyView,
   });
   if (panels.open === 'map') drawMap();

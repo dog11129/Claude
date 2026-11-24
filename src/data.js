@@ -105,6 +105,8 @@ export const ITEMS = {
   unkraut:   { name: 'Unkraut',      icon: '🌿', sell: 10,  cat: 'mat', xp: 1 },
   sternsplitter: { name: 'Sternsplitter', icon: '🌟', sell: 300, cat: 'misc', xp: 3 },
   goldnugget: { name: 'Goldnugget',  icon: '🪙', sell: 10000, cat: 'misc', xp: 10 },
+  neopren:   { name: 'Neoprenanzug', icon: '🤿', buy: 3000, lvl: 1, gear: true },
+  perle:     { name: 'Perle',        icon: '⚪', sell: 10000, cat: 'misc', xp: 10 },
   ruebe:     { name: 'Rübe',         icon: '🍠', cat: 'misc', turnip: true },
   faule_ruebe: { name: 'Faule Rübe', icon: '🥀', sell: 0, cat: 'misc' },
   mehl:      { name: 'Mehl',         icon: '🥡', buy: 40 },
@@ -129,24 +131,24 @@ for (const [k, c] of Object.entries(CROPS)) {
   ITEMS['s_' + k] = { name: c.name + (isFlower(k) ? '-Samen' : '-Saat'), icon: c.icon, buy: c.seed, lvl: c.lvl, seed: k };
 }
 
-// Fische: [id, Name, Symbol, Preis, Gewicht je Angel-Stufe 1..3, Jahreszeiten|null, Ort: 'river' | 'sea' | 'pond']
+// Fische: [id, Name, Symbol, Preis, Gewicht je Angel-Stufe 1..3, Jahreszeiten|null, Ort: 'river' | 'sea' | 'pond', Schattengröße 1..6 (6 = Flosse)]
 export const FISH = [
-  ['barsch', 'Barsch', '🐟', 80, [40, 30, 22], null, 'river'],
-  ['forelle', 'Forelle', '🐠', 160, [26, 26, 24], ['spring', 'autumn', 'winter'], 'river'],
-  ['krebs', 'Flusskrebs', '🦞', 200, [12, 16, 18], null, 'river'],
-  ['hecht', 'Hecht', '🐟', 1100, [2, 6, 10], ['autumn', 'winter'], 'river'],
-  ['lachs', 'Lachs', '🍣', 700, [3, 7, 10], ['autumn'], 'river'],
-  ['karpfen', 'Karpfen', '🎏', 300, [30, 26, 22], null, 'pond'],
-  ['goldfisch', 'Goldfisch', '🐠', 1300, [3, 6, 9], null, 'pond'],
-  ['frosch', 'Frosch', '🐸', 120, [20, 18, 14], ['spring', 'summer'], 'pond'],
-  ['makrele', 'Makrele', '🐟', 150, [40, 30, 22], null, 'sea'],
-  ['tintenfisch', 'Tintenfisch', '🦑', 500, [16, 18, 18], ['spring', 'summer', 'autumn'], 'sea'],
-  ['kugelfisch', 'Kugelfisch', '🐡', 250, [12, 14, 14], ['summer'], 'sea'],
-  ['krabbe', 'Krabbe', '🦀', 180, [18, 16, 14], null, 'sea'],
-  ['rochen', 'Rochen', '🐟', 3000, [1, 4, 7], ['summer', 'autumn'], 'sea'],
-  ['hai', 'Hai', '🦈', 8000, [0, 2, 5], ['summer'], 'sea'],
-  ['flaschenpost', 'Flaschenpost', '📜', 300, [3, 4, 5], null, 'sea'],
-  ['schatz', 'Schatztruhe', '💎', 2000, [0, 1, 3], null, 'sea'],
+  ['barsch', 'Barsch', '🐟', 80, [40, 30, 22], null, 'river', 3],
+  ['forelle', 'Forelle', '🐠', 160, [26, 26, 24], ['spring', 'autumn', 'winter'], 'river', 3],
+  ['krebs', 'Flusskrebs', '🦞', 200, [12, 16, 18], null, 'river', 2],
+  ['hecht', 'Hecht', '🐟', 1100, [2, 6, 10], ['autumn', 'winter'], 'river', 5],
+  ['lachs', 'Lachs', '🍣', 700, [3, 7, 10], ['autumn'], 'river', 4],
+  ['karpfen', 'Karpfen', '🎏', 300, [30, 26, 22], null, 'pond', 3],
+  ['goldfisch', 'Goldfisch', '🐠', 1300, [3, 6, 9], null, 'pond', 1],
+  ['frosch', 'Frosch', '🐸', 120, [20, 18, 14], ['spring', 'summer'], 'pond', 2],
+  ['makrele', 'Makrele', '🐟', 150, [40, 30, 22], null, 'sea', 3],
+  ['tintenfisch', 'Tintenfisch', '🦑', 500, [16, 18, 18], ['spring', 'summer', 'autumn'], 'sea', 3],
+  ['kugelfisch', 'Kugelfisch', '🐡', 250, [12, 14, 14], ['summer'], 'sea', 3],
+  ['krabbe', 'Krabbe', '🦀', 180, [18, 16, 14], null, 'sea', 2],
+  ['rochen', 'Rochen', '🐟', 3000, [1, 4, 7], ['summer', 'autumn'], 'sea', 5],
+  ['hai', 'Hai', '🦈', 8000, [0, 2, 5], ['summer'], 'sea', 6],
+  ['flaschenpost', 'Flaschenpost', '📜', 300, [3, 4, 5], null, 'sea', 2],
+  ['schatz', 'Schatztruhe', '💎', 2000, [0, 1, 3], null, 'sea', 4],
 ];
 const NOT_MUSEUM = ['flaschenpost', 'schatz'];
 for (const [id, name, icon, sell] of FISH) ITEMS[id] = { name, icon, sell, cat: NOT_MUSEUM.includes(id) ? 'misc' : 'fish', xp: Math.ceil(sell / 150) };
@@ -191,6 +193,14 @@ export const SHELLS = [
   ['koralle', 'Koralle', '🪸', 500, 6],
 ];
 export const SHELLS_PER_DAY = 7, WEEDS_PER_DAY = 9;
+
+// Meerestiere (Tauchen mit dem Neoprenanzug): [id, Name, Symbol, Preis, Gewicht]
+export const SEA = [
+  ['seestern', 'Seestern', '⭐', 500, 26], ['seegurke', 'Seegurke', '🥒', 500, 20], ['seeanemone', 'Seeanemone', '🌺', 500, 18],
+  ['auster', 'Auster', '🦪', 1100, 14], ['krake', 'Krake', '🐙', 1200, 10], ['garnele', 'Garnele', '🦐', 1400, 10],
+  ['seeigel', 'Seeigel', '🌰', 1700, 8], ['qualle', 'Ohrenqualle', '🪼', 600, 12], ['hummer', 'Hummer', '🦞', 4500, 4],
+];
+export const DIVES = 8;
 
 // Platzierbare Dinge: Deko und Obstbäume. solid = man kann nicht hindurchlaufen. glow = leuchtet nachts.
 export const PLACE = {
@@ -255,10 +265,11 @@ export const SOCIAL = { hug: ['🤗', 'Umarmen'], kiss: ['😘', 'Küsschen'], h
 for (const [id, name, icon, sell] of BUGS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 150) };
 for (const [id, name, icon, sell] of FOSSILS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 200) };
 for (const [id, name, icon, sell] of SHELLS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: 1 };
-export const ALBUM = { fish: FISH.filter(f => !NOT_MUSEUM.includes(f[0])).map(f => f[0]), bug: BUGS.map(b => b[0]), fossil: FOSSILS.map(f => f[0]), shell: SHELLS.map(s => s[0]) };
+for (const [id, name, icon, sell] of SEA) ITEMS[id] = { name, icon, sell, cat: 'fish', xp: Math.ceil(sell / 200) };
+export const ALBUM = { fish: FISH.filter(f => !NOT_MUSEUM.includes(f[0])).map(f => f[0]), sea: SEA.map(s => s[0]), bug: BUGS.map(b => b[0]), fossil: FOSSILS.map(f => f[0]), shell: SHELLS.map(s => s[0]) };
 // Was ins Museum darf
-export const MUSEUM = { fish: ALBUM.fish, bug: ALBUM.bug, fossil: ALBUM.fossil };
-export const MUSEUM_ALL = [...MUSEUM.fish, ...MUSEUM.bug, ...MUSEUM.fossil];
+export const MUSEUM = { fish: ALBUM.fish, sea: ALBUM.sea, bug: ALBUM.bug, fossil: ALBUM.fossil };
+export const MUSEUM_ALL = [...MUSEUM.fish, ...MUSEUM.sea, ...MUSEUM.bug, ...MUSEUM.fossil];
 
 // Erfolge: gemeinsame Ziele mit Belohnung (Taler)
 const decos = s => Object.values(s.obj).filter(o => PLACE[o.k]?.kind === 'deco').length;
@@ -403,3 +414,13 @@ export const NPC_PLAN = {
   bruno: [[6, 12.5, 10.6, 1, 0.5], [8, 10.8, 2, 0.4, 1.4], [11, -4.5, -9.4, 1, 0.3], [14, 1.6, 4.4, 1.2, 0.6], [17, 13, -5.2, 1.6, 0.4], [20, 12.5, 10.6, 1, 0.5]],
   lio:   [[6, 15.5, 1.7, 0.6, 0.4], [9, 13, -5.3, 1.7, 0.5], [12, 16.6, 7.5, 0.7, 2], [15, 2.6, 0.2, 0.6, 1.6], [18, 12.8, 2.3, 1.9, 0.9], [20.5, 15.5, 1.7, 0.6, 0.4]],
 };
+
+// ---------- Baupläne (DIY) ----------
+// Werkbank-Rezepte muss man erst finden: Flaschenpost am Strand, Geschenkballons, Nachbarn.
+export const STARTER_DIY = ['r_zaun', 'r_weg', 'r_bank', 'f_hocker', 'f_stuhl'];
+export const DIY_IDS = Object.keys(RECIPES).filter(k => RECIPES[k].st === 'craft');
+// Achievements für Tauchen & Baupläne
+ACHIEVEMENTS.push(...[
+  ['taucher', '🤿', 'Abgetaucht', '10 Meerestiere beim Tauchen gefunden', s => (s.stats.dives || 0) >= 10, 1500],
+  ['diy20', '📜', 'Bastelprofis', '20 Baupläne gelernt', s => Object.keys(s.recipes || {}).length >= 20, 2000],
+].map(([id, icon, name, desc, test, reward]) => ({ id, icon, name, desc, test, reward })));

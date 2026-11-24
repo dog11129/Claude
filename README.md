@@ -23,7 +23,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 | | PC | Handy |
 |---|---|---|
-| Laufen | WASD / Pfeiltasten | links wischen |
+| Laufen / Rennen | WASD / Pfeiltasten, Shift = rennen | links wischen (weit = rennen) |
 | Hinlaufen & benutzen | Klick auf Baum, Muschel, Gebäude … | irgendwo antippen |
 | Aktion vor der Figur | E / Leertaste (halten = wiederholen) | großer rosa Knopf |
 | Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne, Schleuder, Designer) | unten antippen |
@@ -36,11 +36,14 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 ## Was es gibt
 
 - **Die Insel:** Sandstrand rundherum, Klippen mit Wald und Wasserfall im Norden, ein Fluss mit zwei Holzbrücken, ein Teich, ein Steg ins Meer und ein Dorfplatz mit großem Baum. Die Welt rollt sich in der Ferne wie ein Baumstamm weg.
-- **Obst & Bäume:** Bäume schütteln – Äpfel, Kirschen, Orangen, Pfirsiche, Birnen und Kokosnüsse fallen herunter und wachsen nach drei Tagen nach. Manchmal fallen Äste, Taler, Möbel … oder ein Wespennest. Mit der Axt gibt's Holz.
+- **Obst & Bäume:** Bäume schütteln – Äpfel, Kirschen, Orangen, Pfirsiche, Birnen und Kokosnüsse fallen auf den Boden und werden einzeln aufgehoben; sie wachsen nach drei Tagen nach. Manchmal fallen Äste, Taler, Möbel … oder ein Wespennest. Mit der Axt gibt's Holz.
 - **Jeden Morgen neu:** Muscheln am Strand, Unkraut zum Zupfen, fünf Stern-Risse mit Fossilien, ein Glücksfelsen voller Taler.
 - **Blumen & Gemüse:** Überall auf den Rasen pflanzen, gießen, pflücken – Blumen blühen immer wieder nach. Obstbäume zum Aufstellen.
-- **Museum:** Fische, Insekten und Fossilien ausstellen (Aquarium, Insektenhaus, Fossilienhalle).
-- **Angeln:** Fluss, Teich und Meer haben eigene Fische (vom Barsch bis zum Hai), Fischschatten zeigen, wo etwas schwimmt.
+- **Museum:** Fische, Meerestiere, Insekten und Fossilien ausstellen (Aquarium mit Meeresbecken, Insektenhaus, Fossilienhalle).
+- **Angeln:** Fluss, Teich und Meer haben eigene Fische (vom Barsch bis zum Hai). Schattengröße verrät den Fisch – er schwimmt zum Köder, knabbert ein paar Mal und erst beim richtigen Ruck einholen, sonst ist er weg.
+- **Gegenstände am Boden:** Obst, Holz, Steine, Geschenke und Fundstücke landen vor dir auf der Wiese – hinlaufen und aufheben. Fällt etwas ins Wasser, ist es weg.
+- **Flaschenpost & Baupläne:** Jeden Morgen treibt eine Flaschenpost an den Strand. Baupläne gibt's auch aus Ballons und von Nachbarn – die Werkbank zeigt nur, was du schon gelernt hast.
+- **Schwimmen & Tauchen:** Mit dem Neoprenanzug (Krämerladen) ins Meer springen, bei Luftblasen abtauchen und Meerestiere fangen – Seestern, Auster, Krake, Hummer … und manchmal eine Perle.
 - **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin) und Lio (Fuchs-Künstler) haben eigene Häuschen. Plaudern, Geschenke, Freundschaft (10 Herzen), Briefe, Wünsche erfüllen.
 - **Inselhandy:** 15 Apps – Live-Karte (antippen = hinlaufen, mit Wegsuche über die Brücken), Bestellen, Taschen, Inselbuch, Sammelbuch, Museum, Rezepte, Rübenkurs, Designer, Freunde, Erfolge, Gefühle, Kamera, Himmel, Optionen.
 - **Insel-Designer:** Eigene Wege verlegen – Erde, Steinpflaster, Ziegel, Holzdielen, Sand.

@@ -3,9 +3,9 @@ import {
   DAY, WET, MAP, CROPS, ANIMALS, PENS, BUILDINGS, ITEMS, FISH, PLACE,
   UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS, SEASON_LEN, SEASON_IDS, isFlower,
   RES_SPOTS, TREE_FRUIT, FRUIT_REGROW, BUGS, FOSSILS, SHELLS, SHELLS_PER_DAY, WEEDS_PER_DAY, RECIPES, DIG_SPOTS_PER_DAY,
-  NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK,
+  NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK, SEA, DIVES, STARTER_DIY, DIY_IDS,
 } from './data.js';
-import { walkable, grass, sand, isWater, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND } from './island.js';
+import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 
 export const key = (x, z) => x + ',' + z;
@@ -22,10 +22,10 @@ export function newFarm(name = 'Kuschelinsel') {
     inv: { s_tulpe: 4 },
     up: {}, tiles: {}, obj: {}, animals: [], orders: [], nextId: 1, ach: {},
     album: {}, res: {}, shook: {}, digs: [], mail: [], npc: {},
-    shells: {}, weeds: {}, fruit: {}, museum: {}, rock: null, paths: {}, balloon: null, wishes: 0, starNight: false, turnip: null, real: false,
+    shells: {}, weeds: {}, fruit: {}, museum: {}, rock: null, paths: {}, balloon: null, wishes: 0, starNight: false, turnip: null, real: false, ground: {}, dives: [], recipes: Object.fromEntries(STARTER_DIY.map(k => [k, 1])),
     home: { wall: 'vanille', floor: 'dielen', items: {}, rugs: {}, walls: {} },
     quest: { i: 0, p: 0 }, daily: [], met: {},
-    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0 },
+    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0, dives: 0 },
   };
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
   // ein paar wilde Blumen blühen schon auf der Insel
@@ -131,6 +131,42 @@ function refill(s) {
   }
   const rocks = Object.keys(RES_SPOTS).filter(k => RES_SPOTS[k] === 'rock');
   s.rock = pick(rocks); // einer der Felsen spuckt heute Taler aus
+  // jeden Morgen eine Flaschenpost mit Bauplan am Strand
+  s.ground ||= {};
+  for (const [k, g] of Object.entries(s.ground)) if (g.id === 'bottle') delete s.ground[k];
+  for (let t = 0; t < 300; t++) {
+    const [x, z] = randTile(), k = key(x, z);
+    if (sand(x, z) && coast(x, z) > -2 && !s.shells[k] && !s.obj[k] && !RES_SPOTS[k] && !s.ground[k]) { s.ground[k] = { id: 'bottle', n: 1 }; break; }
+  }
+  s.dives = [];
+  while (s.dives.length < DIVES) newDive(s);
+}
+// Luftblasen im Meer: hier liegt ein Meerestier
+function newDive(s) {
+  for (let t = 0; t < 100; t++) {
+    const a = Math.random() * Math.PI * 2, r = 18 + Math.random() * 10, x = Math.cos(a) * r, z = Math.sin(a) * r, c = coast(x, z);
+    if (c > 0.8 && c < 6 && swimmable(x, z) && Math.abs(x - PIER.x) > 2) { s.dives.push({ id: s.nextId++, x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10 }); return; }
+  }
+}
+// Etwas fällt auf den Boden (Obst vom Baum, Holz, Steine, Geschenke): auf eine freie Nachbarkachel, möglichst zur Spielerin hin
+const groundFree = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !RES_SPOTS[key(x, z)] && !s.ground[key(x, z)] && !s.obj[key(x, z)]?.k && !s.shells[key(x, z)];
+function drop(s, x, z, item, out, toward) {
+  s.ground ||= {};
+  const spots = [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2], [2, 0], [-2, 0], [0, -2]].map(([a, b]) => [x + a, z + b]).filter(([i, j]) => groundFree(s, i, j));
+  if (toward) spots.sort((a, b) => Math.hypot(a[0] - toward[0], a[1] - toward[1]) - Math.hypot(b[0] - toward[0], b[1] - toward[1]));
+  const [gx, gz] = spots[0] || [x, z];
+  if (!spots.length && !groundFree(s, x, z)) { if (item.id === 'money') { s.money += item.n; s.stats.earned += item.n; } else addInv(s, item.id, item.n || 1); return; }
+  s.ground[key(gx, gz)] = item;
+  out.fx.push({ x: gx, z: gz, txt: '', k: 'plop' });
+}
+// Unbekannten Bauplan lernen
+function learn(s, out) {
+  const unknown = DIY_IDS.filter(k => !s.recipes[k]);
+  if (!unknown.length) { addInv(s, 'sternsplitter', 1); out.msg = '📜 Ihr kennt schon alle Baupläne! Dafür war ein 🌟 Sternsplitter in der Flasche.'; return; }
+  const id = pick(unknown), r = RECIPES[id];
+  s.recipes[id] = s.day;
+  out.learned = id;
+  out.msg = `📜 Neuer Bauplan: ${ITEMS[r.out].icon} ${ITEMS[r.out].name}! (${Object.entries(r.in).map(([k, n]) => `${n}× ${ITEMS[k].icon}`).join(' ')})`;
 }
 
 // Alte Spielstände mit neuen Feldern ergänzen, damit Updates nichts kaputt machen.
@@ -170,7 +206,7 @@ export const inPond = pondAt;
 
 export function canPlace(s, x, z) {
   const k = key(x, z);
-  return grass(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k] && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k];
+  return grass(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k] && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k];
 }
 
 // ---------- Zuhause (Innenraum liegt weit weg bei x = HOME_X, damit es eine eigene Welt ist) ----------
@@ -216,8 +252,11 @@ function homeBlocked(s, x, z) {
 }
 
 // Kann man an dieser Weltposition stehen?
-export function blocked(s, x, z) {
+// Mit Neoprenanzug (swim) darf man ins Meer – aber nicht zu weit hinaus, nicht in Fluss oder Teich
+export const swimmable = (x, z) => isSea(x, z) && !onPier(x, z) && coast(x, z) < 7.5 && Math.abs(x) < ISLAND + 6 && Math.abs(z) < ISLAND + 6;
+export function blocked(s, x, z, swim) {
   if (x > HOME_X / 2) return homeBlocked(s, x, z);
+  if (swim && swimmable(x, z)) return Math.abs(x - PIER.x) < PIER.w + 0.3 && z > PIER.z0 && z < PIER.z1; // unter dem Steg durch geht nicht
   if (!walkable(x, z)) return true;
   const tx = Math.round(x), tz = Math.round(z);
   if (buildingAt(tx, tz) || RES_SPOTS[key(tx, tz)]) return true;
@@ -513,7 +552,22 @@ const ACTIONS = {
   },
   // Muscheln aufheben, Unkraut zupfen
   pick(s, a, out) {
-    const k = key(a.x, a.z);
+    const k = key(a.x, a.z), g = s.ground?.[k];
+    if (g) {
+      delete s.ground[k];
+      if (g.id === 'bottle') { learn(s, out); out.snd = 'level'; fx(out, a.x, a.z, '📜', 'sparkle'); return true; }
+      if (g.id === 'diy') { learn(s, out); out.snd = 'level'; fx(out, a.x, a.z, '📜', 'sparkle'); return true; }
+      if (g.id === 'money') { s.money += g.n; s.stats.earned += g.n; fx(out, a.x, a.z, `+${g.n} 🪙`, 'coin'); out.snd = 'coin'; return true; }
+      if (!has(ITEMS, g.id)) return true;
+      const n = g.n || 1;
+      addInv(s, g.id, n);
+      if (CROPS[g.id] === undefined && ITEMS[g.id].cat === 'fruit') { s.stats.fruit = (s.stats.fruit || 0) + n; questEvent(s, 'fruit', n, out); }
+      fx(out, a.x, a.z, `+${n} ${ITEMS[g.id].icon}`, 'leaf');
+      if (g.box) out.msg = `🎁 Im Geschenk: ${n > 1 ? n + '× ' : ''}${ITEMS[g.id].icon} ${ITEMS[g.id].name}!`;
+      else if (ITEMS[g.id].furn || ITEMS[g.id].place) out.msg = `🍃 ${ITEMS[g.id].icon} ${ITEMS[g.id].name} gefunden!`;
+      out.snd = 'harvest';
+      return true;
+    }
     if (s.shells[k]) {
       const id = s.shells[k];
       delete s.shells[k];
@@ -541,7 +595,8 @@ const ACTIONS = {
   fish(s, a, out) {
     if (!isWater(a.x, a.z) && !isWater(a.x + 0.4, a.z) && !isWater(a.x - 0.4, a.z) && !isWater(a.x, a.z + 0.4) && !isWater(a.x, a.z - 0.4)) return false;
     const l = s.up.rod - 1, sea = seasonOf(s.day), where = waterKind(a.x, a.z);
-    const pool = FISH.filter(f => (!f[5] || f[5].includes(sea)) && (f[6] === where || (where === 'pond' && f[6] === 'river' && f[0] === 'barsch')));
+    let pool = FISH.filter(f => (!f[5] || f[5].includes(sea)) && (f[6] === where || (where === 'pond' && f[6] === 'river' && f[0] === 'barsch')));
+    if (Number.isInteger(a.size)) { const sized = pool.filter(f => f[7] === a.size && (f[4][l] || 0) > 0); if (sized.length) pool = sized; } // Schattengröße verrät den Fisch
     const f = weighted(pool, f => f[4][l] || 0), id = f[0];
     addInv(s, id, 1);
     collect(s, id, out);
@@ -575,7 +630,7 @@ const ACTIONS = {
     if (!(s.res[k] > 0)) { out.msg = 'Der Baum braucht eine Pause – morgen wieder!'; return false; }
     s.res[k]--;
     const n = Math.random() < 0.3 ? 2 : 1;
-    addInv(s, 'holz', n);
+    drop(s, a.x, a.z, { id: 'holz', n }, out, Number.isFinite(a.px) ? [a.px, a.pz] : null);
     s.stats.wood = (s.stats.wood || 0) + n;
     questEvent(s, 'chop', n, out);
     addXp(s, 1, out);
@@ -593,48 +648,56 @@ const ACTIONS = {
     out.snd = 'place';
     if (s.rock === k) { // Glücksfelsen: Taler statt Steine
       const m = [100, 250, 500][2 - s.res[k]] || 100;
-      s.money += m;
-      s.stats.earned += m;
-      fx(out, a.x, a.z, `+${m} 🪙`, 'coin');
+      drop(s, a.x, a.z, { id: 'money', n: m }, out);
+      fx(out, a.x, a.z, '', 'coin');
       out.snd = 'coin';
       return true;
     }
     const r = Math.random(), id = r < 0.15 ? 'eisen' : r < 0.4 ? 'lehm' : 'stein';
-    addInv(s, id, 1);
-    fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`, 'dust');
+    drop(s, a.x, a.z, { id, n: 1 }, out); // Felsen spucken Material aus
+    fx(out, a.x, a.z, '', 'dust');
     return true;
   },
   shake(s, a, out) {
-    const k = key(a.x, a.z);
+    const k = key(a.x, a.z), me = Number.isFinite(a.px) && Number.isFinite(a.pz) ? [a.px, a.pz] : null;
     if (!isTree(k)) return false;
     questEvent(s, 'shake', 1, out);
-    if (fruitReady(s, k)) {
+    if (fruitReady(s, k)) { // Obst fällt herunter und liegt dann vor dem Baum
       const id = TREE_FRUIT[k] || 'apfel', n = id === 'kokosnuss' ? 2 : 3;
       s.fruit[k] = s.day + FRUIT_REGROW;
-      addInv(s, id, n);
-      s.stats.fruit = (s.stats.fruit || 0) + n;
-      questEvent(s, 'fruit', n, out);
-      addXp(s, n, out);
-      fx(out, a.x, a.z, `+${n} ${ITEMS[id].icon}`, 'fruit');
+      for (let i = 0; i < n; i++) drop(s, a.x, a.z, { id, n: 1 }, out, me);
+      fx(out, a.x, a.z, '', 'fruit');
       out.snd = 'harvest';
       return true;
     }
-    if (s.shook[k]) { fx(out, a.x, a.z, '🍃', 'leaf'); out.msg = 'Hier fällt heute nichts mehr runter.'; out.snd = 'water'; return true; }
+    if (s.shook[k]) { fx(out, a.x, a.z, '🍃', 'leaf'); out.snd = 'water'; return true; }
     s.shook[k] = 1;
     const r = Math.random();
-    if (r < 0.06) { out.msg = '🐝 Autsch, ein Wespennest! Schnell weg hier!'; out.snd = 'fail'; fx(out, a.x, a.z, '🐝🐝🐝', 'leaf'); return true; }
-    if (r < 0.14) {
-      const m = 100 + rnd(5) * 100;
-      s.money += m; s.stats.earned += m;
-      fx(out, a.x, a.z, `+${m} 🪙`, 'coin'); out.msg = `Ein Beutel mit ${m} Talern ist heruntergefallen!`; out.snd = 'coin';
-      return true;
-    }
+    if (r < 0.06) { out.msg = '🐝 Autsch, ein Wespennest! Schnell weg hier!'; out.snd = 'fail'; fx(out, a.x, a.z, '🐝🐝🐝', 'leaf'); out.sting = true; return true; }
+    if (r < 0.14) { drop(s, a.x, a.z, { id: 'money', n: 100 + rnd(5) * 100 }, out, me); out.snd = 'coin'; return true; }
     if (r < 0.19) {
       const list = Object.keys(FURNITURE).filter(id => (FURNITURE[id].lvl || 1) <= s.level && !FURNITURE[id].wall), id = pick(list);
-      if (id) { addInv(s, id, 1); fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`, 'leaf'); out.msg = `${ITEMS[id].icon} ${ITEMS[id].name} ist aus dem Baum gefallen!`; out.snd = 'love'; return true; }
+      if (id) { drop(s, a.x, a.z, { id, n: 1 }, out, me); out.snd = 'love'; return true; }
     }
-    if (r < 0.55) { addInv(s, 'ast', 1); fx(out, a.x, a.z, '+1 🥢', 'leaf'); out.snd = 'water'; return true; }
-    fx(out, a.x, a.z, '🍃', 'leaf'); out.msg = 'Nur ein paar Blätter …'; out.snd = 'water';
+    if (r < 0.6) { drop(s, a.x, a.z, { id: 'ast', n: 1 }, out, me); out.snd = 'water'; return true; }
+    fx(out, a.x, a.z, '🍃', 'leaf'); out.snd = 'water';
+    return true;
+  },
+  dive(s, a, out) { // Tauchen an Luftblasen
+    const i = s.dives.findIndex(d => d.id === a.id);
+    if (i < 0) return false;
+    const d = s.dives[i];
+    s.dives.splice(i, 1);
+    newDive(s);
+    const pearl = Math.random() < 0.04, [id] = pearl ? ['perle'] : weighted(SEA, f => f[4]);
+    addInv(s, id, 1);
+    if (!pearl) collect(s, id, out);
+    s.stats.dives = (s.stats.dives || 0) + 1;
+    questEvent(s, 'dive', 1, out);
+    addXp(s, ITEMS[id].xp || 2, out);
+    out.fx.push({ x: d.x, z: d.z, txt: `+1 ${ITEMS[id].icon}`, k: 'splash' });
+    out.caught = id;
+    out.snd = 'harvest';
     return true;
   },
   dig(s, a, out) {
@@ -686,23 +749,27 @@ const ACTIONS = {
     out.snd = 'place';
     return true;
   },
-  pop(s, a, out) { // Geschenkballon mit der Schleuder getroffen
+  pop(s, a, out) { // Geschenkballon mit der Schleuder getroffen: das Geschenk fällt herunter
     const b = s.balloon;
     if (!b || b.id !== a.id) return false;
-    const p = balloonPos(b, s.time);
+    const p = balloonPos(b, s.time), x = Math.round(p.x), z = Math.round(p.z);
     s.balloon = null;
     s.stats.balloons = (s.stats.balloons || 0) + 1;
     questEvent(s, 'balloon', 1, out);
     addXp(s, 5, out);
-    const kind = weighted(BALLOON_GIFTS, g => g[1])[0];
-    let txt;
-    if (kind === 'money') { const m = 500 + rnd(16) * 100; s.money += m; s.stats.earned += m; txt = `+${m} 🪙`; out.msg = `🎁 Im Geschenk waren ${m} Taler!`; }
+    const kind = Math.random() < 0.18 ? 'diy' : weighted(BALLOON_GIFTS, g => g[1])[0];
+    let item;
+    if (kind === 'money') item = { id: 'money', n: 500 + rnd(16) * 100 };
+    else if (kind === 'diy') item = { id: 'diy', n: 1 };
     else if (kind === 'furn' || kind === 'deco') {
       const list = kind === 'furn' ? Object.keys(FURNITURE).filter(id => (FURNITURE[id].lvl || 1) <= s.level + 2) : Object.keys(PLACE).filter(id => PLACE[id].kind === 'deco' && PLACE[id].buy);
-      const id = pick(list);
-      addInv(s, id, 1); txt = `+1 ${ITEMS[id].icon}`; out.msg = `🎁 Im Geschenk war: ${ITEMS[id].icon} ${ITEMS[id].name}!`;
-    } else { const n = kind === 'holz' ? 5 : kind === 'eisen' ? 2 : 1; addInv(s, kind, n); txt = `+${n} ${ITEMS[kind].icon}`; out.msg = `🎁 Im Geschenk war: ${n}× ${ITEMS[kind].icon} ${ITEMS[kind].name}!`; }
-    out.fx.push({ x: p.x, z: p.z, txt, k: 'coin', y: p.y });
+      item = { id: pick(list), n: 1 };
+    } else item = { id: kind, n: kind === 'holz' ? 5 : kind === 'eisen' ? 2 : 1 };
+    item.box = true;
+    out.fx.push({ x: p.x, z: p.z, txt: '🎁', k: 'coin', y: p.y });
+    if (isWater(p.x, p.z) || !walkable(p.x, p.z)) { out.msg = '💦 Oh nein – das Geschenk ist ins Wasser gefallen!'; out.snd = 'splash'; return true; }
+    drop(s, x, z, item, out, [x, z]);
+    out.msg = '🎁 Getroffen! Das Geschenk ist heruntergefallen – heb es auf.';
     out.snd = 'level';
     return true;
   },
@@ -727,6 +794,7 @@ const ACTIONS = {
   craft(s, a, out) {
     if (!has(RECIPES, a.id)) return false;
     const r = RECIPES[a.id];
+    if (r.st === 'craft' && !s.recipes?.[a.id]) { out.msg = 'Diesen Bauplan kennt ihr noch nicht.'; return false; }
     if ((r.lvl || 1) > s.level) { out.msg = `Erst ab Level ${r.lvl}.`; return false; }
     if (Object.entries(r.in).some(([id, n]) => (s.inv[id] || 0) < n)) { out.msg = 'Dafür fehlen noch Zutaten.'; return false; }
     for (const [id, n] of Object.entries(r.in)) takeInv(s, id, n);
@@ -741,7 +809,10 @@ const ACTIONS = {
   talk(s, a, out) {
     if (!has(NPC_DATA, a.id)) return false;
     const n = friend(s, a.id);
-    if (n.talk !== s.day) { n.talk = s.day; n.f += 15; addXp(s, 1, out); questEvent(s, 'talk', 1, out); }
+    if (n.talk !== s.day) {
+      n.talk = s.day; n.f += 15; addXp(s, 1, out); questEvent(s, 'talk', 1, out);
+      if (Math.random() < 0.2 && DIY_IDS.some(k => !s.recipes[k])) { learn(s, out); out.diyFrom = a.id; }
+    }
     s.met[a.id] = 1;
     questEvent(s, 'met', Object.keys(s.met).length, out);
     return true;
@@ -952,6 +1023,10 @@ function resolveHome(s, me, sel, at) {
 
 export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
+  if (me.sw) { // schwimmt: tauchen
+    const d = (s.dives || []).map(d => [d, Math.hypot(d.x - me.x, d.z - me.z)]).sort((a, b) => a[1] - b[1])[0];
+    return d && d[1] < 1.5 ? { a: { t: 'dive', id: d[0].id }, dive: true, label: '🤿 Tauchen!', tiles: [] } : { dive: true, label: '🫧 Abtauchen', tiles: [] };
+  }
   const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
   const x = Math.round(px), z = Math.round(pz), k = key(x, z);
   const toward = at && (x !== Math.round(me.x) || z !== Math.round(me.z)) ? Math.atan2(x - me.x, z - me.z) : me.ry;
@@ -968,11 +1043,16 @@ export function resolve(s, me, sel, at) {
     return { ui: B.use, label, tiles: one };
   }
 
+  const g = s.ground?.[k];
+  if (g) {
+    const it = ITEMS[g.id], label = g.id === 'bottle' ? '🍾 Flaschenpost aufheben' : g.id === 'diy' || g.box ? '🎁 Aufheben' : g.id === 'money' ? `💰 ${g.n} Taler aufheben` : it?.furn || it?.place ? '🍃 Aufheben' : `${it?.icon || ''} ${it?.name || ''} aufheben`;
+    return { a: { t: 'pick', x, z }, label, tiles: one };
+  }
   const res = RES_SPOTS[k];
   if (res === 'tree' || res === 'palm') {
     const fruit = TREE_FRUIT[k], ready = fruitReady(s, k), ic = ITEMS[fruit]?.icon || '🌳';
-    if (sel === 'axe') return s.res[k] > 0 ? { a: { t: 'chop', x, z }, label: '🪓 Holz hacken', tiles: one } : { label: '🌳 Morgen wieder', tiles: one };
-    return { a: { t: 'shake', x, z }, label: ready ? `${ic} Schütteln` : '🌳 Schütteln', tiles: one };
+    if (sel === 'axe') return s.res[k] > 0 ? { a: { t: 'chop', x, z, px: Math.round(me.x), pz: Math.round(me.z) }, label: '🪓 Holz hacken', tiles: one } : { label: '🌳 Morgen wieder', tiles: one };
+    return { a: { t: 'shake', x, z, px: Math.round(me.x), pz: Math.round(me.z) }, label: ready ? `${ic} Schütteln` : '🌳 Schütteln', tiles: one };
   }
   if (res === 'rock') {
     if (sel === 'shovel') return s.res[k] > 0 ? { a: { t: 'mine', x, z }, label: '🪨 Draufhauen', tiles: one } : { label: '🪨 Morgen wieder', tiles: one };
