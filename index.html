@@ -160,6 +160,8 @@ input[type=text]:focus { border-color: var(--pink); }
 #chatform input { flex: 1; border: 3px solid var(--pink); border-radius: 14px; padding: 10px 12px; font-size: 16px; outline: none; }
 #fishbar { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font-size: 18px; }
 #fishbar.bite { background: var(--yellow); animation: pop .2s; }
+#tourbar { position: absolute; left: 50%; top: calc(10px + var(--safe-t)); transform: translateX(-50%); font-size: 16px; font-weight: 600; z-index: 3; }
+#tourbar.hurry { background: #ffe0e0; }
 
 /* Handy-Steuerung */
 #joy { position: absolute; left: 0; bottom: 0; width: 45vw; height: 58vh; }
@@ -379,6 +381,7 @@ body.skyview #skybtn { background: #7f8fd8; }
   <div id="chatlog"></div>
   <form id="chatform" class="hidden"><input id="chatin" maxlength="120" placeholder="Nachricht…" autocomplete="off"><button class="btn pink">Senden</button></form>
   <div id="fishbar" class="pill hidden"></div>
+  <div id="tourbar" class="pill hidden"></div>
   <div id="joy"><div id="joybase" class="hidden"></div><div id="joyknob" class="hidden"></div></div>
   <div id="actwrap">
     <div id="actlabel">…</div>

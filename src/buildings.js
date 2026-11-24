@@ -785,9 +785,116 @@ function vhouse(id, P, G, s) {
   if (!snow) { const F = FLOWERS[s] || FLOWERS.summer; for (let k = 0; k < 4; k++) P.push(ball(0.13, vary(LEAF), -0.9 + k * 0.18, 0.12, D / 2 + 0.1, 1, 0.8, 1, 7), ball(0.05, F[k % F.length], -0.9 + k * 0.18, 0.24, D / 2 + 0.15, 1, 1, 1, 6)); }
 }
 
+// ---------- Bürgermeister-Update ----------
+// Rathaus: Steinbau mit Uhrturm, Säulen und Fahnen (ersetzt das Zelt des Inselbüros)
+function cityhall(P, G, s) {
+  const W = 4.6, D = 2.6, top = 1.9, snow = s === 'winter', WALL = 0xfff3e0, ROOF = 0x4f7fc9, prof = [[D / 2 + 0.35, 0], [0, 1.0]], gf = fill(W, D, prof, WALL);
+  P.push(rb(W + 0.4, 0.22, D + 0.6, STONE_D, 0, 0.11, 0.1, 0.05), rb(W, top - 0.22, D, WALL, 0, 0.22 + (top - 0.22) / 2, 0, 0.05), ...tf([gf.p], 0, top, 0));
+  at(P, G, 0, 0, D / 2 + 0.06, 0, p => stones(p, W + 0.4, 0.22, 1));
+  P.push(...tf(roofOf(W + 0.4, prof, ROOF, { snow, trim: CREAM, back: true, sw: 0.3, st: 0.2 }), 0, top, 0));
+  // Treppe + Säulen + Tür
+  for (let i = 0; i < 3; i++) P.push(rb(1.8 - i * 0.2, 0.1, 0.34, vary(STONE, 0.03), 0, 0.05 + i * 0.1, D / 2 + 0.55 - i * 0.16, 0.03));
+  for (const x of [-0.8, 0.8]) P.push(cyl(0.11, 0.13, 1.5, 0xfffaf2, x, 1.05, D / 2 + 0.25, 12), rb(0.3, 0.1, 0.3, CREAM, x, 1.83, D / 2 + 0.25, 0.02));
+  P.push(rb(2.0, 0.14, 0.5, CREAM, 0, 1.94, D / 2 + 0.2, 0.03));
+  at(P, G, 0, 0, D / 2, 0, (p, g) => { p.push(rb(0.9, 1.25, 0.06, 0x8f603c, 0, 0.88, 0.03, 0.03), semi(0.45, 0.06, 0x8f603c, 0, 1.5, 0.03), ball(0.05, BRASS, 0.3, 0.9, 0.08, 1, 1, 1, 8)); g.push(semi(0.3, 0.02, 0, 0, 1.52, 0.07)); });
+  for (const x of [-1.65, 1.65]) at(P, G, x, 1.05, D / 2, 0, (p, g) => win(p, g, { w: 0.6, h: 0.7, frame: CREAM, shut: ROOF, s, box: true }));
+  // Uhrturm
+  const tw = 1.1, th = 1.6, ty = top + 0.7;
+  P.push(rb(tw, th, tw, WALL, 0, ty + th / 2, -0.2, 0.04), rb(tw + 0.12, 0.12, tw + 0.12, CREAM, 0, ty + th, -0.2, 0.03));
+  P.push(cyl(0.36, 0.36, 0.06, CREAM, 0, ty + th * 0.62, -0.2 + tw / 2 + 0.02, 20, H), cyl(0.31, 0.31, 0.04, 0xfffdf6, 0, ty + th * 0.62, -0.2 + tw / 2 + 0.05, 20, H));
+  P.push(box(0.03, 0.22, 0.02, DARK, 0, ty + th * 0.62 + 0.09, -0.2 + tw / 2 + 0.08), box(0.16, 0.03, 0.02, DARK, 0.07, ty + th * 0.62, -0.2 + tw / 2 + 0.08));
+  at(P, G, 0, ty + th, -0.2, 0, p => coneRoof(p, 0.78, 0.9, ROOF, snow));
+  P.push(cyl(0.02, 0.02, 0.5, IRON, 0, ty + th + 1.1, -0.2, 5), box(0.3, 0.2, 0.01, 0xff6b8a, 0.15, ty + th + 1.25, -0.2));
+  // Fahnen an Masten
+  for (const [sx, c] of [[-1, 0xff8fab], [1, 0x6cc4ff]]) {
+    const x = sx * (W / 2 + 0.45);
+    P.push(cyl(0.05, 0.06, 3.0, 0xd9d2c8, x, 1.5, D / 2 + 0.4, 8), ball(0.08, BRASS, x, 3.04, D / 2 + 0.4, 1, 1, 1, 8), box(0.6, 0.38, 0.02, c, x + sx * 0.32, 2.72, D / 2 + 0.4));
+  }
+  if (!snow) for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) P.push(ball(0.28, vary(LEAF), sx * (1.3 + k * 0.45), 0.3, D / 2 + 0.55, 1, 0.8, 1, 9));
+}
+// Ladenfront für die Bummelgasse: Wand, Dach, Schaufenster, Markise, Schild
+function storefront(P, G, s, o) {
+  const { W = 4.8, D = 2.6, top = 2.2, wall, roof, door, awn = [CREAM, ROSE], sign = CREAM } = o, prof = [[D / 2 + 0.35, 0], [0, 1.1]], gf = fill(W, D, prof, wall);
+  P.push(rb(W + 0.2, 0.25, D + 0.2, STONE_D, 0, 0.125, 0, 0.05), rb(W, top - 0.25, D, wall, 0, 0.25 + (top - 0.25) / 2, 0, 0.05), ...tf([gf.p], 0, top, 0));
+  P.push(...tf(roofOf(W + 0.4, prof, roof, { trim: CREAM, back: true, sw: 0.32, st: 0.21 }), 0, top, 0));
+  at(P, G, -1.15, 1.1, D / 2, 0, (p, g) => win(p, g, { w: 1.6, h: 0.9, frame: CREAM, s }));
+  at(P, G, 1.3, 0, D / 2, 0, (p, g) => { p.push(rb(0.8, 1.55, 0.06, door, 0, 1.02, 0.03, 0.03), ball(0.045, BRASS, 0.27, 0.95, 0.08, 1, 1, 1, 8)); g.push(box(0.42, 0.45, 0.02, 0, 0, 1.4, 0.07)); });
+  const a = Math.atan2(0.35, 0.9);
+  for (let i = 0; i < 14; i++) { const x = -W / 2 + (i + 0.5) * W / 14, c = awn[i % 2]; P.push(box(W / 14 + 0.005, 0.04, 0.9, c, x, 2.05, D / 2 + 0.4, 0, a), semi(W / 28, 0.03, c, x, 1.88, D / 2 + 0.84, true)); }
+  P.push(rb(1.7, 0.5, 0.1, sign, 0, 2.75, D / 2 + 0.3, 0.05), rb(1.8, 0.08, 0.12, WOODD, 0, 3.04, D / 2 + 0.3, 0.02));
+}
+function tailor(P, G, s) {
+  storefront(P, G, s, { wall: 0xffe3ec, roof: 0xd96a8f, door: 0x9a6bd6, awn: [CREAM, 0xb39cff] });
+  // Schild: Garnrolle mit Nadel, Schneiderpuppe im Fenster
+  P.push(cyl(0.16, 0.16, 0.06, 0xff8fab, 0, 2.75, 1.65, 14, H), cyl(0.1, 0.1, 0.08, CREAM, 0, 2.75, 1.66, 12, H), box(0.5, 0.025, 0.02, 0xb9b6b2, 0.1, 2.85, 1.7, 0, 0, 0.5));
+  P.push(cyl(0.02, 0.02, 0.5, WOODD, -1.15, 0.9, 1.05, 5), ball(0.2, 0x8fcdb4, -1.15, 1.22, 1.05, 1, 1.4, 0.8, 10), ball(0.07, 0xffd23f, -1.15, 1.5, 1.05, 1, 1, 1, 6));
+}
+function garden(P, G, s) {
+  storefront(P, G, s, { wall: 0xe8f5d8, roof: 0x5aa84a, door: 0xc9884f, awn: [CREAM, 0x7cc96a] });
+  // Glasdach-Anbau, Blumentöpfe, Gießkanne aufs Schild
+  P.push(ball(0.2, 0x7cc96a, 0, 2.76, 1.68, 1.5, 0.9, 0.35, 10), cyl(0.012, 0.012, 0.26, 0x3e8a3e, 0.15, 2.72, 1.7, 4, 0, 0, 0.8));
+  for (const [x, c] of [[-2.0, 0xff6b8a], [-1.5, 0xffd23f], [-0.85, 0xb39cff], [2.1, 0xff8a3d]]) P.push(cyl(0.17, 0.13, 0.26, TERRA, x, 0.13, 1.75, 10), ball(0.2, vary(LEAF), x, 0.38, 1.75, 1, 0.8, 1, 8), ball(0.07, c, x + 0.07, 0.5, 1.82, 1, 1, 1, 6), ball(0.06, c, x - 0.08, 0.47, 1.85, 1, 1, 1, 6));
+}
+function club(P, G, s) {
+  const W = 5.2, D = 2.6, top = 2.4, WALL = 0x3b3560, prof = [[D / 2 + 0.3, 0], [0, 0.6]], gf = fill(W, D, prof, WALL);
+  P.push(rb(W + 0.2, 0.25, D + 0.2, 0x5d5862, 0, 0.125, 0, 0.05), rb(W, top - 0.25, D, WALL, 0, 0.25 + (top - 0.25) / 2, 0, 0.05), ...tf([gf.p], 0, top, 0));
+  P.push(...tf(roofOf(W + 0.4, prof, 0x2a2648, { trim: 0x6c63a8, back: true, sw: 0.32, st: 0.21 }), 0, top, 0));
+  // Tür mit Vordach, Mond-Schild, bunte Lichterkette
+  at(P, G, 0, 0, D / 2, 0, (p, g) => { p.push(rb(1.1, 1.6, 0.06, 0x7b5cd6, 0, 1.05, 0.03, 0.03), rb(1.6, 0.1, 0.6, 0x6c63a8, 0, 1.95, 0.3, 0.03)); g.push(box(0.9, 0.06, 0.02, 0, 0, 1.75, 0.07)); });
+  G.push(ball(0.34, 0, 0, 2.95, D / 2 + 0.12, 1, 1, 0.25, 14));
+  P.push(ball(0.3, 0x3b3560, 0.16, 3.02, D / 2 + 0.17, 1, 1, 0.25, 12));
+  for (let i = 0; i < 13; i++) { const x = -W / 2 + 0.2 + i * (W - 0.4) / 12, y = 2.2 - Math.sin(i / 12 * PI) * 0.18; G.push(ball(0.06, 0, x, y, D / 2 + 0.07, 1, 1, 1, 6)); }
+  for (const x of [-1.8, 1.8]) at(P, G, x, 1.2, D / 2, 0, (p, g) => roundWin(p, g, 0.32, 0x6c63a8));
+  for (const [x, c] of [[-2.3, 0xff6b8a], [2.3, 0x6cc4ff]]) P.push(cyl(0.05, 0.05, 1.6, IRON, x, 0.8, D / 2 + 0.5, 6), ball(0.13, c, x, 1.7, D / 2 + 0.5, 1, 1, 1, 8));
+}
+// Tor zur Bummelgasse (auf der Insel) und dasselbe Tor am Ende der Bummelgasse
+function streetgate(P, G, s) {
+  const snow = s === 'winter';
+  for (const sx of [-1, 1]) {
+    P.push(rb(0.5, 2.6, 0.5, STONE, sx * 1.4, 1.3, 0, 0.05), rb(0.62, 0.16, 0.62, STONE_D, sx * 1.4, 2.66, 0, 0.04), cone(0.35, 0.4, 0xd96a8f, sx * 1.4, 2.94, 0, 4, 0, PI / 4));
+    at(P, G, sx * 1.4, 0, 0.26, 0, p => stones(p, 0.5, 0.4));
+    if (!snow) P.push(ball(0.32, vary(LEAF), sx * 1.95, 0.3, 0.3, 1, 0.8, 1, 8), ball(0.08, 0xff8fab, sx * 1.9, 0.5, 0.5, 1, 1, 1, 6));
+  }
+  P.push(arc(1.4, 0.09, WOODD, 0, 2.3, 0, PI), rb(2.4, 0.55, 0.1, CREAM, 0, 2.75, 0.12, 0.05), rb(2.5, 0.08, 0.12, WOODD, 0, 3.06, 0.12, 0.02));
+  for (let i = 0; i < 9; i++) { const a = i / 8 * PI; G.push(ball(0.05, 0, Math.cos(a) * 1.4, 2.3 + Math.sin(a) * 1.4, 0.08, 1, 1, 1, 6)); }
+  const cols = [0xff6b8a, 0xffd23f, 0x6cc4ff, 0x8fd694, 0xb39cff];
+  for (let i = 0; i < 6; i++) P.push(cone(0.1, 0.18, cols[i % 5], -1.0 + i * 0.4, 3.25, 0.12, 3, PI));
+}
+// Käpt'n Flossis Boot am Steg
+function boat(P, G, s) {
+  const HULL = 0xf4f1ea, RED = 0xe0605a;
+  P.push(ball(0.6, HULL, 0, -0.05, 0, 0.95, 0.45, 2.1, 14), box(1.05, 0.12, 2.3, WOODL, 0, 0.18, 0), ball(0.62, RED, 0, -0.18, 0, 0.97, 0.18, 2.12, 14));
+  P.push(rb(0.7, 0.4, 0.6, WOODL, 0, 0.42, 0.5, 0.05), rb(0.8, 0.06, 0.7, 0x6cc4ff, 0, 0.66, 0.5, 0.03));
+  P.push(cyl(0.04, 0.05, 2.0, WOODD, 0, 1.2, -0.35, 6), beam([0, 2.1, -0.35], [0, 0.6, -1.1], 0.03, CREAM, 0.6));
+  P.push(cyl(0.12, 0.12, 0.05, RED, 0.5, 0.35, -0.6, 10, 0, 0, H), cyl(0.08, 0.08, 0.06, CREAM, 0.5, 0.35, -0.6, 10, 0, 0, H));
+  // Robbe Käpt'n Flossi
+  P.push(ball(0.22, 0x9aa6b2, 0, 0.55, -0.1, 1, 1.2, 1, 10), ball(0.16, 0x9aa6b2, 0, 0.86, -0.04, 1, 1, 1, 10), ball(0.06, 0xd9dde2, 0, 0.82, 0.1, 1.4, 0.8, 1, 8),
+    ball(0.025, DARK, -0.06, 0.92, 0.1, 1, 1, 1, 6), ball(0.025, DARK, 0.06, 0.92, 0.1, 1, 1, 1, 6), cyl(0.16, 0.17, 0.08, 0x2f3e5c, 0, 1.0, -0.04, 12), box(0.22, 0.02, 0.12, 0x2f3e5c, 0, 0.97, 0.12));
+}
+// Steg und Hütte auf der Tropeninsel
+function hut(P, G, s) {
+  const W = 4.2, D = 2.4, top = 1.7, prof = [[D / 2 + 0.6, 0], [0, 1.4]], gf = fill(W, D, prof, 0xe3b47c);
+  P.push(rb(W + 0.4, 0.3, D + 0.4, WOODD, 0, 0.15, 0, 0.04));
+  for (let i = 0; i < 8; i++) P.push(rb(W, 0.2, D, vary(i % 2 ? WOODL : WOOD, 0.03), 0, 0.4 + i * 0.18, 0, 0.03));
+  P.push(...tf([gf.p], 0, top, 0), ...tf(roofOf(W + 0.8, prof, HAY, { back: true, sw: 0.4, st: 0.24, trim: 0xd9b45a }), 0, top, 0));
+  at(P, G, 0, 0, D / 2, 0, (p, g) => { p.push(rb(0.9, 1.3, 0.06, 0x5a4636, 0, 0.95, 0.03, 0.03)); g.push(box(0.7, 1.0, 0.02, 0, 0, 0.95, 0.06)); });
+  P.push(rb(1.5, 0.45, 0.08, CREAM, 0, 2.15, D / 2 + 0.35, 0.04), ball(0.14, 0xff6b6b, -0.45, 2.15, D / 2 + 0.42, 1, 1.2, 0.4, 8), ball(0.08, 0xffd23f, -0.42, 2.3, D / 2 + 0.44, 1, 1, 0.4, 6));
+  for (const sx of [-1, 1]) P.push(cyl(0.05, 0.06, 1.8, WOODD, sx * 2.6, 0.9, D / 2 + 0.3, 6), cone(0.12, 0.18, HAY, sx * 2.6, 1.9, D / 2 + 0.3, 6)), G.push(ball(0.1, 0, sx * 2.6, 2.05, D / 2 + 0.3, 1, 1.4, 1, 6));
+  // Kiki der Papagei auf der Stange
+  P.push(cyl(0.02, 0.02, 0.9, WOODD, 1.6, 0.45, D / 2 + 0.6, 5), box(0.4, 0.03, 0.03, WOODD, 1.6, 0.9, D / 2 + 0.6), ball(0.12, 0x3fbf5a, 1.6, 1.05, D / 2 + 0.6, 1, 1.3, 1, 8),
+    ball(0.08, 0xff4d4d, 1.6, 1.24, D / 2 + 0.62, 1, 1, 1, 8), cone(0.03, 0.07, 0xffd23f, 1.6, 1.22, D / 2 + 0.72, 5, H), ball(0.06, 0x3f7fd9, 1.6, 0.9, D / 2 + 0.55, 0.8, 2, 0.6, 6));
+}
+function dock(P, G, s) {
+  for (let i = 0; i < 9; i++) P.push(box(1.5, 0.08, 0.46, vary(WOODL, 0.05), 0, 0.02, 9 + i * 0.5));
+  for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) P.push(cyl(0.07, 0.07, 1.0, WOODD, sx * 0.72, -0.3, 9.2 + i * 1.3, 6));
+  P.push(...tf(boatParts(), 1.6, 0, 12));
+}
+const boatParts = () => { const p = [], g = []; boat(p, g); return p; };
+
 const BUILD = {
   house, coop, barn, mail,
-  office: (l, s, P, G) => office(P, G, s), shop: (l, s, P, G) => shop(P, G, s), museum: (l, s, P, G) => museum(P, G, s), plazatree: (l, s, P, G) => plazatree(P, G, s),
+  office: (l, s, P, G) => cityhall(P, G, s), tent: (l, s, P, G) => office(P, G, s), gate: (l, s, P, G) => streetgate(P, G, s), boat: (l, s, P, G) => boat(P, G, s),
+  tailor: (l, s, P, G) => tailor(P, G, s), garden: (l, s, P, G) => garden(P, G, s), club: (l, s, P, G) => club(P, G, s), hut: (l, s, P, G) => hut(P, G, s), dock: (l, s, P, G) => dock(P, G, s), shop: (l, s, P, G) => shop(P, G, s), museum: (l, s, P, G) => museum(P, G, s), plazatree: (l, s, P, G) => plazatree(P, G, s),
   vhouse_mira: (l, s, P, G) => vhouse('mira', P, G, s), vhouse_bruno: (l, s, P, G) => vhouse('bruno', P, G, s), vhouse_pippa: (l, s, P, G) => vhouse('pippa', P, G, s), vhouse_lio: (l, s, P, G) => vhouse('lio', P, G, s),
   vhouse_kalle: (l, s, P, G) => vhouse('kalle', P, G, s), vhouse_wanda: (l, s, P, G) => vhouse('wanda', P, G, s),
   market: (l, s, P, G) => market(P, G, s), bin: (l, s, P, G) => bin(P, G, s), board: (l, s, P, G) => board(P, G, s),

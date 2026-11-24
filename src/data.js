@@ -19,6 +19,9 @@ export const CROPS = {
   rose:        { name: 'Rose',           icon: '🌹', seed: 40,  sell: 80,  grow: 140, lvl: 2, cat: 'fruit', xp: 2, flower: 0xe8283c, regrow: 110 },
   hyazinthe:   { name: 'Hyazinthe',      icon: '🪻', seed: 40,  sell: 80,  grow: 140, lvl: 3, cat: 'fruit', xp: 2, flower: 0x8f7bff, regrow: 110, sea: ['spring', 'winter'] },
   sonnenblume: { name: 'Sonnenblume',    icon: '🌻', seed: 60,  sell: 120, grow: 200, lvl: 4, cat: 'fruit', xp: 3, regrow: 150, sea: ['summer'] },
+  lilie:       { name: 'Lilie',          icon: '🪷', seed: 80,  sell: 160, grow: 160, lvl: 1, cat: 'fruit', xp: 3, flower: 0xfff0f4, regrow: 120, garden: 1 },
+  mohn:        { name: 'Mohn',           icon: '🌺', seed: 80,  sell: 160, grow: 150, lvl: 1, cat: 'fruit', xp: 3, flower: 0xff3b2f, regrow: 120, sea: ['spring', 'summer'], garden: 1 },
+  kornblume:   { name: 'Kornblume',      icon: '💠', seed: 80,  sell: 160, grow: 150, lvl: 1, cat: 'fruit', xp: 3, flower: 0x4f7dff, regrow: 120, sea: ['summer', 'autumn'], garden: 1 },
   weizen:      { name: 'Weizen',         icon: '🌾', seed: 10,  sell: 25,  grow: 80,  lvl: 2, cat: 'veg',   xp: 1, yield: 2, sea: ['spring', 'summer', 'autumn'] },
   karotte:     { name: 'Karotte',        icon: '🥕', seed: 15,  sell: 45,  grow: 90,  lvl: 2, cat: 'veg',   xp: 2, sea: ['spring', 'autumn', 'winter'] },
   kartoffel:   { name: 'Kartoffel',      icon: '🥔', seed: 25,  sell: 70,  grow: 130, lvl: 3, cat: 'veg',   xp: 3, sea: ['spring', 'autumn'] },
@@ -35,7 +38,7 @@ export const PENS = {};
 // Feste Gebäude: Fläche in Kacheln (x0..x1, z0..z1), was beim Benutzen passiert.
 // cx/cz = Mitte des 3D-Modells, ox/oz = Verschiebung älterer Modelle, die in eigenen Koordinaten gebaut sind.
 export const BUILDINGS = {
-  office:   { x0: -2,  x1: 2,   z0: -5,  z1: -3,  use: 'orders', name: 'Inselbüro' },
+  office:   { x0: -2,  x1: 2,   z0: -5,  z1: -3,  use: 'mayor',  name: 'Rathaus' },
   plaza:    { x0: 0,   x1: 0,   z0: 1,   z1: 1,   use: 'plaza',  name: 'Dorfbaum' },
   board:    { x0: -3,  x1: -3,  z0: -2,  z1: -2,  use: 'orders', name: 'Schwarzes Brett', ox: 4, oz: 6 },
   shop:     { x0: -10, x1: -6,  z0: -2,  z1: 0,   use: 'shop',   name: 'Krämerladen' },
@@ -51,10 +54,13 @@ export const BUILDINGS = {
   vh_lio:   { x0: 15,  x1: 16,  z0: -1,  z1: 0,   use: 'visit',  name: 'Lios Haus', npc: 'lio' },
   vh_kalle: { x0: -10, x1: -9,  z0: 8,   z1: 9,   use: 'visit',  name: 'Kalles Haus', npc: 'kalle' },
   vh_wanda: { x0: 2,   x1: 3,   z0: 8,   z1: 9,   use: 'visit',  name: 'Wandas Haus', npc: 'wanda' },
+  gate:     { x0: -2,  x1: 0,   z0: -15, z1: -15, use: 'street', name: 'Tor zur Bummelgasse', late: 1 },
+  boat:     { x0: -8,  x1: -7,  z0: 23,  z1: 25,  use: 'boat',   name: 'Käpt\'n Flossis Boot', late: 1 },
 };
 for (const b of Object.values(BUILDINGS)) { b.cx = (b.x0 + b.x1) / 2; b.cz = (b.z0 + b.z1) / 2; }
 // Nachbarhäuser bekommen mehr Platz drumherum (vor allem vor der Tür), damit kein Baum davorsteht
-const nearBuilding = (x, z, m) => Object.values(BUILDINGS).some(b => { const e = b.npc ? 1 : 0; return x >= b.x0 - m - e && x <= b.x1 + m + e && z >= b.z0 - m - e && z <= b.z1 + m + e * 2; });
+const nearBuilding = (x, z, m) => Object.values(BUILDINGS).some(b => {
+  if (b.late) return false; const e = b.npc ? 1 : 0; return x >= b.x0 - m - e && x <= b.x1 + m + e && z >= b.z0 - m - e && z <= b.z1 + m + e * 2; });
 
 // Wilde Bäume (Obst, Holz), Palmen (Kokosnüsse) und Felsen (Stein, Eisen) – auf allen Geräten gleich verteilt
 export const FRUITS = ['apfel', 'kirsche', 'orange', 'pfirsich', 'birne'];
@@ -100,6 +106,9 @@ export const ITEMS = {
   pfirsich:  { name: 'Pfirsich',     icon: '🍑', sell: 100, cat: 'fruit', xp: 1 },
   birne:     { name: 'Birne',        icon: '🍐', sell: 100, cat: 'fruit', xp: 1 },
   kokosnuss: { name: 'Kokosnuss',    icon: '🥥', sell: 250, cat: 'fruit', xp: 2 },
+  banane:    { name: 'Banane',       icon: '🍌', sell: 500, cat: 'fruit', xp: 2 },
+  mango:     { name: 'Mango',        icon: '🥭', sell: 500, cat: 'fruit', xp: 2 },
+  sternfrucht: { name: 'Sternfrucht', icon: '⭐', sell: 600, cat: 'fruit', xp: 3 },
   holz:      { name: 'Holz',         icon: '🪵', sell: 60,  cat: 'mat', xp: 1 },
   ast:       { name: 'Ast',          icon: '🥢', sell: 5,   cat: 'mat', xp: 1 },
   stein:     { name: 'Stein',        icon: '🪨', sell: 75,  cat: 'mat', xp: 1 },
@@ -173,7 +182,14 @@ export const BUGS = [
   ['nachtfalter', 'Nachtfalter', '🦋', 300, ['spring', 'summer', 'autumn'], 'night', 22],
   ['wintermuecke', 'Wintermücke', '🦟', 130, ['winter'], 'any', 30],
   ['schneefloh', 'Schneefloh', '❄️', 400, ['winter'], 'day', 12],
+  ['vogelfalter', 'Vogelfalter', '🦋', 2500, null, 'tropic', 14],
+  ['goliathkaefer', 'Goliathkäfer', '🪲', 4000, null, 'tropic', 8],
+  ['atlasspinner', 'Atlasspinner', '🦋', 3000, null, 'tropic', 10],
+  ['orchideenmantis', 'Orchideenmantis', '🌸', 2400, null, 'tropic', 12],
+  ['blattschneider', 'Blattschneiderameise', '🐜', 800, null, 'tropic', 26],
+  ['stabschrecke', 'Riesen-Stabschrecke', '🥢', 1500, null, 'tropic', 20],
 ];
+for (const b of BUGS) b[4] ||= ['spring', 'summer', 'autumn', 'winter'];
 
 // Ausgrabungen (Schaufel an den Stern-Rissen): [id, Name, Symbol, Preis, Gewicht]
 export const FOSSILS = [
@@ -227,14 +243,43 @@ export const PLACE = {
   pfirsichbaum:{ name: 'Pfirsichbaum', icon: '🌳', buy: 900,  lvl: 3, kind: 'producer', solid: 1, item: 'pfirsich', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Pfirsiche' },
   kirschenbaum:{ name: 'Kirschbaum',   icon: '🌳', buy: 900,  lvl: 4, kind: 'producer', solid: 1, item: 'kirsche', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Kirschen' },
   birnbaum:   { name: 'Birnbaum',      icon: '🌳', buy: 900,  lvl: 4, kind: 'producer', solid: 1, item: 'birne', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Birnen' },
+  // Gärtnerei in der Bummelgasse
+  hortensie:  { name: 'Hortensienbusch', icon: '💐', buy: 700, lvl: 1, kind: 'deco', solid: 1, garden: 1 },
+  buchsbaum:  { name: 'Buchsbaumkugel', icon: '🟢', buy: 500, lvl: 1, kind: 'deco', solid: 1, garden: 1 },
+  rosenbogen: { name: 'Rosenbogen',    icon: '🌹', buy: 2400, lvl: 3, kind: 'deco', garden: 1 },
+  // Tauschhütte auf der Tropeninsel (für Medaillen)
+  bananenbaum:{ name: 'Bananenstaude', icon: '🌴', medals: 8, lvl: 1, kind: 'producer', solid: 1, item: 'banane', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Bananen' },
+  mangobaum:  { name: 'Mangobaum',     icon: '🌳', medals: 8, lvl: 1, kind: 'producer', solid: 1, item: 'mango', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Mangos' },
+  tikifackel: { name: 'Tiki-Fackel',   icon: '🔥', medals: 3, lvl: 1, kind: 'deco', solid: 1, glow: 1 },
+  haengematte:{ name: 'Hängematte',    icon: '🏝️', medals: 6, lvl: 1, kind: 'deco', solid: 1, sit: 1 },
+  surfbrett:  { name: 'Surfbrett',     icon: '🏄', medals: 4, lvl: 1, kind: 'deco', solid: 1 },
+  sandburg:   { name: 'Sandburg',      icon: '🏰', medals: 2, lvl: 1, kind: 'deco', solid: 1 },
+  // Belohnungen
+  pokal:      { name: 'Wohnwert-Pokal', icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Vom Wohnwert-Verein für ein wunderschönes Zuhause' },
+  baustelle:  { name: 'Bauplatz-Pflock', icon: '🚩', lvl: 1, kind: 'site', solid: 1, desc: 'Markiert den Bauplatz für ein Inselprojekt' },
 };
-for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy ? {} : { sell: 500, cat: 'misc' }) };
+// Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
+export const PROJECTS = {
+  laternenpfahl: { name: 'Gaslaterne',          icon: '💡', cost: 8000,  lvl: 1, glow: 1 },
+  sonnenuhr:     { name: 'Sonnenuhr',           icon: '🕰️', cost: 12000, lvl: 1 },
+  picknick:      { name: 'Picknickplatz',       icon: '🧺', cost: 15000, lvl: 2, sit: 1 },
+  blumentor:     { name: 'Blumentor',           icon: '💐', cost: 18000, lvl: 2 },
+  fernrohr:      { name: 'Fernrohr',            icon: '🔭', cost: 24000, lvl: 3 },
+  statue:        { name: 'Kuschelstatue',       icon: '🗿', cost: 30000, lvl: 3 },
+  pavillon:      { name: 'Musikpavillon',       icon: '🎪', cost: 45000, lvl: 4 },
+  springbrunnen: { name: 'Großer Springbrunnen', icon: '⛲', cost: 50000, lvl: 5 },
+  windmuehle:    { name: 'Windmühle',           icon: '🌬️', cost: 60000, lvl: 5 },
+  glockenturm:   { name: 'Glockenturm',         icon: '🔔', cost: 80000, lvl: 6 },
+  leuchtturm:    { name: 'Leuchtturm',          icon: '🗼', cost: 98000, lvl: 7, glow: 1 },
+};
+for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
+for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
 export const MACHINE_CAP = 20;
 
 // Ausbau: cost[i] = Preis für die nächste Stufe, req[i] = benötigtes Insel-Level.
 export const UPGRADES = {
-  house:  { tab: 'farm',  name: 'Haus ausbauen', icon: '🏡', start: 1, cost: [9800, 39800], req: [3, 6],
-            desc: l => ['', 'Kleines Häuschen', 'Gemütliches Haus mit Anbau', 'Traumhaus mit Turm'][l] },
+  house:  { tab: 'farm',  name: 'Haus ausbauen', icon: '🏡', start: 1, cost: [9800, 39800, 98000, 198000], req: [3, 6, 9, 12], loan: 1,
+            desc: l => ['', 'Kleines Häuschen', 'Gemütliches Haus mit Anbau', 'Traumhaus mit Turm', 'Großes Traumhaus (11×9)', 'Inselvilla (13×9)'][l] },
   can:    { tab: 'tools', name: 'Gießkanne', icon: '💧', start: 1, cost: [800, 2500, 6000], req: [2, 4, 7],
             desc: l => `Gießt ${AREA_NAME[l]}` },
   boots:  { tab: 'tools', name: 'Laufschuhe', icon: '👟', start: 1, cost: [600, 2000, 5000], req: [1, 3, 6],
@@ -426,6 +471,16 @@ export const NPC_PLAN = {
 // Werkbank-Rezepte muss man erst finden: Flaschenpost am Strand, Geschenkballons, Nachbarn.
 export const STARTER_DIY = ['r_zaun', 'r_weg', 'r_bank', 'f_hocker', 'f_stuhl'];
 export const DIY_IDS = Object.keys(RECIPES).filter(k => RECIPES[k].st === 'craft');
+// Erfolge fürs Bürgermeister-Update
+ACHIEVEMENTS.push(...[
+  ['projekt1', '🏗️', 'Spatenstich', 'Das erste Inselprojekt eingeweiht', s => (s.mayor?.built || 0) >= 1, 2000],
+  ['projekt5', '🏙️', 'Große Bürgermeister', '5 Inselprojekte gebaut', s => (s.mayor?.built || 0) >= 5, 10000],
+  ['schuldenfrei', '🏡', 'Schuldenfrei', '50.000 Taler Hauskredit abbezahlt', s => (s.stats.repaid || 0) >= 50000, 5000],
+  ['sterne5', '⭐', 'Fünf-Sterne-Insel', 'Die Inselbewertung hat 5 Sterne', s => (s.stars || 1) >= 5, 10000],
+  ['tour5', '🏅', 'Weltenbummler', '5 Touren auf der Tropeninsel geschafft', s => (s.stats.tours || 0) >= 5, 3000],
+  ['lieder8', '🎸', 'Musikfans', '8 Lieder im Liederbuch', s => Object.keys(s.songs || {}).length >= 8, 4000],
+  ['huete', '🎩', 'Modebewusst', '3 besondere Hüte freigeschaltet', s => Object.keys(s.wardrobe || {}).length >= 3, 2000],
+].map(([id, icon, name, desc, test, reward]) => ({ id, icon, name, desc, test, reward })));
 // Achievements für Tauchen & Baupläne
 ACHIEVEMENTS.push(...[
   ['taucher', '🤿', 'Abgetaucht', '10 Meerestiere beim Tauchen gefunden', s => (s.stats.dives || 0) >= 10, 1500],

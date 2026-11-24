@@ -301,7 +301,7 @@ const CROP = {
 
 
 // ---------- Blumen (Tulpe, Kosmee, Stiefmütterchen, Rose, Hyazinthe) ----------
-const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff };
+const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff, lilie: 0xfff0f4, mohn: 0xff3b2f, kornblume: 0x4f7dff };
 function flowerPlant(k, st) {
   const c = FCOL[k], p = [];
   const n = st === 1 ? 4 : 6;
@@ -536,6 +536,140 @@ const PLACE = {
   pfirsichbaum: ready => PLACE.apfelbaum(ready, 0xffa98a, 1.05),
   kirschenbaum: ready => PLACE.apfelbaum(ready, 0xd8102c, 0.8),
   birnbaum: ready => PLACE.apfelbaum(ready, 0xd6dc4a, 1.05),
+  // ---------- Bürgermeister-Update ----------
+  bananenbaum(ready) { // Staude mit großen Blättern und Bananenbündel
+    seed = 41;
+    const p = [C(0.09, 0.14, 1.5, 0x9a8a4a, 0, 0.75, 0, 9)];
+    for (let i = 0; i < 7; i++) { const a = i * TAU / 7; p.push(leaf(0.95, 0.32, i % 2 ? LEAF : LEAFD, 0, 1.45, 0, a, 0.5, 0.55, 0.15, 5, 8)); }
+    if (ready) for (let i = 0; i < 6; i++) { const a = i * 1.1; p.push(B(0.05, 0xffe14d, Math.sin(a) * 0.12, 1.15 - (i % 3) * 0.06, Math.cos(a) * 0.12 + 0.12, 1, 2.6, 1, 6, 5, 0.3, 0, 0.4)); }
+    return p;
+  },
+  mangobaum: ready => PLACE.apfelbaum(ready, 0xff9a3c, 1.25),
+  hortensie() {
+    seed = 51;
+    const p = [];
+    for (let i = 0; i < 6; i++) { const a = i * TAU / 6; p.push(B(0.22, i % 2 ? LEAF : LEAFD, Math.sin(a) * 0.18, 0.25, Math.cos(a) * 0.18, 1, 0.8, 1, 9, 7)); }
+    for (let i = 0; i < 7; i++) { const [x, y, z] = onBall(0, 0.32, 0, 0.3, rnd() * TAU, rnd() * 1.2, 0.9); p.push(B(0.1, i % 3 ? 0x8fb4ff : 0xd9a0ff, x, y, z, 1, 0.85, 1, 8, 6)); }
+    return p;
+  },
+  buchsbaum() {
+    return [C(0.2, 0.16, 0.26, 0xd27a5a, 0, 0.13, 0, 12), B(0.32, LEAFD, 0, 0.56, 0, 1, 1, 1, 14, 10), B(0.12, LEAF, 0.1, 0.72, 0.18, 1, 0.8, 1, 8, 6)];
+  },
+  rosenbogen() {
+    const p = [];
+    for (const x of [-0.55, 0.55]) p.push(C(0.03, 0.03, 1.5, WHITE, x, 0.75, 0, 6));
+    p.push(ring(0.55, 0.03, WHITE, 0, 1.5, 0, 0, PI, 16, 4));
+    for (let i = 0; i < 16; i++) { const a = i / 15 * PI, r = 0.55; p.push(B(0.08, i % 2 ? LEAF : LEAFD, Math.cos(a) * r, 1.5 + Math.sin(a) * r, 0, 1, 1, 0.8, 7, 5), B(0.05, i % 3 ? 0xff3b5c : PINK, Math.cos(a) * r + 0.03, 1.52 + Math.sin(a) * r, 0.06, 1, 1, 1, 6, 4)); }
+    for (const x of [-0.55, 0.55]) for (let j = 0; j < 4; j++) p.push(B(0.07, LEAF, x, 0.3 + j * 0.3, 0.04, 1, 1, 0.8, 6, 4), B(0.045, 0xff3b5c, x + 0.04, 0.38 + j * 0.3, 0.08, 1, 1, 1, 6, 4));
+    return p;
+  },
+  tikifackel() {
+    const p = [C(0.04, 0.05, 1.3, 0x8a5a3a, 0, 0.65, 0, 6), C(0.1, 0.07, 0.22, 0xc9a06a, 0, 1.35, 0, 8), ring(0.1, 0.015, 0x6b4428, 0, 1.3, 0, H, TAU, 10, 3)];
+    return [p, [cone(0.08, 0.26, 0, 0, 1.58, 0, 7), B(0.07, 0, 0, 1.5, 0, 1, 1, 1, 7, 5)]];
+  },
+  haengematte() {
+    const p = [];
+    for (const x of [-0.7, 0.7]) p.push(C(0.05, 0.06, 1.2, 0x8a5a3a, x, 0.6, 0, 7), B(0.06, 0x8a5a3a, x, 1.22, 0, 1, 1, 1, 6, 4));
+    const pts = Array.from({ length: 9 }, (_, i) => { const t = i / 8; return [-0.68 + t * 1.36, 1.0 - Math.sin(t * PI) * 0.45, 0]; });
+    p.push(tube(pts, 0.025, 0xc9a06a, 12, 4));
+    for (let i = 0; i < 7; i++) { const t = (i + 0.5) / 7, x = -0.6 + t * 1.2, y = 0.98 - Math.sin(t * PI) * 0.43; p.push(soft(0.18, 0.03, 0.5, i % 2 ? 0xff8fab : 0x6cc4ff, x, y, 0, 0.3, 0, 0, Math.cos(t * PI) * 0.6)); }
+    return p;
+  },
+  surfbrett() {
+    return [soft(0.42, 1.5, 0.08, 0x6cc4ff, 0, 0.78, 0, 0.6, 0, -0.12), soft(0.08, 1.3, 0.09, WHITE, 0, 0.8, 0.005, 0.5, 0, -0.12), B(0.06, 0xffd23f, 0, 1.05, 0.06, 1, 1, 0.3, 6, 4), soft(0.6, 0.1, 0.3, 0xeedcaa, 0, 0.04, 0.05, 0.6)];
+  },
+  sandburg() {
+    const SA = 0xeedcaa, p = [soft(0.9, 0.12, 0.8, SA, 0, 0.06, 0, 0.6), soft(0.5, 0.3, 0.4, SA, 0, 0.27, 0, 0.3)];
+    for (const [x, z] of [[-0.3, -0.25], [0.3, -0.25], [-0.3, 0.25], [0.3, 0.25]]) p.push(C(0.1, 0.12, 0.42, SA, x, 0.27, z, 10), cone(0.11, 0.14, SA, x, 0.55, z, 10));
+    p.push(C(0.008, 0.008, 0.3, BARK, 0, 0.55, 0, 4), box(0.12, 0.08, 0.01, RED, 0.06, 0.66, 0), B(0.05, 0xffb7c8, 0.35, 0.03, 0.35, 1, 0.5, 1, 6, 4));
+    return p;
+  },
+  pokal() {
+    const G = 0xffd23f;
+    return [C(0.22, 0.26, 0.1, STONE, 0, 0.05, 0, 12), soft(0.36, 0.2, 0.36, 0x6b4428, 0, 0.2, 0, 0.4), C(0.05, 0.08, 0.25, G, 0, 0.42, 0, 10), C(0.2, 0.06, 0.35, G, 0, 0.72, 0, 14),
+      ring(0.1, 0.025, G, -0.22, 0.75, 0, 0, TAU, 10, 4), ring(0.1, 0.025, G, 0.22, 0.75, 0, 0, TAU, 10, 4), B(0.04, 0xffffff, 0, 0.92, 0, 1, 1, 1, 6, 4)];
+  },
+  baustelle() { // Bauschild mit Absperrung und Steinhaufen
+    const p = [C(0.03, 0.03, 1.1, WOODD, -0.25, 0.55, 0, 6), C(0.03, 0.03, 1.1, WOODD, 0.25, 0.55, 0, 6), soft(0.75, 0.45, 0.05, WHITE, 0, 0.95, 0.02, 0.2),
+      soft(0.7, 0.08, 0.06, 0xff8a2a, 0, 1.12, 0.05, 0.3), B(0.12, 0xffd23f, 0, 0.92, 0.05, 1, 1, 0.3, 8, 6)];
+    for (const [x, z] of [[-0.9, 0.8], [0.9, 0.8], [-0.9, -0.8], [0.9, -0.8]]) p.push(C(0.05, 0.07, 0.5, 0xff8a2a, x, 0.25, z, 6), ring(0.05, 0.012, WHITE, x, 0.32, z, H, TAU, 8, 3));
+    for (const [a, b] of [[[-0.9, 0.8], [0.9, 0.8]], [[-0.9, -0.8], [-0.9, 0.8]], [[0.9, -0.8], [0.9, 0.8]]]) for (const y of [0.32, 0.18]) p.push(stick([a[0], y, a[1]], [b[0], y, b[1]], 0.012, y > 0.3 ? 0xff5050 : WHITE, 4));
+    for (let i = 0; i < 6; i++) p.push(soft(0.2, 0.12, 0.16, i % 2 ? STONE : 0xb9b4ad, 0.5 - (i % 3) * 0.14, 0.06 + Math.floor(i / 3) * 0.1, -0.45 + (i % 2) * 0.1, 0.5, i));
+    return p;
+  },
+  laternenpfahl() {
+    const M = 0x2f3e5c, p = [C(0.16, 0.2, 0.12, M, 0, 0.06, 0, 10), C(0.05, 0.06, 2.2, M, 0, 1.2, 0, 8), ring(0.06, 0.02, BRASS, 0, 0.6, 0, H, TAU, 10, 4)];
+    for (const sx of [-1, 1]) p.push(stick([0, 2.1, 0], [sx * 0.4, 2.15, 0], 0.025, M, 5), C(0.12, 0.08, 0.06, M, sx * 0.4, 2.05, 0, 6), cone(0.15, 0.16, M, sx * 0.4, 2.42, 0, 6));
+    return [p, [-1, 1].map(sx => C(0.09, 0.07, 0.24, 0, sx * 0.4, 2.2, 0, 6))];
+  },
+  sonnenuhr() {
+    const p = [C(0.4, 0.45, 0.12, STONE, 0, 0.06, 0, 16), C(0.22, 0.28, 0.6, STONE, 0, 0.42, 0, 12), C(0.42, 0.38, 0.08, 0xe6dfd5, 0, 0.76, 0, 20)];
+    for (let i = 0; i < 12; i++) { const a = i * TAU / 12; p.push(box(0.03, 0.01, 0.08, DARK, Math.sin(a) * 0.32, 0.805, Math.cos(a) * 0.32, a)); }
+    p.push(cone(0.18, 0.3, BRASS, 0, 0.92, 0, 3, 0, 0, 0), B(0.03, BRASS, 0, 1.08, 0, 1, 1, 1, 6, 4));
+    return p;
+  },
+  picknick() {
+    const p = [soft(1.4, 0.06, 0.7, WOOD, 0, 0.62, 0, 0.25), soft(1.4, 0.05, 0.22, WOOD, 0, 0.36, 0.55, 0.25), soft(1.4, 0.05, 0.22, WOOD, 0, 0.36, -0.55, 0.25)];
+    for (const x of [-0.55, 0.55]) p.push(stick([x, 0, 0.6], [x, 0.62, -0.1], 0.04, WOODD, 6), stick([x, 0, -0.6], [x, 0.62, 0.1], 0.04, WOODD, 6));
+    p.push(soft(0.6, 0.02, 0.45, 0xff6b6b, 0.1, 0.66, 0, 0.2), soft(0.3, 0.2, 0.2, 0xc9a06a, -0.4, 0.75, 0, 0.5), ring(0.1, 0.015, 0x8a5a3a, -0.4, 0.88, 0, 0, PI, 10, 3), B(0.06, RED, 0.25, 0.7, 0.05, 1, 1, 1, 7, 5));
+    return p;
+  },
+  blumentor() {
+    const p = [];
+    for (const x of [-0.8, 0.8]) p.push(soft(0.24, 2.0, 0.24, WHITE, x, 1.0, 0, 0.3), B(0.14, WHITE, x, 2.08, 0, 1, 1, 1, 8, 6));
+    p.push(ring(0.8, 0.07, WHITE, 0, 2.0, 0, 0, PI, 18, 5));
+    for (let i = 0; i < 22; i++) { const a = i / 21 * PI; p.push(B(0.1, [ROSE, 0xffe066, LILA, 0xff9f6b][i % 4], Math.cos(a) * 0.8, 2.0 + Math.sin(a) * 0.8, 0.07, 1, 1, 0.7, 7, 5)); }
+    for (const x of [-0.8, 0.8]) for (let j = 0; j < 6; j++) p.push(B(0.08, j % 2 ? LEAF : 0xff8fab, x + (j % 2 ? 0.1 : -0.1), 0.3 + j * 0.28, 0.12, 1, 1, 0.8, 6, 4));
+    return p;
+  },
+  fernrohr() {
+    const p = [C(0.3, 0.34, 0.12, STONE, 0, 0.06, 0, 12)];
+    for (let i = 0; i < 3; i++) { const a = i * TAU / 3; p.push(stick([Math.sin(a) * 0.25, 0.1, Math.cos(a) * 0.25], [0, 0.95, 0], 0.03, BRASS, 5)); }
+    p.push(C(0.09, 0.12, 0.9, 0x3b4a7a, 0, 1.15, 0.1, 12, false, -0.7), C(0.13, 0.13, 0.08, BRASS, 0, 1.45, 0.42, 12, false, -0.7), C(0.06, 0.06, 0.1, BRASS, 0, 0.85, -0.25, 8, false, -0.7));
+    return p;
+  },
+  statue() { // Teddy auf Sockel
+    const T = 0xd9d2c8, p = [soft(0.7, 0.5, 0.7, STONE, 0, 0.25, 0, 0.3), soft(0.8, 0.08, 0.8, 0xb9b4ad, 0, 0.52, 0, 0.3)];
+    p.push(B(0.32, T, 0, 0.88, 0, 1, 1.05, 0.9, 12, 10), B(0.25, T, 0, 1.35, 0, 1, 1, 1, 12, 10), B(0.09, T, -0.2, 1.55, 0, 1, 1, 0.7, 8, 6), B(0.09, T, 0.2, 1.55, 0, 1, 1, 0.7, 8, 6),
+      B(0.09, 0xece6de, 0, 1.3, 0.21, 1.3, 0.9, 0.8, 8, 6), B(0.1, T, -0.3, 0.95, 0.12, 1, 1.4, 1, 8, 6), B(0.1, T, 0.3, 0.95, 0.12, 1, 1.4, 1, 8, 6), ...heart(0.16, 0xe0b0b0, 0, 0.9, 0.29, 0.3));
+    return p;
+  },
+  pavillon() {
+    const p = [C(1.1, 1.15, 0.2, STONE, 0, 0.1, 0, 8), C(1.05, 1.05, 0.04, WOODL, 0, 0.22, 0, 8)];
+    for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + PI / 8; p.push(C(0.05, 0.05, 1.5, WHITE, Math.sin(a) * 0.95, 0.97, Math.cos(a) * 0.95, 8)); if (i !== 0) p.push(stick([Math.sin(a) * 0.95, 0.55, Math.cos(a) * 0.95], [Math.sin(a + PI / 4) * 0.95, 0.55, Math.cos(a + PI / 4) * 0.95], 0.02, WHITE, 4)); }
+    p.push(C(1.2, 1.2, 0.08, WHITE, 0, 1.74, 0, 8), cone(1.3, 0.8, 0x6cc4ff, 0, 2.18, 0, 8), B(0.08, BRASS, 0, 2.62, 0, 1, 1, 1, 8, 6));
+    for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + PI / 8; p.push(B(0.05, [ROSE, YEL][i % 2], Math.sin(a) * 1.2, 1.68, Math.cos(a) * 1.2, 1, 1, 1, 6, 4)); }
+    return p;
+  },
+  springbrunnen() {
+    seed = 61;
+    const p = [C(1.0, 1.05, 0.35, STONE, 0, 0.17, 0, 24), ring(1.0, 0.08, 0xe6dfd5, 0, 0.35, 0, H, TAU, 30, 6), C(0.94, 0.94, 0.02, WATER, 0, 0.3, 0, 24),
+      C(0.12, 0.16, 0.8, STONE, 0, 0.7, 0, 10), C(0.45, 0.14, 0.15, STONE, 0, 1.08, 0, 16), ring(0.44, 0.04, 0xe6dfd5, 0, 1.15, 0, H, TAU, 20, 5), C(0.4, 0.4, 0.015, WATER, 0, 1.13, 0, 16),
+      C(0.05, 0.08, 0.35, STONE, 0, 1.3, 0, 8), C(0.2, 0.06, 0.08, STONE, 0, 1.5, 0, 12), B(0.07, 0xbfeaff, 0, 1.68, 0, 1, 2, 1, 8, 6)];
+    for (let i = 0; i < 8; i++) { const a = i * TAU / 8; p.push(tube([[Math.sin(a) * 0.42, 1.12, Math.cos(a) * 0.42], [Math.sin(a) * 0.62, 0.9, Math.cos(a) * 0.62], [Math.sin(a) * 0.72, 0.32, Math.cos(a) * 0.72]], 0.02, 0xbfeaff, 6, 4)); }
+    return p;
+  },
+  windmuehle() {
+    const p = [C(0.55, 0.85, 2.6, 0xfff3e0, 0, 1.3, 0, 12), cone(0.75, 0.9, 0xd27a5a, 0, 3.05, 0, 12), soft(0.5, 0.75, 0.06, 0x8f603c, 0, 0.45, 0.78, 0.2, 0, 0.18),
+      C(0.1, 0.1, 0.4, WOODD, 0, 2.55, 0.65, 8, false, H), B(0.12, WOODD, 0, 2.55, 0.85, 1, 1, 1, 8, 6)];
+    for (let i = 0; i < 4; i++) { const a = i * H + 0.3; p.push(...[0.3, 0.6, 0.9, 1.2].map(r => soft(0.34, 0.04, 0.02, WHITE, Math.sin(a) * r, 2.55 + Math.cos(a) * r, 0.88, 0.3, 0, 0, -a)), stick([0, 2.55, 0.9], [Math.sin(a) * 1.45, 2.55 + Math.cos(a) * 1.45, 0.9], 0.03, WOODD, 4)); }
+    for (const y of [1.1, 1.9]) p.push(soft(0.3, 0.3, 0.05, SKY, 0, y, 0.68 - (y - 1.1) * 0.15, 0.3, 0, 0.2));
+    return p;
+  },
+  glockenturm() {
+    const p = [soft(1.0, 0.3, 1.0, STONE, 0, 0.15, 0, 0.2), soft(0.8, 2.6, 0.8, 0xfff3e0, 0, 1.6, 0, 0.15), soft(0.95, 0.12, 0.95, WHITE, 0, 2.95, 0, 0.2)];
+    for (const [x, z] of [[-0.38, -0.38], [0.38, -0.38], [-0.38, 0.38], [0.38, 0.38]]) p.push(C(0.06, 0.06, 0.9, WHITE, x, 3.45, z, 8));
+    p.push(soft(1.0, 0.12, 1.0, WHITE, 0, 3.95, 0, 0.2), cone(0.75, 1.0, 0x4f7fc9, 0, 4.5, 0, 4, 0, PI / 4), B(0.06, BRASS, 0, 5.05, 0, 1, 1, 1, 8, 6));
+    p.push(C(0.12, 0.28, 0.4, BRASS, 0, 3.4, 0, 14), B(0.06, BRASS, 0, 3.18, 0, 1, 1, 1, 8, 6), C(0.25, 0.25, 0.04, WHITE, 0, 2.1, 0.41, 18, false, H), box(0.02, 0.16, 0.02, DARK, 0, 2.16, 0.44), box(0.12, 0.02, 0.02, DARK, 0.05, 2.1, 0.44));
+    return p;
+  },
+  leuchtturm() {
+    const p = [C(0.8, 0.9, 0.3, STONE, 0, 0.15, 0, 14)];
+    for (let i = 0; i < 6; i++) p.push(C(0.55 - i * 0.04, 0.59 - i * 0.04, 0.6, i % 2 ? RED : WHITE, 0, 0.6 + i * 0.6, 0, 14));
+    p.push(C(0.5, 0.5, 0.1, DARK, 0, 4.0, 0, 14), ring(0.5, 0.025, DARK, 0, 4.3, 0, H, TAU, 16, 4), C(0.38, 0.38, 0.06, DARK, 0, 4.72, 0, 12), cone(0.42, 0.45, RED, 0, 4.98, 0, 12), B(0.06, BRASS, 0, 5.24, 0, 1, 1, 1, 6, 4));
+    p.push(soft(0.3, 0.5, 0.05, 0x8f603c, 0, 0.55, 0.88, 0.2, 0, 0.15));
+    return [p, [C(0.3, 0.3, 0.6, 0, 0, 4.4, 0, 10)]];
+  },
   bienenstock(ready) {
     const S = [0xf2c35a, 0xe2ad45], p = [C(0.3, 0.34, 0.22, BARK, 0, 0.11, 0, 14), C(0.29, 0.29, 0.02, 0xe8c48e, 0, 0.225, 0, 14), ring(0.16, 0.008, 0xc9a06a, 0, 0.236, 0, H, TAU, 16, 3),
       dome(0.27, S[0], 0, 0.23, 0, 1, 1.85, 1, 14, 7)];

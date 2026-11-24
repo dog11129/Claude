@@ -7,6 +7,12 @@ import {
 } from './data.js';
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
+import {
+  PROJECTS, STREET, TROPIC, zoneOf, STREET_SHOPS, streetWalk, streetShopAt, TROPIC_HUT, TROPIC_TREES, onDock, tropicWalk, tropicTree,
+  ORDS, ORD_PRICE, ord, awakeHours, sellFactor, buyPrice, WARDROBE, SONGS, TOURS, tourTargets, MEDAL_SHOP, BOAT_PRICE, concertNow, shopOpen,
+  homeScore, hhaRank, islandScore, fmt,
+} from './newleaf.js';
+export { zoneOf, STREET, TROPIC };
 
 export const key = (x, z) => x + ',' + z;
 export const seasonOf = day => SEASON_IDS[Math.floor((day - 1) / SEASON_LEN) % 4];
@@ -25,7 +31,8 @@ export function newFarm(name = 'Kuschelinsel') {
     shells: {}, weeds: {}, fruit: {}, museum: {}, rock: null, paths: {}, balloon: null, wishes: 0, starNight: false, turnip: null, real: false, ground: {}, dives: [], recipes: Object.fromEntries(STARTER_DIY.map(k => [k, 1])),
     home: { wall: 'vanille', floor: 'dielen', items: {}, rugs: {}, walls: {} },
     quest: { i: 0, p: 0 }, daily: [], met: {},
-    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0, dives: 0 },
+    mayor: { ord: 'none', free: 1, plan: null, built: 0 }, loan: 0, wardrobe: {}, songs: {}, concert: 0, medals: 0, tropic: { picked: {} }, tour: null, hha: { best: 0 }, stars: 1,
+    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0, dives: 0, donated: 0, tours: 0, trips: 0, repaid: 0 },
   };
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
   // ein paar wilde Blumen blühen schon auf der Insel
@@ -84,7 +91,7 @@ export function npcPos(id, t, dayTime = 0.3) {
   const [, px, pz] = plan[i - 1], [x, z] = along(route([px, pz], [cx, cz]), since / WALK_H);
   return { x, z, walking: true };
 }
-export const npcAwake = s => { const h = 6 + s.dayTime * 18; return h >= 7 && h < 21.5; };
+export const npcAwake = s => { const h = 6 + s.dayTime * 18, [a, b] = awakeHours(s); return h >= a && h < b; };
 
 // ---------- Quests ----------
 function newDailies(s) {
@@ -125,7 +132,7 @@ function refill(s) {
     s.shells[k] = weighted(SHELLS, f => f[4])[0];
     n++;
   }
-  for (let t = 0, n = Object.keys(s.weeds).length; n < WEEDS_PER_DAY && t < 300; t++) {
+  for (let t = 0, n = ord(s) === 'schoen' ? WEEDS_PER_DAY : Object.keys(s.weeds).length; n < WEEDS_PER_DAY && t < 300; t++) {
     const [x, z] = randTile();
     if (free(x, z) && !s.weeds[key(x, z)]) { s.weeds[key(x, z)] = 1; n++; }
   }
@@ -186,6 +193,9 @@ export function migrate(s) {
     if (p) addInv(s, o.k, 1);
     delete s.obj[k];
   }
+  for (const k of Object.keys(s.tiles)) { const [x, z] = k.split(',').map(Number); if (buildingAt(x, z)) delete s.tiles[k]; }
+  for (const k of Object.keys(base.mayor)) if (s.mayor[k] === undefined) s.mayor[k] = base.mayor[k];
+  if (!Number.isFinite(s.loan) || s.loan < 0) s.loan = 0;
   if (fresh) refill(s);
   return s;
 }
@@ -256,6 +266,16 @@ function homeBlocked(s, x, z) {
 export const swimmable = (x, z) => isSea(x, z) && !onPier(x, z) && coast(x, z) < 7.5 && Math.abs(x) < ISLAND + 6 && Math.abs(z) < ISLAND + 6;
 export function blocked(s, x, z, swim) {
   if (x > HOME_X / 2) return homeBlocked(s, x, z);
+  if (z < -150) { // Bummelgasse (nach Süden geht's durchs Tor zurück)
+    const lx = x - STREET.x, lz = z - STREET.z;
+    return !(streetWalk(lx, lz) || (Math.abs(lx) <= 1.1 && lz > 0 && lz <= STREET.d + 0.9));
+  }
+  if (z > 150) { // Tropeninsel
+    const lx = x - TROPIC.x, lz = z - TROPIC.z, tx = Math.round(lx), tz = Math.round(lz);
+    if (!tropicWalk(lx, lz)) return true;
+    if (tx >= TROPIC_HUT.x0 && tx <= TROPIC_HUT.x1 && tz >= TROPIC_HUT.z0 && tz <= TROPIC_HUT.z1) return true;
+    return tropicTree(tx, tz) >= 0;
+  }
   if (swim && swimmable(x, z)) return Math.abs(x - PIER.x) < PIER.w + 0.3 && z > PIER.z0 && z < PIER.z1; // unter dem Steg durch geht nicht
   if (!walkable(x, z)) return true;
   const tx = Math.round(x), tz = Math.round(z);
@@ -283,7 +303,7 @@ export function animalPos(a, t) {
   return { x: pen.cx + pen.rx * Math.sin(e * 1.3 + h), z: pen.cz + pen.rz * Math.sin(e * 0.9 + h * 2.1), walking: r > 0.08 && r < 0.92 };
 }
 
-export const price = (s, id) => ITEMS[id]?.turnip ? turnipPrice(s) : Math.round((ITEMS[id]?.sell || 0) * (1 + 0.2 * (s.up['q_' + ITEMS[id].cat] || 0)));
+export const price = (s, id) => ITEMS[id]?.turnip ? turnipPrice(s) : Math.round((ITEMS[id]?.sell || 0) * (1 + 0.2 * (s.up['q_' + ITEMS[id].cat] || 0)) * sellFactor(s));
 
 // ---------- Rübenbörse ----------
 // Sonntagmorgen kauft man Rüben bei Hoppel, Montag bis Samstag zahlt der Krämerladen zweimal am Tag einen neuen Preis.
@@ -322,13 +342,16 @@ export function upgradeInfo(s, id) {
 
 export function tick(s, dt, auth) {
   let changed = false;
+  if (s.tour && !Number.isFinite(s.tour.end)) s.tour = null;
   s.time += dt;
   if (!s.real) s.dayTime += dt / DAY; // Echtzeit: der Host stellt die Uhr nach der echten Uhrzeit (realClock)
   if (s.dayTime >= 1) {
     if (auth) { newDay(s); changed = true; } else s.dayTime = 0.9999;
   }
   const rain = s.weather !== 'sun'; // Regen und Schnee gießen
-  const sea = seasonOf(s.day);
+  const sea = seasonOf(s.day), nice = ord(s) === 'schoen';
+  // Tour auf der Tropeninsel: Zeit abgelaufen
+  if (auth && s.tour && s.time > s.tour.end) { s.tourEnd = { k: s.tour.k, ok: false, t: s.time }; s.tour = null; changed = true; }
   // Geschenkballons: tagsüber ab und zu, fliegen von einer Seite zur anderen
   if (auth) {
     const hour = 6 + s.dayTime * 18;
@@ -350,7 +373,7 @@ export function tick(s, dt, auth) {
     if (rain) { if (!t.w) changed = true; t.w = WET; }
     if (t.c && t.c.g < CROPS[t.c.k].grow) { // gegossen wächst es viel schneller
       const before = stage(t.c);
-      t.c.g = Math.min(CROPS[t.c.k].grow, t.c.g + dt * (CROPS[t.c.k].sea.includes(sea) ? 1 : 0.5) * (t.w > 0 ? 1 : 0.3));
+      t.c.g = Math.min(CROPS[t.c.k].grow, t.c.g + dt * (CROPS[t.c.k].sea.includes(sea) ? 1 : 0.5) * (t.w > 0 ? 1 : nice ? 0.85 : 0.3));
       if (stage(t.c) !== before) changed = true;
     }
     if (t.w > 0) {
@@ -391,6 +414,29 @@ function newDay(s) {
       s.mail.push({ from: id, hearts: m, item: m % 4 === 2 ? item : null, n: cnt, day: s.day });
     }
   }
+  // Bezahlte Inselprojekte stehen am nächsten Morgen
+  for (const [k, o] of Object.entries(s.obj)) if (o.k === 'baustelle' && o.p && o.paid >= (PROJECTS[o.p]?.cost || Infinity)) {
+    s.obj[k] = { k: o.p, r: o.r || 0 };
+    s.mayor.built = (s.mayor.built || 0) + 1;
+    s.mail.push({ kind: 'note', from: 'rosi', title: `🎉 ${PROJECTS[o.p].icon} ${PROJECTS[o.p].name} ist fertig!`, text: `Liebe Bürgermeister,\nheute früh haben wir ${PROJECTS[o.p].name} feierlich eingeweiht. Die ganze Insel ist begeistert! Vielen Dank für eure Spenden.\n\nEure Rosi 🦌\nRathaus`, day: s.day });
+  }
+  // Samstags schreibt der Wohnwert-Verein
+  if (weekday(s.day) === 6) {
+    const h = homeScore(s), r = hhaRank(h.pts), first = h.pts > (s.hha.best || 0);
+    let item = null, n = 1;
+    if (h.pts >= 20000 && !s.hha.pokal) { s.hha.pokal = s.day; item = 'pokal'; }
+    const bonus = first ? Math.round(h.pts / 10) : 0;
+    if (bonus) { s.money += bonus; s.stats.earned += bonus; }
+    s.hha.best = Math.max(s.hha.best || 0, h.pts);
+    s.mail.push({ kind: 'note', from: 'hha', title: `${r[2]} Wohnwert-Verein: ${fmt(h.pts)} Punkte`, item, n,
+      text: `Hallo ihr Lieben,\nwir haben euer Zuhause bewertet: ${h.pieces} Möbelstücke, ${h.kinds} verschiedene – das macht ${fmt(h.pts)} Punkte. Unsere Auszeichnung: „${r[1]}“.${bonus ? `\nNeuer Rekord! Dafür schicken wir euch ${fmt(bonus)} Taler.` : ''}${item ? '\nUnd weil es so wunderschön ist: unser Wohnwert-Pokal für euren Garten! 🏆' : ''}\n\nEuer Wohnwert-Verein 🛋️`, day: s.day });
+  }
+  const sc = islandScore(s);
+  if (sc.stars > (s.stars || 1)) {
+    s.mail.push({ kind: 'note', from: 'rosi', title: `⭐ Die Insel hat jetzt ${sc.stars} Sterne!`, text: `Liebe Bürgermeister,\ndie Inselbewertung ist gestiegen: ${'⭐'.repeat(sc.stars)}! Alle fühlen sich hier pudelwohl.${sc.stars === 5 ? '\nFünf Sterne – eine Trauminsel! Als Dank lege ich euch 10.000 Taler bei.' : ''}\n\nEure Rosi 🦌`, day: s.day });
+    if (sc.stars === 5 && !s.mayor.five) { s.mayor.five = s.day; s.money += 10000; }
+  }
+  s.stars = Math.max(s.stars || 1, sc.stars);
   if (s.mail.length > 12) s.mail.splice(0, s.mail.length - 12);
   fillOrders(s);
 }
@@ -520,9 +566,15 @@ const ACTIONS = {
     return true;
   },
   place(s, a, out) {
-    if (!has(PLACE, a.item) || !canPlace(s, a.x, a.z) || !takeInv(s, a.item, 1)) return false;
+    if (!has(PLACE, a.item) || !canPlace(s, a.x, a.z)) return false;
+    if (a.item === 'baustelle') {
+      if (!PROJECTS[s.mayor.plan]) { out.msg = 'Sucht euch erst im Rathaus ein Projekt aus.'; return false; }
+      if (!siteFree(s, a.x, a.z)) { out.msg = '🚩 Ein Inselprojekt braucht rundherum eine Kachel Platz.'; return false; }
+    }
+    if (!takeInv(s, a.item, 1)) return false;
     const o = { k: a.item, r: [0, 1, 2, 3].includes(a.r) ? a.r : 0 };
     if (PLACE[a.item].kind === 'producer') o.t = 0;
+    if (a.item === 'baustelle') { o.p = s.mayor.plan; o.paid = 0; s.mayor.plan = null; out.msg = `🚩 Bauplatz für ${PROJECTS[o.p].icon} ${PROJECTS[o.p].name} abgesteckt! Jetzt am Schild Taler spenden.`; }
     s.obj[key(a.x, a.z)] = o;
     fx(out, a.x, a.z, '', 'dust');
     out.snd = 'place';
@@ -530,7 +582,11 @@ const ACTIONS = {
   },
   pickup(s, a, out) {
     const k = key(a.x, a.z), o = s.obj[k];
-    if (!o) return false;
+    if (!o || PLACE[o.k]?.kind === 'project') return false;
+    if (o.k === 'baustelle') {
+      if (o.paid > 0) { out.msg = 'Für diese Baustelle wurde schon gespendet – sie bleibt stehen.'; return false; }
+      s.mayor.plan = o.p;
+    }
     delete s.obj[k];
     addInv(s, o.k, 1);
     fx(out, a.x, a.z, '', 'dust');
@@ -613,7 +669,7 @@ const ACTIONS = {
   },
   bug(s, a, out) {
     const sea = seasonOf(s.day), h = hourOf(s), night = h >= 20 || h < 6;
-    const pool = BUGS.filter(b => b[4].includes(sea) && (b[5] === 'any' || (b[5] === 'night') === night));
+    const pool = BUGS.filter(b => b[5] !== 'tropic' && b[4].includes(sea) && (b[5] === 'any' || (b[5] === 'night') === night));
     if (!pool.length) { out.msg = 'Gerade sind keine Insekten unterwegs.'; return false; }
     const [id, , icon] = weighted(pool, b => b[6]);
     addInv(s, id, 1);
@@ -897,7 +953,7 @@ const ACTIONS = {
   },
   buy(s, a, out) {
     if (!has(ITEMS, a.id) || !ITEMS[a.id].buy || !isCount(a.n)) return false;
-    const it = ITEMS[a.id], cost = it.buy * a.n;
+    const it = ITEMS[a.id], cost = buyPrice(s, it.buy) * a.n;
     if ((it.lvl || 1) > s.level) { out.msg = `Erst ab Level ${it.lvl}.`; return false; }
     if (s.money < cost) { out.msg = 'Nicht genug Taler.'; return false; }
     s.money -= cost;
@@ -936,8 +992,13 @@ const ACTIONS = {
     const u = upgradeInfo(s, a.id);
     if (u.done || (a.lvl !== undefined && a.lvl !== u.level)) return false;
     if (u.req > s.level) { out.msg = `Erst ab Level ${u.req}.`; return false; }
-    if (s.money < u.cost) { out.msg = 'Nicht genug Taler.'; return false; }
-    s.money -= u.cost;
+    if (UPGRADES[a.id].loan) { // Haus: wird sofort ausgebaut, der Preis kommt auf den Kredit
+      if (s.loan > 0) { out.msg = `Erst den Hauskredit abbezahlen (noch ${fmt(s.loan)} Taler).`; return false; }
+      s.loan = u.cost;
+    } else {
+      if (s.money < u.cost) { out.msg = 'Nicht genug Taler.'; return false; }
+      s.money -= u.cost;
+    }
     s.up[a.id]++;
     if (a.id === 'house') for (const [k, o] of Object.entries(s.home.walls)) {
       const [x, z] = k.split(',').map(Number);
@@ -966,11 +1027,177 @@ const ACTIONS = {
   },
 };
 
+// ---------- Bürgermeister-Update: Rathaus, Bummelgasse, Tropeninsel ----------
+// Inselprojekte brauchen rundherum eine freie Kachel
+export function siteFree(s, x, z) {
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+    const k = key(x + i, z + j);
+    if (!(i === 0 && j === 0) && (!walkable(x + i, z + j) || buildingAt(x + i, z + j) || RES_SPOTS[k] || (s.obj[k] && PLACE[s.obj[k].k]?.solid))) return false;
+  }
+  return true;
+}
+export const siteOf = s => Object.entries(s.obj).find(([, o]) => o.k === 'baustelle');
+const ownsHat = (s, id) => !!s.wardrobe?.[id];
+Object.assign(ACTIONS, {
+  plan(s, a, out) { // Projekt im Rathaus aussuchen -> Bauplatz-Pflock
+    const P = PROJECTS[a.id];
+    if (!has(PROJECTS, a.id)) return false;
+    if (P.lvl > s.level) { out.msg = `Erst ab Insel-Level ${P.lvl}.`; return false; }
+    if (s.mayor.plan || siteOf(s) || s.inv.baustelle) { out.msg = 'Es läuft schon ein Projekt – erst fertig bauen!'; return false; }
+    s.mayor.plan = a.id;
+    addInv(s, 'baustelle', 1);
+    out.msg = `🚩 ${P.icon} ${P.name} geplant! Nehmt den Bauplatz-Pflock aus der Leiste und steckt ihn auf freien Rasen.`;
+    out.snd = 'level';
+    return true;
+  },
+  unplan(s, a, out) {
+    if (!s.mayor.plan || !takeInv(s, 'baustelle', 1)) return false;
+    s.mayor.plan = null;
+    out.msg = 'Projekt abgesagt.';
+    return true;
+  },
+  fund(s, a, out) { // Spenden an der Baustelle
+    const o = s.obj[key(a.x, a.z)], P = o && PROJECTS[o.p];
+    const want = a.n === 'rest' ? Infinity : Number.isInteger(a.n) && a.n > 0 ? a.n : 0;
+    if (!o || o.k !== 'baustelle' || !P || !want) return false;
+    const left = P.cost - (o.paid || 0), n = Math.min(left, want, s.money);
+    if (left <= 0) { out.msg = 'Schon komplett bezahlt – morgen früh steht es!'; return false; }
+    if (n <= 0) { out.msg = 'Nicht genug Taler.'; return false; }
+    s.money -= n;
+    o.paid = (o.paid || 0) + n;
+    s.stats.donated = (s.stats.donated || 0) + n;
+    fx(out, a.x, a.z, `-${fmt(n)} 🪙`, 'coin');
+    out.msg = o.paid >= P.cost ? `🎉 ${P.icon} ${P.name} ist bezahlt! Morgen früh wird es eingeweiht.` : `💰 Danke! Noch ${fmt(P.cost - o.paid)} Taler.`;
+    out.snd = o.paid >= P.cost ? 'level' : 'coin';
+    return true;
+  },
+  ordinance(s, a, out) {
+    if (!has(ORDS, a.id) || ord(s) === a.id) return false;
+    const cost = s.mayor.free ? 0 : ORD_PRICE;
+    if (s.money < cost) { out.msg = `Eine neue Verordnung kostet ${fmt(ORD_PRICE)} Taler.`; return false; }
+    s.money -= cost;
+    s.mayor.free = 0;
+    s.mayor.ord = a.id;
+    out.msg = `${ORDS[a.id].icon} Neue Verordnung: ${ORDS[a.id].name}!`;
+    out.snd = 'level';
+    return true;
+  },
+  repay(s, a, out) {
+    if (!(s.loan > 0)) return false;
+    const n = Math.min(s.loan, s.money, a.n === 'all' ? Infinity : Number.isInteger(a.n) && a.n > 0 ? a.n : 0);
+    if (n <= 0) { out.msg = 'Nicht genug Taler.'; return false; }
+    s.money -= n;
+    s.loan -= n;
+    s.stats.repaid = (s.stats.repaid || 0) + n;
+    out.msg = s.loan ? `🏡 ${fmt(n)} Taler abbezahlt, noch ${fmt(s.loan)}.` : '🎉 Der Hauskredit ist abbezahlt! Jetzt geht der nächste Ausbau.';
+    out.snd = s.loan ? 'coin' : 'level';
+    return true;
+  },
+  wear(s, a, out) { // Schneiderei / Tauschhütte: besondere Hüte freischalten
+    const W = WARDROBE[a.id];
+    if (!W || ownsHat(s, a.id)) return false;
+    if (W.medals) {
+      if ((s.medals || 0) < W.medals) { out.msg = 'Nicht genug Medaillen.'; return false; }
+      s.medals -= W.medals;
+    } else {
+      const c = buyPrice(s, W.price);
+      if (s.money < c) { out.msg = 'Nicht genug Taler.'; return false; }
+      s.money -= c;
+    }
+    s.wardrobe[a.id] = s.day;
+    out.msg = `${W.icon} ${W.name} gekauft! Unter ⚙️ → Aussehen ändern → Extras könnt ihr ihn jetzt tragen.`;
+    out.snd = 'love';
+    return true;
+  },
+  song(s, a, out) { // Samstagskonzert im Club: ein Lied wünschen
+    if (!concertNow(s)) { out.msg = 'Livemusik gibt es nur samstags ab 20 Uhr.'; return false; }
+    if (s.concert === s.day) { out.msg = 'Heute habt ihr schon ein Lied bekommen – nächsten Samstag wieder!'; return false; }
+    const left = SONGS.filter(([id]) => !s.songs[id]), [id, name] = left.length ? pick(left) : pick(SONGS);
+    s.concert = s.day;
+    s.songs[id] = s.day;
+    addXp(s, 15, out);
+    out.msg = `🎸 Lotte spielt „${name}“ für euch – das Lied ist jetzt in eurem Liederbuch!`;
+    out.song = id;
+    out.snd = 'love';
+    return true;
+  },
+  boat(s, a, out) { // Bootsfahrt zur Tropeninsel
+    if (s.money < BOAT_PRICE) { out.msg = `Die Überfahrt kostet ${fmt(BOAT_PRICE)} Taler.`; return false; }
+    s.money -= BOAT_PRICE;
+    s.stats.trips = (s.stats.trips || 0) + 1;
+    out.snd = 'splash';
+    return true;
+  },
+  tour(s, a, out) { // Tour starten
+    if (!has(TOURS, a.k)) return false;
+    if (s.tour) { out.msg = 'Es läuft schon eine Tour!'; return false; }
+    const T = TOURS[a.k];
+    s.tour = { k: a.k, end: s.time + T.time, targets: tourTargets(a.k) };
+    out.msg = `${T.icon} ${T.name} – los geht's! ${T.desc}`;
+    out.snd = 'level';
+    return true;
+  },
+  hit(s, a, out) { // Tour-Ziel eingesammelt
+    const T = s.tour && TOURS[s.tour.k], g = s.tour?.targets[a.i];
+    if (!T || !g || g.got || !Number.isInteger(a.i)) return false;
+    if (T.kind !== a.kind) return false;
+    g.got = 1;
+    const left = s.tour.targets.filter(t => !t.got).length;
+    fx(out, TROPIC.x + g.x, TROPIC.z + g.z, T.icon, 'sparkle');
+    out.snd = 'harvest';
+    if (!left) {
+      s.medals = (s.medals || 0) + T.medals;
+      s.stats.tours = (s.stats.tours || 0) + 1;
+      s.tourEnd = { k: s.tour.k, ok: true, t: s.time };
+      s.tour = null;
+      addXp(s, 20, out);
+      out.msg = `🏅 Geschafft! ${T.medals} Medaillen für euch.`;
+      out.snd = 'level';
+    }
+    return true;
+  },
+  tpick(s, a, out) { // Tropenfrüchte pflücken
+    const t = TROPIC_TREES[a.i];
+    if (!t || !Number.isInteger(a.i)) return false;
+    if (s.tropic.picked[a.i] === s.day) { out.msg = 'Hier wächst morgen wieder Obst.'; return false; }
+    s.tropic.picked[a.i] = s.day;
+    addInv(s, t[2], 3);
+    s.stats.fruit = (s.stats.fruit || 0) + 3;
+    questEvent(s, 'fruit', 3, out);
+    addXp(s, 6, out);
+    fx(out, TROPIC.x + t[0], TROPIC.z + t[1], `+3 ${ITEMS[t[2]].icon}`, 'leaf');
+    out.snd = 'harvest';
+    return true;
+  },
+  tbug(s, a, out) { // Kescher auf der Tropeninsel
+    const pool = BUGS.filter(b => b[5] === 'tropic'), [id, , icon] = weighted(pool, b => b[6]);
+    addInv(s, id, 1);
+    collect(s, id, out);
+    s.stats.bugs = (s.stats.bugs || 0) + 1;
+    questEvent(s, 'bug', 1, out);
+    addXp(s, ITEMS[id].xp, out);
+    out.caught = id;
+    out.msg = `${icon} ${ITEMS[id].name} gefangen!`;
+    out.snd = 'harvest';
+    return true;
+  },
+  mbuy(s, a, out) { // Tauschhütte: für Medaillen
+    if (!MEDAL_SHOP.includes(a.id)) return false;
+    const c = PLACE[a.id].medals;
+    if ((s.medals || 0) < c) { out.msg = 'Nicht genug Medaillen.'; return false; }
+    s.medals -= c;
+    addInv(s, a.id, 1);
+    out.msg = `🏅 ${ITEMS[a.id].icon} ${ITEMS[a.id].name} getauscht!`;
+    out.snd = 'coin';
+    return true;
+  },
+});
+
 // Führt eine Spieler-Aktion aus. Eingaben kommen evtl. übers Netz, darum wird alles geprüft.
 export function act(s, a) {
   const out = { ok: false, fx: [], snd: null, msg: null };
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
-  const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave'].includes(a.t);
+  const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave', 'fund'].includes(a.t);
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
   if (a.t === 'water' && !isDir(a.dx, a.dz)) return out;
   if ((a.t === 'order' || a.t === 'mail') && !Number.isInteger(a.i)) return out;
@@ -1025,6 +1252,8 @@ function resolveHome(s, me, sel, at) {
 
 export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
+  if (me.z < -150) return resolveStreet(s, me, sel, at);
+  if (me.z > 150) return resolveTropic(s, me, sel, at);
   if (me.sw) { // schwimmt: tauchen
     const d = (s.dives || []).map(d => [d, Math.hypot(d.x - me.x, d.z - me.z)]).sort((a, b) => a[1] - b[1])[0];
     return d && d[1] < 1.5 ? { a: { t: 'dive', id: d[0].id }, dive: true, label: '🤿 Tauchen!', tiles: [] } : { dive: true, label: '🫧 Abtauchen', tiles: [] };
@@ -1037,11 +1266,13 @@ export function resolve(s, me, sel, at) {
 
   const b = buildingAt(x, z);
   if (b === 'house') return { enter: true, label: '🚪 Hineingehen', tiles: one };
+  if (b === 'gate') return { go: 'street', label: '🛍️ Zur Bummelgasse', tiles: one };
+  if (b === 'boat') return { ui: 'boat', label: '⛵ Käpt\'n Flossi', tiles: one };
   if (b) {
     const B = BUILDINGS[b];
     if (B.use === 'plaza') return { label: '🌳 Der Dorfbaum', tiles: one };
     if (B.use === 'visit') return { visit: B.npc, label: `🚪 ${B.name}`, tiles: one };
-    const label = { sell: '💰 Verkaufen', shop: '🛒 Krämerladen', orders: b === 'office' ? '🏕️ Inselbüro' : '📋 Schwarzes Brett', farm: '🏡 Haus', craft: '🔨 Werkbank', cook: '🍳 Kochen', museum: '🏛️ Museum', mail: s.mail.length ? `💌 Post (${s.mail.length})` : '📭 Briefkasten' }[B.use];
+    const label = { mayor: '🏛️ Rathaus', sell: '💰 Verkaufen', shop: '🛒 Krämerladen', orders: b === 'office' ? '🏕️ Inselbüro' : '📋 Schwarzes Brett', farm: '🏡 Haus', craft: '🔨 Werkbank', cook: '🍳 Kochen', museum: '🏛️ Museum', mail: s.mail.length ? `💌 Post (${s.mail.length})` : '📭 Briefkasten' }[B.use];
     return { ui: B.use, label, tiles: one };
   }
 
@@ -1079,6 +1310,8 @@ export function resolve(s, me, sel, at) {
   const o = s.obj[k];
   if (o) {
     const p = PLACE[o.k];
+    if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { a: { t: 'pickup', x, z }, label: '✋ Aufheben', tiles: one };
+    if (p.kind === 'project') return p.sit ? { sit: { x, z, r: o.r }, label: '🧺 Hinsetzen', tiles: one } : { label: `${p.icon} ${p.name}`, tiles: one };
     if (sel === 'hand') return { a: { t: 'pickup', x, z }, label: '✋ Aufheben', tiles: one };
     if (p.kind === 'producer') return { a: { t: 'use', x, z }, label: `${ITEMS[p.item].icon} Pflücken`, tiles: one };
     if (o.k === 'bank' || p.sit) return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
@@ -1105,6 +1338,37 @@ export function resolve(s, me, sel, at) {
     ? { a: { t: 'place', x, z, item: sel, r: (Math.round(me.ry / (Math.PI / 2)) % 4 + 4) % 4 }, label: '📍 Aufstellen', tiles: one }
     : { label: 'Hier ist kein Platz', tiles: one };
   return { label: '', tiles: one };
+}
+
+// Bummelgasse: Läden im Norden, Tor im Süden
+function resolveStreet(s, me, sel, at) {
+  const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
+  const lx = Math.round(px - STREET.x), lz = Math.round(pz - STREET.z), tiles = [[lx + STREET.x, lz + STREET.z]];
+  const b = streetShopAt(lx, lz);
+  if (b) { const B = STREET_SHOPS[b]; return { ui: B.use, label: `${B.who.split(' ')[0]} ${B.name}`, tiles }; }
+  if (lz >= 4 && Math.abs(lx) <= 1) return { go: 'island', label: '🏝️ Zurück zur Insel', tiles };
+  return { label: '', tiles: [] };
+}
+// Tropeninsel: Tauschhütte, Obstbäume, Tour-Ziele, Kescher, Boot zurück
+function resolveTropic(s, me, sel, at) {
+  const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
+  const lx = Math.round(px - TROPIC.x), lz = Math.round(pz - TROPIC.z), tiles = [[lx + TROPIC.x, lz + TROPIC.z]];
+  const mx = me.x - TROPIC.x, mz = me.z - TROPIC.z;
+  if (lx >= TROPIC_HUT.x0 && lx <= TROPIC_HUT.x1 && lz >= TROPIC_HUT.z0 && lz <= TROPIC_HUT.z1) return { ui: 'hut', label: '🦜 Kikis Tauschhütte', tiles };
+  if (onDock(mx, mz) && mz > 11) return { ui: 'boatback', label: '⛵ Zurück nach Hause', tiles: [] };
+  const T = s.tour && TOURS[s.tour.k];
+  if (T) {
+    const need = { pick: 'hand', net: 'net', dig: 'shovel' }[T.kind];
+    const i = s.tour.targets.findIndex(g => !g.got && Math.hypot(g.x - (px - TROPIC.x), g.z - (pz - TROPIC.z)) < 0.8);
+    if (i >= 0) {
+      if (sel !== need && !(T.kind === 'pick')) return { label: T.kind === 'net' ? '🦋 Nimm den Kescher!' : '⛏️ Nimm die Schaufel!', tiles };
+      return { a: { t: 'hit', i, kind: T.kind }, label: T.kind === 'net' ? '🦋 Fangen!' : T.kind === 'dig' ? '✨ Ausgraben!' : `${TOURS[s.tour.k].icon} Einsammeln!`, tiles, tour: 1 };
+    }
+  }
+  const ti = tropicTree(lx, lz);
+  if (ti >= 0) return { a: { t: 'tpick', i: ti }, label: s.tropic?.picked?.[ti] === s.day ? '🌴 Morgen wieder' : `${ITEMS[TROPIC_TREES[ti][2]].icon} Pflücken`, tiles };
+  if (sel === 'net') return { net: { x: px, z: pz }, tropic: true, label: '🦋 Kescher schwingen', tiles: [] };
+  return { label: '', tiles: [] };
 }
 
 // Was es auf welchem Level neu gibt (für die Level-Up-Meldung).

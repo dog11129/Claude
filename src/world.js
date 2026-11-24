@@ -30,6 +30,7 @@ import { makeNpc, NPCS } from './npc.js';
 import { makeAnimal } from './animals.js';
 import { crop, placeable } from './plants.js';
 import { building } from './buildings.js';
+import { Zones } from './zones.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE } from './data.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, balloonPos, turnipSeller } from './state.js';
@@ -195,6 +196,7 @@ export class World {
 
     this.buildParticles();
     this.buildCritters();
+    this.zones = new Zones(s);
     this.setQuality(quality);
   }
 
@@ -1294,8 +1296,9 @@ export class World {
     this.syncHome(s);
     this.syncGrass(s);
     this.syncPlayers(players, me, dt, !opt.hideNames);
-    const indoors = this.target.x > HOME_X / 2; // im Haus regnet es nicht
-    const info = this.light(s), rain = s.weather === 'rain' && !indoors, snowing = s.weather === 'snow' && !indoors;
+    const indoors = this.target.x > HOME_X / 2, tropic = this.target.z > 150; // im Haus regnet es nicht, auf der Tropeninsel ist immer Sommer
+    const info = this.light(s), rain = s.weather === 'rain' && !indoors && !tropic, snowing = s.weather === 'snow' && !indoors && !tropic;
+    this.zones.update(this, s, this.time, info.night || 0, this.target);
 
     // Zielfeld-Markierung
     const tiles = opt.tiles || [];
@@ -1325,7 +1328,7 @@ export class World {
       this.camera.lookAt(p.x + Math.cos(this.yaw) * (p.shift || 0), 0.7 - (p.lift || 0), p.z - Math.sin(this.yaw) * (p.shift || 0));
     } else {
       if (pl) {
-        if (Math.abs(pl.x - this.target.x) > 40) this.target.set(pl.x, 0, pl.z); // Tür: Kamera springt mit
+        if (Math.abs(pl.x - this.target.x) > 40 || Math.abs(pl.z - this.target.z) > 40) this.target.set(pl.x, 0, pl.z); // Tür, Tor, Boot: Kamera springt mit
         this.target.x += (pl.x - this.target.x) * Math.min(1, dt * 6);
         this.target.z += (pl.z - this.target.z) * Math.min(1, dt * 6);
       }
@@ -1354,7 +1357,7 @@ export class World {
 
     // Laternen beleuchten nachts ihre Umgebung (nur die nächsten, Grafik "Hoch")
     if (this.lanternLights.length) {
-      const near = (this.lanterns || []).map(e => [e, (e.x - this.target.x) ** 2 + (e.z - this.target.z) ** 2]).sort((a, b) => a[1] - b[1]);
+      const zl = this.zones.lights(this.target), near = (zl ? zl.map(([x, z]) => ({ x, z })) : this.lanterns || []).map(e => [e, (e.x - this.target.x) ** 2 + (e.z - this.target.z) ** 2]).sort((a, b) => a[1] - b[1]);
       this.lanternLights.forEach((l, i) => {
         const e = near[i]?.[0];
         l.intensity = e ? info.night * 5 : 0;
@@ -1372,7 +1375,7 @@ export class World {
       if (this.ripe.length && Math.random() < 0.7) { const e = this.ripe[Math.floor(Math.random() * this.ripe.length)]; this.burst(e.x + (Math.random() - 0.5) * 0.5, e.z + (Math.random() - 0.5) * 0.5, 'sparkle', 0.4 + Math.random() * 0.5); }
       if (rain) for (let i = 0; i < 4; i++) this.burst(this.target.x + (Math.random() - 0.5) * 16, this.target.z + (Math.random() - 0.5) * 12, 'splash', 0.03);
       // Jahreszeit: Blütenblätter im Frühling, bunte Blätter im Herbst
-      const drift = !indoors && { spring: 'petal', autumn: 'fall' }[this.season];
+      const drift = !indoors && Math.abs(this.target.z) < 150 && { spring: 'petal', autumn: 'fall' }[this.season];
       if (drift && !rain && Math.random() < 0.5) this.burst(this.target.x + (Math.random() - 0.5) * 18, this.target.z + (Math.random() - 0.5) * 14, drift, 4 + Math.random() * 2);
     }
     this.updateParticles(dt);

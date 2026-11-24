@@ -1,6 +1,6 @@
 // Charakter-Editor und Einstellungen (im Hauptmenü und im Spiel genutzt).
 import * as THREE from '../vendor/three.module.min.js';
-import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey } from './avatar.js';
+import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS } from './avatar.js';
 
 // Kleine 3D-Vorschaubilder für jede Option (eigener Mini-Renderer, Ergebnis wird zwischengespeichert)
 const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', top: 'body', pet: 'pet' };
@@ -46,11 +46,15 @@ const TABS = [
   ['pet', '🐾 Haustier', [['pet', 'Begleiter'], ['petColor', 'Fellfarbe']]],
 ];
 
+// Besondere Hüte sind erst nach dem Kauf (Schneiderei / Tauschhütte) wählbar
+let owned = new Set();
+export const setOwnedHats = list => { owned = new Set(list || []); };
+const lockedHat = (field, id) => field === 'hat' && PREMIUM_HATS.includes(id) && !owned.has(id);
 function options(field, value, look) {
   const list = LOOKS[field];
   if (VIEW[field]) {
-    return `<div class="thumbs">${list.map(([id, l]) => { const src = thumb({ ...look, [field]: id }, VIEW[field]);
-      return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}">${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${l}</small></button>`; }).join('')}</div>`;
+    return `<div class="thumbs">${list.map(([id, l]) => { const lock = lockedHat(field, id) && id !== value, src = thumb({ ...look, [field]: id }, VIEW[field]);
+      return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es in der Schneiderei der Bummelgasse" style="opacity:.45"' : ''}>${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${lock ? '🔒 ' : ''}${l}</small></button>`; }).join('')}</div>`;
   }
   if (typeof list[0] === 'string') {
     return `<div class="swatches">${list.map(c => `<button style="background:${c}" data-f="${field}" data-v="${c}" class="${c === value ? 'on' : ''}" aria-label="${c}"></button>`).join('')}</div>`;
@@ -65,7 +69,7 @@ export class Editor {
     $('edtabs').onclick = e => { const t = e.target.closest('button')?.dataset.t; if (t) { this.tab = t; this.render(); } };
     $('edbody').onclick = e => {
       const b = e.target.closest('button[data-f]');
-      if (!b) return;
+      if (!b || b.disabled) return;
       this.look = { ...this.look, [b.dataset.f]: b.dataset.v };
       this.render();
       this.onChange?.(this.look);

@@ -6,10 +6,11 @@ const FOSSIL_IDS = FOSSILS.map(f => f[0]);
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience, speak, musicTick } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
-import { Editor, settingsHtml } from './menu.js';
+import { Editor, settingsHtml, setOwnedHats } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
 import { NPCS, npcLine, giftReply } from './npc.js';
 import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, inPond, onPier, PATHS, PLAZA } from './island.js';
+import { zoneOf, clampPos, STREET, TROPIC, TOURS, BOAT_PRICE, shopOpen, concertNow } from './newleaf.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -23,7 +24,7 @@ document.body.classList.toggle('touch', touch);
 
 // Profil: Name + Aussehen (ältere Profile {color, hat} werden übernommen)
 const oldProfile = store.get('kh.profile', null);
-const profile = { name: String(oldProfile?.name || '').slice(0, 16), look: oldProfile ? cleanLook(oldProfile.look || oldProfile) : randomLook() };
+const profile = { name: String(oldProfile?.name || '').slice(0, 16), look: oldProfile ? cleanLook(oldProfile.look || oldProfile) : randomLook(), owned: Array.isArray(oldProfile?.owned) ? oldProfile.owned.filter(x => typeof x === 'string') : [] };
 const saveProfile = () => store.set('kh.profile', profile);
 
 const settings = { quality: touch ? 'mid' : 'high', sound: 0.8, music: 0.5, landscape: false, names: true, fullscreen: touch, ...store.get('kh.settings', {}) };
@@ -45,7 +46,7 @@ const r3 = v => Math.round(v * 1000) / 1000;
 const pack = s => JSON.parse(JSON.stringify(s, (k, v) => typeof v === 'number' && !Number.isInteger(v) ? r3(v) : v));
 const ACTS = ['hoe', 'can', 'sickle', 'plant', 'pet', 'fish', 'use', 'hug', 'shake', 'highfive', 'kiss', 'net'];
 const HELD = ['hoe', 'can', 'sickle', 'rod', 'seeds', 'box', 'net', 'shovel', 'axe'];
-const ANIM_OF = { water: 'can', plant: 'plant', harvest: 'use', place: 'use', pickup: 'use', pick: 'plant', use: 'shake', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake' };
+const ANIM_OF = { water: 'can', plant: 'plant', harvest: 'use', place: 'use', pickup: 'use', pick: 'plant', use: 'shake', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake', tpick: 'shake', hit: 'plant' };
 
 // ---------- kleine Helfer fürs HUD ----------
 function toast(text, kind) {
@@ -122,9 +123,7 @@ function hostData(id, d) {
   }
   if (!p) return;
   if (d.t === 'm' && [d.x, d.z, d.ry].every(Number.isFinite)) {
-    const home = d.x > S.HOME_X / 2; // drinnen liegt das Haus bei x = HOME_X
-    p.x = home ? Math.max(S.HOME_X - 8, Math.min(S.HOME_X + 8, d.x)) : Math.max(-MAP - 6, Math.min(MAP + 6, d.x));
-    p.z = Math.max(-MAP - 6, Math.min(MAP + 6, d.z));
+    [p.x, p.z] = clampPos(d.x, d.z, MAP); // Haus, Bummelgasse und Tropeninsel liegen weit weg
     p.ry = d.ry;
     p.m = !!d.m;
     p.ak = ACTS.includes(d.ak) ? d.ak : null;
@@ -398,6 +397,8 @@ function announceDay() {
   const sea = S.seasonOf(s.day), newSea = (s.day - 1) % 7 === 0;
   say(`${newSea ? `${SEASONS[sea][1]} Der ${SEASONS[sea][0]} beginnt! ` : '🌅 '}${WEEKDAYS[weekday(s.day)]}, Tag ${s.day} – ${s.weather === 'rain' ? '🌧️ Regen gießt alle Blumen!' : s.weather === 'snow' ? '🌨️ Es schneit!' : s.rainbowDay === s.day ? '🌈 Nach dem Regen: Schau mal in den Himmel!' : '☀️ Sonnenschein'}`);
   if (weekday(s.day) === 0) say('🐰 Hoppel verkauft heute bis 12 Uhr Rüben am Dorfplatz!');
+  if (weekday(s.day) === 6) say('🎸 Heute ab 20 Uhr: Livemusik im Mondschein-Club in der Bummelgasse!');
+  if (s.mail.some(m => m.kind && m.day === s.day)) say('💌 Im Briefkasten liegt neue Post!');
   if (Object.values(s.shells).includes('sternsplitter')) say('🌟 Am Strand glitzern Sternsplitter!');
   saveFarm();
 }
@@ -594,6 +595,8 @@ function openEditor() {
   }
   world.zoom = 1;
   panels.close();
+  if (inGame) profile.owned = [...new Set([...(profile.owned || []), ...Object.keys(G.s.wardrobe || {})])]; // gekaufte Hüte merkt sich das Gerät
+  setOwnedHats(profile.owned);
   $('hud').classList.add('hidden');
   const back = () => { if (inGame && G?.ready && !G.photo) $('hud').classList.remove('hidden'); };
   editor.open(profile, {
@@ -685,6 +688,14 @@ const panels = new Panels({
     if (kind === 'emote') { sendEmote(d.e); panels.close(); }
     if (kind === 'soc' && Object.hasOwn(G.players, G.together || '')) { sendSocial(G.together, d.k); panels.close(); }
     if (kind === 'leave') leave();
+    if (kind === 'sail') {
+      if (G.s.money < BOAT_PRICE) { toast(`Die Überfahrt kostet ${BOAT_PRICE} Taler.`); return; }
+      send({ t: 'boat' });
+      toast('⛵ Käpt\'n Flossi legt ab … 🎶');
+      setTimeout(() => G?.ready && travel('tropic'), 600);
+    }
+    if (kind === 'sailhome') travel('pier');
+    if (kind === 'dance') { panels.close(); sendEmote('💃'); animate('shake'); world.float(G.players[G.me].x, G.players[G.me].z, '🎶✨', 2); toast('🪩 DJ Quak legt auf – tanzt los!'); }
     if (kind === 'fullscreen') toggleFullscreen();
     if (kind === 'editlook') openEditor();
     if (kind === 'photo') setPhoto(true);
@@ -980,10 +991,15 @@ function execute(r, fresh) {
     return;
   }
   if (r.hug) { if (fresh) { interrupt(); G.together = r.hug; panels.show('together'); play('click'); } return; }
+  if (r.go) { if (fresh) travel(r.go); return; }
   if (r.net) {
     if (!fresh || performance.now() < (G.netCool || 0)) return;
     G.netCool = performance.now() + 900;
     animate('net');
+    if (r.tropic) { // Tropeninsel: überall flattert etwas
+      if (Math.random() < 0.5) send({ t: 'tbug' }); else { toast('🦋 Daneben! Auf der Tropeninsel flattert es überall – nochmal!'); play('fail'); }
+      return;
+    }
     const c = world.nearCritter(r.net.x, r.net.z), k = S.key(Math.round(r.net.x), Math.round(r.net.z));
     const flowers = ['blumen', 'kirschbaum'].includes(G.s.obj[k]?.k) || CROPS[G.s.tiles[k]?.c?.k]?.cat === 'fruit';
     if (c || (flowers && Math.random() < 0.45) || (S.seasonOf(G.s.day) === 'winter' && Math.random() < 0.35)) {
@@ -1056,6 +1072,25 @@ function tapAt(cx, cy) {
   world.burst(p.x, p.z, 'sparkle', 0.15);
 }
 
+// Ortswechsel: Bummelgasse, Tropeninsel (mit dem Boot) und zurück
+function travel(where) {
+  const me = G.players[G.me];
+  interrupt();
+  panels.close();
+  fade();
+  const to = {
+    street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
+    island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
+    tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
+    pier: [-9, 22.6, Math.PI, '⛵ Zurück auf eurer Insel.', 'splash'],
+  }[where];
+  if (!to) return;
+  Object.assign(me, { x: to[0], z: to[1], ry: to[2], pose: null });
+  world.yawT = world.yaw = 0;
+  if (to[3]) setTimeout(() => toast(to[3]), 400);
+  play(to[4]);
+}
+
 // Weg suchen (A* auf dem Kachelraster), damit man z.B. über die Brücke statt in den Fluss läuft
 const freeAt = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25], [0, 0]].some(([a, b]) => S.blocked(G.s, x + a, z + b));
 function clearLine(ax, az, bx, bz) {
@@ -1125,7 +1160,7 @@ function followGoal(me, now) {
     at = { x: g.x, z: g.z };
     const r = context(me, at);
     g.r = r;
-    range = r.hug ? 0.95 : r.a || r.sit ? 1.05 : r.ui ? 1.6 : r.fish ? 1.2 : 0.15;
+    range = r.hug ? 0.95 : r.a || r.sit ? 1.05 : r.ui || r.go ? 1.6 : r.fish ? 1.2 : 0.15;
     if (r.a?.t === 'place' || r.a?.t === 'till' || r.a?.t === 'water' || r.a?.t === 'plant') range = 1.05;
   }
   if (g.x !== undefined && g.path === undefined && Math.hypot(at.x - me.x, at.z - me.z) > 2) g.path = findPath(me.x, me.z, at.x, at.z) || [];
@@ -1353,10 +1388,28 @@ function heldItem() {
   return null;
 }
 
+// Tour auf der Tropeninsel: Zeit und Fortschritt oben anzeigen, Ende melden
+function updateTour() {
+  const s = G.s, t = s.tour, bar = $('tourbar');
+  const show = !!t && zoneOf(G.players[G.me]) === 'tropic';
+  bar.classList.toggle('hidden', !show);
+  if (show) {
+    const T = TOURS[t.k], left = t.targets.filter(g => !g.got).length, sec = Math.max(0, Math.ceil(t.end - s.time));
+    setText('tourbar', `${T.icon} ${T.name}: noch ${left}/${T.n} · ⏱️ ${sec} s`);
+    bar.classList.toggle('hurry', sec <= 15);
+  }
+  const e = s.tourEnd;
+  if (G.tourEndSeen === undefined) G.tourEndSeen = e?.t ?? null;
+  else if (e && e.t !== G.tourEndSeen) {
+    if (!e.ok) { toast(`⏱️ Zeit um! ${TOURS[e.k]?.name || 'Die Tour'} ist vorbei – bei Kiki könnt ihr es nochmal versuchen.`); play('fail'); }
+    G.tourEndSeen = e.t;
+  }
+}
+
 // ---------- Inselkarte (App im Handy) ----------
 const MAPR = 27;
 let mapImg = null;
-const MAP_ICON = { office: '🏕️', shop: '🛒', museum: '🏛️', house: '🏡', plaza: '🌳', bench: '🔨', kitchen: '🍳', mail: '📮', board: '📋', bin: '💰' };
+const MAP_ICON = { office: '🏛️', gate: '🛍️', boat: '⛵', shop: '🛒', museum: '🖼️', house: '🏡', plaza: '🌳', bench: '🔨', kitchen: '🍳', mail: '📮', board: '📋', bin: '💰' };
 function mapBase(W) {
   const c = document.createElement('canvas');
   c.width = c.height = W;
@@ -1403,7 +1456,7 @@ function drawMap() {
   for (const [id, e] of world.npcM || []) if (e.awake) g.fillText(NPCS[id].icon, X(e.x), X(e.z));
   const t = performance.now() / 300;
   for (const p of Object.values(G.players)) {
-    if (S.inside(p)) continue;
+    if (zoneOf(p) !== 'island') continue;
     const me = p.id === G.me, r = sc * (me ? 0.9 + Math.sin(t) * 0.15 : 0.8);
     g.fillStyle = me ? '#ff5d7a' : '#9b6bff'; g.strokeStyle = '#fff'; g.lineWidth = 3;
     g.beginPath(); g.arc(X(p.x), X(p.z), r, 0, 7); g.fill(); g.stroke();
@@ -1419,6 +1472,7 @@ $('pbody').addEventListener('click', e => {
   const me = G.players[G.me];
   if (!walkable(x, z) || S.blocked(G.s, x, z)) { toast('🌊 Da kommst du nicht hin.'); play('fail'); return; }
   if (S.inside(me)) { toast('🚪 Geh erst nach draußen.'); return; }
+  if (zoneOf(me) !== 'island') { toast('🗺️ Die Karte zeigt eure Insel – du bist gerade woanders.'); return; }
   panels.close();
   G.goal = { x, z, last: { x: me.x, z: me.z, t: performance.now() } };
   world.burst(x, z, 'sparkle', 0.15);
@@ -1471,6 +1525,7 @@ function gameFrame(dt, now) {
     me.ry = Math.atan2(wx, wz);
     if (G.fishing) stopFishing();
     if (S.inside(me) && me.z > S.roomSize(s)[1] / 2 + 0.25) execute({ exit: true }, true); // durch die Tür hinaus
+    if (zoneOf(me) === 'street' && me.z - STREET.z > STREET.d + 0.5) travel('island'); // durchs Tor zurück
   } else me.run = false;
   const wasSw = me.sw;
   me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit';
@@ -1492,6 +1547,7 @@ function gameFrame(dt, now) {
   }
   if (actHeld && now > nextAct) { nextAct = now + 300; execute(G.ctx, false); }
   updateFishing(dt);
+  updateTour();
 
   let prompt = null;
   if (shown && !G.fishing) {

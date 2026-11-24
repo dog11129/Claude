@@ -12,7 +12,8 @@ export const LOOKS = {
   topColor: ['#ff8fab', '#ffb86b', '#ffe066', '#8fd694', '#6cc4ff', '#b39cff', '#ff6b6b', '#f5f5f5', '#7fd8d0', '#ffd0a8', '#4a6fa5', '#5a5f73'],
   bottomColor: ['#4a6fa5', '#2f3e5c', '#8a5a3a', '#c9b48a', '#3b3b4a', '#ff8fab', '#8fd694', '#b39cff'],
   shoes: ['#6b4a32', '#3b3b4a', '#f5f5f5', '#ff6b6b', '#ffd23f', '#6cc4ff'],
-  hat: [['none', 'Ohne'], ['straw', 'Strohhut'], ['cap', 'Mütze'], ['flowers', 'Blumenkranz'], ['bunny', 'Hasenohren'], ['crown', 'Krone'], ['beanie', 'Strickmütze'], ['cat', 'Katzenohren'], ['bow', 'Schleife'], ['cowboy', 'Cowboyhut'], ['wizard', 'Zauberhut']],
+  hat: [['none', 'Ohne'], ['straw', 'Strohhut'], ['cap', 'Mütze'], ['flowers', 'Blumenkranz'], ['bunny', 'Hasenohren'], ['crown', 'Krone'], ['beanie', 'Strickmütze'], ['cat', 'Katzenohren'], ['bow', 'Schleife'], ['cowboy', 'Cowboyhut'], ['wizard', 'Zauberhut'],
+    ['beret', 'Baskenmütze'], ['tophat', 'Zylinder'], ['pirate', 'Piratenhut'], ['tiara', 'Diadem'], ['sunhat', 'Sonnenhut']],
   glasses: [['none', 'Ohne'], ['round', 'Rund'], ['sun', 'Sonnenbrille'], ['heart', 'Herzbrille']],
   pet: [['none', 'Kein Haustier'], ['cat', 'Katze'], ['dog', 'Hund'], ['bunny', 'Hase'], ['chick', 'Küken'], ['fox', 'Fuchs'], ['pig', 'Schwein']],
   petColor: ['#e8a35c', '#f5f0e6', '#8a8a92', '#6b4a32', '#3b3b40', '#ffd966'],
@@ -23,9 +24,11 @@ const ids = k => LOOKS[k].map(o => (Array.isArray(o) ? o[0] : o));
 export function defaultLook() {
   return { skin: '#ffd8b8', hairStyle: 'short', hairColor: '#6b4428', eyes: 'round', top: 'overalls', topColor: '#ff8fab', bottomColor: '#4a6fa5', shoes: '#6b4a32', hat: 'straw', glasses: 'none', pet: 'none', petColor: '#e8a35c' };
 }
+// Diese Hüte gibt es nur in der Schneiderei bzw. der Tauschhütte
+export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat'];
 export function randomLook() {
   const l = {};
-  for (const k of KEYS) { const a = ids(k); l[k] = a[Math.floor(Math.random() * a.length)]; }
+  for (const k of KEYS) { const a = ids(k).filter(v => k !== 'hat' || !PREMIUM_HATS.includes(v)); l[k] = a[Math.floor(Math.random() * a.length)]; }
   return l;
 }
 // Kommt übers Netz: nur Werte aus LOOKS durchlassen. Altes Profil {color, hat} wird übernommen.
@@ -141,6 +144,23 @@ function hatParts(l) {
       return tf([ell(0.33, C, 0, 0.23, 0, 1, 0.08, 1.3, 0, 0, 0, 12), ell(0.2, C, 0.31, 0.28, 0, 0.9, 0.13, 1.6, 0, 0, 0.6), ell(0.2, C, -0.31, 0.28, 0, 0.9, 0.13, 1.6, 0, 0, -0.6),
         cyl(0.2, 0.24, 0.22, C, 0, 0.35, 0, 10), ell(0.2, C, 0, 0.46, 0, 1, 0.3, 1.05, 0, 0, 0, 10), box(0.04, 0.05, 0.34, shade(C, 0.7), 0, 0.5, 0),
         cyl(0.243, 0.245, 0.045, 0x5a3a24, 0, 0.27, 0, 10)], 0, 0, 0, -0.18);
+    }
+    case 'beret': return tf([ell(0.33, T, 0.04, 0.24, -0.02, 1.08, 0.3, 1.02, 0, 0, -0.18, 12), ball(0.03, shade(T, 0.6), 0.04, 0.35, -0.02, 1, 1.4, 1, 5)], 0, 0, 0, -0.2);
+    case 'tophat': {
+      const C = 0x2b2b38;
+      return tf([cyl(0.42, 0.42, 0.03, C, 0, 0.24, 0, 14), cyl(0.24, 0.25, 0.42, C, 0, 0.46, 0, 14), cyl(0.255, 0.255, 0.07, 0xd94a5a, 0, 0.3, 0, 14), ball(0.04, WHITE, 0.2, 0.31, 0.15, 1, 1, 0.5, 6)], 0, 0, 0, -0.15);
+    }
+    case 'pirate': {
+      const C = 0x2f2a33;
+      return tf([ell(0.36, C, 0, 0.3, 0, 1.35, 0.42, 0.75, 0, 0, 0, 12), cyl(0.27, 0.29, 0.06, C, 0, 0.26, 0, 12), ell(0.07, WHITE, 0, 0.36, 0.25, 1, 1, 0.3), box(0.12, 0.02, 0.01, WHITE, 0, 0.3, 0.27, 0, 0, 0.6),
+        box(0.12, 0.02, 0.01, WHITE, 0, 0.3, 0.27, 0, 0, -0.6), cyl(0.012, 0.012, 0.85, GOLD, 0, 0.47, 0.17, 6, 0, 0, Math.PI / 2)], 0, 0, 0, -0.12);
+    }
+    case 'tiara': return tf([ring(0.2, 0.018, 0xd9dde2, 0, 0.27, -0.02, Math.PI, Math.PI / 2, 0, 0, 12), ...[-2, -1, 0, 1, 2].map(i => cone(0.035, 0.09 + (i ? 0 : 0.06), 0xd9dde2, Math.sin(i * 0.4) * 0.2, 0.33 + (i ? 0 : 0.03), Math.cos(i * 0.4) * 0.2 - 0.02, 4)),
+      ell(0.035, 0x6cc4ff, 0, 0.36, 0.18, 1, 1.3, 0.5), ell(0.022, 0xff8fab, 0.1, 0.31, 0.16, 1, 1, 0.5), ell(0.022, 0xff8fab, -0.1, 0.31, 0.16, 1, 1, 0.5)], 0, 0, 0, -0.1);
+    case 'sunhat': {
+      const C = 0xfff0c9;
+      return tf([cyl(0.56, 0.56, 0.03, C, 0, 0.23, 0, 16), dome(0.27, C, 0, 0.24, 0, 1, 0.75, 1), cyl(0.272, 0.272, 0.06, 0x6cc4ff, 0, 0.28, 0, 14),
+        ball(0.06, 0xff6b8a, 0.24, 0.3, 0.1, 1, 1, 1, 6), ball(0.05, 0xffd23f, 0.27, 0.29, 0.0, 1, 1, 1, 6), ell(0.06, 0x76c955, 0.27, 0.27, 0.15, 1.4, 0.4, 0.8)], 0, 0, 0, -0.2);
     }
     case 'wizard': {
       const C = 0x7b5cd6;

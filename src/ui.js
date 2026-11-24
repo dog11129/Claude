@@ -5,6 +5,10 @@ import { price, upgradeInfo, seasonOf, hearts, halfDay, turnipSeller, turnipPric
 import { NPCS, letter, requestLine } from './npc.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
+import {
+  PROJECTS, ORDS, ORD_PRICE, ord, WARDROBE, SONGS, TOURS, MEDAL_SHOP, BOAT_PRICE, STREET_SHOPS, TROPIC_HUT, shopHours, shopOpen, concertNow,
+  homeScore, hhaRank, HHA_RANKS, islandScore, buyPrice, fmt, hourOf,
+} from './newleaf.js';
 
 const $ = id => document.getElementById(id);
 const lines = {}; // Sprüche/Briefe einmal würfeln, damit sie beim Neuzeichnen gleich bleiben
@@ -16,9 +20,11 @@ const time = s => s >= 60 ? `${Math.round(s / 6) / 10} Min` : `${s} s`;
 export const TABS = {
   shop: [['seeds', '🌷 Samen'], ['trees', '🌳 Bäume'], ['food', '🥛 Zutaten'], ['furn', '🛋️ Möbel'], ['deco', '🏮 Deko'], ['farm', '🏡 Haus'], ['tools', '🛠️ Werkzeug'], ['goods', '💎 Preise']],
   orders: [['quests', '📜 Quests'], ['orders', '💬 Wünsche'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Insel']],
+  mayor: [['projects', '🏗️ Projekte'], ['ords', '📜 Verordnungen'], ['house', '🏡 Haus & Kredit'], ['hha', '🛋️ Wohnwert'], ['stars', '⭐ Inselbewertung']],
+  garden: [['seeds', '🌱 Samen'], ['plants', '🌳 Pflanzen']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
 };
-const TITLES = { phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten' };
+const TITLES = { mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -46,6 +52,7 @@ const SHOP = {
     const sea = seasonOf(s.day);
     let h = `<div class="note">Samen kaufen ➜ unten in der Leiste wählen ➜ irgendwo auf den Rasen pflanzen ➜ gießen 💧 (gegossen wachsen sie dreimal so schnell). Blumen blühen nach dem Pflücken immer wieder nach. Jetzt ist ${SEASONS[sea][1]} ${SEASONS[sea][0]}.</div>`;
     for (const [k, c] of Object.entries(CROPS)) {
+      if (c.garden) continue;
       if (k === 'weizen') h += '<h3>🥕 Gemüse</h3>';
       const id = 's_' + k, locked = c.lvl > s.level, have = s.inv[id] || 0, ok = c.sea.includes(sea);
       const sub = `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · Wächst in ${time(c.grow)}${c.regrow ? (isFlower(k) ? ' · blüht immer wieder' : ' · trägt immer wieder') : ''}${c.yield ? ` · ${c.yield}× Ernte` : ''} · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`;
@@ -68,7 +75,9 @@ const SHOP = {
     return h;
   },
   farm(s) {
-    return '<div class="note">Mehr Platz für Möbel: Ein größeres Haus hat ein größeres Zimmer.</div>' + upgradeRow(s, 'house');
+    const i = upgradeInfo(s, 'house');
+    return `<div class="note">Mehr Platz für Möbel: Ein größeres Haus hat ein größeres Zimmer. Den Ausbau macht jetzt das 🏛️ <b>Rathaus</b> (Tab „Haus & Kredit“) – bezahlt wird bequem über den Hauskredit.</div>`
+      + row('🏡', UPGRADES.house.desc(i.level), `${pips(i.level, i.max)}${s.loan ? ` · Hauskredit offen: ${money(s.loan)}` : ''}`, '');
   },
   tools(s) {
     let h = `<div class="note">Bessere Werkzeuge: Die Gießkanne gießt mehr Blumen auf einmal (${AREA_NAME.slice(1).join(' ➜ ')}), mit der besseren Angel beißen seltene Fische.</div>`;
@@ -101,7 +110,7 @@ const SHOP = {
   },
   deco(s) {
     let h = '<div class="note">Macht eure Insel schön! Kaufen ➜ in der Leiste wählen ➜ aufstellen. Drehen: in die gewünschte Richtung schauen. Aufheben mit der Hand ✋.</div>';
-    for (const [id, p] of Object.entries(PLACE)) if (p.kind === 'deco' && p.buy) h += placeRow(s, id);
+    for (const [id, p] of Object.entries(PLACE)) if (p.kind === 'deco' && p.buy && !p.garden) h += placeRow(s, id);
     return h;
   },
 };
@@ -162,7 +171,7 @@ const PANELS = {
       const n = Object.keys(s.album).filter(k => !['flaschenpost', 'schatz', 'sternsplitter'].includes(k)).length, all = ALBUM.fish.length + ALBUM.sea.length + ALBUM.bug.length + ALBUM.fossil.length + ALBUM.shell.length;
       const where = { river: '🏞️ Fluss', sea: '🌊 Meer', pond: '🪷 Teich' };
       const info = { ...Object.fromEntries(FISH.map(f => [f[0], `${where[f[6]]} ${(f[5] || []).map(x => SEASONS[x][1]).join('') || ''}`])), ...Object.fromEntries(SHELLS.map(f => [f[0], '🏖️ Strand'])), ...Object.fromEntries(SEA.map(f => [f[0], '🤿 Tauchen'])),
-        ...Object.fromEntries(BUGS.map(b => [b[0], b[4].map(x => SEASONS[x][1]).join('') + (b[5] === 'night' ? ' 🌙' : b[5] === 'day' ? ' ☀️' : '')])),
+        ...Object.fromEntries(BUGS.map(b => [b[0], b[5] === 'tropic' ? '🏝️ Tropeninsel' : b[4].map(x => SEASONS[x][1]).join('') + (b[5] === 'night' ? ' 🌙' : b[5] === 'day' ? ' ☀️' : '')])),
         ...Object.fromEntries(FOSSILS.map(f => [f[0], 'Ausgraben'])) };
       const sec = (t, ids) => `<h3>${t}</h3><div class="album">${ids.map(id => s.album[id]
         ? `<div class="got" title="${ITEMS[id].name}"><span>${ITEMS[id].icon}</span><small>${ITEMS[id].name}</small><i>${s.album[id]}×</i></div>`
@@ -276,7 +285,7 @@ const PANELS = {
   cook: (s, g) => recipes(s, 'cook'),
   mail(s, g) {
     if (!s.mail.length) return '<div class="note">📭 Der Briefkasten ist leer. Freundet euch mit den Nachbarn an – manchmal schreiben sie euch!</div>';
-    return s.mail.map((m, i) => { const L = (lines['mail' + i + m.from + m.hearts] ||= letter(m.from, m.hearts, g.myName)); return `<div class="letter"><h3>${NPCS[m.from]?.icon || '💌'} ${esc(L.title)}</h3><p>${esc(L.text).replace(/\n/g, '<br>')}</p>
+    return s.mail.map((m, i) => { const L = m.kind ? { title: m.title, text: m.text } : (lines['mail' + i + m.from + m.hearts] ||= letter(m.from, m.hearts, g.myName)); return `<div class="letter"><h3>${m.kind ? '' : NPCS[m.from]?.icon || '💌'} ${esc(L.title)}</h3><p>${esc(L.text).replace(/\n/g, '<br>')}</p>
       ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item]?.icon || '🎁'}</div><div class="tx"><b>Geschenk: ${m.n || 1}× ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i, from: m.from, hearts: m.hearts })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i, from: m.from, hearts: m.hearts }, 'white')}</div>`}</div>`; }).join('');
   },
   settings(s, g, tab) {
@@ -291,13 +300,137 @@ const PANELS = {
       🏛️ Fische, Insekten und Fossilien im Museum ausstellen.<br>
       🪑 Auf Bänke kannst du dich setzen, und deinen Lieblingsmenschen kannst du umarmen 🤗.<br>
       💰 An der Ankaufkiste vor dem Krämerladen oder in den 🎒 Taschen verkaufen. 💬 Wünsche der Nachbarn & 🏆 Erfolge geben Extra-Taler.<br>
-      ⭐ Mit Erfahrung steigt eure Insel im Level und schaltet Neues frei.</div>`;
+      ⭐ Mit Erfahrung steigt eure Insel im Level und schaltet Neues frei.<br><br>
+      🏛️ <b>Rathaus:</b> Ihr seid Bürgermeister! Inselprojekte bauen, Verordnungen erlassen, Haus auf Kredit ausbauen, Wohnwert & Inselbewertung ansehen.<br>
+      🛍️ <b>Bummelgasse:</b> Durchs Tor im Norden – Schneiderei (Hüte), Gärtnerei (seltene Blumen) und abends der Mondschein-Club (samstags Livemusik).<br>
+      ⛵ <b>Tropeninsel:</b> Am Ende des Stegs wartet Käpt'n Flossi. Drüben: Tropenfrüchte, seltene Käfer und Touren für Medaillen.</div>`;
     }
     return `<button class="big" data-ui="editlook"><span class="i">👗</span><span>Aussehen ändern<small>Frisur, Outfit, Haustier …</small></span></button><br>
       <button class="big" data-ui="photo"><span class="i">📷</span><span>Fotomodus<small>Schöne Erinnerungsfotos von eurer Insel</small></span></button><br>
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Insel wird gespeichert</small></span></button>`;
   },
 };
+
+// ---------- Bürgermeister-Update: Rathaus, Baustelle, Bummelgasse, Tropeninsel ----------
+const hero = (who, title, text) => `<div class="quest-hero"><div class="qh-top"><span class="qh-chap">${who}</span><b>${title}</b></div><p>${text}</p></div>`;
+const hrs = ([a, b]) => `${a}–${b} Uhr`;
+const siteOf = s => Object.entries(s.obj).find(([, o]) => o.k === 'baustelle');
+const closed = (s, id) => `<div class="note">🔒 Gerade geschlossen. Öffnungszeiten: <b>${hrs(shopHours(s, id))}</b>${ord(s) === 'none' && id !== 'club' ? ' – mit einer Verordnung im Rathaus könnt ihr das ändern.' : ''}</div>`;
+Object.assign(PANELS, {
+  mayor(s, g, tab) {
+    let h = '';
+    if (tab === 'projects') {
+      const site = siteOf(s);
+      h += hero('🦌 Rosi, Rathaus', 'Inselprojekte', 'Als Bürgermeister bestimmt ihr, was auf der Insel gebaut wird! Projekt aussuchen ➜ Bauplatz-Pflock 🚩 aus der Leiste auf freien Rasen stecken (mit einer Kachel Platz drumherum) ➜ am Schild Taler spenden ➜ am nächsten Morgen wird eingeweiht.');
+      if (site) {
+        const [, o] = site, P = PROJECTS[o.p], paid = o.paid || 0;
+        h += row(P.icon, `Baustelle: ${P.name}`, `${money(paid)} von ${money(P.cost)}<div class="bar"><i style="width:${Math.min(1, paid / P.cost) * 100}%"></i></div>${paid >= P.cost ? '✅ Bezahlt – morgen früh steht es!' : 'Spenden könnt ihr direkt am Bauschild.'}`, '');
+      } else if (s.mayor.plan) {
+        const P = PROJECTS[s.mayor.plan];
+        h += row('🚩', `Geplant: ${P.icon} ${P.name}`, 'Nehmt den Bauplatz-Pflock aus der Leiste und steckt ihn auf freien Rasen.', btn('Absagen', { t: 'unplan' }, 'white'));
+      }
+      h += '<h3>🏗️ Mögliche Projekte</h3>';
+      const busy = !!(site || s.mayor.plan);
+      for (const [id, P] of Object.entries(PROJECTS)) {
+        const n = Object.values(s.obj).filter(o => o.k === id).length, locked = P.lvl > s.level;
+        h += row(P.icon, P.name + (locked ? lvTag(P.lvl) : '') + (n ? ` <span class="lv">${n}× gebaut</span>` : ''), `Kosten ${money(P.cost)} – gesammelt wird an der Baustelle`, btn('Planen', { t: 'plan', id }, 'pink', locked || busy), locked);
+      }
+      return h;
+    }
+    if (tab === 'ords') {
+      const cur = ord(s);
+      h += hero('🦌 Rosi, Rathaus', `Aktuell: ${ORDS[cur].icon} ${ORDS[cur].name}`, `Mit einer Verordnung verändert ihr das Leben auf der Insel. Es gilt immer nur eine. ${s.mayor.free ? 'Die erste ist <b>gratis</b>!' : `Eine neue kostet ${money(ORD_PRICE)}.`}`);
+      for (const [id, O] of Object.entries(ORDS)) h += row(O.icon, O.name + (id === cur ? ' <span class="lv">✓ gilt</span>' : ''), O.desc, id === cur ? '' : btn(s.mayor.free ? 'Gratis einführen' : `🪙 ${fmt(ORD_PRICE)}`, { t: 'ordinance', id }, 'pink', !s.mayor.free && s.money < ORD_PRICE));
+      return h;
+    }
+    if (tab === 'house') {
+      const u = UPGRADES.house, i = upgradeInfo(s, 'house');
+      h += hero('🦝 Bauberater Fridolin', `${u.desc(i.level)}`, 'Euer Haus wird sofort größer – bezahlt wird später über den Hauskredit, ganz ohne Zinsen. Erst wenn der Kredit abbezahlt ist, geht der nächste Ausbau.');
+      h += row('💳', 'Hauskredit', s.loan ? `Noch offen: ${money(s.loan)}` : 'Keine Schulden 🎉',
+        s.loan ? btn('1.000', { t: 'repay', n: 1000 }, 'white', s.money < 1) + btn('10.000', { t: 'repay', n: 10000 }, 'white', s.money < 1) + btn('Alles', { t: 'repay', n: 'all' }, 'pink', s.money < 1) : '');
+      if (i.done) h += row('🏰', 'Voll ausgebaut!', 'Größer geht es nicht mehr.', '');
+      else {
+        const locked = i.req > s.level;
+        h += row('🏡', `Nächster Ausbau${locked ? lvTag(i.req) : ''}`, `${pips(i.level, i.max)} ➜ ${u.desc(i.level + 1)} · Kredit ${money(i.cost)}`, btn('Ausbauen', { t: 'upgrade', id: 'house', lvl: i.level }, 'pink', locked || s.loan > 0), locked);
+      }
+      return h;
+    }
+    if (tab === 'hha') {
+      const sc = homeScore(s), r = hhaRank(sc.pts);
+      h += hero('🛋️ Wohnwert-Verein', `${r[2]} ${fmt(sc.pts)} Punkte – „${r[1]}“`, `Jeden <b>Samstagmorgen</b> bewertet der Wohnwert-Verein euer Zuhause und schreibt euch einen Brief. Neue Rekorde bringen Taler, ab 20.000 Punkten gibt es einen Pokal für den Garten. Bester Wert bisher: <b>${fmt(s.hha?.best || 0)}</b>`);
+      h += row('🪑', 'Möbelstücke', `${sc.pieces} Stück, ${sc.kinds} verschiedene`, '') + row('🖌️', 'Tapete & Boden', 'Eigene Tapete und eigener Boden geben Extrapunkte (im Krämerladen unter Möbel).', '') + row('🏡', 'Hausgröße', 'Ein größeres Haus zählt auch mit.', '');
+      h += '<h3>🏅 Auszeichnungen</h3>' + HHA_RANKS.map(([p, n, ic]) => row(ic, n, `ab ${fmt(p)} Punkten`, sc.pts >= p ? '<span class="lv">✓</span>' : '')).join('');
+      return h;
+    }
+    const sc = islandScore(s);
+    h += hero('🦌 Rosi, Rathaus', `Inselbewertung: ${'⭐'.repeat(sc.stars)}${'☆'.repeat(5 - sc.stars)}`, `Wie schön finden die Nachbarn ihre Insel? Blumen, Deko, Inselprojekte und Wege machen sie glücklich – Unkraut nicht. Bei 5 Sternen gibt's eine Überraschung!`);
+    h += row('🌷', 'Blumen', sc.flowers, '') + row('🏮', 'Deko & Obstbäume', sc.decos, '') + row('🏗️', 'Inselprojekte', sc.projects, '') + row('🌿', 'Unkraut', sc.weeds, '');
+    h += sc.tips.length ? `<h3>💡 Rosis Tipps</h3><div class="note">${sc.tips.join('<br>')}</div>` : '<div class="note">🌟 Perfekt! Rosi ist sprachlos vor Glück.</div>';
+    return h;
+  },
+  fund(s) {
+    const site = siteOf(s);
+    if (!site) return '<div class="note">Hier wird gerade nichts gebaut.</div>';
+    const [k, o] = site, P = PROJECTS[o.p], paid = o.paid || 0, left = Math.max(0, P.cost - paid), [x, z] = k.split(',').map(Number);
+    let h = hero('🚧 Bauschild', `${P.icon} ${P.name}`, paid >= P.cost ? '✅ Komplett bezahlt! Morgen früh wird es eingeweiht.' : 'Jede Spende hilft – alle auf der Insel können etwas geben.');
+    h += `<div class="bar big"><i style="width:${Math.min(1, paid / P.cost) * 100}%"></i><span>${fmt(paid)} / ${fmt(P.cost)}</span></div><br>`;
+    if (left) h += `<div class="bt" style="display:flex;gap:6px;flex-wrap:wrap">${[1000, 5000, 10000].filter(n => n < left).map(n => btn(`🪙 ${fmt(n)}`, { t: 'fund', x, z, n }, '', s.money < n)).join('')}${btn(`Rest: 🪙 ${fmt(left)}`, { t: 'fund', x, z, n: 'rest' }, 'pink', s.money < 1)}</div>`;
+    return h;
+  },
+  boat(s) {
+    return hero('🦭 Käpt\'n Flossi', 'Ahoi! Zur Tropeninsel?', `Hinter dem Horizont liegt eine kleine Tropeninsel: immer Sommer, seltene Käfer, süße Früchte und Kikis Tauschhütte mit Touren. Die Überfahrt kostet ${money(BOAT_PRICE)} – zurück ist gratis.`)
+      + `<button class="big pink" data-ui="sail"${s.money < BOAT_PRICE ? ' disabled' : ''}><span class="i">⛵</span><span>Ablegen!<small>${fmt(BOAT_PRICE)} Taler</small></span></button>`;
+  },
+  boatback(s) {
+    return hero('🦭 Käpt\'n Flossi', 'Schon genug Sonne?', s.tour ? 'Achtung: Eure Tour läuft noch!' : 'Ich bringe dich zurück zum Steg auf eurer Insel.')
+      + '<button class="big pink" data-ui="sailhome"><span class="i">⛵</span><span>Nach Hause<small>gratis</small></span></button>';
+  },
+  tailor(s) {
+    let h = hero(STREET_SHOPS.tailor.who, 'Schneiderei Wollknäuel', 'Määäh, willkommen! Hier gibt es Hüte, die man sonst nirgends bekommt. Einmal gekauft, kann sie jede/r auf eurer Insel tragen.');
+    if (!shopOpen(s, 'tailor')) return h + closed(s, 'tailor');
+    for (const [id, W] of Object.entries(WARDROBE)) {
+      if (W.medals) continue;
+      const own = s.wardrobe?.[id], c = buyPrice(s, W.price);
+      h += row(W.icon, W.name + (own ? ' <span class="lv">✓ gehört euch</span>' : ''), own ? 'Unter Aussehen ändern ➜ Extras' : 'Neuer Hut für alle auf der Insel', own ? '' : btn(`🪙 ${fmt(c)}`, { t: 'wear', id }, 'pink', s.money < c));
+    }
+    return h + '<br><button class="big" data-ui="editlook"><span class="i">🪞</span><span>Umziehen<small>Frisur, Outfit, Hüte …</small></span></button>';
+  },
+  garden(s, g, tab) {
+    let h = hero(STREET_SHOPS.garden.who, 'Gärtnerei Knolle', 'Grüß dich! Bei mir gibt\'s Blumen, die der Krämerladen nicht hat, und schöne Büsche. Gieß sie gut!');
+    if (!shopOpen(s, 'garden')) return h + closed(s, 'garden');
+    if (tab === 'plants') {
+      for (const [id, p] of Object.entries(PLACE)) if (p.garden) h += placeRow(s, id);
+      return h;
+    }
+    for (const [k, c] of Object.entries(CROPS)) {
+      if (!c.garden) continue;
+      const id = 's_' + k, have = s.inv[id] || 0, ok = c.sea.includes(seasonOf(s.day));
+      h += row(c.icon, c.name, `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · blüht immer wieder · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`,
+        btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, '', s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, '', s.money < c.seed * 10));
+    }
+    return h;
+  },
+  club(s) {
+    let h = hero(STREET_SHOPS.club.who, 'Mondschein-Club', 'Quak! Abends ab 18 Uhr legt DJ Quak auf. Und jeden <b>Samstag ab 20 Uhr</b> spielt Lotte Laute live – dann dürft ihr euch ein Lied wünschen!');
+    if (!shopOpen(s, 'club')) return h + closed(s, 'club');
+    h += '<button class="big pink" data-ui="dance"><span class="i">💃</span><span>Tanzen!<small>Auf die Tanzfläche</small></span></button><br>';
+    if (concertNow(s)) h += `<button class="big" data-act='${JSON.stringify({ t: 'song' })}' ${s.concert === s.day ? 'disabled' : ''}><span class="i">🎸</span><span>Lied wünschen<small>${s.concert === s.day ? 'Heute schon gewünscht' : 'Lotte spielt für euch'}</small></span></button><br>`;
+    const have = SONGS.filter(([id]) => s.songs?.[id]).length;
+    h += `<h3>🎵 Liederbuch <span class="lv">${have}/${SONGS.length}</span></h3><div class="album">${SONGS.map(([id, n]) => s.songs?.[id] ? `<div class="got"><span>💿</span><small>${n}</small></div>` : '<div><span>❔</span><small>???</small></div>').join('')}</div>`;
+    return h;
+  },
+  hut(s) {
+    let h = hero(TROPIC_HUT.who, `Kikis Tauschhütte · 🏅 ${s.medals || 0} Medaillen`, 'Kraaa! Macht eine Tour über die Insel und sammelt Medaillen. Die könnt ihr bei mir gegen Sachen tauschen, die es nur hier gibt!');
+    h += '<h3>🗺️ Touren</h3>';
+    if (s.tour) { const T = TOURS[s.tour.k], left = s.tour.targets.filter(t => !t.got).length; h += row(T.icon, `${T.name} läuft!`, `Noch ${left} von ${T.n} · ${Math.max(0, Math.ceil(s.tour.end - s.time))} Sekunden`, ''); }
+    for (const [k, T] of Object.entries(TOURS)) h += row(T.icon, T.name, `${T.desc} · Belohnung: 🏅 ${T.medals}`, btn('Starten', { t: 'tour', k }, 'pink', !!s.tour));
+    h += '<h3>🏅 Tauschen</h3>';
+    for (const id of MEDAL_SHOP) { const p = PLACE[id]; h += row(p.icon, p.name, (p.desc || 'Deko aus den Tropen') + (s.inv[id] ? ` · <b>${s.inv[id]}× im Lager</b>` : ''), btn(`🏅 ${p.medals}`, { t: 'mbuy', id }, '', (s.medals || 0) < p.medals)); }
+    const W = WARDROBE.sunhat, own = s.wardrobe?.sunhat;
+    h += row(W.icon, W.name + (own ? ' <span class="lv">✓ gehört euch</span>' : ''), 'Ein Hut für Sonnentage', own ? '' : btn(`🏅 ${W.medals}`, { t: 'wear', id: 'sunhat' }, '', (s.medals || 0) < W.medals));
+    return h;
+  },
+});
 
 function recipes(s, st) {
   let h = st === 'cook' ? '<div class="note">Aus Obst, Gemüse, Fisch und Zutaten aus dem Laden werden leckere Gerichte – die bringen viel mehr Taler und sind tolle Geschenke für die Nachbarn.</div>'
@@ -353,7 +486,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
     if (sig === this.sig) return;
     this.sig = sig;
     const body = $('pbody'), y = body.scrollTop;

@@ -35,6 +35,20 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
+### 🏛️ Neu: Bürgermeister-Update
+- **Rathaus** (früher Inselbüro): Ihr seid die Bürgermeister! Rosi 🦌 hilft euch bei allem.
+  - **Inselprojekte:** Gaslaterne, Sonnenuhr, Picknickplatz, Blumentor, Fernrohr, Kuschelstatue, Musikpavillon, Großer Springbrunnen, Windmühle, Glockenturm und Leuchtturm. Projekt planen ➜ Bauplatz-Pflock 🚩 auf freien Rasen stecken ➜ gemeinsam am Bauschild spenden ➜ am nächsten Morgen wird eingeweiht.
+  - **Verordnungen:** Frühaufsteher 🐓, Nachteule 🦉, Schöne Insel 🌷 (kein Unkraut, Blumen wachsen fast von selbst) oder Wohlstand 💰 (+20 % beim Verkaufen und Kaufen). Die erste ist gratis.
+  - **Haus & Kredit:** Das Haus wird sofort ausgebaut (jetzt 5 Stufen bis zur Inselvilla), bezahlt wird zinslos über den Hauskredit.
+  - **Wohnwert-Verein:** Jeden Samstag gibt's Punkte fürs Zuhause per Brief – mit Rekord-Taler und einem Pokal ab 20.000 Punkten.
+  - **Inselbewertung:** 1–5 Sterne für Blumen, Deko, Projekte und Wege (Unkraut zieht ab) – mit Tipps von Rosi.
+- **Bummelgasse:** Durchs Tor im Norden geht's in die Einkaufsstraße:
+  - 🐑 **Schneiderei Wollknäuel:** Baskenmütze, Zylinder, Piratenhut und Diadem – einmal gekauft, für alle auf der Insel.
+  - 🦔 **Gärtnerei Knolle:** Lilien, Mohn, Kornblumen, Hortensien, Buchsbaum und Rosenbogen.
+  - 🐸 **Mondschein-Club:** Ab 18 Uhr tanzen, samstags ab 20 Uhr spielt Lotte Laute live – jede Woche ein neues Lied fürs Liederbuch (16 Stück).
+- **Tropeninsel:** Am Ende des Stegs bringt Käpt'n Flossi 🦭 euch für 1.000 Taler hinüber. Immer Sommer, Bananen, Mangos und Sternfrüchte, sechs seltene Tropen-Insekten fürs Museum und 🦜 Kikis Tauschhütte: vier Touren (Sternfrüchte, Käfer, Schätze, Muscheln) gegen die Zeit bringen Medaillen – dafür gibt's Bananenstauden, Mangobäume, Tiki-Fackeln, Hängematte, Surfbrett, Sandburg und den Sonnenhut.
+- 7 neue Erfolge, alles mit Multiplayer.
+
 - **Die Insel:** Sandstrand rundherum, Klippen mit Wald und Wasserfall im Norden, ein Fluss mit zwei Holzbrücken, ein Teich, ein Steg ins Meer und ein Dorfplatz mit großem Baum. Die Welt rollt sich in der Ferne wie ein Baumstamm weg.
 - **Obst & Bäume:** Bäume schütteln – Äpfel, Kirschen, Orangen, Pfirsiche, Birnen und Kokosnüsse fallen auf den Boden und werden einzeln aufgehoben; sie wachsen nach drei Tagen nach. Manchmal fallen Äste, Taler, Möbel … oder ein Wespennest. Mit der Axt gibt's Holz.
 - **Jeden Morgen neu:** Muscheln am Strand, Unkraut zum Zupfen, fünf Stern-Risse mit Fossilien, ein Glücksfelsen voller Taler.
@@ -75,6 +89,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/world.js`, `src/models.js`, `src/avatar.js` | 3D-Welt, Modelle, Spielfiguren |
 | `src/npc.js`, `src/furniture.js`, `src/furni-data.js` | Nachbarn (Modelle & Dialoge), Möbel & Zimmer |
 | `src/main.js`, `src/menu.js`, `src/ui.js` | Menü, Steuerung, Multiplayer, Fenster |
+| `src/newleaf.js`, `src/zones.js` | Bürgermeister-Update: Rathaus, Verordnungen, Wohnwert, Bummelgasse & Tropeninsel (Logik und 3D) |
 | `src/net.js`, `src/audio.js` | Netzwerk, Klang |
 
 ### Veröffentlichen
