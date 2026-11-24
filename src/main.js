@@ -1,14 +1,14 @@
 // Spielablauf: Menü, Steuerung, Host/Gast-Logik, Speichern.
 import { World, esc, cropInfo } from './world.js';
 import * as S from './state.js';
-import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT } from './data.js';
+import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT, PAVE, WEEKDAYS, weekday } from './data.js';
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience, blip, musicFor } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { Editor, settingsHtml } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
 import { NPCS, npcLine, giftReply } from './npc.js';
-import { isWater } from './island.js';
+import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, inPond, onPier, PATHS, PLAZA } from './island.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -387,7 +387,9 @@ function animate(kind) {
 function announceDay() {
   const s = G.s;
   const sea = S.seasonOf(s.day), newSea = (s.day - 1) % 7 === 0;
-  say(`${newSea ? `${SEASONS[sea][1]} Der ${SEASONS[sea][0]} beginnt! ` : '🌅 '}Tag ${s.day} – ${s.weather === 'rain' ? '🌧️ Regen gießt alle Felder!' : s.weather === 'snow' ? '🌨️ Es schneit!' : '☀️ Sonnenschein'}`);
+  say(`${newSea ? `${SEASONS[sea][1]} Der ${SEASONS[sea][0]} beginnt! ` : '🌅 '}${WEEKDAYS[weekday(s.day)]}, Tag ${s.day} – ${s.weather === 'rain' ? '🌧️ Regen gießt alle Blumen!' : s.weather === 'snow' ? '🌨️ Es schneit!' : s.rainbowDay === s.day ? '🌈 Nach dem Regen: Schau mal in den Himmel!' : '☀️ Sonnenschein'}`);
+  if (weekday(s.day) === 0) say('🐰 Hoppel verkauft heute bis 12 Uhr Rüben am Dorfplatz!');
+  if (Object.values(s.shells).includes('sternsplitter')) say('🌟 Am Strand glitzern Sternsplitter!');
   saveFarm();
 }
 
@@ -396,6 +398,8 @@ function simulate(now) {
   const dt = Math.min(5, (now - (G.lastSim || now)) / 1000);
   G.lastSim = now;
   const day = G.s.day;
+  G.s.real = !!settings.realtime;
+  if (G.s.real && S.realClock(G.s)) G.dirty = true;
   if (S.tick(G.s, dt, true)) G.dirty = true;
   // Alle im Bett? Dann ist gleich Morgen.
   const ps = Object.values(G.players);
@@ -667,6 +671,8 @@ updOrient();
 const panels = new Panels({
   act: a => send(a),
   ui(kind, d) {
+    if (kind === 'app') openApp(d.app);
+    if (kind === 'pave') { G.pathType = d.k; select('pave', true); panels.close(); toast(d.k === 'none' ? '🧹 Designer: Wege entfernen' : `${PAVE[d.k].icon} Designer: ${PAVE[d.k].name} – tippe auf Rasen oder Sand`); }
     if (kind === 'emote') { sendEmote(d.e); panels.close(); }
     if (kind === 'soc' && Object.hasOwn(G.players, G.together || '')) { sendSocial(G.together, d.k); panels.close(); }
     if (kind === 'leave') leave();
@@ -700,6 +706,23 @@ function interrupt() {
   if (G.fishing) stopFishing();
   G.goal = null;
 }
+// Apps im Inselhandy
+function openApp(app) {
+  play('click');
+  const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
+    designer: ['designer'], friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'] }[app];
+  if (P) { panels.show(...P); return; }
+  panels.close();
+  if (app === 'camera') setPhoto(true);
+  if (app === 'sky') toggleSky();
+}
+function toggleSky(on = !G.skyView) {
+  if (!G?.ready) return;
+  G.skyView = on;
+  document.body.classList.toggle('skyview', on);
+  if (on) toast(G.s.starNight && 6 + G.s.dayTime * 18 >= 19 ? '🌠 Sternschnuppen-Nacht! Wenn eine vorbeifliegt: schnell Aktion drücken und etwas wünschen.' : '🔭 Du schaust in den Himmel. Nochmal 🔭 (oder laufen) zum Zurückschauen.');
+}
+$('skybtn').onclick = () => { toggleSky(); play('click'); };
 function togglePanel(kind, tab) {
   interrupt();
   if (panels.open === kind && !tab) panels.close(); else { panels.show(kind, tab); play('click'); }
@@ -778,7 +801,9 @@ addEventListener('keydown', e => {
   if (k === 'z') world.rotate(-Math.PI / 4);
   if (k === 'c') world.rotate(Math.PI / 4);
   if (G.photo) return;
-  const hot = { b: 'shop', i: 'sell', o: 'orders', f: 'friends', q: 'emotes' }[k];
+  if (k === 'k') { toggleSky(); return; }
+  if (k === 'h' || k === 'tab') { togglePanel('phone'); e.preventDefault(); return; }
+  const hot = { b: 'shop', i: 'sell', o: 'orders', f: 'friends', q: 'emotes', m: 'map' }[k];
   if (hot) { togglePanel(hot); return; }
   if (panels.open) return;
   keys.add(k);
@@ -884,7 +909,9 @@ actbtn.addEventListener('pointerdown', e => { e.preventDefault(); unlock(); pres
 for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) actbtn.addEventListener(ev, () => { actHeld = false; });
 
 $('hotbar').onclick = e => { const b = e.target.closest('.slot'); if (b) { select(b.dataset.id); play('click'); } };
-function select(id) {
+function select(id, quiet) {
+  if (id === 'pave' && G.sel === 'pave' && !quiet) { panels.show('designer'); play('click'); }
+  if (id === 'pave' && !G.pathType) G.pathType = 'erde';
   G.sel = id;
   G.hotSig = null;
   if (G.fishing) stopFishing();
@@ -893,13 +920,17 @@ function select(id) {
 // ---------- Aktionen ----------
 // Was passiert am Punkt "at" (oder vor der Figur)? Andere Spieler kann man umarmen.
 function context(me, at) {
+  if (G.skyView) {
+    const stars = G.s.starNight && 6 + G.s.dayTime * 18 >= 19;
+    return stars ? (world.starActive() ? { wish: true, label: '🌠 Wünschen!', tiles: [] } : { label: '✨ Warte auf eine Sternschnuppe …', tiles: [] }) : { label: '🔭 Himmel', tiles: [] };
+  }
   const p = at || { x: me.x + Math.sin(me.ry) * 0.9, z: me.z + Math.cos(me.ry) * 0.9 };
   const n = world.npcNear(p.x, p.z, at ? 0.9 : 1.1);
   if (n) return { npc: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
   for (const o of Object.values(G.players)) {
     if (o.id !== G.me && Math.hypot(o.x - p.x, o.z - p.z) < 0.75) return { hug: o.id, label: `🤗 ${o.name} umarmen`, tiles: [], px: o.x, pz: o.z };
   }
-  return { ...S.resolve(G.s, me, G.sel, at), px: p.x, pz: p.z };
+  return { ...S.resolve(G.s, me, G.sel === 'pave' ? 'pave:' + (G.pathType || 'erde') : G.sel, at), px: p.x, pz: p.z };
 }
 
 function pressAction() {
@@ -916,7 +947,17 @@ function pressAction() {
 function execute(r, fresh) {
   if (!r) return;
   const me = G.players[G.me];
+  if (r.npc === 'hoppel') { if (fresh) { interrupt(); panels.show('turnip'); world.npcSay('hoppel', 'happy'); world.npcBubble('hoppel', 'Rüben! Frische Rüben!'); play('chat'); } return; }
   if (r.npc) { if (fresh) openTalk(r.npc); return; }
+  if (r.wish) {
+    if (!fresh || performance.now() < (G.wishCool || 0)) return;
+    G.wishCool = performance.now() + 1500;
+    send({ t: 'wish' });
+    animate('shake');
+    world.burst(me.x, me.z, 'sparkle', 2.5); world.float(me.x, me.z, '🌠🙏', 2);
+    toast('🌠 Wunsch geschickt! Morgen liegen vielleicht Sternsplitter am Strand …');
+    return;
+  }
   if (r.hug) { if (fresh) { interrupt(); G.together = r.hug; panels.show('together'); play('click'); } return; }
   if (r.net) {
     if (!fresh || performance.now() < (G.netCool || 0)) return;
@@ -963,6 +1004,7 @@ function execute(r, fresh) {
     send(r.a);
     animate(ANIM_OF[r.a.t] || 'use');
     if (r.a.t === 'shake' || r.a.t === 'chop') world.shakeTree(r.a.x, r.a.z);
+    if (r.a.t === 'pop') { world.popBalloon(); play('splash'); }
   }
 }
 
@@ -993,6 +1035,52 @@ function tapAt(cx, cy) {
   world.burst(p.x, p.z, 'sparkle', 0.15);
 }
 
+// Weg suchen (A* auf dem Kachelraster), damit man z.B. über die Brücke statt in den Fluss läuft
+const freeAt = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25], [0, 0]].some(([a, b]) => S.blocked(G.s, x + a, z + b));
+function clearLine(ax, az, bx, bz) {
+  const n = Math.ceil(Math.hypot(bx - ax, bz - az) / 0.25);
+  for (let i = 1; i <= n; i++) if (!freeAt(ax + (bx - ax) * i / n, az + (bz - az) * i / n)) return false;
+  return true;
+}
+function findPath(fx, fz, tx, tz) {
+  if (!freeAt(tx, tz)) { // Ziel ist ein Baum/Haus/Wasser: zur freien Nachbarkachel, die am nächsten liegt
+    const c = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].map(([a, b]) => [Math.round(tx) + a, Math.round(tz) + b]).filter(([x, z]) => freeAt(x, z))
+      .sort((a, b) => Math.hypot(a[0] - fx, a[1] - fz) - Math.hypot(b[0] - fx, b[1] - fz))[0];
+    if (!c) return null;
+    [tx, tz] = c;
+  }
+  if (clearLine(fx, fz, tx, tz)) return [];
+  const N = 2 * MAP + 1, id = (x, z) => (x + MAP) * N + (z + MAP), sx = Math.round(fx), sz = Math.round(fz), ex = Math.round(tx), ez = Math.round(tz);
+  const ok = new Map(), okAt = (x, z) => { const k = id(x, z); if (!ok.has(k)) ok.set(k, Math.abs(x) <= MAP && Math.abs(z) <= MAP && freeAt(x, z)); return ok.get(k); };
+  const open = [[0, sx, sz]], g = new Map([[id(sx, sz), 0]]), from = new Map();
+  let found = false, n = 0;
+  while (open.length && n++ < 4000) {
+    open.sort((a, b) => a[0] - b[0]);
+    const [, x, z] = open.shift();
+    if (x === ex && z === ez) { found = true; break; }
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const nx = x + dx, nz = z + dz;
+      if (!okAt(nx, nz) || (dx && dz && (!okAt(x + dx, z) || !okAt(x, z + dz)))) continue;
+      const c = g.get(id(x, z)) + (dx && dz ? 1.414 : 1), k = id(nx, nz);
+      if (c >= (g.get(k) ?? 1e9)) continue;
+      g.set(k, c); from.set(k, [x, z]);
+      open.push([c + Math.hypot(ex - nx, ez - nz), nx, nz]);
+    }
+  }
+  if (!found) return null;
+  const pts = [];
+  for (let c = [ex, ez]; c && !(c[0] === sx && c[1] === sz); c = from.get(id(c[0], c[1]))) pts.unshift(c);
+  // Ecken glätten: nur Wegpunkte behalten, die man nicht direkt sieht
+  const out = [];
+  let cx = fx, cz = fz;
+  for (let i = 0; i < pts.length; i++) {
+    const nxt = pts[i + 1];
+    if (nxt && clearLine(cx, cz, nxt[0], nxt[1])) continue;
+    out.push(pts[i]); [cx, cz] = pts[i];
+  }
+  return out;
+}
+
 // Zum Tipp-Ziel laufen; Rückgabe: Laufrichtung oder null (angekommen)
 function followGoal(me, now) {
   const g = G.goal, s = G.s;
@@ -1018,6 +1106,13 @@ function followGoal(me, now) {
     g.r = r;
     range = r.hug ? 0.95 : r.a || r.sit ? 1.05 : r.ui ? 1.6 : r.fish ? 1.2 : 0.15;
     if (r.a?.t === 'place' || r.a?.t === 'till' || r.a?.t === 'water' || r.a?.t === 'plant') range = 1.05;
+  }
+  if (g.x !== undefined && g.path === undefined && Math.hypot(at.x - me.x, at.z - me.z) > 2) g.path = findPath(me.x, me.z, at.x, at.z) || [];
+  while (g.path?.length && Math.hypot(g.path[0][0] - me.x, g.path[0][1] - me.z) < 0.4) g.path.shift();
+  if (g.path?.length) { // Zwischenziel
+    const [wx, wz] = g.path[0], d = Math.hypot(wx - me.x, wz - me.z);
+    if (now - g.last.t > 350) { const stuck = Math.hypot(me.x - g.last.x, me.z - g.last.z) < 0.08; g.last = { x: me.x, z: me.z, t: now }; if (stuck) g.path.shift(); }
+    return [(wx - me.x) / d, (wz - me.z) / d];
   }
   const dx = at.x - me.x, dz = at.z - me.z, dist = Math.hypot(dx, dz);
   // festgefahren (z.B. vor einem Gebäude oder am Teich)? Dann von hier aus handeln
@@ -1181,6 +1276,78 @@ function heldItem() {
   return null;
 }
 
+// ---------- Inselkarte (App im Handy) ----------
+const MAPR = 27;
+let mapImg = null;
+const MAP_ICON = { office: '🏕️', shop: '🛒', museum: '🏛️', house: '🏡', plaza: '🌳', bench: '🔨', kitchen: '🍳', mail: '📮', board: '📋', bin: '💰' };
+function mapBase(W) {
+  const c = document.createElement('canvas');
+  c.width = c.height = W;
+  const g = c.getContext('2d'), st = 2, sc = W / (2 * MAPR);
+  for (let py = 0; py < W; py += st) for (let px = 0; px < W; px += st) {
+    const x = px / sc - MAPR, z = py / sc - MAPR, cst = coast(x, z), cz = cliffZ(x);
+    let col;
+    if (onPier(x, z) || onBridge(x, z)) col = '#b98455';
+    else if (isSea(x, z)) col = cst < 2 ? '#7fe0dc' : cst < 6 ? '#55c2e0' : '#3a9fd0';
+    else if (inRiver(x, z) || inPond(x, z)) col = '#5cc6e6';
+    else if (z < cz + 0.25 && z > cz - 0.6) col = '#9b7653';
+    else if (z < cz) col = '#5aa44c';
+    else if (isBeach(x, z) || cst > -1) col = '#f2dfa6';
+    else col = '#7cc85a';
+    g.fillStyle = col;
+    g.fillRect(px, py, st, st);
+  }
+  g.fillStyle = '#e9d29e';
+  for (const [x, z, w, d] of PATHS) g.fillRect((x - w / 2 + MAPR) * sc, (z - d / 2 + MAPR) * sc, w * sc, d * sc);
+  g.beginPath(); g.arc((PLAZA.x + MAPR) * sc, (PLAZA.z + MAPR) * sc, PLAZA.r * sc, 0, 7); g.fill();
+  return c;
+}
+function drawMap() {
+  const cv = $('mapcv');
+  if (!cv || !G?.s) return;
+  const g = cv.getContext('2d'), W = cv.width, sc = W / (2 * MAPR), X = v => (v + MAPR) * sc, s = G.s;
+  mapImg ||= mapBase(W);
+  g.drawImage(mapImg, 0, 0);
+  for (const [k, t] of Object.entries(s.paths || {})) { const [x, z] = k.split(',').map(Number); g.fillStyle = PAVE[t]?.col || '#ccc'; g.fillRect(X(x - 0.5), X(z - 0.5), sc, sc); }
+  for (const [k, kind] of Object.entries(RES_SPOTS)) {
+    const [x, z] = k.split(',').map(Number);
+    g.fillStyle = kind === 'rock' ? '#9a958e' : kind === 'palm' ? '#3f9a46' : '#2f8a3e';
+    g.beginPath(); g.arc(X(x), X(z), kind === 'rock' ? sc * 0.4 : sc * 0.6, 0, 7); g.fill();
+  }
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const [id, B] of Object.entries(BUILDINGS)) {
+    const w = (B.x1 - B.x0 + 1) * sc, d = (B.z1 - B.z0 + 1) * sc, ic = MAP_ICON[id] || NPCS[B.npc]?.icon || '🏠';
+    g.fillStyle = id === 'plaza' ? 'rgba(0,0,0,0)' : 'rgba(255,253,249,.85)';
+    g.beginPath(); g.roundRect(X(B.x0 - 0.5), X(B.z0 - 0.5), w, d, 4); g.fill();
+    g.font = `${Math.max(12, Math.min(w, d) * 0.8)}px sans-serif`;
+    g.fillText(ic, X(B.cx), X(B.cz) + 1);
+  }
+  g.font = `${sc * 1.6}px sans-serif`;
+  for (const [id, e] of world.npcM || []) if (e.awake) g.fillText(NPCS[id].icon, X(e.x), X(e.z));
+  const t = performance.now() / 300;
+  for (const p of Object.values(G.players)) {
+    if (S.inside(p)) continue;
+    const me = p.id === G.me, r = sc * (me ? 0.9 + Math.sin(t) * 0.15 : 0.8);
+    g.fillStyle = me ? '#ff5d7a' : '#9b6bff'; g.strokeStyle = '#fff'; g.lineWidth = 3;
+    g.beginPath(); g.arc(X(p.x), X(p.z), r, 0, 7); g.fill(); g.stroke();
+    g.font = `600 ${Math.round(sc * 1.15)}px Fredoka, sans-serif`; g.fillStyle = '#5a4636';
+    g.fillText(p.name, X(p.x), X(p.z) - r - sc * 0.9);
+  }
+  if (s.balloon) { const b = S.balloonPos(s.balloon, s.time); g.font = `${sc * 2.2}px sans-serif`; g.fillText('🎈', X(b.x), X(b.z)); }
+  if (G.goal && G.goal.x !== undefined) { g.strokeStyle = '#ff5d7a'; g.lineWidth = 3; g.beginPath(); g.arc(X(G.goal.x), X(G.goal.z), sc * 0.8, 0, 7); g.stroke(); }
+}
+$('pbody').addEventListener('click', e => {
+  if (e.target.id !== 'mapcv') return;
+  const r = e.target.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 2 * MAPR - MAPR, z = (e.clientY - r.top) / r.height * 2 * MAPR - MAPR;
+  const me = G.players[G.me];
+  if (!walkable(x, z) || S.blocked(G.s, x, z)) { toast('🌊 Da kommst du nicht hin.'); play('fail'); return; }
+  if (S.inside(me)) { toast('🚪 Geh erst nach draußen.'); return; }
+  panels.close();
+  G.goal = { x, z, last: { x: me.x, z: me.z, t: performance.now() } };
+  world.burst(x, z, 'sparkle', 0.15);
+  toast('🗺️ Unterwegs!');
+});
+
 // ---------- Bild für Bild ----------
 const hud = {};
 function setText(id, v) { if (hud[id] !== v) { hud[id] = v; $(id).textContent = v; } }
@@ -1214,6 +1381,7 @@ function gameFrame(dt, now) {
     if (d) { [wx, wz] = d; len = 1; }
   }
   me.m = len > 0.2;
+  if (me.m && G.skyView) toggleSky(false);
   if (me.m) {
     if (me.pose) standUp(me);
     const sp = SPEED[s.up.boots] * dt;
@@ -1260,8 +1428,10 @@ function gameFrame(dt, now) {
     tiles: G.photo || editor.isOpen ? [] : shown?.tiles, hlOn: !!(shown?.a || shown?.ui || shown?.fish || shown?.sit || shown?.hug), hlBad: shown && !shown.a && !shown.ui && !shown.fish && !shown.sit && /kein|Nur|Erst/.test(shown.label || ''),
     prompt: G.photo || editor.isOpen ? null : prompt, photo: G.photo, hideNames: G.photo || !settings.names,
     bobber: G.fishing && { x: G.fishing.x, z: G.fishing.z, bite: G.fishing.phase === 'bite' },
-    preview: editor.isOpen ? previewCam(me.x, me.z) : null,
+    preview: editor.isOpen ? previewCam(me.x, me.z) : null, sky: G.skyView,
   });
+  if (panels.open === 'map') drawMap();
+  if (s.balloon && G.balloonSeen !== s.balloon.id) { G.balloonSeen = s.balloon.id; toast('🎈 Ein Geschenkballon schwebt über die Insel! Schnapp dir die Schleuder.'); play('chat'); }
   ambience({ day: info.day, night: info.night, rain: s.weather === 'rain', walking: me.m });
   musicFor(info.night > 0.6 ? 'night' : 'day');
   // Nachbarn sagen ab und zu etwas, wenn man in der Nähe ist
@@ -1276,8 +1446,11 @@ function gameFrame(dt, now) {
   const sky = s.weather === 'rain' ? '🌧️' : s.weather === 'snow' ? '🌨️' : hour >= 20 ? '🌙' : hour >= 18 ? '🌇' : '☀️';
   const [seaName, seaIcon] = SEASONS[S.seasonOf(s.day)];
   setText('money', s.money.toLocaleString('de-DE'));
-  setText('ctime', `${hh}:${String(mm).padStart(2, '0')}`);
-  setText('clock', `${sky} ${seaIcon} ${seaName}, Tag ${((s.day - 1) % 7) + 1}`);
+  const real = s.real ? new Date() : null;
+  setText('ctime', real ? `${real.getHours()}:${String(real.getMinutes()).padStart(2, '0')}` : `${hh}:${String(mm).padStart(2, '0')}`);
+  setText('clock', `${sky} ${WEEKDAYS[weekday(s.day)]} · ${seaIcon} ${seaName}`);
+  // Abendmeldungen: Sternschnuppen-Nacht
+  if (s.starNight && hour >= 19 && G.starToast !== s.day) { G.starToast = s.day; toast('🌠 Heute Nacht fallen Sternschnuppen! Tippe auf 🔭 (PC: K) und schau in den Himmel.', true); }
   setText('lvl', String(s.level));
   const pct = Math.min(100, s.xp / (40 * s.level * s.level) * 100) + '%';
   if (hud.pct !== pct) { hud.pct = pct; document.querySelector('#lvlbar i').style.width = pct; }

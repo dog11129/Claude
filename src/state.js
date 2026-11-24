@@ -3,9 +3,9 @@ import {
   DAY, WET, MAP, CROPS, ANIMALS, PENS, BUILDINGS, ITEMS, FISH, PLACE,
   UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS, SEASON_LEN, SEASON_IDS, isFlower,
   RES_SPOTS, TREE_FRUIT, FRUIT_REGROW, BUGS, FOSSILS, SHELLS, SHELLS_PER_DAY, WEEDS_PER_DAY, RECIPES, DIG_SPOTS_PER_DAY,
-  NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL,
+  NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK,
 } from './data.js';
-import { walkable, grass, sand, isWater, inPond as pondAt, inRiver, onBridge, onPlaza, rng } from './island.js';
+import { walkable, grass, sand, isWater, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 
 export const key = (x, z) => x + ',' + z;
@@ -22,10 +22,10 @@ export function newFarm(name = 'Kuschelinsel') {
     inv: { s_tulpe: 4 },
     up: {}, tiles: {}, obj: {}, animals: [], orders: [], nextId: 1, ach: {},
     album: {}, res: {}, shook: {}, digs: [], mail: [], npc: {},
-    shells: {}, weeds: {}, fruit: {}, museum: {}, rock: null,
+    shells: {}, weeds: {}, fruit: {}, museum: {}, rock: null, paths: {}, balloon: null, wishes: 0, starNight: false, turnip: null, real: false,
     home: { wall: 'vanille', floor: 'dielen', items: {}, rugs: {}, walls: {} },
     quest: { i: 0, p: 0 }, daily: [], met: {},
-    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0 },
+    stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0 },
   };
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
   // ein paar wilde Blumen blühen schon auf der Insel
@@ -40,6 +40,7 @@ export function newFarm(name = 'Kuschelinsel') {
     }
   }
   refill(s);
+  newTurnips(s);
   newDailies(s);
   fillOrders(s);
   return s;
@@ -50,11 +51,38 @@ export const friend = (s, id) => (s.npc[id] ||= { f: 0, talk: 0, gift: 0, sent: 
 export const hearts = (s, id) => Math.min(10, Math.floor((s.npc[id]?.f || 0) / 100));
 
 // Nachbarn spazieren um ihren Lieblingsort (alle Spieler sehen dasselbe); nachts sind sie zu Hause
-export function npcPos(id, t) {
-  const [cx, cz, rx, rz] = NPC_DATA[id].spot, h = NPC_IDS.indexOf(id) * 1.7 + 0.5;
-  const ph = t * 0.05 + h, f = Math.floor(ph), r = ph - f;
-  const e = f + r * r * (3 - 2 * r);
-  return { x: cx + rx * Math.sin(e * 1.1 + h), z: cz + rz * Math.sin(e * 0.8 + h * 1.9), walking: r > 0.12 && r < 0.88 };
+// Nachbarn haben einen Tagesablauf (data.js NPC_PLAN): morgens zu Hause, später am Platz, am Fluss, im Museum …
+// Zwischen zwei Orten laufen sie los – über eine Brücke, wenn der Fluss dazwischen liegt. Alle Spieler sehen dasselbe.
+const WALK_H = 0.7; // so viele Spielstunden dauert ein Weg
+const side = (x, z) => Math.sign(x - riverX(z)) || 1;
+function route(a, b) {
+  const pts = [a];
+  if (side(a[0], a[1]) !== side(b[0], b[1])) {
+    const bz = BRIDGES.reduce((best, z) => Math.abs(z - (a[1] + b[1]) / 2) < Math.abs(best - (a[1] + b[1]) / 2) ? z : best), bx = riverX(bz), sa = side(a[0], a[1]);
+    pts.push([bx + sa * 2.2, bz], [bx - sa * 2.2, bz]);
+  }
+  pts.push(b);
+  return pts;
+}
+function along(pts, f) {
+  const len = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1])), total = len.reduce((a, b) => a + b, 0) || 1;
+  let d = f * total;
+  for (let i = 0; i < len.length; i++) {
+    if (d <= len[i] || i === len.length - 1) { const k = len[i] ? Math.min(1, d / len[i]) : 1; return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * k, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * k]; }
+    d -= len[i];
+  }
+  return pts[pts.length - 1];
+}
+export function npcPos(id, t, dayTime = 0.3) {
+  const plan = NPC_PLAN[id], hour = 6 + dayTime * 18, h = NPC_IDS.indexOf(id) * 1.7 + 0.5;
+  let i = 0;
+  for (let k = 0; k < plan.length; k++) if (hour >= plan[k][0]) i = k;
+  const [h0, cx, cz, rx, rz] = plan[i], since = hour - h0;
+  const ph = t * 0.05 + h, f = Math.floor(ph), r = ph - f, e = f + r * r * (3 - 2 * r);
+  const wander = { x: cx + rx * Math.sin(e * 1.1 + h), z: cz + rz * Math.sin(e * 0.8 + h * 1.9), walking: r > 0.12 && r < 0.88 };
+  if (i === 0 || since >= WALK_H) return wander;
+  const [, px, pz] = plan[i - 1], [x, z] = along(route([px, pz], [cx, cz]), since / WALK_H);
+  return { x, z, walking: true };
 }
 export const npcAwake = s => { const h = 6 + s.dayTime * 18; return h >= 7 && h < 21.5; };
 
@@ -86,7 +114,7 @@ function refill(s) {
   s.shells = {};
   for (const k of Object.keys(s.weeds || {})) if (Math.random() < 0.3) delete s.weeds[k]; // ein paar verschwinden von selbst
   s.weeds ||= {};
-  const free = (x, z) => canPlace(s, x, z) && !onPlaza(x, z, 0.5);
+  const free = (x, z) => canPlace(s, x, z) && !onPlaza(x, z, 0.5) && !s.paths?.[key(x, z)];
   for (let t = 0; s.digs.length < DIG_SPOTS_PER_DAY && t < 300; t++) {
     const [x, z] = randTile();
     if (free(x, z)) s.digs.push(key(x, z));
@@ -216,7 +244,33 @@ export function animalPos(a, t) {
   return { x: pen.cx + pen.rx * Math.sin(e * 1.3 + h), z: pen.cz + pen.rz * Math.sin(e * 0.9 + h * 2.1), walking: r > 0.08 && r < 0.92 };
 }
 
-export const price = (s, id) => Math.round(ITEMS[id].sell * (1 + 0.2 * (s.up['q_' + ITEMS[id].cat] || 0)));
+export const price = (s, id) => ITEMS[id]?.turnip ? turnipPrice(s) : Math.round((ITEMS[id]?.sell || 0) * (1 + 0.2 * (s.up['q_' + ITEMS[id].cat] || 0)));
+
+// ---------- Rübenbörse ----------
+// Sonntagmorgen kauft man Rüben bei Hoppel, Montag bis Samstag zahlt der Krämerladen zweimal am Tag einen neuen Preis.
+// Nach einer Woche werden übrige Rüben faul.
+export const halfDay = s => (weekday(s.day) - 1) * 2 + (6 + s.dayTime * 18 >= 12 ? 1 : 0); // 0 = Montagvormittag … 11 = Samstagnachmittag
+export const turnipPrice = s => (weekday(s.day) === 0 || !s.turnip ? 0 : s.turnip.p[halfDay(s)] || 0);
+export const turnipSeller = s => weekday(s.day) === 0 && 6 + s.dayTime * 18 < 12; // Hoppel ist da
+function newTurnips(s) {
+  const buy = 90 + rnd(21), r = Math.random(), p = [];
+  if (r < 0.35) { // durcheinander
+    for (let i = 0; i < 12; i++) p.push(Math.round(buy * (0.6 + Math.random() * 0.8)));
+  } else if (r < 0.55) { // fällt nur
+    let v = buy * (0.85 + Math.random() * 0.05);
+    for (let i = 0; i < 12; i++) { p.push(Math.round(v)); v -= buy * (0.03 + Math.random() * 0.02); }
+  } else { // fällt, dann Spitze (klein oder groß)
+    const big = r > 0.8, peak = 2 + rnd(7);
+    let v = buy * (0.85 + Math.random() * 0.05);
+    for (let i = 0; i < 12; i++) {
+      const d = i - peak;
+      if (d < 0) { p.push(Math.round(v)); v -= buy * 0.04; }
+      else if (d <= 2) p.push(Math.round(buy * (big ? [1.4, 2 + Math.random() * 4, 1.6][d] : [1.2, 1.5 + Math.random() * 0.5, 1.3][d])));
+      else p.push(Math.round(buy * (0.4 + Math.random() * 0.4)));
+    }
+  }
+  s.turnip = { day: s.day, buy, p: p.map(v => Math.max(9, v)) };
+}
 export const capacity = () => 0;
 export const animalCount = () => 0;
 
@@ -230,12 +284,22 @@ export function upgradeInfo(s, id) {
 export function tick(s, dt, auth) {
   let changed = false;
   s.time += dt;
-  s.dayTime += dt / DAY;
+  if (!s.real) s.dayTime += dt / DAY; // Echtzeit: der Host stellt die Uhr nach der echten Uhrzeit (realClock)
   if (s.dayTime >= 1) {
     if (auth) { newDay(s); changed = true; } else s.dayTime = 0.9999;
   }
   const rain = s.weather !== 'sun'; // Regen und Schnee gießen
   const sea = seasonOf(s.day);
+  // Geschenkballons: tagsüber ab und zu, fliegen von einer Seite zur anderen
+  if (auth) {
+    const hour = 6 + s.dayTime * 18;
+    if (s.balloon && Math.abs(balloonPos(s.balloon, s.time).x) > ISLAND + 8) { s.balloon = null; changed = true; }
+    if (!s.balloon && !rain && hour > 8 && hour < 18 && Math.random() < dt / 70) {
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      s.balloon = { id: s.nextId++, x0: -dir * (ISLAND + 6), z: -12 + Math.random() * 26, t0: s.time, dir };
+      changed = true;
+    }
+  }
   for (const o of Object.values(s.obj)) {
     const p = PLACE[o.k];
     if (p?.kind === 'producer' && o.t < p.every) {
@@ -261,10 +325,23 @@ export function tick(s, dt, auth) {
 function newDay(s) {
   s.day++;
   s.dayTime = 0;
-  const sea = seasonOf(s.day), wet = { spring: 0.25, summer: 0.15, autumn: 0.28, winter: 0.35 }[sea];
+  const sea = seasonOf(s.day), wet = { spring: 0.25, summer: 0.15, autumn: 0.28, winter: 0.35 }[sea], was = s.weather;
   s.weather = s.day > 2 && Math.random() < wet ? (sea === 'winter' ? 'snow' : 'rain') : 'sun';
+  if (was === 'rain' && s.weather === 'sun') s.rainbowDay = s.day; // nach dem Regen: Regenbogen am Vormittag
   s.orders = s.orders.filter(o => s.day - o.day < 3);
+  s.balloon = null;
   refill(s);
+  // Wünsche der Nacht: Sternsplitter am Strand
+  for (let t = 0, n = 0; n < Math.min(8, s.wishes || 0) && t < 300; t++) {
+    const [x, z] = randTile(), k = key(x, z);
+    if (sand(x, z) && !s.shells[k] && !s.obj[k] && !RES_SPOTS[k]) { s.shells[k] = 'sternsplitter'; n++; }
+  }
+  s.wishes = 0;
+  s.starNight = s.weather === 'sun' && Math.random() < 0.3;
+  if (weekday(s.day) === 0) { // neue Woche: Rüben verfaulen, neue Preise
+    if (s.inv.ruebe) { addInv(s, 'faule_ruebe', s.inv.ruebe); delete s.inv.ruebe; }
+    newTurnips(s);
+  }
   newDailies(s);
   // Briefe der Nachbarn bei neuen Herzen (2, 4, 6, 8, 10)
   for (const id of NPC_IDS) {
@@ -293,11 +370,28 @@ function collect(s, id, out) { // ins Sammelbuch eintragen
 
 // Alle liegen im Bett und es ist Abend? Dann beginnt gleich der nächste Morgen.
 export function sleepThrough(s) {
+  if (s.real) return false; // mit echter Uhrzeit vergeht die Nacht von selbst
   if (6 + s.dayTime * 18 < 18) return false;
   questEvent(s, 'sleep');
   newDay(s);
   return true;
 }
+
+// Echte Uhrzeit (Einstellung des Hosts): 6–24 Uhr = Spieltag, nachts bleibt es dunkel; um Mitternacht beginnt ein neuer Tag.
+export function realClock(s, d = new Date()) {
+  const h = d.getHours() + d.getMinutes() / 60, stamp = d.toDateString();
+  let changed = false;
+  if (s.realDate && s.realDate !== stamp) { newDay(s); changed = true; }
+  s.realDate = stamp;
+  s.dayTime = h >= 6 ? Math.min(0.9999, (h - 6) / 18) : 0.9999;
+  return changed;
+}
+// Ballon: fliegt in der Höhe quer über die Insel
+export function balloonPos(b, t) {
+  const dt = t - b.t0, x = b.x0 + b.dir * dt * 1.15;
+  return { x, z: b.z + Math.sin(dt * 0.3) * 1.2, y: 3.3 + Math.sin(dt * 0.9) * 0.3 };
+}
+export const pavable = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !RES_SPOTS[key(x, z)] && !s.tiles[key(x, z)] && !s.digs?.includes(key(x, z));
 
 // Wo wird geangelt? Fluss, Teich oder Meer
 export const waterKind = (x, z) => pondAt(x, z) ? 'pond' : inRiver(x, z) && !onBridge(x, z) ? 'river' : 'sea';
@@ -364,7 +458,7 @@ const ACTIONS = {
     return n > 0;
   },
   plant(s, a, out) {
-    if (!has(ITEMS, a.item) || !ITEMS[a.item].seed || !canPlace(s, a.x, a.z) || !takeInv(s, a.item, 1)) return false;
+    if (!has(ITEMS, a.item) || !ITEMS[a.item].seed || !canPlace(s, a.x, a.z) || s.paths?.[key(a.x, a.z)] || !takeInv(s, a.item, 1)) return false;
     s.tiles[key(a.x, a.z)] = { w: 0, c: { k: ITEMS[a.item].seed, g: 0 } };
     fx(out, a.x, a.z, '', 'seed');
     s.stats.planted = (s.stats.planted || 0) + 1;
@@ -582,6 +676,54 @@ const ACTIONS = {
     out.snd = 'level';
     return true;
   },
+  pave(s, a, out) {
+    const k = key(a.x, a.z);
+    if (a.k === null) { if (!s.paths[k]) return false; delete s.paths[k]; fx(out, a.x, a.z, '', 'dust'); out.snd = 'till'; return true; }
+    if (!has(PAVE, a.k) || !pavable(s, a.x, a.z) || s.paths[k] === a.k) return false;
+    s.paths[k] = a.k;
+    if (s.weeds[k]) delete s.weeds[k];
+    fx(out, a.x, a.z, '', 'dust');
+    out.snd = 'place';
+    return true;
+  },
+  pop(s, a, out) { // Geschenkballon mit der Schleuder getroffen
+    const b = s.balloon;
+    if (!b || b.id !== a.id) return false;
+    const p = balloonPos(b, s.time);
+    s.balloon = null;
+    s.stats.balloons = (s.stats.balloons || 0) + 1;
+    questEvent(s, 'balloon', 1, out);
+    addXp(s, 5, out);
+    const kind = weighted(BALLOON_GIFTS, g => g[1])[0];
+    let txt;
+    if (kind === 'money') { const m = 500 + rnd(16) * 100; s.money += m; s.stats.earned += m; txt = `+${m} 🪙`; out.msg = `🎁 Im Geschenk waren ${m} Taler!`; }
+    else if (kind === 'furn' || kind === 'deco') {
+      const list = kind === 'furn' ? Object.keys(FURNITURE).filter(id => (FURNITURE[id].lvl || 1) <= s.level + 2) : Object.keys(PLACE).filter(id => PLACE[id].kind === 'deco' && PLACE[id].buy);
+      const id = pick(list);
+      addInv(s, id, 1); txt = `+1 ${ITEMS[id].icon}`; out.msg = `🎁 Im Geschenk war: ${ITEMS[id].icon} ${ITEMS[id].name}!`;
+    } else { const n = kind === 'holz' ? 5 : kind === 'eisen' ? 2 : 1; addInv(s, kind, n); txt = `+${n} ${ITEMS[kind].icon}`; out.msg = `🎁 Im Geschenk war: ${n}× ${ITEMS[kind].icon} ${ITEMS[kind].name}!`; }
+    out.fx.push({ x: p.x, z: p.z, txt, k: 'coin', y: p.y });
+    out.snd = 'level';
+    return true;
+  },
+  wish(s, a, out) { // Wunsch an eine Sternschnuppe
+    if (!s.starNight || 6 + s.dayTime * 18 < 19 || (s.wishes || 0) >= 20) return false;
+    s.wishes = (s.wishes || 0) + 1;
+    s.stats.wishes = (s.stats.wishes || 0) + 1;
+    out.snd = 'love';
+    return true;
+  },
+  buyTurnip(s, a, out) {
+    if (!turnipSeller(s) || !Number.isInteger(a.n) || a.n < TURNIP_STACK || a.n % TURNIP_STACK || a.n > 1000 || !s.turnip) return false;
+    const cost = s.turnip.buy * a.n;
+    if (s.money < cost) { out.msg = 'Nicht genug Taler.'; return false; }
+    s.money -= cost;
+    s.stats.turnipSpent = (s.stats.turnipSpent || 0) + cost;
+    addInv(s, 'ruebe', a.n);
+    out.msg = `🍠 ${a.n} Rüben gekauft – verkauft sie diese Woche im Krämerladen, bevor sie faulen!`;
+    out.snd = 'coin';
+    return true;
+  },
   craft(s, a, out) {
     if (!has(RECIPES, a.id)) return false;
     const r = RECIPES[a.id];
@@ -691,8 +833,9 @@ const ACTIONS = {
     return true;
   },
   sell(s, a, out) {
-    if (!has(ITEMS, a.id) || !ITEMS[a.id].sell || !isCount(a.n) || !takeInv(s, a.id, a.n)) return false;
+    if (!has(ITEMS, a.id) || !(price(s, a.id) > 0) || !isCount(a.n) || !takeInv(s, a.id, a.n)) return false;
     const m = price(s, a.id) * a.n;
+    if (ITEMS[a.id].turnip) s.stats.turnipProfit = (s.stats.turnipProfit || 0) + m - (s.turnip?.buy || 0) * a.n;
     s.money += m;
     s.stats.earned += m;
     out.msg = `+${m} Taler`;
@@ -703,7 +846,7 @@ const ACTIONS = {
   sellAll(s, a, out) {
     let m = 0;
     for (const [id, n] of Object.entries(s.inv)) {
-      if (!ITEMS[id]?.sell || !n) continue;
+      if (!ITEMS[id]?.sell || ITEMS[id].turnip || !n) continue;
       m += price(s, id) * n;
       delete s.inv[id];
     }
@@ -754,7 +897,7 @@ const ACTIONS = {
 export function act(s, a) {
   const out = { ok: false, fx: [], snd: null, msg: null };
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
-  const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick'].includes(a.t);
+  const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave'].includes(a.t);
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
   if (a.t === 'water' && !isDir(a.dx, a.dz)) return out;
   if ((a.t === 'order' || a.t === 'mail') && !Number.isInteger(a.i)) return out;
@@ -839,12 +982,24 @@ export function resolve(s, me, sel, at) {
   if (s.weeds?.[k] && sel !== 'shovel') return { a: { t: 'pick', x, z }, label: '🌿 Unkraut zupfen', tiles: one };
 
   if (sel === 'net') return { net: { x: px, z: pz }, label: '🦋 Kescher schwingen', tiles: [] };
+  if (sel === 'sling') {
+    const b = s.balloon && balloonPos(s.balloon, s.time);
+    if (b && Math.hypot(b.x - me.x, b.z - me.z) < 5) return { a: { t: 'pop', id: s.balloon.id }, label: '🎯 Schießen!', tiles: [] };
+    return { label: s.balloon ? '🎈 Lauf unter den Ballon!' : '🎈 Kein Ballon in Sicht', tiles: [] };
+  }
+  if (sel.startsWith('pave:')) {
+    const type = sel.slice(5);
+    if (s.paths[k] === type) return { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one };
+    if (s.paths[k] && type === 'none') return { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one };
+    if (PAVE[type] && pavable(s, x, z)) return { a: { t: 'pave', x, z, k: type }, label: `${PAVE[type].icon} ${PAVE[type].name}`, tiles: one };
+    return { label: 'Hier geht kein Weg', tiles: one };
+  }
   const o = s.obj[k];
   if (o) {
     const p = PLACE[o.k];
     if (sel === 'hand') return { a: { t: 'pickup', x, z }, label: '✋ Aufheben', tiles: one };
     if (p.kind === 'producer') return { a: { t: 'use', x, z }, label: `${ITEMS[p.item].icon} Pflücken`, tiles: one };
-    if (o.k === 'bank') return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
+    if (o.k === 'bank' || p.sit) return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
     if (o.k === 'kirschbaum') return { petals: { x, z }, label: '🌸 Schütteln', tiles: one };
     return { label: p.icon + ' ' + p.name, tiles: one };
   }

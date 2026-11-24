@@ -26,10 +26,11 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | Laufen | WASD / Pfeiltasten | links wischen |
 | Hinlaufen & benutzen | Klick auf Baum, Muschel, Gebäude … | irgendwo antippen |
 | Aktion vor der Figur | E / Leertaste (halten = wiederholen) | großer rosa Knopf |
-| Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne) | unten antippen |
+| Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne, Schleuder, Designer) | unten antippen |
 | Kamera | Mausrad = Zoom, rechte Maustaste ziehen oder Z/C = drehen | zwei Finger = Zoom & drehen, 🔄 |
 | Chat / Emotes | Enter / Q | 💬 / 😊 |
-| Laden, Taschen, Inselbuch, Freunde | B, I, O, F | Knöpfe oben rechts |
+| Inselhandy, Karte, Taschen, Inselbuch, Freunde | H, M, I, O, F | 📱 und Knöpfe oben rechts |
+| In den Himmel schauen | K | 🔭 |
 | Fotomodus | P | 📷 |
 
 ## Was es gibt
@@ -41,6 +42,13 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 - **Museum:** Fische, Insekten und Fossilien ausstellen (Aquarium, Insektenhaus, Fossilienhalle).
 - **Angeln:** Fluss, Teich und Meer haben eigene Fische (vom Barsch bis zum Hai), Fischschatten zeigen, wo etwas schwimmt.
 - **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin) und Lio (Fuchs-Künstler) haben eigene Häuschen. Plaudern, Geschenke, Freundschaft (10 Herzen), Briefe, Wünsche erfüllen.
+- **Inselhandy:** 15 Apps – Live-Karte (antippen = hinlaufen, mit Wegsuche über die Brücken), Bestellen, Taschen, Inselbuch, Sammelbuch, Museum, Rezepte, Rübenkurs, Designer, Freunde, Erfolge, Gefühle, Kamera, Himmel, Optionen.
+- **Insel-Designer:** Eigene Wege verlegen – Erde, Steinpflaster, Ziegel, Holzdielen, Sand.
+- **Geschenkballons:** Schweben tagsüber über die Insel – mit der Schleuder abschießen (Taler, Möbel, Deko, Eisen, Gold …).
+- **Sternschnuppen-Nächte:** 🔭 in den Himmel schauen und wünschen – am Morgen liegen Sternsplitter am Strand, daraus wird eine Sternenlampe. Nach Regentagen gibt's einen Regenbogen.
+- **Rübenbörse:** Sonntagmorgens verkauft Hoppel Rüben, der Krämerladen zahlt zweimal am Tag einen neuen Preis – mit Kurs-Diagramm im Handy. Nach einer Woche verfaulen sie.
+- **Tagesabläufe:** Die Nachbarn gehen morgens aus dem Haus, treffen sich am Dorfplatz, besuchen Museum, Fluss, Strand und Werkbank und laufen dafür über die Brücken.
+- **Echte Uhrzeit:** auf Wunsch (⚙️ → Optionen) folgen Tag und Nacht der echten Uhr.
 - **Krämerladen, Inselbüro, Werkbank, Gartenküche:** Samen, Bäume, Zutaten, Möbel und Deko kaufen, verkaufen, heimwerken und kochen.
 - **Zuhause:** Das Haus betreten und gemeinsam einrichten, im Bett schlafen (wenn alle schlafen, ist es Morgen).
 - **Quests:** Insel-Geschichte mit 21 Kapiteln und jeden Morgen drei Tagesaufgaben. Dazu 32 Erfolge und Insel-Level.

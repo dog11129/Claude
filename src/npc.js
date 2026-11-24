@@ -19,6 +19,11 @@ export const NPCS = {
     likes: ['barsch', 'makrele', 'herzmuschel', 'weizen'], loves: ['kugelfisch', 'fischsuppe'], dislikes: ['ei', 'unkraut'],
     bio: 'Pippa steht bei jedem Wetter mit der Angel am Steg und hätte schon mindestens dreimal fast einen Hai gefangen.',
   },
+  hoppel: {
+    name: 'Hoppel', species: 'Hase', icon: '🐰', role: 'Rübenhändlerin', color: '#b39cff', visitor: true,
+    likes: [], loves: [], dislikes: [],
+    bio: 'Hoppel kommt jeden Sonntagmorgen mit ihrem Rübenkorb auf die Insel. Wer günstig kauft und im richtigen Moment verkauft, wird reich!',
+  },
   lio: {
     name: 'Lio', species: 'Fuchs', icon: '🦊', role: 'Künstler & Florist', color: '#ef7d3a',
     likes: ['rose', 'koralle', 'pfirsich', 'saft'], loves: ['sonnenblume', 'bernstein'], dislikes: ['kartoffel', 'stein'],
@@ -197,6 +202,23 @@ const SHAPES = {
       tail: [ell(0.12, FOX, 0, 0.1, -0.13, 0.85, 0.85, 1.9, 0.7), ell(0.085, WHITE, 0, 0.245, -0.315, 1, 1, 1.1, 0.7)], tailAt: [0, 0.06, -0.16],
     };
   },
+};
+
+SHAPES.hoppel = () => {
+  const FUR = 0xf4ece6, FURD = 0xd9ccc2, PINKI = 0xffb3c6, SCARF = 0xb39cff, AP = 0xfff3dc;
+  return {
+    hip: 0.24, legX: 0.1, armAt: [0.2, 0.3], neck: 0.4, headY: 0.24, eyeY: 0.02, earsAt: [0, 0.2, -0.02],
+    gait: { f: 14, leg: 0.8, arm: 0.45, bob: 0.06, roll: 0.03, lean: 0.06, twist: 0, flap: 0, tail: 0.4, tk: 1.2 },
+    leg: [cyl(0.06, 0.055, 0.16, FUR, 0, -0.08, 0, 10), ell(0.075, FUR, 0, -0.2, 0.05, 1, 0.55, 1.5)],
+    body: [cyl(0.19, 0.25, 0.26, 0x9b86d6, 0, 0.03, 0, 18), ell(0.2, FUR, 0, 0.22, 0, 1, 0.95, 0.92), part(new THREE.CylinderGeometry(0.2, 0.26, 0.24, 16, 1, true, -0.9, 1.8), AP, 0, 0.03, 0.005),
+      ell(0.055, 0xd9583a, 0, 0.06, 0.25, 1, 1.1, 0.4), cn(0.03, 0.06, 0x6cc04a, 0, 0.13, 0.25, 0.5)],
+    arm: [ell(0.06, FUR, 0, -0.05, 0, 1, 1.25, 1, 0, 0, 0, 12)],
+    head: [ell(0.26, FUR, 0, 0, 0, 1.08, 0.95, 1, 0, 0, 0, 16), ell(0.11, 0xffffff, 0, -0.08, 0.2, 1.2, 0.8, 0.8), ell(0.03, PINKI, 0, -0.04, 0.27, 1.3, 1, 1),
+      ...wMouth(-0.1, 0.27), ...blush(0.16, -0.06, 0.19, 0.05), band(0.25, 0.24, 0.07, SCARF, 0.09, -0.02, -0.2), cn(0.08, 0.16, SCARF, 0, -0.03, -0.26, 0.5, 1.6)],
+    eyes: eyes(0.1, 0.02, 0.23, 0.05, true), joy: joy(0.1, 0.02, 0.23, 0.05, 0.16, -0.06, 0.19),
+    ears: [-1, 1].flatMap(s => [ell(0.07, FUR, 0.09 * s, 0.22, 0, 0.7, 2.6, 0.45, 0, 0, -0.12 * s), ell(0.04, PINKI, 0.09 * s, 0.22, 0.03, 0.6, 2.4, 0.3, 0, 0, -0.12 * s)]),
+    tail: [ell(0.07, 0xffffff, 0, 0, 0)], tailAt: [0, 0.08, -0.24],
+  };
 };
 
 // ---------- Rig ----------

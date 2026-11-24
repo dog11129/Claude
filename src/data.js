@@ -103,6 +103,10 @@ export const ITEMS = {
   lehm:      { name: 'Lehm',         icon: '🧱', sell: 100, cat: 'mat', xp: 1 },
   eisen:     { name: 'Eisennugget',  icon: '🔩', sell: 375, cat: 'mat', xp: 3 },
   unkraut:   { name: 'Unkraut',      icon: '🌿', sell: 10,  cat: 'mat', xp: 1 },
+  sternsplitter: { name: 'Sternsplitter', icon: '🌟', sell: 300, cat: 'misc', xp: 3 },
+  goldnugget: { name: 'Goldnugget',  icon: '🪙', sell: 10000, cat: 'misc', xp: 10 },
+  ruebe:     { name: 'Rübe',         icon: '🍠', cat: 'misc', turnip: true },
+  faule_ruebe: { name: 'Faule Rübe', icon: '🥀', sell: 0, cat: 'misc' },
   mehl:      { name: 'Mehl',         icon: '🥡', buy: 40 },
   zucker:    { name: 'Zucker',       icon: '🧂', buy: 40 },
   milch:     { name: 'Milch',        icon: '🥛', buy: 60 },
@@ -202,13 +206,16 @@ export const PLACE = {
   kirschbaum: { name: 'Kirschblütenbaum', icon: '🌸', buy: 1800, lvl: 3, kind: 'deco', solid: 1 },
   herz:       { name: 'Herzbogen',     icon: '💕', buy: 2000, lvl: 4, kind: 'deco' },
   brunnen:    { name: 'Brunnen',       icon: '⛲', buy: 3000, lvl: 5, kind: 'deco', solid: 1 },
+  sonnenschirm: { name: 'Sonnenschirm', icon: '⛱️', buy: 1200, lvl: 2, kind: 'deco', solid: 1 },
+  liegestuhl: { name: 'Liegestuhl',    icon: '🪑', buy: 900,  lvl: 2, kind: 'deco', solid: 1, sit: 1 },
+  sternlampe: { name: 'Sternenlampe',  icon: '🌠', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Nur selbst gebaut: aus Sternsplittern' },
   apfelbaum:  { name: 'Apfelbaum',     icon: '🌳', buy: 900,  lvl: 2, kind: 'producer', solid: 1, item: 'apfel', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Äpfel' },
   orangenbaum:{ name: 'Orangenbaum',   icon: '🌳', buy: 900,  lvl: 3, kind: 'producer', solid: 1, item: 'orange', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Orangen' },
   pfirsichbaum:{ name: 'Pfirsichbaum', icon: '🌳', buy: 900,  lvl: 3, kind: 'producer', solid: 1, item: 'pfirsich', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Pfirsiche' },
   kirschenbaum:{ name: 'Kirschbaum',   icon: '🌳', buy: 900,  lvl: 4, kind: 'producer', solid: 1, item: 'kirsche', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Kirschen' },
   birnbaum:   { name: 'Birnbaum',      icon: '🌳', buy: 900,  lvl: 4, kind: 'producer', solid: 1, item: 'birne', n: 3, every: 2 * DAY, desc: 'Trägt alle zwei Tage 3 Birnen' },
 };
-for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k };
+for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy ? {} : { sell: 500, cat: 'misc' }) };
 export const MACHINE_CAP = 20;
 
 // Ausbau: cost[i] = Preis für die nächste Stufe, req[i] = benötigtes Insel-Level.
@@ -288,6 +295,10 @@ export const ACHIEVEMENTS = [
   ['werk', '🔨', 'Selbstgemacht', 'Etwas an der Werkbank gebaut', s => (s.stats.crafted || 0) >= 1, 300],
   ['freund', '💛', 'Beste Nachbarn', 'Mit einem Nachbarn 5 Herzen erreicht', s => Object.values(s.npc || {}).some(n => n.f >= 500), 1500],
   ['dorf', '🏘️', 'Die ganze Insel mag euch', 'Mit allen Nachbarn 3 Herzen erreicht', s => ['mira', 'bruno', 'pippa', 'lio'].every(k => (s.npc?.[k]?.f || 0) >= 300), 3000],
+  ['ballon', '🎈', 'Volltreffer!', '5 Geschenkballons abgeschossen', s => (s.stats.balloons || 0) >= 5, 800],
+  ['wunsch', '🌠', 'Sternenkinder', '10 Wünsche an Sternschnuppen', s => (s.stats.wishes || 0) >= 10, 800],
+  ['ruebe', '📈', 'Börsen-Profis', 'Mit Rüben 10.000 Taler Gewinn gemacht', s => (s.stats.turnipProfit || 0) >= 10000, 3000],
+  ['wege', '🧱', 'Inselplaner', '50 Wegstücke verlegt', s => Object.keys(s.paths || {}).length >= 50, 1000],
   ['jahr', '🎂', 'Ein ganzes Jahr', 'Alle vier Jahreszeiten zusammen erlebt', s => s.day >= 29, 5000],
 ].map(([id, icon, name, desc, test, reward]) => ({ id, icon, name, desc, test, reward }));
 
@@ -302,6 +313,7 @@ export const RECIPES = {
   r_zwerg: { st: 'craft', out: 'zwerg', n: 1, in: { lehm: 3 } },
   r_blumen: { st: 'craft', out: 'blumen', n: 1, in: { holz: 2, tulpe: 3 } },
   r_brunnen: { st: 'craft', out: 'brunnen', n: 1, in: { stein: 12, eisen: 2 }, lvl: 5 },
+  r_sternlampe: { st: 'craft', out: 'sternlampe', n: 1, in: { sternsplitter: 3, eisen: 1 } },
   brot: { st: 'cook', out: 'brot', n: 1, in: { weizen: 3 } },
   pfannkuchen: { st: 'cook', out: 'pfannkuchen', n: 1, in: { mehl: 1, ei: 1, milch: 1 } },
   apfelkuchen: { st: 'cook', out: 'apfelkuchen', n: 1, in: { apfel: 3, mehl: 1, zucker: 1 } },
@@ -361,5 +373,33 @@ export const DAILY = [
   ['Fangt 3 Fische', 'fish', 3, 500], ['Fangt 2 Insekten', 'bug', 2, 500], ['Plaudert mit 2 Nachbarn', 'talk', 2, 300],
   ['Hackt 4 Holz', 'chop', 4, 300], ['Kocht ein Gericht', 'cook', 1, 500], ['Verkauft Waren für 1.500 Taler', 'sell', 1500, 400],
   ['Erfüllt einen Nachbarwunsch', 'order', 1, 600], ['Umarmt euch 💕', 'hug', 1, 300], ['Macht einem Nachbarn ein Geschenk', 'gift', 1, 300],
-  ['Grabt etwas aus', 'dig', 1, 400], ['Sammelt 4 Muscheln', 'shell', 4, 300], ['Zupft 5 Unkraut', 'weed', 5, 300], ['Stellt etwas im Museum aus', 'donate', 1, 600],
+  ['Grabt etwas aus', 'dig', 1, 400], ['Sammelt 4 Muscheln', 'shell', 4, 300], ['Zupft 5 Unkraut', 'weed', 5, 300], ['Stellt etwas im Museum aus', 'donate', 1, 600], ['Schießt einen Ballon ab', 'balloon', 1, 500],
 ];
+
+// ---------- Wochentage, Rübenbörse ----------
+// Jede Jahreszeit hat 7 Tage = eine Woche, die mit dem Sonntag beginnt.
+export const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+export const weekday = day => (day - 1) % 7;
+export const TURNIP_STACK = 10;
+
+// ---------- Insel-Designer: Wege ----------
+export const PAVE = {
+  erde:   { name: 'Erdweg', icon: '🟫', col: '#c9a26b' },
+  stein:  { name: 'Steinpflaster', icon: '🪨', col: '#b9b4ad' },
+  ziegel: { name: 'Ziegelweg', icon: '🧱', col: '#d27a5a' },
+  holz:   { name: 'Holzdielen', icon: '🪵', col: '#c89564' },
+  sand:   { name: 'Sandweg', icon: '🏖️', col: '#eedcaa' },
+};
+
+// ---------- Geschenkballons ----------
+export const BALLOON_GIFTS = [ // [Art, Gewicht]
+  ['money', 34], ['holz', 12], ['eisen', 10], ['furn', 26], ['sternsplitter', 6], ['goldnugget', 3], ['deco', 9],
+];
+
+// ---------- Tagesabläufe der Nachbarn: [ab Stunde, x, z, Radius x, Radius z] ----------
+export const NPC_PLAN = {
+  mira:  [[6, -14, 8.8, 1, 0.5], [9, -1.8, 3.6, 1.3, 0.6], [12, -8, 2.3, 1.4, 0.5], [15, -12, 4, 2.4, 1.4], [18, 1.8, 4, 1, 0.5], [20.5, -14, 8.8, 1, 0.5]],
+  pippa: [[6, -9, 19.5, 0.2, 2.6], [10, -4, 17, 2.6, 0.8], [13, -12.4, -1.6, 0.8, 0.8], [16, -4.6, 14.6, 1.1, 0.5], [19, -1.6, -1.4, 1, 0.4], [21, -4.6, 14.6, 1.1, 0.5]],
+  bruno: [[6, 12.5, 10.6, 1, 0.5], [8, 10.8, 2, 0.4, 1.4], [11, -4.5, -9.4, 1, 0.3], [14, 1.6, 4.4, 1.2, 0.6], [17, 13, -5.2, 1.6, 0.4], [20, 12.5, 10.6, 1, 0.5]],
+  lio:   [[6, 15.5, 1.7, 0.6, 0.4], [9, 13, -5.3, 1.7, 0.5], [12, 16.6, 7.5, 0.7, 2], [15, 2.6, 0.2, 0.6, 1.6], [18, 12.8, 2.3, 1.9, 0.9], [20.5, 15.5, 1.7, 0.6, 0.4]],
+};

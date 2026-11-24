@@ -1,7 +1,7 @@
 // Fenster-Inhalte (Laden, Lager, Aufträge, Freunde, Einstellungen). Reines HTML, Klicks gehen an Callbacks.
-import { CROPS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SHELLS, SOCIAL, STORY, DAILY, MUSEUM, MUSEUM_ALL, isFlower } from './data.js';
+import { CROPS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SHELLS, SOCIAL, STORY, DAILY, MUSEUM, MUSEUM_ALL, isFlower, PAVE, WEEKDAYS, weekday, TURNIP_STACK } from './data.js';
 import { settingsHtml } from './menu.js';
-import { price, upgradeInfo, seasonOf, hearts } from './state.js';
+import { price, upgradeInfo, seasonOf, hearts, halfDay, turnipSeller, turnipPrice } from './state.js';
 import { NPCS, letter, requestLine } from './npc.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
@@ -18,7 +18,7 @@ export const TABS = {
   orders: [['quests', '📜 Quests'], ['orders', '💬 Wünsche'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Insel']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
 };
-const TITLES = { shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten' };
+const TITLES = { phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -99,7 +99,7 @@ const SHOP = {
   },
   deco(s) {
     let h = '<div class="note">Macht eure Insel schön! Kaufen ➜ in der Leiste wählen ➜ aufstellen. Drehen: in die gewünschte Richtung schauen. Aufheben mit der Hand ✋.</div>';
-    for (const [id, p] of Object.entries(PLACE)) if (p.kind === 'deco') h += placeRow(s, id);
+    for (const [id, p] of Object.entries(PLACE)) if (p.kind === 'deco' && p.buy) h += placeRow(s, id);
     return h;
   },
 };
@@ -107,17 +107,17 @@ const SHOP = {
 const PANELS = {
   shop: (s, g, tab) => SHOP[tab](s),
   sell(s) {
-    const sellable = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id]?.sell);
-    const total = sellable.reduce((t, [id, n]) => t + price(s, id) * n, 0);
+    const sellable = Object.entries(s.inv).filter(([id, n]) => n > 0 && price(s, id) > 0);
+    const total = sellable.filter(([id]) => !ITEMS[id].turnip).reduce((t, [id, n]) => t + price(s, id) * n, 0);
     let h = sellable.length ? `<div class="row"><div class="ic">💰</div><div class="tx"><b>Alles verkaufen</b><small>${sellable.length} Sorten</small></div><div class="bt">${btn(`+🪙 ${total}`, { t: 'sellAll' }, 'pink')}</div></div>` : '<div class="note">Noch nichts zu verkaufen. Schüttelt Bäume, sammelt Muscheln, angelt! 🍎🐚🎣</div>';
     for (const [id, n] of sellable) {
       const p = price(s, id);
       h += row(ITEMS[id].icon, `${ITEMS[id].name} <span class="lv">${n}×</span>`, `je ${money(p)}`, btn('1', { t: 'sell', id, n: 1 }, 'white') + btn(`Alle +${p * n}`, { t: 'sell', id, n }));
     }
-    const rest = Object.entries(s.inv).filter(([id, n]) => n > 0 && !ITEMS[id]?.sell && ITEMS[id]);
+    const rest = Object.entries(s.inv).filter(([id, n]) => n > 0 && !(price(s, id) > 0) && ITEMS[id]);
     if (rest.length) {
       h += '<h3>Behalten</h3>';
-      for (const [id, n] of rest) h += row(ITEMS[id].icon, `${ITEMS[id].name} <span class="lv">${n}×</span>`, ITEMS[id].seed ? 'Samen' : ITEMS[id].place ? 'Zum Aufstellen' : ITEMS[id].furn ? 'Möbel fürs Haus' : 'Zutat', '');
+      for (const [id, n] of rest) h += row(ITEMS[id].icon, `${ITEMS[id].name} <span class="lv">${n}×</span>`, ITEMS[id].seed ? 'Samen' : ITEMS[id].place ? 'Zum Aufstellen' : ITEMS[id].furn ? 'Möbel fürs Haus' : ITEMS[id].turnip ? 'Heute kauft der Laden keine Rüben (sonntags nie)' : id === 'faule_ruebe' ? 'Leider verfault …' : 'Zutat', '');
     }
     return h;
   },
@@ -148,6 +148,7 @@ const PANELS = {
     if (tab === 'friends') {
       let h = '<div class="note">Plaudert jeden Tag mit euren Nachbarn und macht ihnen Geschenke – je mehr Herzen, desto mehr verraten sie über sich (und schicken euch Briefe 💌).</div>';
       for (const [id, N] of Object.entries(NPCS)) {
+        if (N.visitor) continue;
         const hh = hearts(s, id), n = s.npc[id] || {};
         const lk = hh >= 2 ? N.likes.map(i => ITEMS[i].icon).join(' ') : '❔❔', lv = hh >= 4 ? N.loves.map(i => ITEMS[i].icon).join(' ') : '❔';
         h += `<div class="row"><div class="ic">${N.icon}</div><div class="tx"><b>${N.name} <span class="lv">${N.role}</span></b><small>${N.bio}</small>
@@ -202,6 +203,57 @@ const PANELS = {
     const p = g.players[g.together];
     if (!p) return '<div class="note">Dein Lieblingsmensch ist gerade nicht in der Nähe.</div>';
     return `<div class="note">Was möchtest du mit <b>${esc(p.name)}</b> machen?</div><div class="emogrid">${Object.entries(SOCIAL).map(([k, [e, l]]) => `<button data-ui="soc" data-k="${k}"><span>${e}</span><small>${l}</small></button>`).join('')}</div>`;
+  },
+  phone(s, g) {
+    const ready = s.orders.filter(o => (s.inv[o.item] || 0) >= o.n).length + (s.quest.done ? 1 : 0) + s.daily.filter(d => d.done && !d.claimed).length;
+    const canMuseum = MUSEUM_ALL.filter(id => !s.museum?.[id] && s.inv[id] > 0).length;
+    const apps = [['map', '🗺️', 'Karte', '#7fd3a8'], ['shop', '🛍️', 'Bestellen', '#ffb36b'], ['sell', '🎒', 'Taschen', '#f7a8c4'], ['quests', '📜', 'Inselbuch', '#ffd66b', ready],
+      ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
+      ['designer', '🧱', 'Designer', '#f4a582'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
+      ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
+    const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
+    return `<div class="phone-top"><b>${s.real ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : `${hh}:${String(mm).padStart(2, '0')}`}</b><span>${WEEKDAYS[weekday(s.day)]} · ${esc(s.name)}</span></div>
+      <div class="apps">${apps.map(([id, ic, l, c, dot]) => `<button data-ui="app" data-app="${id}"><span class="ai" style="background:${c}">${ic}${dot ? `<i>${dot}</i>` : ''}</span><small>${l}</small></button>`).join('')}</div>`;
+  },
+  map(s) {
+    return `<div class="mapwrap"><canvas id="mapcv" width="480" height="480"></canvas></div>
+      <div class="note">Tippe auf die Karte – deine Figur läuft dorthin. 🔴 du · 🟣 Mitspieler · Tiere = Nachbarn</div>`;
+  },
+  designer(s, g) {
+    const cur = g.pathType || 'erde';
+    return `<div class="note">Verlegt eigene Wege auf der Insel! Wegart wählen ➜ unten das Designer-Werkzeug 🧱 nehmen ➜ auf Rasen oder Sand tippen. Nochmal auf dieselbe Stelle = Weg entfernen. Auf Wegen wachsen keine Blumen und kein Unkraut.</div>
+      <div class="emogrid">${Object.entries(PAVE).map(([k, P]) => `<button data-ui="pave" data-k="${k}" class="${cur === k ? 'on' : ''}"><span style="display:block;width:46px;height:46px;margin:0 auto 4px;border-radius:10px;background:${P.col};box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)"></span><small>${P.name}</small></button>`).join('')}
+      <button data-ui="pave" data-k="none" class="${cur === 'none' ? 'on' : ''}"><span>🧹</span><small>Nur entfernen</small></button></div>
+      <div class="note">Verlegt: <b>${Object.keys(s.paths || {}).length}</b> Wegstücke</div>`;
+  },
+  turnip(s) {
+    const wd = weekday(s.day), T = s.turnip, have = s.inv.ruebe || 0, now = turnipPrice(s);
+    let h = '';
+    if (turnipSeller(s) && T) {
+      h += `<div class="quest-hero"><div class="qh-top"><span class="qh-chap">Sonntag bis 12 Uhr</span><b>🐰 Hoppel</b></div><h3>„Frische Rüben! Heute nur ${T.buy} Taler das Stück!“</h3>
+        <p>Kauft Rüben und verkauft sie diese Woche im Krämerladen. Die Preise ändern sich zweimal am Tag – mit Glück zahlt er ein Vielfaches! Aber Achtung: Am nächsten Sonntag sind übrige Rüben verfault.</p>
+        <div class="bt" style="display:flex;gap:6px;flex-wrap:wrap">${[10, 50, 100].map(n => btn(`${n}× 🪙${(T.buy * n).toLocaleString('de-DE')}`, { t: 'buyTurnip', n }, 'pink', s.money < T.buy * n)).join('')}</div></div>`;
+    } else h += `<div class="note">🐰 Hoppel verkauft jeden <b>Sonntag von 6 bis 12 Uhr</b> am Dorfplatz Rüben. Heute ist ${WEEKDAYS[wd]}.</div>`;
+    if (T) {
+      const cur = wd === 0 ? -1 : halfDay(s), max = Math.max(T.buy, ...T.p.filter((v, i) => i <= cur)) * 1.15;
+      const bars = T.p.map((v, i) => { const known = i <= cur, hgt = known ? Math.max(6, v / max * 100) : 18;
+        return `<div class="tb${i === cur ? ' now' : ''}${known && v > T.buy ? ' up' : ''}"><i style="height:${hgt}%">${known ? v : '?'}</i><small>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][Math.floor(i / 2)]}${i % 2 ? ' ☾' : ' ☀'}</small></div>`; }).join('');
+      h += `<h3>📈 Kurs dieser Woche <span class="lv">Einkauf ${T.buy}</span></h3><div class="tchart"><div class="tline" style="bottom:${T.buy / max * 100}%"></div>${bars}</div>`;
+    }
+    h += row('🍠', `Eure Rüben <span class="lv">${have}×</span>`, have ? (now ? `Jetzt zahlt der Laden ${money(now)} pro Rübe = ${money(now * have)} (${now >= (T?.buy || 0) ? 'Gewinn' : 'Verlust'})` : 'Heute kauft der Laden keine Rüben.') : 'Ihr habt gerade keine Rüben.', have && now ? btn(`Alle verkaufen +${now * have}`, { t: 'sell', id: 'ruebe', n: have }, 'pink') : '');
+    return h + `<div class="note">Bisheriger Börsen-Gewinn: ${money(s.stats.turnipProfit || 0)}</div>`;
+  },
+  recipes(s) {
+    let h = '<div class="note">Alle Baupläne und Rezepte. Bauen könnt ihr an der 🔨 Werkbank neben eurem Haus, kochen in der 🍳 Gartenküche.</div>';
+    for (const [st, t] of [['craft', '🔨 Werkbank'], ['cook', '🍳 Gartenküche']]) {
+      h += `<h3>${t}</h3>`;
+      for (const r of Object.values(RECIPES)) {
+        if (r.st !== st) continue;
+        const it = ITEMS[r.out], can = Object.entries(r.in).every(([k, n]) => (s.inv[k] || 0) >= n);
+        h += row(it.icon, `${r.n > 1 ? r.n + '× ' : ''}${it.name}${(r.lvl || 1) > s.level ? lvTag(r.lvl) : ''}`, Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#a08a76'}">${ITEMS[k].icon} ${s.inv[k] || 0}/${n}</span>`).join(' · '), can ? '<span class="lv">✓ bereit</span>' : '');
+      }
+    }
+    return h;
   },
   museum(s) {
     const n = Object.keys(s.museum || {}).length;
@@ -284,6 +336,7 @@ export class Panels {
     if (TABS[kind] && !TABS[kind].some(t => t[0] === this.tab)) this.tab = TABS[kind][0][0];
     this.sig = null;
     $('panel').classList.remove('hidden');
+    $('panel').classList.toggle('phone', kind === 'phone');
     $('ptitle').textContent = TITLES[kind];
     $('ptabs').innerHTML = (TABS[kind] || []).map(([id, l]) => `<button data-tab="${id}">${l}</button>`).join('');
     $('ptabs').classList.toggle('hidden', !TABS[kind]);
@@ -296,7 +349,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily]);
     if (sig === this.sig) return;
     this.sig = sig;
     const body = $('pbody'), y = body.scrollTop;
@@ -315,10 +368,12 @@ const TOOLS = {
   hand: ['✋', 'Hand: pflücken, schütteln, aufheben'],
   axe: [svg('<rect x="14" y="5" width="4" height="23" rx="2" fill="#c98d55" transform="rotate(-25 16 16)"/><path d="M14 4 Q24 3 25 10 Q20 13 15 12Z" fill="#9aa6b2" stroke="#6d7884" stroke-width="1"/>'), 'Axt: Holz hacken'],
   shovel: [svg('<rect x="14.5" y="3" width="3" height="17" rx="1.5" fill="#c98d55"/><rect x="11" y="2" width="10" height="3" rx="1.5" fill="#c98d55"/><path d="M10 19 H22 V24 Q16 31 10 24Z" fill="#9aa6b2" stroke="#6d7884" stroke-width="1"/>'), 'Schaufel: ausgraben & auf Felsen hauen'],
+  sling: [svg('<path d="M10 29 L16 17 L22 29" stroke="#c98d55" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M16 18 L9 5 M16 18 L23 5" stroke="#c98d55" stroke-width="3.5" stroke-linecap="round"/><path d="M9 6 Q16 13 23 6" stroke="#e0605a" stroke-width="2" fill="none"/><circle cx="16" cy="10" r="2.5" fill="#9aa6b2"/>'), 'Schleuder: Geschenkballons abschießen'],
+  pave: ['🧱', 'Insel-Designer: Wege legen (nochmal antippen = Wegart wählen)'],
   net: [svg('<rect x="15" y="12" width="3" height="18" rx="1.5" fill="#c98d55" transform="rotate(20 16 20)"/><ellipse cx="13" cy="9" rx="8" ry="6.5" fill="#f4f1ea" stroke="#b8b0a2" stroke-width="2"/><path d="M7 9 H19 M13 3 V15" stroke="#d9d2c4" stroke-width="1"/>'), 'Kescher: Insekten fangen'],
 };
 export function hotbarItems(s) {
-  const items = ['hand', 'net', 'shovel', 'axe', 'can'];
+  const items = ['hand', 'net', 'shovel', 'axe', 'can', 'sling', 'pave'];
   for (const k of Object.keys(CROPS)) if (s.inv['s_' + k] > 0) items.push('s_' + k);
   for (const k of Object.keys(PLACE)) if (s.inv[k] > 0) items.push(k);
   for (const k of Object.keys(FURNITURE)) if (s.inv[k] > 0) items.push(k);

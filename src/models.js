@@ -167,6 +167,7 @@ export function wild(kind, season, left, fruit, ready) {
 // Muschel am Strand (5 Formen) und Unkraut
 export function shell(kind) {
   return cachedModel('shell' + kind, () => {
+    if (kind === 'sternsplitter') return [0, 1, 2, 3, 4].map(i => { const a = i / 5 * Math.PI * 2; return cone(0.06, 0.18, 0xffe36b, Math.sin(a) * 0.08, 0.04, Math.cos(a) * 0.08, 5, Math.PI / 2, a, 0); }).concat([ball(0.08, 0xfff3a8, 0, 0.04, 0, 1, 0.6, 1, 8)]);
     if (kind === 'koralle') return [cyl(0.03, 0.04, 0.2, 0xff6f7d, 0, 0.1, 0, 6), cyl(0.025, 0.03, 0.14, 0xff8a95, 0.06, 0.12, 0, 6, 0, 0, -0.6), cyl(0.025, 0.03, 0.14, 0xff8a95, -0.06, 0.12, 0.02, 6, 0, 0, 0.6), ball(0.03, 0xff9aa5, 0, 0.21, 0, 1, 1, 1, 6)];
     if (kind === 'sanddollar') return [cyl(0.13, 0.13, 0.03, 0xf3e3c3, 0, 0.02, 0, 14), ball(0.02, 0xe0caa0, 0, 0.04, 0, 1, 0.3, 1, 6)];
     if (kind === 'kauri') return [ball(0.1, 0xf7e7d6, 0, 0.05, 0, 1.3, 0.7, 0.9, 10), box(0.12, 0.01, 0.015, 0xb89a7a, 0, 0.11, 0)];
@@ -239,4 +240,14 @@ export function fences(rects) {
     rail(x1, (z0 + z1) / 2, 0.05, z1 - z0);
   }
   return model(p);
+}
+
+// Geschenkballon: drei bunte Ballons mit Päckchen
+export function balloon() {
+  return cachedModel('balloon', () => {
+    const p = [];
+    [[0xff5d7a, -0.28, 0.75, 0], [0x6cc4ff, 0.28, 0.8, 0.05], [0xffd23f, 0, 1.05, -0.1]].forEach(([c, x, y, z]) => p.push(ball(0.32, c, x, y, z, 1, 1.18, 1, 12), cone(0.06, 0.08, c, x, y - 0.4, z, 6, Math.PI), cyl(0.006, 0.006, y - 0.25, 0xffffff, x * 0.5, (y - 0.4) / 2 + 0.05, z * 0.5, 3)));
+    p.push(box(0.36, 0.3, 0.36, 0xff8fab, 0, -0.15, 0), box(0.38, 0.06, 0.08, 0xffffff, 0, -0.15, 0), box(0.08, 0.31, 0.38, 0xffffff, 0, -0.15, 0), ball(0.07, 0xffffff, -0.05, 0.03, 0, 1, 0.7, 1, 6), ball(0.07, 0xffffff, 0.05, 0.03, 0, 1, 0.7, 1, 6));
+    return p;
+  });
 }

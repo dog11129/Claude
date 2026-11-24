@@ -249,3 +249,97 @@ test('Quests: Geschichte und Tagesaufgaben mit Belohnung', () => {
   for (const q of STORY) for (const id of Object.keys(q.items || {})) assert.ok(id in ITEMS, 'Belohnung existiert: ' + id);
   for (const d of DAILY) assert.equal(d.length, 4);
 });
+
+test('Insel-Designer: Wege legen und entfernen', async () => {
+  const { pavable } = await import('../src/state.js');
+  const s = newFarm();
+  const [x, z] = freeTile(s, [-6, 4]);
+  assert.ok(pavable(s, x, z));
+  assert.equal(resolve(s, { x, z: z - 0.9, ry: 0 }, 'pave:stein').a.k, 'stein');
+  assert.ok(act(s, { t: 'pave', x, z, k: 'stein' }).ok);
+  assert.equal(s.paths[key(x, z)], 'stein');
+  assert.equal(act(s, { t: 'plant', x, z, item: 's_tulpe' }).ok, false, 'auf Wegen wächst nichts');
+  assert.equal(resolve(s, { x, z: z - 0.9, ry: 0 }, 'pave:stein').a.k, null, 'gleiche Wegart = entfernen');
+  assert.ok(act(s, { t: 'pave', x, z, k: null }).ok);
+  assert.equal(s.paths[key(x, z)], undefined);
+  assert.equal(act(s, { t: 'pave', x, z, k: '__proto__' }).ok, false);
+  const [tx, tz] = firstRes('tree');
+  assert.equal(act(s, { t: 'pave', x: tx, z: tz, k: 'erde' }).ok, false, 'nicht unter Bäumen');
+});
+
+test('Geschenkballon: kommt tagsüber, mit der Schleuder abschießen', async () => {
+  const { balloonPos } = await import('../src/state.js');
+  const s = newFarm();
+  s.dayTime = 0.4;
+  for (let i = 0; i < 600 && !s.balloon; i++) tick(s, 1, true);
+  assert.ok(s.balloon, 'Ballon taucht auf');
+  const p = balloonPos(s.balloon, s.time);
+  assert.ok(p.y > 2);
+  const r = resolve(s, { x: p.x, z: p.z, ry: 0 }, 'sling');
+  assert.equal(r.a?.t, 'pop');
+  const m = s.money, inv = JSON.stringify(s.inv);
+  assert.ok(act(s, r.a).ok);
+  assert.ok(s.money > m || JSON.stringify(s.inv) !== inv, 'Geschenk erhalten');
+  assert.equal(s.balloon, null);
+  assert.equal(act(s, r.a).ok, false, 'nicht doppelt');
+});
+
+test('Sternschnuppen: Wünsche werden zu Sternsplittern', () => {
+  const s = newFarm();
+  s.starNight = true; s.dayTime = 0.5;
+  assert.equal(act(s, { t: 'wish' }).ok, false, 'erst abends');
+  s.dayTime = 0.8;
+  for (let i = 0; i < 4; i++) assert.ok(act(s, { t: 'wish' }).ok);
+  s.weather = 'sun';
+  tick(s, DAY, true);
+  assert.equal(Object.values(s.shells).filter(v => v === 'sternsplitter').length, 4);
+  assert.equal(s.wishes, 0);
+  s.inv.sternsplitter = 3; s.inv.eisen = 1;
+  assert.ok(act(s, { t: 'craft', id: 'r_sternlampe' }).ok);
+});
+
+test('Rübenbörse: sonntags kaufen, unter der Woche verkaufen, nach einer Woche faul', async () => {
+  const { turnipPrice, turnipSeller } = await import('../src/state.js');
+  const s = newFarm();
+  s.money = 100000;
+  assert.ok(turnipSeller(s), 'Tag 1 ist Sonntag');
+  assert.equal(act(s, { t: 'buyTurnip', n: 7 }).ok, false, 'nur in 10ern');
+  assert.ok(act(s, { t: 'buyTurnip', n: 20 }).ok);
+  assert.equal(s.inv.ruebe, 20);
+  assert.equal(act(s, { t: 'sell', id: 'ruebe', n: 20 }).ok, false, 'sonntags kauft der Laden keine Rüben');
+  tick(s, DAY, true);
+  assert.ok(!turnipSeller(s) && turnipPrice(s) > 0);
+  const m = s.money, p = turnipPrice(s);
+  assert.ok(act(s, { t: 'sell', id: 'ruebe', n: 10 }).ok);
+  assert.equal(s.money, m + p * 10);
+  act(s, { t: 'sellAll' });
+  assert.equal(s.inv.ruebe, 10, 'Alles verkaufen lässt Rüben in Ruhe');
+  for (let i = 0; i < 6; i++) tick(s, DAY, true);
+  assert.equal(s.inv.ruebe, undefined);
+  assert.equal(s.inv.faule_ruebe, 10, 'nächster Sonntag: verfault');
+  assert.equal(s.turnip.p.length, 12);
+});
+
+test('Nachbarn folgen einem Tagesablauf und nehmen die Brücke', async () => {
+  const { npcPos } = await import('../src/state.js');
+  const { NPC_IDS } = await import('../src/data.js');
+  for (const id of NPC_IDS) for (let d = 0.02; d < 0.99; d += 0.004) {
+    const p = npcPos(id, d * 999, d);
+    assert.ok(!isWater(p.x, p.z), `${id} läuft nicht durchs Wasser (Zeit ${d.toFixed(3)}: ${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+  }
+  assert.ok(Math.hypot(npcPos('bruno', 0, 0.05).x - npcPos('bruno', 0, 0.45).x, 0) > 8, 'Bruno ist morgens woanders als mittags');
+});
+
+test('Echte Uhrzeit: Uhr folgt dem Gerät, um Mitternacht beginnt ein neuer Tag', async () => {
+  const { realClock, sleepThrough } = await import('../src/state.js');
+  const s = newFarm();
+  s.real = true;
+  realClock(s, new Date(2026, 10, 24, 15, 0));
+  assert.ok(Math.abs(6 + s.dayTime * 18 - 15) < 0.01);
+  tick(s, 100, true);
+  assert.ok(Math.abs(6 + s.dayTime * 18 - 15) < 0.01, 'tick stellt die Uhr nicht weiter');
+  assert.equal(sleepThrough(s), false);
+  const d = s.day;
+  realClock(s, new Date(2026, 10, 25, 0, 30));
+  assert.equal(s.day, d + 1);
+});

@@ -426,6 +426,28 @@ const PLACE = {
     p.push(...heart(0.11, ROSE, 0, 0.69, -0.215, 0.3));
     return p;
   },
+  sonnenschirm() {
+    const p = [C(0.03, 0.03, 1.9, WHITE, 0, 0.95, 0, 8), C(0.16, 0.2, 0.08, WOODD, 0, 0.04, 0, 10)];
+    for (let i = 0; i < 8; i++) { const a = i * TAU / 8, a2 = (i + 1) * TAU / 8, c = i % 2 ? WHITE : 0x5ab8e8;
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([0, 2.05, 0, Math.sin(a) * 1.05, 1.62, Math.cos(a) * 1.05, Math.sin(a2) * 1.05, 1.62, Math.cos(a2) * 1.05], 3));
+      g.computeVertexNormals(); p.push({ g, c }, B(0.07, c, Math.sin((a + a2) / 2) * 1.0, 1.6, Math.cos((a + a2) / 2) * 1.0, 1, 0.6, 1, 6, 4)); }
+    p.push(B(0.05, 0xffd23f, 0, 2.08, 0, 1, 1, 1, 8, 6));
+    return p;
+  },
+  liegestuhl() {
+    const p = [];
+    for (const x of [-0.28, 0.28]) p.push(stick([x, 0, 0.45], [x, 0.3, -0.05], 0.025, WOODD, 6), stick([x, 0.3, -0.05], [x, 0.75, -0.4], 0.025, WOODD, 6), stick([x, 0, -0.35], [x, 0.3, -0.05], 0.025, WOODD, 6));
+    for (let i = 0; i < 6; i++) { const t = i / 5, y = 0.3 + t * 0.45, z = -0.05 - t * 0.35; p.push(soft(0.56, 0.03, 0.1, i % 2 ? 0xff8fab : WHITE, 0, y, z, 0.3, 0, -0.9)); }
+    for (let i = 0; i < 4; i++) p.push(soft(0.56, 0.03, 0.12, i % 2 ? 0xff8fab : WHITE, 0, 0.31 - i * 0.02, 0.06 + i * 0.12, 0.3, 0, 0.15));
+    return p;
+  },
+  sternlampe() {
+    const p = [C(0.16, 0.2, 0.08, 0x3d4458, 0, 0.04, 0, 10), C(0.03, 0.035, 1.0, 0x3d4458, 0, 0.55, 0, 8)];
+    const star = [];
+    for (let i = 0; i < 5; i++) { const a = i * TAU / 5; star.push(cone(0.09, 0.26, 0, Math.sin(a) * 0.13, 1.25 + Math.cos(a) * 0.13, 0, 6, 0, 0, -a)); }
+    star.push(B(0.12, 0, 0, 1.25, 0, 1, 1, 0.6, 10, 8));
+    return [p, star];
+  },
   kirschbaum() {
     seed = 21;
     const P = [0xffb7d0, 0xffa3c4, 0xffc8dc, 0xff94b8], p = [...trunk(), ...tree([
