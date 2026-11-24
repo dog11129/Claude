@@ -169,7 +169,7 @@ try:
             m.ball(0.06, 'skin', sx * 0.34, -0.02, 0.36, seg=10)
         m.ball(0.37, 'skin', 0, 0, 1.0, seg=24)
         m.ball(0.392, HAIR, 0, 0.03, 1.03, seg=24, half=True, rx=-0.75)          # Haare hinten und oben
-        m.ball(0.38, HAIR, 0, 0.06, 0.98, sx=1.02, sy=0.95, sz=1.0, seg=24, half=True, rx=0.9)
+        m.ball(0.38, HAIR, 0, 0.07, 0.98, sx=1.02, sy=0.95, sz=1.0, seg=24, half=True, rx=-1.9)       # Hinterkopf bis zum Nacken
         for i in range(5):                                                       # Pony
             a = -0.8 + i * 0.4
             m.ball(0.1, HAIR, math.sin(a) * 0.3, -0.26 + abs(math.sin(a)) * 0.09, 1.24 - abs(a) * 0.05, sx=1.1, sy=0.7, sz=0.75, seg=12)
