@@ -151,10 +151,11 @@ class Model:
             mid = eave + u * (S / 2) + nrm * (th / 2)
             p = M @ mid
             self.box(L + 2 * over, S, th, color, p.x, p.y, p.z, r=th * 0.45, rx=-sy * a, rz=rz)
-            for i in range(rows):  # Schindelreihen
-                t = (i + 0.55) / rows * S * 0.92
-                q = M @ (eave + u * t + nrm * (th + 0.045))
-                self.box(L + 2 * over - 0.06, S / rows * 0.8, 0.09, lt if i % 2 else color, q.x, q.y, q.z, r=0.04, rx=-sy * a, rz=rz)
+            rr = S / rows * 0.36
+            for i in range(rows):  # Schindelreihen als dicke, runde Wülste
+                t = (i + 0.5) / rows * S * 0.95
+                q = M @ (eave + u * t + nrm * (th * 0.5 + rr * 0.55))
+                self.cyl(rr, rr, L + 2 * over - 0.04, lt if i % 2 else color, q.x, q.y, q.z, seg=12, ry=PI / 2, rz=rz, bev=min(0.05, rr * 0.5))
             q = M @ (eave + nrm * (th * 0.55))                     # gerollte Traufe
             self.cyl(th * 0.62, th * 0.62, L + 2 * over + 0.04, lt, q.x, q.y, q.z, seg=14, ry=PI / 2, rz=rz, bev=0.03)
         rp = M @ Vector((0, 0, H + th * 0.55))

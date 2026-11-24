@@ -166,9 +166,9 @@ try:
         m.box(W + 0.3, 0.3, 0.1, 'mint', 0, fy + 0.0, Z + 2.4, r=0.04)
         m.ball(1.55, 'mint', 0, 0.45, Z + 2.35, sz=0.8, half=True, seg=28)
         m.torus(1.55, 0.09, 'white', 0, 0.45, Z + 2.38, seg=32)
-        for i in range(8):
-            a = i * PI / 4
-            m.box(0.06, 0.06, 1.0, 'white', math.sin(a) * 1.12, 0.45 + math.cos(a) * 1.12 * 0.98, Z + 2.85, r=0.02, rx=-math.cos(a) * 0.75, ry=math.sin(a) * 0.75)
+        for i in range(6):
+            a = -PI / 2 + i * PI / 5
+            m.roundwin(math.cos(a) * 1.5, 0.45 + math.sin(a) * 1.5 - 0.02, Z + 2.62, r=0.14, ry=a + PI / 2)
         m.cyl(0.08, 0.08, 0.4, 'white', 0, 0.45, Z + 3.75, seg=10)
         st = m.part('star', (0, 0.45, Z + 4.1), anim=('spin', 'z', 6.0))
         for k in range(5):
@@ -306,9 +306,9 @@ try:
             m.puff(W + 0.2, D + 0.2, Z, 'stoneD', 0, 0.1, 0, soft=0.4, taper=0)
             m.puff(W, D, top + 0.1, wall, 0, 0.1, Z - 0.05, taper=0.06)
             if id == 'kalle':  # geschwungenes Teehaus-Dach
-                m.ball(1.55, roof, 0, 0.1, Z + top, sx=1.0, sy=0.85, sz=0.48, half=True, seg=24, taper=-0.1)
-                m.torus(1.45, 0.11, shade(roof, 0.25), 0, 0.1, Z + top + 0.03, seg=28)
-                m.ball(0.14, 'yellow', 0, 0.1, Z + top + 0.8, seg=10)
+                m.ball(1.25, roof, 0, 0.1, Z + top, sx=1.0, sy=0.9, sz=0.75, half=True, seg=24, taper=-0.15)
+                m.torus(1.2, 0.12, shade(roof, 0.25), 0, 0.1, Z + top + 0.05, seg=28)
+                m.cone(0.2, 0.35, roof, 0, 0.1, Z + top + 1.05, seg=12); m.ball(0.13, 'yellow', 0, 0.1, Z + top + 1.27, seg=10)
             else:
                 m.gable(W - 0.2, D - 0.2, 0.95, wall, 0, 0.1, Z + top - 0.05)
                 m.cuteroof(W, D, 0.95, roof, y=0.1, z=Z + top - 0.05, rows=3, th=0.2, over=0.24)

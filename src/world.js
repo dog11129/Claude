@@ -31,6 +31,7 @@ import { makeAnimal } from './animals.js';
 import { crop, placeable } from './plants.js';
 import { building } from './buildings.js';
 import { Zones } from './zones.js';
+import { tickAssets, part, snow } from './assets.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE } from './data.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, balloonPos, turnipSeller } from './state.js';
@@ -782,8 +783,9 @@ export class World {
     for (const [id, B] of Object.entries(BUILDINGS)) {
       const model = id.startsWith('vh_') ? 'vhouse_' + B.npc : id === 'plaza' ? 'plazatree' : id;
       const m = building(model, id === 'house' ? s.up.house : id === 'mail' ? (s.mail?.length ? 1 : 0) : 1, this.season);
-      if (B.ox !== undefined) m.position.set(B.ox, 0, B.oz); else m.position.set(B.cx, 0, B.cz);
+      if (B.ox !== undefined && !m.userData.asset) m.position.set(B.ox, 0, B.oz); else m.position.set(B.cx, 0, B.cz);
       g.add(m);
+      if (id === 'office') this.clock = { h: part(m, 'clock_h'), m: part(m, 'clock_m') };
     }
     this.scene.add(g);
     this.static = { ...this.static, sig, group: g };
@@ -1299,6 +1301,13 @@ export class World {
     const indoors = this.target.x > HOME_X / 2, tropic = this.target.z > 150; // im Haus regnet es nicht, auf der Tropeninsel ist immer Sommer
     const info = this.light(s), rain = s.weather === 'rain' && !indoors && !tropic, snowing = s.weather === 'snow' && !indoors && !tropic;
     this.zones.update(this, s, this.time, info.night || 0, this.target);
+    tickAssets(dt);
+    snow.value += ((this.season === 'winter' ? 0.85 : 0) - snow.value) * Math.min(1, dt * 2);
+    if (this.clock?.h) { // Rathausuhr zeigt die Spielzeit (bzw. die echte Uhrzeit)
+      const h = s.real ? (d => d.getHours() + d.getMinutes() / 60)(new Date()) : 6 + s.dayTime * 18;
+      this.clock.h.rotation.z = -(h % 12) / 12 * Math.PI * 2;
+      this.clock.m.rotation.z = -(h % 1) * Math.PI * 2;
+    }
 
     // Zielfeld-Markierung
     const tiles = opt.tiles || [];

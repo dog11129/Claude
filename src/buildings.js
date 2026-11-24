@@ -3,6 +3,7 @@
 // Pro (id, Stufe, Jahreszeit) wird EINMAL gebaut: ein MAT-Mesh + ein GLOW-Mesh (Fenster, Laternen, Glut); Kopien teilen die Geometrie.
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, ball, cyl, cone } from './models.js';
+import { model } from './assets.js';
 
 const PI = Math.PI, H = PI / 2;
 const SNOW = 0xfbfdff, ICE = 0xdcf1ff, PLASTER = 0xfff0dc, TIMBER = 0x93613d, STONE = 0xc6bdb2, STONE_D = 0xa2998f,
@@ -903,7 +904,16 @@ const BUILD = {
 BUILD.mail = (l, s, P, G) => mail(l, P, G, s);
 
 const cache = new Map();
+// Neue Blender-Modelle (assets/models/buildings.glb) haben Vorrang
+function assetName(id, level, season) {
+  if (id === 'house') return 'house_' + Math.max(1, Math.min(5, level));
+  if (id === 'mail') return 'mail_' + (level ? 1 : 0);
+  if (id === 'plazatree') return 'plazatree_' + (['spring', 'summer', 'autumn', 'winter'].includes(season) ? season : 'summer');
+  return id;
+}
 export function building(id, level = 1, season = 'summer') {
+  const a = model(assetName(id, level, season));
+  if (a) return a;
   if (season !== 'winter' && !FLOWERS[season]) season = 'summer';
   const k = id + '|' + level + '|' + season;
   if (!cache.has(k)) {

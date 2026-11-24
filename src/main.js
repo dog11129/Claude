@@ -11,6 +11,7 @@ import { cleanLook, randomLook } from './avatar.js';
 import { NPCS, npcLine, giftReply } from './npc.js';
 import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, inPond, onPier, PATHS, PLAZA } from './island.js';
 import { zoneOf, clampPos, STREET, TROPIC, TOURS, BOAT_PRICE, shopOpen, concertNow } from './newleaf.js';
+import { loadAssets } from './assets.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -34,6 +35,8 @@ if (!['low', 'mid', 'high'].includes(settings.quality)) settings.quality = 'mid'
 audio.sound = settings.sound;
 audio.music = settings.music;
 
+// Blender-Modelle laden (der Ladebildschirm zeigt den Fortschritt)
+await loadAssets(['buildings'], f => { const el = document.querySelector('#loading div'); if (el) el.innerHTML = `<span>🏝️</span><br>Kuschelinsel lädt… ${Math.round(f * 100)}%`; });
 const world = new World($('c'), $('labels'), settings.quality);
 addEventListener('resize', () => world.resize());
 const editor = new Editor();
