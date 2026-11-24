@@ -7,7 +7,7 @@ Ihr baut zusammen eine Farm auf: Geld, Lager, Tiere und Fortschritt sind geteilt
 
 ## Los geht's
 
-1. Seite öffnen und deine Figur gestalten (Name, Haut, Frisur, Outfit, Hut, Brille, Haustier).
+1. Seite öffnen und deine Figur gestalten (Name, Haut, Frisur, Outfit, Hut, Brille, Haustier – auch ein Schweinchen 🐷).
 2. **Meine Farmen → Gründen** – oben erscheint ein Einladungscode (z. B. `7KXPA`).
 3. Dein Lieblingsmensch öffnet dieselbe Seite und tippt den Code bei **Mit Code beitreten** ein – oder öffnet den Link aus 👥 → „Link teilen“.
    Beim nächsten Mal reicht ein Tipp auf **Wieder zu Besuch**.
@@ -35,7 +35,8 @@ und können die Farm später auch selbst hosten. Der Code bleibt pro Farm gleich
 
 - **Anbau:** 12 Pflanzen mit Jahreszeiten (in ihrer Saison wachsen sie doppelt so schnell), umgraben → säen → gießen → ernten, manche tragen mehrfach. Regen, Schnee und Sprinkler gießen automatisch.
 - **Jahreszeiten:** Frühling mit Blütenblättern, Sommer, Herbstlaub, Winter mit Schnee und gefrorenem Teich – je 7 Tage.
-- **Tiere:** Hühner, Kühe, Schafe, Schweine – füttern, streicheln, Produkte einsammeln.
+- **Tiere:** Hühner, Kühe, Schafe, Schweine – füttern, streicheln (sie hüpfen vor Freude), Produkte einsammeln.
+- **Quests:** Hof-Geschichte mit 20 Kapiteln und jeden Morgen drei neue Tagesaufgaben – mit Geld, Sternen und Geschenken als Belohnung.
 - **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin) und Lio (Fuchs-Künstler) spazieren über den Hof. Plaudern, Geschenke machen, Freundschaft (10 Herzen), Briefe mit Geschenken, ihre Aufträge erfüllen.
 - **Sammeln:** Angeln (Fische je Jahreszeit), Kescher für Schmetterlinge & Käfer, Schaufel für Fossilien an glitzernden Stellen, Bäume schütteln – alles landet im **Sammelbuch**.
 - **Herstellen:** Holz (Axt) und Steine (Schaufel) sammeln, an der Werkbank Deko & Möbel bauen, in der Gartenküche oder am Herd 10 Gerichte kochen.

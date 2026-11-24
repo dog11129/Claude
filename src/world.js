@@ -28,6 +28,8 @@ import * as M from './models.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS } from './npc.js';
 import { makeAnimal } from './animals.js';
+import { crop, placeable } from './plants.js';
+import { building } from './buildings.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { FIELDS, PENS, PLACE, POND, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, NPC_IDS } from './data.js';
 import { stage, animalPos, buildingAt, inPond, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize } from './state.js';
@@ -588,12 +590,12 @@ export class World {
 
   // ---------- statische Teile, die sich mit Upgrades ändern ----------
   syncStatic(s) {
-    const sig = `${s.up.house}|${s.up.coop}|${s.up.barn}|${s.mail?.length ? 1 : 0}`;
+    const sig = `${s.up.house}|${s.up.coop}|${s.up.barn}|${s.mail?.length ? 1 : 0}|${this.season}`, b = (id, l) => building(id, l, this.season);
     if (this.static.sig !== sig) {
       if (this.static.group) this.scene.remove(this.static.group);
       const g = new THREE.Group();
-      g.add(M.building('house', s.up.house), M.building('coop', s.up.coop), M.building('barn', s.up.barn), M.building('market', 1), M.building('bin', 1), M.building('board', 1),
-        M.building('bench', 1), M.building('kitchen', 1), M.building('mail', s.mail?.length ? 1 : 0));
+      g.add(b('house', s.up.house), b('coop', s.up.coop), b('barn', s.up.barn), b('market', 1), b('bin', 1), b('board', 1),
+        b('bench', 1), b('kitchen', 1), b('mail', s.mail?.length ? 1 : 0));
       this.scene.add(g);
       this.static = { ...this.static, sig, group: g };
     }
@@ -636,7 +638,7 @@ export class World {
       if (e && e.sig !== sig2) { this.scene.remove(e.m); e = null; }
       if (!e) {
         const [x, z] = k.split(',').map(Number);
-        const m = M.crop(t.c.k, st);
+        const m = crop(t.c.k, st);
         m.children[0].material = WIND_CROP;
         m.position.set(x, 0.08, z);
         m.rotation.y = ((x * 7 + z * 13) % 4) * 0.4;
@@ -662,7 +664,7 @@ export class World {
       if (e && e.sig !== sig) { this.scene.remove(e.m); e = null; }
       if (!e) {
         const [x, z] = k.split(',').map(Number);
-        const m = M.placeable(o.k, ready);
+        const m = placeable(o.k, ready);
         m.position.set(x, 0, z);
         m.rotation.y = o.r * Math.PI / 2;
         if (['kirschbaum', 'apfelbaum', 'blumen'].includes(o.k)) m.children[0].material = WIND_CROP;

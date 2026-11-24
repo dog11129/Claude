@@ -89,7 +89,7 @@ const SFX = {
   door: t => { tone(520, t, 0.12, 'sine', 0.12, sfxGain, 660); tone(780, t + 0.1, 0.18, 'sine', 0.12); },
 };
 
-// Echte Aufnahmen (Musik & Effekte aus assets/audio). Fehlt eine Datei, spielt die erzeugte Version.
+// Echte Aufnahmen (Musik & Effekte aus assets/audio, aufgelistet in list.json). Fehlt eine Datei, spielt die erzeugte Version.
 const SAMPLES = {}, SAMPLE_FILES = {
   harvest: 'sfx-harvest.mp3', coin: 'sfx-coin.mp3', level: 'sfx-level.mp3', ach: 'sfx-quest.mp3', till: 'sfx-dig.mp3', water: 'sfx-water.mp3',
   place: 'sfx-place.mp3', splash: 'sfx-splash.mp3', door: 'sfx-door.mp3', love: 'sfx-love.mp3', chop: 'sfx-chop.mp3', click: 'sfx-click.mp3',
@@ -99,7 +99,9 @@ let musicBuf = {}, musicSrc = null, musicKind = null, loading = false;
 async function loadAudio() {
   if (loading) return;
   loading = true;
-  const get = async f => { try { const r = await fetch('assets/audio/' + f); return r.ok ? await ctx.decodeAudioData(await r.arrayBuffer()) : null; } catch { return null; } };
+  // assets/audio/list.json nennt die vorhandenen Dateien – so gibt es keine 404-Anfragen für fehlende
+  const list = await fetch('assets/audio/list.json').then(r => r.ok ? r.json() : [], () => []);
+  const get = async f => { if (!list.includes(f)) return null; try { const r = await fetch('assets/audio/' + f); return r.ok ? await ctx.decodeAudioData(await r.arrayBuffer()) : null; } catch { return null; } };
   await Promise.all(Object.entries(SAMPLE_FILES).map(async ([k, f]) => { const b = await get(f); if (b) SAMPLES[k] = b; }));
   for (const [k, f] of Object.entries(TRACKS)) { const b = await get(f); if (b) musicBuf[k] = b; }
   if (musicBuf.day) { clearInterval(musicTimer); musicKind = null; }
