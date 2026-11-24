@@ -9,6 +9,8 @@ Ihr baut zusammen eine Farm auf: Geld, Lager, Tiere und Fortschritt sind geteilt
 2. **Neue Farm** gründen – oben erscheint ein Einladungscode (z. B. `7KXPA`).
 3. Deine Freundin öffnet dieselbe Seite, tippt den Code bei **Mit Code beitreten** ein (oder öffnet den geteilten Link).
 
+Tipp fürs Handy: im Browser-Menü **„Zum Startbildschirm hinzufügen“** – dann startet Kuschelhof wie eine App im Vollbild.
+
 Der Code bleibt pro Farm gleich, solange er frei ist. Wer die Farm gegründet hat, ist „Host“: dort läuft und speichert das Spiel.
 Gäste bekommen automatisch eine Sicherheitskopie und können die Farm später auch selbst hosten.
 
