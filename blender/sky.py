@@ -72,6 +72,17 @@ try:
         for k in (-1, 1): m.ball(0.38, 'white', k * 0.22, 1.25, 0, sx=0.45, sy=1.0, sz=0.03, rz=k * 0.5, seg=10)  # Schwanzflosse
         return m.build()
 
+    def bunting():  # Wimpelkette über der Bummelgasse (26 Wimpel, im Spiel zweimal)
+        m = Model('bunting')
+        cols = [0xFF6B8A, 0xFFD23F, 0x6CC4FF, 0x8FD694, 0xB39CFF]
+        pts = [(-13.5 + i * 0.5, 0, 3.4 - math.sin((i * 0.5) / 27 * PI) * 0.55) for i in range(55)]
+        for a_, b_ in zip(pts, pts[1:]): m.stick(a_, b_, 0.012, 0xFFF6EA, seg=4)
+        for i in range(26):
+            x = -13 + i * 1.04; z = 3.4 - math.sin(i / 25 * PI) * 0.5
+            m.ball(0.14, cols[i % 5], x, 0, z - 0.14, sx=0.95, sy=0.12, sz=1.0, taper=0.9, seg=10)
+            m.ball(0.02, 0xFFFFFF, x, -0.02, z - 0.1, sy=0.3, seg=6)
+        return m.build()
+    o = bunting(); S[o.name] = o
     for i in range(4): o = cloud(i); S[o.name] = o
     for f in (rainbow, sun, moon, wing, fish): o = f(); S[o.name] = o
     names = list(S)

@@ -84,6 +84,32 @@ try:
         wrap(lambda X, Y: m.ball(0.008, 0xD6CCBA, X, Y, 0.003, sz=0.5, seg=5), x, y)
     m.build(); outs.append(shoot('path', (1, 1), (2, 2), (512, 512)))
 
+    # ---------- Kopfsteinpflaster (Bummelgasse, farbig) ----------
+    light(0.62, 1.25, (math.radians(25), 0, math.radians(-20)))
+    m = Model('t_cobble')
+    m.box(2.8, 2.8, 0.02, 0xB3A897, 1, 1, -0.02, r=0.002)
+    for row in range(8):
+        for i in range(8):
+            x, y = (i * 0.25 + (row % 2) * 0.125) % 2.0, row * 0.25 + 0.125
+            c = rnd.choice([0xD9CFC2, 0xCFC4B5, 0xE3DACE, 0xC7BBAB, 0xDCC9B4])
+            wrap(lambda X, Y, c=c: m.puff(0.22, 0.22, 0.05, c, X, Y, 0, soft=0.45, taper=0.15, seg=14), x, y)
+    m.build(); outs.append(shoot('cobble', (1, 1), (2, 2), (512, 512)))
+
+    # ---------- Glitzern fürs Wasser (weiß auf schwarz, wird im Wasser-Shader addiert) ----------
+    light(1.0, 0.0, (0, 0, 0))
+    m = Model('t_glint')
+    m.box(2.8, 2.8, 0.02, 0x000000, 1, 1, -0.02, r=0.002)
+    for i in range(70):
+        x, y, r, a = rnd.random() * 2, rnd.random() * 2, 0.008 + rnd.random() ** 2 * 0.03, rnd.random() * 3
+        wrap(lambda X, Y, r=r, a=a: m.ball(r, 0xFFFFFF, X, Y, 0, sx=2.6, sz=0.2, rz=a, seg=8), x, y)
+    for i in range(10):
+        x, y = rnd.random() * 2, rnd.random() * 2
+        def star(X, Y):
+            for k in range(2): m.ball(0.05, 0xFFFFFF, X, Y, 0.002, sx=1, sy=0.12, sz=0.2, rz=k * PI / 2, seg=8)
+            m.ball(0.018, 0xFFFFFF, X, Y, 0.004, sz=0.3, seg=8)
+        wrap(star, x, y)
+    m.build(); outs.append(shoot('glint', (1, 1), (2, 2), (256, 256)))
+
     # ---------- Böden (2×2 Felder, farbig) ----------
     light(0.62, 1.25, (0, 0, 0))
     def planks(name, base):
