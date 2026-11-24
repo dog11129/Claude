@@ -734,7 +734,7 @@ const FEST_LINES = {
   kaefer2: ['Heute ist Krabbeltier-Turnier! Am Stand auf dem Dorfplatz kannst du mitmachen.', 'Im Herbst krabbeln die Käfer besonders gern über das Laub. Perfektes Turnierwetter!'],
   angeln: ['Angelturnier! Pippa trainiert schon seit Tagen. Am Stand auf dem Dorfplatz geht\'s los.', 'Drei Minuten, so viele Fische wie möglich – traust du dich, {p}?'],
   angeln2: ['Eisangeln! Die Fische sind im Winter etwas verschlafen. Beim Turnier musst du flink sein!', 'Am Turnierstand auf dem Dorfplatz kannst du dich anmelden. Ich drück dir die Pfoten!'],
-  feuerwerk: ['Heute Abend gibt\'s Feuerwerk! Ich such mir schon mal einen Platz am Strand.', 'Feuerwerk ist am schönsten, wenn man es mit jemandem zusammen anschaut, findest du nicht?', 'Ab 19 Uhr über dem Meer! Ich bin sooo gespannt!'],
+  feuerwerk: ['Heute Abend gibt\'s Feuerwerk! Ich such mir schon mal einen schönen Platz.', 'Feuerwerk ist am schönsten, wenn man es mit jemandem zusammen anschaut, findest du nicht?', 'Ab 19 Uhr am Himmel! Ich bin sooo gespannt!'],
   kuerbis: ['Fröhliches Kürbisfest, {p}! Hier, für dich – Bonbons!', 'Süßes für dich! Hast du schon alle Nachbarn besucht?', 'Die ganze Insel leuchtet orange. Ist das nicht wunderschön?'],
   lichter: ['Frohes Lichterfest, {p}! Hast du schon in den Briefkasten geschaut?', 'Der Lichterbaum auf dem Dorfplatz funkelt so schön … ich könnte stundenlang hinschauen.', 'Lichterfest ist mein liebster Tag im ganzen Jahr. Alle sind so warm und lieb zueinander.'],
 };

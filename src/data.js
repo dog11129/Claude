@@ -325,7 +325,7 @@ export const FESTS = {
   eier:      { sea: 'spring', d: 4, name: 'Eiersuche', icon: '🥚', desc: '10 bunte Eier sind auf der Insel versteckt – unter Bäumen, am Strand, hinter Häusern. Wer findet alle?' },
   kaefer:    { sea: 'spring', d: 6, name: 'Krabbeltier-Turnier', icon: '🦋', contest: 'bug', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Insekten fangen wie möglich.' },
   angeln:    { sea: 'summer', d: 3, name: 'Angelturnier', icon: '🎣', contest: 'fish', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Fische fangen wie möglich.' },
-  feuerwerk: { sea: 'summer', d: 6, name: 'Sommerfeuerwerk', icon: '🎆', desc: 'Ab 19 Uhr leuchtet ein Feuerwerk über dem Meer. Am schönsten zu zweit am Strand!' },
+  feuerwerk: { sea: 'summer', d: 6, name: 'Sommerfeuerwerk', icon: '🎆', desc: 'Ab 19 Uhr leuchtet ein Feuerwerk über der Insel – mit 🔭 in den Himmel schauen, am schönsten zu zweit!' },
   kaefer2:   { sea: 'autumn', d: 2, name: 'Krabbeltier-Turnier', icon: '🐞', contest: 'bug', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Insekten fangen wie möglich.' },
   kuerbis:   { sea: 'autumn', d: 5, name: 'Kürbisfest', icon: '🎃', desc: 'Die Insel leuchtet orange! Besucht alle Nachbarn – jede und jeder hat Bonbons für euch.' },
   angeln2:   { sea: 'winter', d: 3, name: 'Eisangel-Turnier', icon: '🎣', contest: 'fish', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Fische fangen wie möglich.' },
