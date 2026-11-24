@@ -2,6 +2,7 @@
 // Gleiche Aufrufe wie die alten Modelle in models.js; fehlt die Datei, bleiben die alten Modelle.
 import { hasModel, model, part } from './assets.js';
 import * as M from './models.js';
+import { placeable as oldPlaceable } from './plants.js';
 
 // Obst sitzt an festen Stellen der Krone (Winkel, Höhe) und schaukelt mit ihr im Wind
 const FRUIT_AT = [[0.3, 0.1], [1.5, -0.1], [2.6, 0.25], [3.7, -0.05], [4.9, 0.2], [5.7, -0.2], [4.3, 0.45]];
@@ -53,4 +54,24 @@ export function windify(m, mat) {
   m.traverse(o => { if (o !== m && (o.position.lengthSq() > 1e-6 || o.rotation.x || o.rotation.y || o.rotation.z)) moved = true; });
   if (moved) return;
   m.traverse(o => { if (o.isMesh && !o.name.includes('__glow')) o.material = mat; });
+}
+
+// Platzierbares (assets/models/place.glb). Gartenbäume teilen sich ein Modell, das Obst hängt das Spiel in die Krone.
+const GARDEN_FRUIT = { apfelbaum: 'apfel', orangenbaum: 'orange', pfirsichbaum: 'pfirsich', kirschenbaum: 'kirsche', birnbaum: 'birne', mangobaum: 'mango' };
+const PTREE_AT = [[0.1, 0.1], [0.9, -0.15], [-0.7, 0.05], [1.8, 0.2], [-1.6, -0.1], [0.4, 0.6], [-0.3, -0.35], [2.6, -0.05], [3.6, 0.3], [-0.9, 0.55]];
+export function placeable(k, ready, fruit) {
+  if (GARDEN_FRUIT[k] && hasModel('ptree')) {
+    const g = model(ready ? 'ptree' : 'ptree_flower');
+    if (ready) {
+      const c = part(g, 'crown') || g, cy = c === g ? 0 : c.position.y;
+      for (const [a, e] of PTREE_AT) hang(c, fruit || GARDEN_FRUIT[k], Math.sin(a) * Math.cos(e) * 0.6, 1.45 + Math.sin(e) * 0.6 * 0.85 - cy, Math.cos(a) * Math.cos(e) * 0.6, 0.62);
+    }
+    return g;
+  }
+  if (k === 'bananenbaum' && hasModel('banana')) {
+    const g = model('banana');
+    if (ready) { const l = part(g, 'leaves') || g, ly = l === g ? 0 : l.position.y; hang(l, 'banane', 0.02, 1.2 - ly, 0.16, 1.4); hang(l, 'banane', -0.12, 1.25 - ly, -0.06, 1.2); }
+    return g;
+  }
+  return model(k) || oldPlaceable(k, ready);
 }

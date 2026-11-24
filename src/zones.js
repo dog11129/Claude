@@ -4,7 +4,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
 import * as N from './nature.js';
 import { building } from './buildings.js';
-import { placeable } from './plants.js';
+import { placeable } from './nature.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT, TROPIC_TREES, TOURS, TOUR_ICON, shopOpen, concertNow } from './newleaf.js';
 
 function canvasTex(w, h, paint, rep) {
