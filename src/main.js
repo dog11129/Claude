@@ -13,6 +13,7 @@ import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, in
 import { zoneOf, clampPos, STREET, TROPIC, TOURS, BOAT_PRICE, shopOpen, concertNow } from './newleaf.js';
 import { loadAssets, loadTextures } from './assets.js';
 import { FLOORS, WALLS } from './furni-data.js';
+import * as backup from './backup.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -94,7 +95,9 @@ function saveFarm() {
   const f = store.get('ki.islands', {});
   f[G.key] = { name: G.s.name, saved: Date.now(), s: G.s, guest: G.role === 'guest' ? G.players.h?.name || '?' : G.copyOf };
   store.set('ki.islands', f);
+  backup.snapshot(G.key, f[G.key]); // automatischer Zwischenstand (höchstens alle 5 Minuten)
 }
+backup.keepData();
 addEventListener('pagehide', saveFarm);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) saveFarm();
@@ -543,7 +546,9 @@ function showMenu(screen = 'title') {
     $('farms').innerHTML = farms.length ? farms.map(([id, f]) => `<div class="farm"><div class="tx"><b>${esc(f.name)}</b>
       <small>Tag ${f.s.day} · Level ${f.s.level} · 🪙 ${f.s.money.toLocaleString('de-DE')}${f.guest ? ` · Kopie von ${esc(f.guest)}s Insel` : ''}</small>
       <small>${new Date(f.saved).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</small></div>
-      <button class="btn small" data-play="${esc(id)}">Spielen</button><button class="btn small white" data-del="${esc(id)}">🗑️</button></div>`).join('')
+      <button class="btn small" data-play="${esc(id)}">Spielen</button><button class="btn small white" data-exp="${esc(id)}" title="Als Datei sichern">💾</button>
+      <button class="btn small white" data-snaps="${esc(id)}" title="Frühere Stände">⏪</button><button class="btn small white" data-del="${esc(id)}">🗑️</button></div>
+      <div class="snaps hidden" id="snaps-${esc(id)}"></div>`).join('')
       : '<div class="note">Noch keine Insel – gründet unten eure erste! 🏝️</div>';
   }
   if (screen === 'settings') $('msettings').innerHTML = settingsHtml(settings, touch);
@@ -564,16 +569,59 @@ $('b-rejoin').onclick = () => {
   const lj = store.get('ki.lastJoin', null);
   if (lj?.code && !needName()) startGuest(lj.code);
 };
-$('farms').onclick = e => {
+$('farms').onclick = async e => {
   const b = e.target.closest('button');
   if (!b) return;
   const farms = store.get('ki.islands', {});
+  if (b.dataset.exp && farms[b.dataset.exp]) { backup.download([[b.dataset.exp, farms[b.dataset.exp]]], backup.fileName(farms[b.dataset.exp].name)); toast('💾 Insel als Datei gesichert – heb sie gut auf!'); }
+  if (b.dataset.snaps) {
+    const box = $('snaps-' + b.dataset.snaps), list = await backup.snapshots(b.dataset.snaps);
+    box.classList.toggle('hidden');
+    box.innerHTML = list.length ? '<div class="note">Frühere Stände (werden beim Spielen alle paar Minuten gemerkt):</div>' + list.map(x =>
+      `<button class="chip" data-restore="${x.id}" data-key="${esc(b.dataset.snaps)}">Tag ${x.day} · Lv ${x.level} · ${new Date(x.time).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</button>`).join('')
+      : '<div class="note">Noch keine früheren Stände gemerkt.</div>';
+  }
+  if (b.dataset.restore) {
+    const x = (await backup.snapshots(b.dataset.key)).find(q => String(q.id) === b.dataset.restore);
+    if (x && confirm(`Insel auf „Tag ${x.day}“ zurücksetzen? Der jetzige Stand wird vorher noch gemerkt.`)) {
+      if (farms[b.dataset.key]) await backup.snapshot(b.dataset.key, farms[b.dataset.key], true);
+      farms[b.dataset.key] = { ...(farms[b.dataset.key] || { name: x.name }), saved: Date.now(), s: x.s };
+      store.set('ki.islands', farms);
+      toast('⏪ Früherer Stand wiederhergestellt');
+      showMenu('farms');
+    }
+  }
   if (b.dataset.del && confirm(`„${farms[b.dataset.del]?.name}“ wirklich löschen?`)) {
     delete farms[b.dataset.del];
     store.set('ki.islands', farms);
     showMenu('farms');
   }
   if (b.dataset.play && farms[b.dataset.play] && !needName()) startHost(farms[b.dataset.play].s, b.dataset.play, farms[b.dataset.play].guest);
+};
+// Alle Inseln als Datei sichern / Inseln aus einer Datei holen
+$('expall').onclick = () => {
+  const f = Object.entries(store.get('ki.islands', {})).filter(([, x]) => Number.isFinite(x?.s?.money));
+  if (!f.length) return toast('Noch keine Insel zum Sichern.');
+  backup.download(f, backup.fileName('Alle-Inseln'));
+  toast('💾 Alle Inseln gesichert');
+};
+$('impbtn').onclick = () => $('impfile').click();
+$('impfile').onchange = async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const list = await backup.readFile(file), farms = store.get('ki.islands', {});
+    for (const x of list) {
+      let key = x.key || x.s.id || 'i' + Date.now().toString(36);
+      if (farms[key] && farms[key].saved > (x.saved || 0) && !confirm(`„${x.name}“ gibt es schon in einem neueren Stand. Trotzdem mit der Datei überschreiben?`)) continue;
+      if (farms[key]) await backup.snapshot(key, farms[key], true);
+      farms[key] = { name: x.name || x.s.name, saved: x.saved || Date.now(), s: x.s, guest: x.guest || undefined };
+    }
+    store.set('ki.islands', farms);
+    toast(`📂 ${list.length === 1 ? 'Insel' : list.length + ' Inseln'} geladen!`);
+    showMenu('farms');
+  } catch (err) { toast('⚠️ Die Datei konnte nicht gelesen werden: ' + err.message); }
 };
 $('newbtn').onclick = () => {
   if (needName()) return;
@@ -720,6 +768,7 @@ const panels = new Panels({
     if (kind === 'fullscreen') toggleFullscreen();
     if (kind === 'editlook') openEditor();
     if (kind === 'photo') setPhoto(true);
+    if (kind === 'backup') { saveFarm(); const f = store.get('ki.islands', {})[G.key]; if (f) { backup.download([[G.key, f]], backup.fileName(f.name)); toast('💾 Insel als Datei gesichert!'); } }
     const link = $('invlink')?.value;
     if (kind === 'copy' && link) navigator.clipboard?.writeText(link).then(() => toast('📋 Link kopiert!'), () => toast(link));
     if (kind === 'share' && link) {
@@ -874,6 +923,7 @@ canvas.addEventListener('pointerdown', e => {
 });
 canvas.addEventListener('pointermove', e => {
   if (e.pointerType === 'mouse' && G?.ready) G.hover = { cx: e.clientX, cy: e.clientY, t: performance.now() };
+  else if (e.pointerType !== 'mouse' && G) G.hover = null;
   const p = pointers.get(e.pointerId);
   if (!p) return;
   const dx = e.clientX - p.x, dy = e.clientY - p.y;
@@ -906,6 +956,7 @@ const pointerEnd = e => {
 canvas.addEventListener('pointerup', pointerEnd);
 canvas.addEventListener('pointercancel', pointerEnd);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && G) G.hover = null; });
 canvas.addEventListener('wheel', e => { world.zoom = Math.max(0.5, Math.min(1.9, world.zoom * (1 + e.deltaY * 0.001 * settings.zoomSpeed))); }, { passive: true });
 
 const joyEl = $('joy');
@@ -982,6 +1033,8 @@ function pressAction() {
   const me = G.players[G.me];
   if (me.pose) { standUp(me); return; }
   if (G.fishing) { reelIn(); return; }
+  const a = G.aim; // mit der Maus gezielt: zum Ziel drehen
+  if (a?.near && G.ctx === a.r && a.d > 0.05) me.ry = Math.atan2(a.hit.x - me.x, a.hit.z - me.z);
   execute(G.ctx, true);
 }
 
@@ -1081,18 +1134,39 @@ function standUp(me) {
 
 function tapAt(cx, cy) {
   if (busy()) return;
-  const p = world.pick(cx, cy);
-  if (!p) return;
   const me = G.players[G.me];
   if (G.fishing) { reelIn(); return; }
+  const t = aimAt(cx, cy);
+  if (!t) return;
+  const { hit } = t;
   if (me.pose) standUp(me);
-  let an = null, bd = 0.9;
-  for (const a of G.s.animals) { const q = S.animalPos(a, G.s.time), d = Math.hypot(q.x - p.x, q.z - p.z); if (d < bd) { bd = d; an = a; } }
-  const pl = Object.values(G.players).find(o => o.id !== G.me && Math.hypot(o.x - p.x, o.z - p.z) < 0.7);
-  const nb = world.npcNear(p.x, p.z, 0.8);
-  G.goal = nb ? { npc: nb.id } : an ? { animal: an.id } : pl ? { player: pl.id } : { x: p.x, z: p.z };
+  if (hit.m && (hit.kind === 'thing' || hit.kind === 'building') && usable(t.r)) world.squish(hit.m, hit.kind === 'building' ? 0.04 : 0.1, 0.35);
+  // nah genug dran? Dann sofort benutzen, sonst erst hinlaufen
+  if (t.near) {
+    G.goal = null;
+    if (t.d > 0.05) me.ry = Math.atan2(hit.x - me.x, hit.z - me.z);
+    execute(t.r, true);
+    return;
+  }
+  G.goal = hit.kind === 'npc' ? { npc: hit.id } : hit.kind === 'animal' ? { animal: hit.id } : hit.kind === 'player' ? { player: hit.id } : { x: hit.x, z: hit.z };
   G.goal.last = { x: me.x, z: me.z, t: performance.now() };
-  world.burst(p.x, p.z, 'sparkle', 0.15);
+  world.burst(hit.x, hit.z, 'sparkle', 0.15);
+}
+
+// Was zeigen Maus oder Finger an – und kann die Figur es von hier aus benutzen?
+const usable = r => !!r && !!(r.a || r.ui || r.go || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
+const reachOf = r => r.npc ? 1.9 : r.hug ? 1.5 : r.ui || r.go || r.enter || r.exit || r.visit ? 2.2 : r.fish ? 1.8 : r.net ? 2 : 1.6;
+function aimAt(cx, cy) {
+  const me = G.players[G.me];
+  const hit = world.pickThing(cx, cy, me);
+  if (!hit) return null;
+  let r;
+  if (hit.kind === 'npc') r = { npc: hit.id, label: `💬 ${NPCS[hit.id].name}`, tiles: [], px: hit.x, pz: hit.z };
+  else if (hit.kind === 'player') { const o = G.players[hit.id]; r = o ? { hug: o.id, label: `🤗 ${o.name} umarmen`, tiles: [], px: o.x, pz: o.z } : null; }
+  else r = context(me, hit);
+  if (!r) return null;
+  const d = Math.hypot(hit.x - me.x, hit.z - me.z);
+  return { hit, r, d, near: usable(r) && d <= reachOf(r) };
 }
 
 // Ortswechsel: Bummelgasse, Tropeninsel (mit dem Boot) und zurück
@@ -1534,6 +1608,7 @@ function gameFrame(dt, now) {
   let len = Math.hypot(vx, vz), wx = 0, wz = 0;
   if (len > 0.2) {
     G.goal = null;
+    G.keyWalk = now;
     const c = Math.cos(world.yaw), sn = Math.sin(world.yaw);
     if (len > 1) { vx /= len; vz /= len; }
     wx = vx * c + vz * sn;
@@ -1566,9 +1641,18 @@ function gameFrame(dt, now) {
   me.held = heldItem();
 
   // Ziel: Maus (wenn gerade bewegt), sonst Feld vor der Figur
-  const hover = !touch && G.hover && now - G.hover.t < 2500 && !busy() ? world.pick(G.hover.cx, G.hover.cy) : null;
-  G.ctx = G.fishing || busy() ? null : context(me, null);
-  const shown = hover ? context(me, hover) : G.ctx;
+  // Maus zeigt auf etwas: das wird zum Ziel (E / Klick), solange man nicht mit der Tastatur weiterläuft
+  const aim = G.hover && G.hover.t > (G.keyWalk || 0) && !busy() && !G.fishing && !G.skyView ? aimAt(G.hover.cx, G.hover.cy) : null;
+  G.aim = aim;
+  G.ctx = G.fishing || busy() ? null : aim?.near ? aim.r : context(me, null);
+  const shown = aim && usable(aim.r) ? aim.r : G.ctx;
+  const aimM = aim && usable(aim.r) ? aim.hit.m || null : null;
+  if (aimM !== G.aimM) {
+    G.aimM = aimM;
+    if (aimM && aim.near && (aim.hit.kind === 'thing' || aim.hit.kind === 'building')) world.squish(aimM, aim.hit.kind === 'building' ? 0.025 : 0.06, 0.3);
+  }
+  const cur = aim && usable(aim.r) ? 'pointer' : '';
+  if (canvas.style.cursor !== cur && !pointers.size) canvas.style.cursor = cur;
   const label = G.fishing ? (G.fishing.phase === 'bite' ? '❗ Ziehen!' : '🎣 …') : G.ctx?.label || '';
   if (hud.label !== label) {
     hud.label = label;
@@ -1588,19 +1672,20 @@ function gameFrame(dt, now) {
 
   let prompt = null;
   if (shown && !G.fishing) {
-    const info = infoAt(shown), lbl = shown.label || '';
-    const can = shown.a || shown.ui || shown.fish || shown.sit || shown.hug;
+    const info = shown.npc || shown.hug ? '' : infoAt(shown), lbl = shown.label || '';
+    const can = usable(shown), far = aim && shown === aim.r && !aim.near;
     if (can || info) {
-      const t = shown.tiles?.[0], x = shown.hug || shown.a?.t === 'animal' ? shown.px : t ? t[0] : shown.px, z = shown.hug || shown.a?.t === 'animal' ? shown.pz : t ? t[1] : shown.pz;
-      const key = touch ? '' : hover ? '🖱️ ' : '<kbd>E</kbd>';
-      prompt = { x, z, y: shown.hug ? 2.3 : 1.1, html: `${can && lbl ? key + esc(lbl) : ''}${info ? `<small>${info}</small>` : ''}` };
+      const t = shown.tiles?.[0], person = shown.hug || shown.npc || shown.a?.t === 'animal', x = person || !t ? shown.px : t[0], z = person || !t ? shown.pz : t[1];
+      const key = touch ? '' : far ? '👣 ' : aim && shown === aim.r ? '🖱️ ' : '<kbd>E</kbd>';
+      const tip = far ? '<small>Klicken: hinlaufen &amp; benutzen</small>' : info ? `<small>${info}</small>` : '';
+      prompt = { x, z, y: shown.hug || shown.npc ? 2.3 : 1.1, cls: far ? 'far' : '', html: `${can && lbl ? key + esc(lbl) : ''}${tip}` };
     }
   }
 
   const ps = {};
   for (const [id, p] of Object.entries(G.players)) ps[id] = G.social[id] ? { ...p, ...G.social[id] } : p;
   const info = world.render(s, ps, G.me, dt, {
-    tiles: G.photo || editor.isOpen ? [] : shown?.tiles, hlOn: !!(shown?.a || shown?.ui || shown?.fish || shown?.sit || shown?.hug), hlBad: shown && !shown.a && !shown.ui && !shown.fish && !shown.sit && /kein|Nur|Erst/.test(shown.label || ''),
+    tiles: G.photo || editor.isOpen ? [] : shown?.tiles, hlOn: usable(shown), hlBad: shown && !shown.a && !shown.ui && !shown.fish && !shown.sit && /kein|Nur|Erst/.test(shown.label || ''),
     prompt: G.photo || editor.isOpen ? null : prompt, photo: G.photo, hideNames: G.photo || !settings.names,
     bobber: G.fishing && { x: G.fishing.x, z: G.fishing.z, bite: G.fishing.phase === 'bite', nib: G.fishing.nib > 0 },
     preview: editor.isOpen ? previewCam(me.x, me.z) : null, sky: G.skyView,

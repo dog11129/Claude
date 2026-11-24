@@ -55,6 +55,7 @@ body:not(.touch) #fsbtn, body.standalone #fsbtn { display: none; }
 .tag.hungry { background: #fff3d6; }
 .tag.prompt { background: rgba(255,253,249,.95); border-radius: 14px; padding: 4px 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); text-align: center; animation: pop .15s; }
 .tag.prompt small { display: block; font-weight: 500; font-size: 12px; color: var(--soft); }
+.tag.prompt.far { opacity: .82; background: rgba(255,250,240,.88); font-size: 13px; }
 .tag.prompt kbd { background: var(--line); border-radius: 6px; padding: 0 5px; font-family: inherit; margin-right: 4px; }
 .floater.hold { font-size: 40px; filter: drop-shadow(0 3px 0 rgba(90,70,54,.25)); animation: holdpop 1.4s ease-out forwards; }
 @keyframes holdpop { 0% { scale: 0.2; } 18% { scale: 1.25; } 30% { scale: 1; } 100% { scale: 1; } }
@@ -253,6 +254,9 @@ body.touch #chatlog { bottom: 210px; }
 body.wantland.portrait.ingame #rotatehint { display: flex; }
 
 /* Fenster im Spiel */
+.backuprow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.snaps { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 10px; padding: 8px; background: #fff7ee; border-radius: 14px; }
+.snaps .chip { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 5px 9px; font-size: 13px; font-weight: 600; }
 #panel { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; background: rgba(90,70,54,.28); backdrop-filter: blur(3px); padding: 10px; animation: fadein .15s; }
 @keyframes fadein { from { opacity: 0; } }
 #panel .card { width: min(640px, 100%); max-height: min(88vh, 780px); display: flex; flex-direction: column; padding: 14px; animation: popin .38s cubic-bezier(.3,1.5,.5,1);
@@ -457,6 +461,9 @@ body.skyview #skybtn { background: #7f8fd8; }
     <header><button class="back" data-go="title">←</button><h2>🏝️ Meine Inseln</h2></header>
     <div id="farms"></div>
     <div class="joinrow"><input type="text" id="fname" maxlength="24" placeholder="Name der neuen Insel"><button class="btn" id="newbtn">Besiedeln</button></div>
+    <div class="backuprow"><button class="btn small white" id="expall">💾 Alle Inseln sichern</button><button class="btn small white" id="impbtn">📂 Insel aus Datei laden</button>
+      <input type="file" id="impfile" accept=".json,application/json" hidden></div>
+    <div class="note">Tipp: Sichere eure Insel ab und zu als Datei – dann ist sie auch dann noch da, wenn der Browser aufgeräumt wird.</div>
   </section>
   <section id="m-join" class="screen card hidden">
     <header><button class="back" data-go="title">←</button><h2>💌 Beitreten</h2></header>

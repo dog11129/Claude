@@ -37,6 +37,7 @@ import { Zones } from './zones.js';
 import { tickAssets, part, snow, model, GLOW_VC, tex, flatGeometry } from './assets.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE } from './data.js';
+import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, balloonPos, turnipSeller } from './state.js';
 import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng } from './island.js';
 
@@ -803,6 +804,60 @@ export class World {
     return t > 0 ? { x: o.x + d.x * t, z: o.z + d.z * t } : null;
   }
 
+  // Was liegt unter Maus/Finger? Dinge (Bäume, Möbel, Nachbarn, Häuser …) gewinnen vor dem Boden.
+  // Jedes Ding ist eine Säule über seinem Feld – so trifft man auch die Baumkrone oder ein Dach.
+  // Rückgabe { x, z, kind, id?, m? }: x/z ist ein Punkt, den resolve() versteht.
+  pickThing(cx, cy, from) {
+    const ground = this.pick(cx, cy), ray = this.ray.ray;
+    const B = this._pb ||= new THREE.Box3(), v = this._pv ||= new THREE.Vector3();
+    let best = null, bd = Infinity;
+    const test = (x0, y1, z0, x1, z1, hit) => {
+      const drop = M.curveDrop(this.camera, (x0 + x1) / 2, (z0 + z1) / 2);
+      B.min.set(x0, -0.05 - drop, z0); B.max.set(x1, y1 - drop, z1);
+      if (!ray.intersectBox(B, v)) return;
+      const d = v.distanceToSquared(ray.origin);
+      if (d < bd) { bd = d; best = hit; }
+    };
+    const col = (x, z, r, h, hit) => test(x - r, h, z - r, x + r, z + r, hit);
+    // Höhe eines Modells (einmal messen, sobald es fertig "aufgeploppt" ist)
+    const height = e => {
+      if (e.hh) return e.hh;
+      if (e.born !== undefined && this.time - e.born < 0.4) return 0.8;
+      B.setFromObject(e.m);
+      const h = Math.max(0.35, Math.min(4, B.max.y));
+      e.hh = h;
+      if (e.fw === undefined) { e.fw = B.max.x - B.min.x; e.fd = B.max.z - B.min.z; }
+      return h;
+    };
+    const things = [[this.objs, 0.5], [this.wildM, 0.55], [this.crops, 0.45], [this.pickM, 0.42], [this.groundM, 0.42], [this.digM, 0.42]];
+    for (const [map, r] of things) for (const e of map?.values() || []) {
+      if (!e.m.visible || !e.m.parent) continue;
+      col(e.x, e.z, r, height(e), { x: e.x, z: e.z, kind: 'thing', m: e.m });
+    }
+    for (const e of this.furnM?.values() || []) { // Möbel: so groß wie ihr Platz im Zimmer
+      if (!e.m.parent) continue;
+      const h = height(e), hw = Math.max(0.42, e.fw / 2 - 0.05), hd = Math.max(0.42, e.fd / 2 - 0.05);
+      test(e.x - hw, Math.max(0.15, h), e.z - hd, e.x + hw, e.z + hd, { x: e.x, z: e.z, kind: 'thing', m: e.m });
+    }
+    for (const [id, e] of this.npcM || []) if (e.awake) col(e.x, e.z, 0.42, (e.m.userData.headTop || 1.3) + 0.35, { x: e.x, z: e.z, kind: 'npc', id, m: e.m });
+    for (const [id, e] of this.animals) if (e.x !== undefined) col(e.x, e.z, 0.45, (e.m.userData.headTop || 0.8) + 0.2, { x: e.x, z: e.z, kind: 'animal', id, m: e.m });
+    for (const [id, e] of this.players) if (id !== this.meId && e.m.visible) col(e.m.position.x, e.m.position.z, 0.38, 1.5, { x: e.m.position.x, z: e.m.position.z, kind: 'player', id, m: e.m });
+    // Gebäude: Ziel ist das Feld des Hauses, das der Figur am nächsten liegt
+    const near = (b, ox, oz) => ({ x: Math.max(b.x0, Math.min(b.x1, Math.round((from?.x ?? ox) - ox))) + ox, z: Math.max(b.z0, Math.min(b.z1, Math.round((from?.z ?? oz) - oz))) + oz });
+    const house = (b, ox, oz, h, m) => test(b.x0 + ox - 0.5, h, b.z0 + oz - 0.5, b.x1 + ox + 0.5, b.z1 + oz + 0.5, { ...near(b, ox, oz), kind: 'building', m });
+    for (const m of this.static.group?.children || []) {
+      const b = BUILDINGS[m.userData.bid];
+      if (!b) continue;
+      if (!m.userData.hh) { B.setFromObject(m); m.userData.hh = Math.max(1.2, Math.min(6, B.max.y)); }
+      house(b, 0, 0, m.userData.hh, m);
+    }
+    for (const b of Object.values(STREET_SHOPS)) house(b, STREET.x, STREET.z, 3.4);
+    house({ x0: -1, x1: 1, z0: 4, z1: 5 }, STREET.x, STREET.z, 3);
+    house(TROPIC_HUT, TROPIC.x, TROPIC.z, 3.4);
+    if (best) return best;
+    return ground ? { ...ground, kind: 'ground' } : null;
+  }
+
   snapshot() {
     this.draw();
     return this.canvas.toDataURL('image/jpeg', 0.92);
@@ -818,6 +873,7 @@ export class World {
       const model = id.startsWith('vh_') ? 'vhouse_' + B.npc : id === 'plaza' ? 'plazatree' : id;
       const m = building(model, id === 'house' ? s.up.house : id === 'mail' ? (s.mail?.length ? 1 : 0) : 1, this.season);
       if (B.ox !== undefined && !m.userData.asset) m.position.set(B.ox, 0, B.oz); else m.position.set(B.cx, 0, B.cz);
+      m.userData.bid = id;
       g.add(m);
       if (id === 'office') this.clock = { h: part(m, 'clock_h'), m: part(m, 'clock_m') };
       // Kamin des neuen Hauses (Blender: x 1.3, y 0.5 → Spiel: z -0.5)
@@ -1284,6 +1340,7 @@ export class World {
   }
 
   syncPlayers(players, me, dt, showNames = true) {
+    this.meId = me;
     const seen = new Set(), now = performance.now();
     for (const p of Object.values(players)) {
       seen.add(p.id);
@@ -1419,7 +1476,7 @@ export class World {
     this.hl.instanceMatrix.needsUpdate = true;
     this.hl.material.opacity = opt.hlOn ? 0.75 + Math.sin(this.time * 6) * 0.2 : 0.35;
     this.hl.material.color.set(opt.hlBad ? 0xff8a8a : 0xffffff);
-    if (opt.prompt) this.tag('prompt', opt.prompt.html, opt.prompt.x, opt.prompt.y ?? 1.1, opt.prompt.z, 'prompt');
+    if (opt.prompt) this.tag('prompt', opt.prompt.html, opt.prompt.x, opt.prompt.y ?? 1.1, opt.prompt.z, 'prompt' + (opt.prompt.cls ? ' ' + opt.prompt.cls : ''));
     if (opt.info) this.tag('info', opt.info.html, opt.info.x, 0.9, opt.info.z, 'info');
 
     // Kamera

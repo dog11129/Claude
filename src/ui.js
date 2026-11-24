@@ -307,6 +307,7 @@ const PANELS = {
     }
     return `<button class="big" data-ui="editlook"><span class="i">👗</span><span>Aussehen ändern<small>Frisur, Outfit, Haustier …</small></span></button><br>
       <button class="big" data-ui="photo"><span class="i">📷</span><span>Fotomodus<small>Schöne Erinnerungsfotos von eurer Insel</small></span></button><br>
+      <button class="big" data-ui="backup"><span class="i">💾</span><span>Insel als Datei sichern<small>Zum Aufheben – im Hauptmenü wieder ladbar</small></span></button><br>
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Insel wird gespeichert</small></span></button>`;
   },
 };
