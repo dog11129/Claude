@@ -1,5 +1,5 @@
 // Spielinhalte der Insel: Pflanzen, Obst, Fische, Insekten, Muscheln, Fossilien, Deko, Ausbau, Quests.
-import { MAP, SPAWN, POND, PATHS, grass, sand, onPath, onPlaza, rng, walkable } from './island.js';
+import { MAP, MAP0, SPAWN, POND, PATHS, grass, sand, onPath, onPlaza, rng, walkable, OLD, LOBES, newLand } from './island.js';
 export { MAP, SPAWN, POND };
 
 export const DAY = 420;          // Sekunden pro Spieltag
@@ -71,6 +71,8 @@ export const FRUITS = ['apfel', 'kirsche', 'orange', 'pfirsich', 'birne'];
 export const RES_SPOTS = {};
 export const TREE_FRUIT = {};
 {
+  // WICHTIG: Die alte Verteilung rechnet mit der Insel vor der Erweiterung (OLD, MAP0) – so bleiben alle Bäume der Spielstände am Platz.
+  const MAP = MAP0, grass = OLD.grass, sand = OLD.sand;
   const r = rng(4242), free = (x, z, m) => grass(x, z) && !nearBuilding(x, z, m) && !onPath(x, z, 1) && !onPlaza(x, z, 2.2) && Math.hypot(x - SPAWN.x, z - SPAWN.z) > 2.5;
   const taken = [];
   const far = (x, z, d) => taken.every(([a, b]) => Math.hypot(a - x, b - z) >= d);
@@ -96,6 +98,26 @@ export const TREE_FRUIT = {};
     RES_SPOTS[x + ',' + z] = 'rock';
     n++;
   }
+}
+// Neues Land der Inselerweiterung: eigene Bäume, Palmen und Felsen (eigener Zufall, ändert die alten nicht)
+{
+  const r = rng(9191), taken = Object.keys(RES_SPOTS).map(k => k.split(',').map(Number));
+  const far = (x, z, d) => taken.every(([a, b]) => Math.hypot(a - x, b - z) >= d);
+  const inLobe = () => { const L = LOBES[Math.floor(r() * LOBES.length)], a = r() * Math.PI * 2, d = Math.sqrt(r()) * (L.r + 1.5); return [Math.round(L.x + Math.cos(a) * d), Math.round(L.z + Math.sin(a) * d)]; };
+  const add = (n, kind, ok, gap) => {
+    for (let i = 0, c = 0; i < 1500 && c < n; i++) {
+      const [x, z] = inLobe();
+      if (!newLand(x, z) || !ok(x, z) || !far(x, z, gap) || nearBuilding(x, z, 1.5)) continue;
+      taken.push([x, z]);
+      RES_SPOTS[x + ',' + z] = kind;
+      if (kind === 'tree') TREE_FRUIT[x + ',' + z] = r() < 0.4 ? 'apfel' : FRUITS[1 + Math.floor(r() * 4)];
+      if (kind === 'palm') TREE_FRUIT[x + ',' + z] = 'kokosnuss';
+      c++;
+    }
+  };
+  add(22, 'tree', (x, z) => grass(x, z), 3.4);
+  add(9, 'palm', (x, z) => sand(x, z), 3.2);
+  add(5, 'rock', (x, z) => grass(x, z), 2.8);
 }
 export const FRUIT_REGROW = 3; // Tage, bis ein geschüttelter Baum wieder Obst trägt
 

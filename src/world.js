@@ -40,7 +40,7 @@ import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUIL
 import { grass as onGrass } from './island.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
-import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng } from './island.js';
+import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng, COAST_GLSL } from './island.js';
 
 const C = h => new THREE.Color(h);
 const SKY_TOP = [C(0x4fb3f6), C(0x3a4f96), C(0x14224d)], SKY_HOR = [C(0xd2f0ff), C(0xffb88f), C(0x34507e)];
@@ -479,7 +479,7 @@ export class World {
       void main(){ vec3 transformed = position; vec4 wq = modelMatrix * vec4(position, 1.0); vw = wq.xyz; vfall = fall;
       #include <project_vertex>
       }`;
-    const coastGL = `float coast(vec2 p){ float r = pow(pow(p.x,4.0)+pow(p.y,4.0), 0.25); float a = atan(p.y, p.x); return r + sin(a*3.0+0.7)*0.8 + sin(a*5.0-1.2)*0.45 - 21.2; }`;
+    const coastGL = COAST_GLSL; // gleiche Küste wie island.js (mit Inselerweiterung)
     // Meer: türkis am Ufer, tiefblau draußen, Schaumkante und Wellenglitzern
     const seaGeo = new THREE.PlaneGeometry(260, 260, 130, 130);
     seaGeo.rotateX(-Math.PI / 2);

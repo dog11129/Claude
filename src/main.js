@@ -1844,7 +1844,7 @@ function updateTour() {
 }
 
 // ---------- Inselkarte (App im Handy) ----------
-const MAPR = 27;
+const MAPR = 35;
 let mapImg = null;
 const MAP_ICON = { office: '🏛️', gate: '🛍️', boat: '⛵', shop: '🛒', museum: '🖼️', house: '🏡', plaza: '🌳', bench: '🔨', kitchen: '🍳', mail: '📮', board: '📋', bin: '💰' };
 function mapBase(W) {

@@ -254,6 +254,9 @@ export function migrate(s) {
   for (const k of Object.keys(base.mayor)) if (s.mayor[k] === undefined) s.mayor[k] = base.mayor[k];
   if (!Number.isFinite(s.loan) || s.loan < 0) s.loan = 0;
   if (fresh) refill(s);
+  // Inselerweiterung: neue Bäume/Felsen sind sofort benutzbar; Tauchplätze, die jetzt an Land liegen, verschwinden
+  for (const k of Object.keys(RES_SPOTS)) if (s.res[k] === undefined) s.res[k] = 3;
+  if (Array.isArray(s.dives)) s.dives = s.dives.filter(d => !d || !Number.isFinite(d.x) || swimmable(d.x, d.z));
   return s;
 }
 
