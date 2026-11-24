@@ -15,6 +15,7 @@ import { zoneOf, clampPos, STREET, TROPIC, TOURS, BOAT_PRICE, shopOpen, concertN
 import { loadAssets, loadTextures } from './assets.js';
 import { FLOORS, WALLS, FURNITURE } from './furni-data.js';
 import * as backup from './backup.js';
+import * as cloud from './cloud.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -93,18 +94,28 @@ const newPlayer = (id, p) => ({ id, key: keyOf(id, p), ...cleanProfile(p), x: SP
 const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hand', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0, get myName() { return profile.name; } });
 
 // Gast-Kopien liegen unter eigenem Schlüssel, damit sie nie die eigene Farm überschreiben.
-function saveFarm() {
+function saveFarm(force) {
   if (!G?.s || !G.key) return;
   G.lastSave = performance.now();
   const f = store.get('ki.islands', {});
   f[G.key] = { name: G.s.name, saved: Date.now(), s: G.s, guest: G.role === 'guest' ? G.players.h?.name || '?' : G.copyOf };
   store.set('ki.islands', f);
   backup.snapshot(G.key, f[G.key]); // automatischer Zwischenstand (höchstens alle 5 Minuten)
+  cloudSave(f[G.key], force);
+}
+// Cloud-Spielstand: höchstens jede Minute hochladen, beim Verlassen/Wegschalten sofort
+let lastCloud = 0;
+function cloudSave(f, force) {
+  if (!cloud.cloudKey() || !f || G?.role === 'guest') return;
+  const now = Date.now();
+  if (!force && now - lastCloud < 60000) return;
+  lastCloud = now;
+  cloud.push(G.key, f);
 }
 backup.keepData();
-addEventListener('pagehide', saveFarm);
+addEventListener('pagehide', () => saveFarm(true));
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveFarm();
+  if (document.hidden) saveFarm(true);
   else if (G?.ready) wakeLock();
 });
 function wakeLock() { navigator.wakeLock?.request('screen').then(l => { if (G) G.wake = l; }).catch(() => {}); }
@@ -641,7 +652,7 @@ function enterGame() {
 function leave() {
   const g = G;
   if (g) {
-    saveFarm();
+    saveFarm(true);
     if (g.role === 'host' && g.net) { g.net.broadcast({ t: 'bye' }); setTimeout(() => g.net.close(), 1000); }
     if (g.role === 'guest') { g.ended = true; g.conn?.close(); }
     g.wake?.release?.();
@@ -689,6 +700,7 @@ function showMenu(screen = 'title') {
       <div class="snaps hidden" id="snaps-${esc(id)}"></div>`).join('')
       : '<div class="note">Noch keine Insel – gründet unten eure erste! 🏝️</div>';
   }
+  if (screen === 'farms') { cloudBox(); cloudSync(); }
   if (screen === 'settings') $('msettings').innerHTML = settingsHtml(settings, touch);
   if (screen === 'join') setTimeout(() => $('jcode').focus(), 50);
 }
@@ -736,6 +748,55 @@ $('farms').onclick = async e => {
   }
   if (b.dataset.play && farms[b.dataset.play] && !needName()) startHost(farms[b.dataset.play].s, b.dataset.play, farms[b.dataset.play].guest);
 };
+// ---------- Cloud-Spielstand ----------
+let cloudMsg = '', cloudBusy = false;
+function cloudBox() {
+  const k = cloud.cloudKey(), el = $('cloudbox');
+  if (!el) return;
+  el.innerHTML = k
+    ? `<b>☁️ Cloud-Spielstand ist an</b><small>Eure Inseln werden zusätzlich online gesichert. Auf dem Handy oder einem anderen PC einfach diesen Schlüssel eingeben – dann sind dort dieselben Inseln. Den Schlüssel nicht weitergeben!</small>
+      <code>${cloud.fmtKey(k)}</code><div class="row2"><button class="btn small white" data-cl="copy">📋 Kopieren</button><button class="btn small" data-cl="sync">🔄 Jetzt abgleichen</button><button class="btn small white" data-cl="off">Ausschalten</button></div>`
+    : `<b>☁️ Cloud-Spielstand</b><small>Inseln online sichern und auf Handy & PC weiterspielen – auch wenn der Browser-Speicher mal gelöscht wird.</small>
+      <div class="row2"><button class="btn small pink" data-cl="on">☁️ Einschalten</button></div>
+      <div class="row2" style="margin-top:8px"><input type="text" id="cloudkey" maxlength="24" placeholder="Schlüssel vom anderen Gerät" autocomplete="off"><button class="btn small white" data-cl="use">Verbinden</button></div>`;
+  el.insertAdjacentHTML('beforeend', `<div class="st">${cloudMsg}</div>`);
+}
+async function cloudSync(manual) {
+  if (!cloud.cloudKey() || cloudBusy) return;
+  cloudBusy = true;
+  cloudMsg = '⏳ Gleiche ab …'; cloudBox();
+  try {
+    const farms = store.get('ki.islands', {});
+    const r = await cloud.sync(farms, (id, f) => backup.snapshot(id, f, true));
+    if (r.got) store.set('ki.islands', farms);
+    cloudMsg = `✅ Abgeglichen um ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}${r.got ? ` · ${r.got} neuere Insel${r.got === 1 ? '' : 'n'} geholt` : ''}${r.sent ? ` · ${r.sent} hochgeladen` : ''}`;
+    if (r.got && menuScreen === 'farms') { cloudBusy = false; showMenu('farms'); }
+    else if (r.got && menuScreen === 'title') showMenu('title');
+    if (manual || r.got) toast(r.got ? '☁️ Neuere Inseln aus der Cloud geholt!' : '☁️ Alles abgeglichen');
+  } catch (e) {
+    cloudMsg = '⚠️ Cloud gerade nicht erreichbar – eure Inseln bleiben sicher hier gespeichert.';
+    if (manual) toast(cloudMsg);
+  }
+  cloudBusy = false;
+  cloudBox();
+}
+$('cloudbox').onclick = async e => {
+  const b = e.target.closest('[data-cl]');
+  if (!b) return;
+  play('click');
+  const c = b.dataset.cl;
+  if (c === 'on') { cloud.enable(); cloudMsg = ''; cloudBox(); cloudSync(true); }
+  if (c === 'use') {
+    const k = cloud.enable($('cloudkey').value);
+    if (!k) { cloudMsg = '⚠️ Der Schlüssel hat 20 Zeichen (Buchstaben & Zahlen).'; return cloudBox(); }
+    cloudMsg = ''; cloudBox(); cloudSync(true);
+  }
+  if (c === 'copy') { navigator.clipboard?.writeText(cloud.fmtKey(cloud.cloudKey())).then(() => toast('📋 Schlüssel kopiert'), () => toast(cloud.fmtKey(cloud.cloudKey()))); }
+  if (c === 'sync') cloudSync(true);
+  if (c === 'off' && confirm('Cloud-Spielstand auf diesem Gerät ausschalten? Die Inseln bleiben hier und in der Cloud erhalten. Merk dir den Schlüssel, falls du ihn später wieder brauchst!')) { cloud.disable(); cloudMsg = ''; cloudBox(); }
+};
+if (cloud.cloudKey()) setTimeout(() => { if (!G) cloudSync(); }, 1500);
+
 // Alle Inseln als Datei sichern / Inseln aus einer Datei holen
 $('expall').onclick = () => {
   const f = Object.entries(store.get('ki.islands', {})).filter(([, x]) => Number.isFinite(x?.s?.money));

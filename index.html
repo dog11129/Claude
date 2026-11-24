@@ -285,6 +285,13 @@ body.wantland.portrait.ingame #rotatehint { display: flex; }
 
 /* Fenster im Spiel */
 .backuprow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.cloudbox { margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(135deg, #eaf6ff, #f5efff); border: 2px solid #d6e8ff; }
+.cloudbox b { display: block; font-size: 15px; }
+.cloudbox small { display: block; opacity: .75; margin: 2px 0 8px; }
+.cloudbox code { font: 600 15px/1.2 ui-monospace, monospace; letter-spacing: 1px; background: #fff; padding: 4px 8px; border-radius: 8px; display: inline-block; margin: 2px 0 8px; user-select: all; }
+.cloudbox .row2 { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.cloudbox input { flex: 1; min-width: 160px; text-transform: uppercase; }
+.cloudbox .st { font-size: 13px; margin-top: 6px; opacity: .8; }
 .snaps { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 10px; padding: 8px; background: #fff7ee; border-radius: 14px; }
 .snaps .chip { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 5px 9px; font-size: 13px; font-weight: 600; }
 #panel { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; background: rgba(90,70,54,.28); backdrop-filter: blur(3px); padding: 10px; animation: fadein .15s; }
@@ -521,6 +528,7 @@ body.building #hotbar, body.building #actbtn, body.building #joyhint, body.build
     <div class="joinrow"><input type="text" id="fname" maxlength="24" placeholder="Name der neuen Insel"><button class="btn" id="newbtn">Besiedeln</button></div>
     <div class="backuprow"><button class="btn small white" id="expall">💾 Alle Inseln sichern</button><button class="btn small white" id="impbtn">📂 Insel aus Datei laden</button>
       <input type="file" id="impfile" accept=".json,application/json" hidden></div>
+    <div class="cloudbox" id="cloudbox"></div>
     <div class="note">Tipp: Sichere eure Insel ab und zu als Datei – dann ist sie auch dann noch da, wenn der Browser aufgeräumt wird.</div>
   </section>
   <section id="m-join" class="screen card hidden">

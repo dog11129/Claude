@@ -1,5 +1,7 @@
-// Multiplayer über WebRTC (PeerJS). Der Host ist gleichzeitig der "Server", Freunde verbinden sich mit seinem Code.
+// Multiplayer: Der Host ist gleichzeitig der "Server", Freunde verbinden sich mit seinem Code.
+// Weg 1: eigener Verbindungsserver (Cloudflare, siehe cloud.js) – Weg 2 (Rückfall & für ältere Versionen): WebRTC über PeerJS.
 /* global Peer */
+import { relayHost, relayJoin, RELAY_ON } from './cloud.js';
 const PREFIX = 'kuschelinsel-v1-';
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const newCode = () => Array.from({ length: 5 }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
@@ -12,7 +14,7 @@ function opts() {
   return { host, port: +port, path: '/', secure: false, debug: 1, config: { iceServers: [] } };
 }
 
-export function host(code, h) {
+function peerHost(code, h) {
   return new Promise((resolve, reject) => {
     const peer = new Peer(PREFIX + code, opts());
     const conns = new Map();
@@ -39,7 +41,7 @@ export function host(code, h) {
   });
 }
 
-export function join(code, h) {
+function peerJoin(code, h) {
   return new Promise((resolve, reject) => {
     const peer = new Peer(opts());
     let done = false, live = false;
@@ -60,6 +62,37 @@ export function join(code, h) {
       c.on('close', () => { if (live) { live = false; h.onClose(); } });
     });
   });
+}
+
+// Gastgeber: auf beiden Wegen erreichbar. Der eigene Server zählt; PeerJS kommt still dazu, sobald es bereit ist.
+export async function host(code, h) {
+  const tr = new Map(), list = [];
+  const wrap = x => ({ onData: (id, d) => { tr.set(id, x.api); h.onData(id, d); }, onLeave: id => { if (tr.get(id) === x.api) tr.delete(id); h.onLeave(id); } });
+  const add = (x, api) => { x.api = api; list.push(api); return api; };
+  const rx = {}, px = {};
+  let relayErr = null;
+  if (RELAY_ON) { try { add(rx, await relayHost(code, wrap(rx))); } catch (e) { relayErr = e; } }
+  if (relayErr?.type === 'unavailable-id') throw relayErr;
+  const peer = peerHost(code, wrap(px));
+  if (!list.length) add(px, await peer);
+  else peer.then(api => { if (closed) api.close(); else add(px, api); }, () => {});
+  let closed = false;
+  return {
+    code,
+    get relay() { return list.some(a => a.relay); },
+    send(id, msg) { tr.get(id)?.send(id, msg); },
+    broadcast(msg, except) { for (const a of list) a.broadcast(msg, except); },
+    drop(id) { tr.get(id)?.drop(id); tr.delete(id); },
+    close() { closed = true; for (const a of list) a.close(); },
+    get online() { return list.some(a => a.online); },
+  };
+}
+
+// Gast: erst der eigene Server, dann PeerJS (falls der Gastgeber eine ältere Version spielt oder die Cloud nicht erreichbar ist)
+export async function join(code, h) {
+  let err = null;
+  if (RELAY_ON) { try { return await relayJoin(code, h); } catch (e) { err = e; } }
+  try { return await peerJoin(code, h); } catch (e) { throw err?.type === 'peer-unavailable' && e?.type !== 'peer-unavailable' ? err : e; }
 }
 
 export function errorText(e) {
