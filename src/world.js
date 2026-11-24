@@ -1136,7 +1136,7 @@ export class World {
       seen.add(sig);
       let e = this.groundM.get(sig);
       if (!e) {
-        const [x, z] = k.split(',').map(Number), m = M.groundItem(kind);
+        const [x, z] = k.split(',').map(Number), m = model('ground_' + (M.GROUND_KINDS.includes(kind) ? kind : 'leaf')) || M.groundItem(kind);
         m.position.set(x, 0.02, z);
         m.rotation.y = (x * 2.3 + z * 1.7) % 6.28;
         this.scene.add(m);
@@ -1156,7 +1156,7 @@ export class World {
 
   // ---------- Geschenkballon ----------
   syncBalloon(s) {
-    if (!this.balloonM) { this.balloonM = M.balloon(); this.scene.add(this.balloonM); }
+    if (!this.balloonM) { this.balloonM = model('balloon') || M.balloon(); this.scene.add(this.balloonM); }
     const b = s.balloon;
     this.balloonM.visible = !!b;
     if (b && b.id !== this.balloonId) { this.balloonId = b.id; this.balloonPop = 0; }

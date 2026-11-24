@@ -244,18 +244,27 @@ export function fences(rects) {
 
 // Geschenkballon: drei bunte Ballons mit Päckchen
 export function balloon() {
-  return cachedModel('balloon', () => {
+  return cachedModel('balloon', balloonParts);
+}
+function balloonParts() {
+  {
     const p = [];
     [[0xff5d7a, -0.28, 0.75, 0], [0x6cc4ff, 0.28, 0.8, 0.05], [0xffd23f, 0, 1.05, -0.1]].forEach(([c, x, y, z]) => p.push(ball(0.32, c, x, y, z, 1, 1.18, 1, 12), cone(0.06, 0.08, c, x, y - 0.4, z, 6, Math.PI), cyl(0.006, 0.006, y - 0.25, 0xffffff, x * 0.5, (y - 0.4) / 2 + 0.05, z * 0.5, 3)));
     p.push(box(0.36, 0.3, 0.36, 0xff8fab, 0, -0.15, 0), box(0.38, 0.06, 0.08, 0xffffff, 0, -0.15, 0), box(0.08, 0.31, 0.38, 0xffffff, 0, -0.15, 0), ball(0.07, 0xffffff, -0.05, 0.03, 0, 1, 0.7, 1, 6), ball(0.07, 0xffffff, 0.05, 0.03, 0, 1, 0.7, 1, 6));
     return p;
-  });
+  }
 }
 
 // Gegenstände, die auf dem Boden liegen (eigene, einfache Formen): Obst, Äste, Holz, Steine, Geldsack, Geschenk, Blatt (Möbel), Flaschenpost
 const GROUND_FRUIT = { apfel: 0xff3b3b, kirsche: 0xd8102c, orange: 0xffa21f, pfirsich: 0xffa98a, birne: 0xd6dc4a, kokosnuss: 0x7a4e2e };
 export function groundItem(kind) {
-  return cachedModel('g' + kind, () => {
+  return cachedModel('g' + kind, () => groundParts(kind));
+}
+export const GROUND_KINDS = [...Object.keys(GROUND_FRUIT), 'ast', 'holz', 'stein', 'lehm', 'eisen', 'money', 'present', 'bottle', 'diy', 'leaf'];
+// Für den Blender-Export (tools/dump-shapes.mjs)
+export const __parts = { groundParts: k => groundParts(k), balloonParts: () => balloonParts() };
+function groundParts(kind) {
+  {
     if (GROUND_FRUIT[kind]) {
       const c = GROUND_FRUIT[kind];
       if (kind === 'kirsche') return [ball(0.09, c, -0.06, 0.09, 0, 1, 1, 1, 9), ball(0.09, c, 0.07, 0.09, 0.02, 1, 1, 1, 9), cyl(0.008, 0.008, 0.16, 0x5a8a3a, 0, 0.22, 0, 4, 0, 0, 0.3)];
@@ -274,5 +283,5 @@ export function groundItem(kind) {
     // Blatt: Platzhalter für Möbel & Deko
     const p = [ball(0.2, 0x7ccf5a, 0, 0.06, 0, 1.25, 0.22, 0.75, 10), ball(0.12, 0x9fdc7a, 0.06, 0.08, 0, 1.2, 0.18, 0.6, 8), cyl(0.012, 0.012, 0.32, 0x4f9a3a, 0, 0.09, 0, 4, 0, 0, Math.PI / 2)];
     return p;
-  });
+  }
 }

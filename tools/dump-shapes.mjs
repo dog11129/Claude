@@ -12,6 +12,7 @@ THREE.BufferGeometry.prototype.applyMatrix4 = function (m) {
   return orig.call(this, m);
 };
 const A = await import('../src/avatar.js'), Npc = await import('../src/npc.js'), Ani = await import('../src/animals.js');
+const Mo = await import('../src/models.js');
 
 const TYPES = { SphereGeometry: 's', CylinderGeometry: 'c', ConeGeometry: 'k', TorusGeometry: 't', BoxGeometry: 'b' };
 const r4 = v => Math.round(v * 1e5) / 1e5;
@@ -62,6 +63,9 @@ for (const [id, fn] of Object.entries(Ani.__shapes)) {
   for (const n of ['body', 'head', 'eyes', 'joy', 'tail', 'legA', 'legB']) put(`ani_${id}_${n}`, D[n]);
   put(`ani_${id}_earL`, D.ear(1)); put(`ani_${id}_earR`, D.ear(-1));
 }
+// ---------- Bodenkram und Geschenkballon ----------
+for (const k of Mo.GROUND_KINDS) put('ground_' + k, Mo.__parts.groundParts(k));
+put('balloon', Mo.__parts.balloonParts());
 const n = Object.values(out).reduce((a, b) => a + b.length, 0);
 writeFileSync(new URL('../blender/shapes_data.py', import.meta.url), '# erzeugt von tools/dump-shapes.mjs – nicht von Hand ändern\nSHAPES = ' + JSON.stringify(out) + '\n');
 console.log(Object.keys(out).length, 'Teile,', n, 'Grundformen');
