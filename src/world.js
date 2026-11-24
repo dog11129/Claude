@@ -824,8 +824,8 @@ export class World {
       if (e && e.sig !== sig2) { this.scene.remove(e.m); e = null; }
       if (!e) {
         const [x, z] = k.split(',').map(Number);
-        const m = crop(t.c.k, st);
-        m.children[0].material = WIND_CROP;
+        const m = N.cropModel(t.c.k, st, crop);
+        N.windify(m, WIND_CROP);
         m.position.set(x, 0.04, z);
         m.rotation.y = ((x * 7 + z * 13) % 4) * 0.4;
         this.scene.add(m);
@@ -954,7 +954,7 @@ export class World {
       const [x, z] = k.split(',').map(Number), m = v === 'w' ? N.weed() : N.shell(v.slice(1));
       m.position.set(x + ((x * 7) % 3) * 0.08, 0.01, z + ((z * 5) % 3) * 0.08);
       m.rotation.y = x * 1.7 + z;
-      if (v === 'w' && !m.userData.asset) m.children[0].material = WIND_CROP;
+      if (v === 'w') N.windify(m, WIND_CROP);
       this.scene.add(m);
       this.pickM.set(k, { m, v, x, z });
     }

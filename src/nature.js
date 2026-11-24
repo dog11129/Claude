@@ -39,3 +39,18 @@ export const weed = () => model('weed') || M.weed();
 export const digMark = () => model('dig') || M.digMark();
 // Frucht einzeln (z. B. für Obstbäume im Garten)
 export const fruitModel = kind => model('fruit_' + kind);
+
+// Beet-Pflanzen (assets/models/crops.glb): Stufe 0 = Keimling, dann crop_<art>_<stufe>
+const GRASSY = ['weizen', 'mais'];
+export function cropModel(k, st, fallback) {
+  const name = st === 0 ? (GRASSY.includes(k) ? 'sprout_grass' : 'sprout') : `crop_${k}_${st}`;
+  return model(name) || fallback(k, st);
+}
+// Wind-Material auf alle Teile legen, deren Höhe im Modell = Höhe über dem Boden ist (keine gedrehten Unterteile)
+export function windify(m, mat) {
+  if (!m.userData.asset) { m.children[0].material = mat; return; }
+  let moved = false; // Unterteile mit eigenem Drehpunkt (z. B. geneigter Sonnenblumenkopf): lieber ohne Wind
+  m.traverse(o => { if (o !== m && (o.position.lengthSq() > 1e-6 || o.rotation.x || o.rotation.y || o.rotation.z)) moved = true; });
+  if (moved) return;
+  m.traverse(o => { if (o.isMesh && !o.name.includes('__glow')) o.material = mat; });
+}
