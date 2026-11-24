@@ -79,7 +79,7 @@ try:
         for a_, b_ in zip(pts, pts[1:]): m.stick(a_, b_, 0.012, 0xFFF6EA, seg=4)
         for i in range(26):
             x = -13 + i * 1.04; z = 3.4 - math.sin(i / 25 * PI) * 0.5
-            m.ball(0.14, cols[i % 5], x, 0, z - 0.14, sx=0.95, sy=0.12, sz=1.0, taper=0.9, seg=10)
+            m.ball(0.14, cols[i % 5], x, 0, z - 0.14, sx=0.95, sy=0.12, sz=1.0, taper=-0.9, seg=10)
             m.ball(0.02, 0xFFFFFF, x, -0.02, z - 0.1, sy=0.3, seg=6)
         return m.build()
     o = bunting(); S[o.name] = o
