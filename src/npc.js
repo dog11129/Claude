@@ -2,6 +2,7 @@
 // Aufbau wie avatar.js: Gelenk-Gruppen, jedes Teil EIN Mesh mit Vertex-Farben (merge + MAT) -> höchstens 10 Draw-Calls.
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, merge, box, cyl } from './models.js';
+import { geometryOf } from './assets.js';
 
 export const NPCS = {
   mira: {
@@ -295,7 +296,8 @@ const KIT = {};
 function kit(id) {
   if (KIT[id]) return KIT[id];
   const D = SHAPES[id](), k = { ...D };
-  for (const n of ['leg', 'body', 'arm', 'armR', 'head', 'eyes', 'joy', 'ears', 'tail']) k[n] = D[n] && merge(D[n]);
+  // Teile aus Blender (characters.glb: npc_<id>_<teil>), sonst die alten Formen
+  for (const n of ['leg', 'body', 'arm', 'armR', 'head', 'eyes', 'joy', 'ears', 'tail']) k[n] = D[n] && (geometryOf(`npc_${id}_${n}`) || merge(D[n]));
   return (KIT[id] = k);
 }
 function mesh(g, parent, x = 0, y = 0, z = 0, shadow = true) {

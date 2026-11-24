@@ -80,3 +80,45 @@ export function tickAssets(dt) {
     g.userData.mixer.update(dt);
   }
 }
+
+// ---------- Figuren-Teile (characters.glb) ----------
+import { mergeGeometries } from '../vendor/loaders/BufferGeometryUtils.js';
+// Geometrie eines Teils (geteilt – nicht verändern, sondern klonen)
+export const geometryOf = name => { const e = LIB.get(name); return e?.root.isMesh ? e.root.geometry : null; };
+
+// Schlüsselfarben aus Blender gegen die gewählten Farben tauschen (alles linear):
+// Magenta = Haut, Cyan = Haare, Gelb = Oberteil, Blau = Hose, Rot = Schuhe, Grün = Fell; abgedunkelte Schlüssel behalten ihre Helligkeit,
+// mit Weiß gemischtes Grün (helles Fell) bleibt gemischt.
+const lin = c => (c ? new THREE.Color(c) : null);
+function recolor(geo, cols) {
+  const K = { skin: lin(cols.skin), hair: lin(cols.hairColor), top: lin(cols.topColor), bottom: lin(cols.bottomColor), shoes: lin(cols.shoes), pet: lin(cols.pet) };
+  const g = geo.clone(), a = g.getAttribute('color');
+  if (!a) return g;
+  const lo = 0.02, hi = 0.15, near = (x, y) => Math.abs(x - y) < 0.03, out = new THREE.Color();
+  for (let i = 0; i < a.count; i++) {
+    const r = a.getX(i), gg = a.getY(i), b = a.getZ(i);
+    let c = null, f = 1;
+    if (r > hi && gg < lo && b < lo) { c = K.shoes; f = r; }
+    else if (b > hi && r < lo && gg < lo) { c = K.bottom; f = b; }
+    else if (gg > hi && r < lo && b < lo) { c = K.pet; f = gg; }
+    else if (r > hi && b < lo && near(r, gg)) { c = K.top; f = r; }
+    else if (r > hi && gg < lo && near(r, b)) { c = K.skin; f = r; }
+    else if (gg > hi && r < lo && near(gg, b)) { c = K.hair; f = gg; }
+    else if (K.pet && gg > 0.97 && near(r, b) && r > hi && r < 0.95) { out.copy(K.pet).lerp(new THREE.Color(1, 1, 1), r); a.setXYZ(i, out.r, out.g, out.b); continue; }
+    if (!c) continue;
+    a.setXYZ(i, c.r * f, c.g * f, c.b * f);
+  }
+  a.needsUpdate = true;
+  return g;
+}
+const KEYED = new Map();
+// mehrere Teile zu EINER Geometrie zusammenfügen und umfärben (zwischengespeichert)
+export function keyedGeometry(names, cols, cacheKey) {
+  if (KEYED.has(cacheKey)) return KEYED.get(cacheKey);
+  const parts = names.map(geometryOf).filter(Boolean);
+  if (!parts.length) return null;
+  const geos = parts.map(g => recolor(g, cols));
+  const geo = geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
+  KEYED.set(cacheKey, geo);
+  return geo;
+}

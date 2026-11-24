@@ -2,6 +2,7 @@
 // Pro Tier 8 Meshes (Rumpf, Kopf, Augen, 2 Ohren bzw. Flügel, Schwanz, 2 Beinpaare); Geometrien je Art einmal gebaut und geteilt.
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, merge, cyl } from './models.js';
+import { geometryOf } from './assets.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z), UP = V(0, 1, 0);
 const part = (g, c, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => {
@@ -143,12 +144,15 @@ const SHAPES = {
 
 // ---------- Rig ----------
 const KIT = {};
-const at = (parts, p) => merge(parts).translate(-p[0], -p[1], -p[2]); // Geometrie relativ zum Gelenk
+// Geometrie relativ zum Gelenk; aus Blender (characters.glb: ani_<art>_<teil>), sonst die alten Formen
+let atKind = '';
+const at = (parts, p, n) => { const b = geometryOf(`ani_${atKind}_${n}`); return (b ? b.clone() : merge(parts)).translate(-p[0], -p[1], -p[2]); };
 function kit(kind) {
   if (KIT[kind]) return KIT[kind];
   const D = SHAPES[kind](), T = [0, D.hip, 0], eR = [-D.earAt[0], D.earAt[1], D.earAt[2]];
-  return (KIT[kind] = { ...D, T, eR, body: at(D.body, T), head: at(D.head, D.neck), eyes: at(D.eyes, D.eye), joy: at(D.joy, D.eye),
-    earL: at(D.ear(1), D.earAt), earR: at(D.ear(-1), eR), tail: at(D.tail, D.tailAt), legA: at(D.legA, T), legB: at(D.legB, T) });
+  atKind = kind;
+  return (KIT[kind] = { ...D, T, eR, body: at(D.body, T, 'body'), head: at(D.head, D.neck, 'head'), eyes: at(D.eyes, D.eye, 'eyes'), joy: at(D.joy, D.eye, 'joy'),
+    earL: at(D.ear(1), D.earAt, 'earL'), earR: at(D.ear(-1), eR, 'earR'), tail: at(D.tail, D.tailAt, 'tail'), legA: at(D.legA, T, 'legA'), legB: at(D.legB, T, 'legB') });
 }
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 function mesh(g, parent, shadow = true) {

@@ -2,6 +2,7 @@
 // Jedes Körperteil ist EIN Mesh mit Vertex-Farben (merge + MAT) -> 8 Draw-Calls pro Spieler, 5 pro Haustier.
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, merge, box, ball, cyl, cone } from './models.js';
+import { keyedGeometry, hasModel } from './assets.js';
 
 export const LOOKS = {
   skin: ['#ffe3cc', '#ffd8b8', '#f2c29b', '#d9a07a', '#a8714f', '#6e4a34'],
@@ -72,6 +73,11 @@ const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t);
 // shortcut: Geometrien werden nie freigegeben (geteilt zwischen Spielern), bei sehr vielen Look-Wechseln ggf. LRU einbauen
 const GEO = new Map();
 const geo = (k, fn) => { let g = GEO.get(k); if (!g) GEO.set(k, g = merge(fn())); return g; };
+// Teile aus Blender (characters.glb) mit den Farben dieser Figur; ohne Datei die alten Formen
+const BL = () => hasModel('av_head');
+const bgeo = (names, l, key, fn) => (BL() && keyedGeometry(names, l, 'A' + key)) || geo(key, fn);
+const HAT_HIDES = ['straw', 'cap', 'beanie', 'cowboy', 'wizard'];
+const headNames = l => ['av_head', `av_${HAT_HIDES.includes(l.hat) ? 'hairlow' : 'hair'}_${l.hairStyle}`, 'av_hat_' + l.hat, 'av_glasses_' + l.glasses];
 
 const WHITE = 0xfaf6ee, DARK = 0x2b2321, BLUSH = 0xff9aa8, PINK = 0xff8fab, GOLD = 0xffd23f, WOOD = 0xa8743f, METAL = 0xc4ccd4;
 const HIP = 0.345, EY = -0.03, HEAD = 0.3; // Hüfthöhe, Augenhöhe (Kopf-lokal), Kopfmitte über dem Hals
@@ -295,14 +301,15 @@ function grp(parent, x = 0, y = 0, z = 0) {
 export function makeAvatar(look) {
   const l = cleanLook(look);
   const root = new THREE.Group(), rig = grp(root), hips = grp(rig, 0, HIP), torso = grp(hips);
-  const body = mesh(geo('torso' + [l.top, l.topColor, l.bottomColor], () => torsoParts(l)), torso);
-  const legG = geo('leg' + [l.top, l.bottomColor, l.shoes, l.skin], () => legParts(l)), armG = geo('arm' + [l.top, l.topColor, l.skin], () => armParts(l));
+  const body = mesh(bgeo(['av_torso_' + l.top], l, 'torso' + [l.top, l.topColor, l.bottomColor], () => torsoParts(l)), torso);
+  const legG = bgeo([l.top === 'dress' ? 'av_leg_dress' : 'av_leg_pants'], l, 'leg' + [l.top, l.bottomColor, l.shoes, l.skin], () => legParts(l));
+  const armG = bgeo([l.top === 'hoodie' ? 'av_arm_hoodie' : l.top === 'vest' ? 'av_arm_vest' : 'av_arm_short'], l, 'arm' + [l.top, l.topColor, l.skin], () => armParts(l));
   // Figur schaut nach +z: linke Seite = +x, rechte Seite = -x
   const legL = grp(hips, 0.095), legR = grp(hips, -0.095), armL = grp(torso, 0.21, 0.31), armR = grp(torso, -0.21, 0.31);
   mesh(legG, legL); mesh(legG, legR); mesh(armG, armL); mesh(armG, armR);
   const hand = grp(armR, 0, -0.25), neck = grp(torso, 0, 0.38);
-  mesh(geo('head' + [l.skin, l.hairStyle, l.hairColor, l.hat, l.glasses, l.hat === 'cap' ? l.topColor : l.hat === 'beanie' ? l.bottomColor : ''], () => headParts(l)), neck, 0, HEAD);
-  const eyes = mesh(geo('eyes' + l.eyes, () => eyeParts(l.eyes)), neck, 0, HEAD + EY);
+  mesh(bgeo(headNames(l), l, 'head' + [l.skin, l.hairStyle, l.hairColor, l.hat, l.glasses, l.topColor, l.bottomColor], () => headParts(l)), neck, 0, HEAD);
+  const eyes = mesh(bgeo(['av_eyes_' + l.eyes], l, 'eyes' + l.eyes, () => eyeParts(l.eyes)), neck, 0, HEAD + EY);
   eyes.castShadow = false;
 
   let held = null, heldMesh = null, level = false, ph = 0, T = Math.random() * 9, blinkAt = 1 + Math.random() * 3;
@@ -315,7 +322,7 @@ export function makeAvatar(look) {
     level = false;
     if (!held) return;
     const [rx, lv, fn] = HELD[held];
-    heldMesh = mesh(geo('held' + held, fn), hand);
+    heldMesh = mesh(bgeo(['held_' + held], {}, 'held' + held, fn), hand);
     heldMesh.rotation.x = rx;
     level = lv;
   };
@@ -471,7 +478,7 @@ function petParts(kind, C) {
 
 export function makePet(kind, color) {
   const k = ids('pet').includes(kind) && kind !== 'none' ? kind : 'cat', C = ids('petColor').includes(color) ? color : '#e8a35c';
-  const P = petParts(k, C), g = (n, fn) => geo('pet' + k + C + n, fn);
+  const P = petParts(k, C), g = (n, fn) => bgeo([`pet_${k}_${n}`], { pet: C }, 'pet' + k + C + n, fn);
   const root = new THREE.Group(), box_ = grp(root), body = grp(box_);
   mesh(g('body', () => P.body), body);
   const head = grp(body, ...P.neck), tail = grp(body, ...P.tailAt);
