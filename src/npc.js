@@ -732,3 +732,6 @@ export function letter(id, hearts, player) {
 export function requestLine(id, itemName, n) {
   return fill(pick(txt(id).request), { i: itemName, n });
 }
+
+// Für den Blender-Export (tools/dump-shapes.mjs)
+export const __shapes = SHAPES;

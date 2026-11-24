@@ -236,3 +236,6 @@ export function makeAnimal(kind) {
   root.userData.update(0, {});
   return root;
 }
+
+// Für den Blender-Export (tools/dump-shapes.mjs)
+export const __shapes = SHAPES;

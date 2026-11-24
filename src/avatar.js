@@ -498,3 +498,6 @@ export function makePet(kind, color) {
   };
   return root;
 }
+
+// Für den Blender-Export (tools/dump-shapes.mjs): die Bauteil-Listen der Figur
+export const __parts = { headParts, hairParts, hatParts, glassesParts, eyeParts, torsoParts, armParts, legParts, HELD, petParts };
