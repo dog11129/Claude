@@ -180,6 +180,47 @@ try:
             m.ball(r, 0xD9B077, x, y, 0.03, sx=1.6, sz=0.4, seg=8, rz=x * 3)
         return m.build()
 
+    # ---------- Landschaft (Wald auf den Klippen, Büsche, Grasbüschel, Wildblumen, Teich) ----------
+    def pine():
+        m = Model('pine')
+        m.cyl(0.12, 0.18, 1.0, 0x7A4B2E, 0, 0, 0.5, seg=10)
+        for i, (r, h, z, c) in enumerate(((0.95, 0.9, 1.0, 0x3F8F4A), (0.78, 0.8, 1.45, 0x4A9F55), (0.58, 0.7, 1.85, 0x56AE60), (0.36, 0.55, 2.2, 0x62BA6A))):
+            m.cone(r, h, c, 0, 0, z + h / 2, seg=16, bev=0.0)
+            m.torus(r * 0.86, 0.07, c, 0, 0, z + 0.04, seg=16, tseg=6)  # weicher, runder Saum
+        m.ball(0.07, 'yellow', 0, 0, 2.5, seg=8)
+        return m.build()
+    def bush():
+        m = Model('bush')
+        m.bush(0, 0, 0, 1.4, flowers=['rose', 'white', 0xFFE066])
+        return m.build()
+    def tuft():
+        m = Model('tuft')
+        for i in range(5):
+            a = i * 1.3; h = 0.16 + (i % 3) * 0.04
+            m.stick((math.cos(a) * 0.02, math.sin(a) * 0.02, 0), (math.cos(a) * 0.08, math.sin(a) * 0.08, h), 0.03, 0x6FC45A if i % 2 else 0x5AA94A, 0.004, seg=5)
+        return m.build()
+    def wildflower(i):
+        c = [0xFF8FAB, 0xFFFFFF, 0xFFE066, 0xB39CFF][i]
+        m = Model('wildflower_%d' % i)
+        m.stick((0, 0, 0), (0, 0, 0.2), 0.01, 'leafD', seg=5)
+        for j in range(5):
+            a = j * 1.2566
+            m.ball(0.035, c, math.cos(a) * 0.035, math.sin(a) * 0.035, 0.22, sz=0.45, seg=7)
+        m.ball(0.022, 'yellow' if i != 2 else 0xFFA020, 0, 0, 0.225, sz=0.6, seg=6)
+        m.ball(0.04, 'leaf', 0.03, 0, 0.06, sx=1.5, sy=0.6, sz=0.3, seg=6)
+        return m.build()
+    def pondstone():
+        m = Model('pondstone')
+        m.ball(0.3, 0x9A958E, 0, 0, 0.04, sz=0.5, seg=12, soft=0.75, bump=0.1); m.ball(0.12, 0xB4AEA6, -0.06, -0.08, 0.13, sx=1.2, sz=0.4, seg=8)
+        return m.build()
+    def lilypad():
+        m = Model('lilypad')
+        m.cyl(0.3, 0.3, 0.03, 0x4FAE4A, 0, 0, 0, seg=16, bev=0.01)
+        m.ball(0.08, 0xFFB7D0, 0.05, 0, 0.05, sz=0.7, seg=8); m.ball(0.03, 'yellow', 0.05, 0, 0.09, seg=6)
+        return m.build()
+    for f in (pine, bush, tuft, pondstone, lilypad): o = f(); N[o.name] = o
+    for i in range(4): o = wildflower(i); N[o.name] = o
+
     for s_ in ('spring', 'summer', 'autumn', 'winter'): o = tree(s_); N[o.name] = o
     o = palm(); N[o.name] = o
     for k in ('apfel', 'birne', 'orange', 'pfirsich', 'kirsche', 'kokosnuss', 'banane', 'mango'): o = fruit(k); N[o.name] = o
