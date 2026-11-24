@@ -95,3 +95,27 @@ test('alte Spielstände werden ergänzt', () => {
   assert.equal(s.up.rod, 1);
   assert.equal(s.stats.orders, 0);
 });
+
+test('Doppeltipp kauft/liefert nicht doppelt', () => {
+  const s = newFarm();
+  s.money = 99999; s.level = 9;
+  assert.ok(act(s, { t: 'upgrade', id: 'hoe', lvl: 1 }).ok);
+  assert.equal(act(s, { t: 'upgrade', id: 'hoe', lvl: 1 }).ok, false);
+  assert.equal(s.up.hoe, 2);
+  const [o0, o1] = s.orders;
+  s.inv[o0.item] = 99; s.inv[o1.item] = 99;
+  assert.ok(act(s, { t: 'order', i: 0, item: o0.item, n: o0.n }).ok);
+  assert.equal(act(s, { t: 'order', i: 0, item: o0.item, n: o0.n }).ok, s.orders[0].item === o0.item && s.orders[0].n === o0.n);
+});
+
+test('migrate gibt Dinge unter Gebäuden zurück und repariert Zahlen', () => {
+  const s = newFarm();
+  s.obj['11,-6'] = { k: 'm_mayo', r: 0, n: 2, t: 0, o: 3 };
+  s.money = null;
+  migrate(s);
+  assert.equal(s.obj['11,-6'], undefined);
+  assert.equal(s.inv.m_mayo, 1);
+  assert.equal(s.inv.mayo, 3);
+  assert.equal(s.inv.ei, 2);
+  assert.equal(s.money, 0);
+});

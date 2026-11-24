@@ -61,11 +61,12 @@ function cleanProfile(p) {
 const newPlayer = (id, p) => ({ id, ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false });
 const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hoe', settings, code: null, lastSeen: {}, lastSave: 0, lastState: 0 });
 
+// Gast-Kopien liegen unter eigenem Schlüssel, damit sie nie die eigene Farm überschreiben.
 function saveFarm() {
-  if (!G?.s) return;
+  if (!G?.s || !G.key) return;
   G.lastSave = performance.now();
   const f = store.get('kh.farms', {});
-  f[G.s.id] = { name: G.s.name, saved: Date.now(), s: G.s, guest: G.role === 'guest' ? G.players.h?.name || '?' : undefined };
+  f[G.key] = { name: G.s.name, saved: Date.now(), s: G.s, guest: G.role === 'guest' ? G.players.h?.name || '?' : G.copyOf };
   store.set('kh.farms', f);
 }
 addEventListener('pagehide', saveFarm);
@@ -76,16 +77,18 @@ document.addEventListener('visibilitychange', () => {
 function wakeLock() { navigator.wakeLock?.request('screen').then(l => { if (G) G.wake = l; }).catch(() => {}); }
 
 // ---------- Host ----------
-async function startHost(s) {
+async function startHost(s, key = s.id, copyOf) {
   unlock();
   const g = G = session('host', S.migrate(s), 'h');
+  g.key = key;
+  g.copyOf = copyOf;
   g.players.h = newPlayer('h', profile);
   enterGame();
   saveFarm();
   for (let i = 0; i < 3; i++) {
     const code = i === 0 && s.code ? s.code : net.newCode();
     try {
-      const n = await net.host(code, { onData: hostData, onLeave: hostLeave });
+      const n = await net.host(code, { onData: (id, d) => G === g && hostData(id, d), onLeave: id => G === g && hostLeave(id) });
       if (G !== g) { n.close(); return; }
       g.net = n;
       g.code = s.code = code;
@@ -99,7 +102,7 @@ async function startHost(s) {
 }
 
 function hostData(id, d) {
-  if (!G || G.role !== 'host' || !d || typeof d !== 'object') return;
+  if (!G || G.role !== 'host' || id === 'h' || !d || typeof d !== 'object') return;
   G.lastSeen[id] = performance.now();
   const p = G.players[id];
   if (d.t === 'join') {
@@ -179,27 +182,40 @@ async function startGuest(code) {
 }
 
 async function connectGuest(g) {
-  const conn = await net.join(g.joinCode, { onData: d => G === g && guestData(d), onClose: () => G === g && lostConnection() });
+  let conn;
+  const current = () => G === g && g.conn === conn;
+  conn = await net.join(g.joinCode, { onData: d => current() && guestData(d), onClose: () => current() && lostConnection() });
   if (G !== g) { conn.close(); return; }
   g.conn = conn;
   g.lastHost = performance.now();
   conn.send({ t: 'join', profile });
-  await new Promise((res, rej) => { g.onWelcome = res; setTimeout(() => rej({ type: 'timeout' }), 10000); });
+  try {
+    await new Promise((res, rej) => { g.onWelcome = res; setTimeout(() => rej({ type: 'timeout' }), 10000); });
+  } catch (e) {
+    conn.close();
+    if (g.conn === conn) g.conn = null;
+    throw e;
+  }
 }
 
 function guestData(d) {
   if (!d || typeof d !== 'object') return;
   G.lastHost = performance.now();
   switch (d.t) {
-    case 'welcome':
+    case 'welcome': {
+      if (!d.s || typeof d.s !== 'object' || !d.players?.[d.id]) return;
+      const old = G.players[G.me];
       G.me = d.id;
       G.s = S.migrate(d.s);
       G.players = d.players;
+      if (old) Object.assign(G.players[G.me], { x: old.x, z: old.z, ry: old.ry });
       G.code = d.code;
+      G.key = 'copy:' + G.s.id;
       G.onWelcome?.();
       if (!G.ready) enterGame(); else hideCover();
       saveFarm();
       break;
+    }
     case 's': if (G.s) G.s = d.s; break;
     case 'p': {
       const me = G.players[G.me];
@@ -338,11 +354,14 @@ function leave() {
   const g = G;
   if (g) {
     saveFarm();
-    if (g.role === 'host' && g.net) { g.net.broadcast({ t: 'bye' }); setTimeout(() => g.net.close(), 300); }
+    if (g.role === 'host' && g.net) { g.net.broadcast({ t: 'bye' }); setTimeout(() => g.net.close(), 1000); }
     if (g.role === 'guest') { g.ended = true; g.conn?.close(); }
     g.wake?.release?.();
   }
   G = null;
+  keys.clear();
+  Object.assign(joy, { x: 0, y: 0, id: null });
+  actHeld = false;
   clearInterval(enterGame.timer);
   hideCover();
   showMenu();
@@ -356,7 +375,7 @@ function showMenu() {
   $('pname').value = profile.name;
   $('pcolors').innerHTML = COLORS.map(c => `<button style="background:${c}" data-c="${c}" class="${c === profile.color ? 'on' : ''}"></button>`).join('');
   $('phats').innerHTML = HATS.map(([id, l]) => `<button data-h="${id}" class="${id === profile.hat ? 'on' : ''}">${l}</button>`).join('');
-  const farms = Object.entries(store.get('kh.farms', {})).sort((a, b) => b[1].saved - a[1].saved);
+  const farms = Object.entries(store.get('kh.farms', {})).filter(([, f]) => Number.isFinite(f?.s?.money)).sort((a, b) => b[1].saved - a[1].saved);
   $('farms').innerHTML = farms.length ? farms.map(([id, f]) => `<div class="farm"><div class="tx"><b>${esc(f.name)}</b>
     <small>Tag ${f.s.day} · Level ${f.s.level} · 🪙 ${f.s.money.toLocaleString('de-DE')}${f.guest ? ` · Kopie von ${esc(f.guest)}s Farm` : ''}</small>
     <small>${new Date(f.saved).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</small></div>
@@ -387,7 +406,7 @@ $('farms').onclick = e => {
     store.set('kh.farms', farms);
     showMenu();
   }
-  if (b.dataset.play && farms[b.dataset.play] && !needName()) startHost(farms[b.dataset.play].s);
+  if (b.dataset.play && farms[b.dataset.play] && !needName()) startHost(farms[b.dataset.play].s, b.dataset.play, farms[b.dataset.play].guest);
 };
 $('newbtn').onclick = () => {
   if (needName()) return;
@@ -485,6 +504,10 @@ addEventListener('keyup', e => {
   if (k === 'e' || k === ' ') actHeld = false;
 });
 addEventListener('blur', () => { keys.clear(); actHeld = false; });
+// Während man einen Knopf im Fenster/der Leiste drückt, nicht neu zeichnen (sonst geht der Tipp verloren)
+let uiPress = false;
+for (const id of ['pbody', 'hotbar']) $(id).addEventListener('pointerdown', () => { uiPress = true; });
+for (const ev of ['pointerup', 'pointercancel']) addEventListener(ev, e => { uiPress = false; if (e.pointerType === 'mouse') actHeld = false; });
 
 const canvas = $('c'), pointers = new Map();
 canvas.addEventListener('pointerdown', e => {
@@ -539,6 +562,7 @@ const joyEnd = e => {
 };
 joyEl.addEventListener('pointerup', joyEnd);
 joyEl.addEventListener('pointercancel', joyEnd);
+joyEl.addEventListener('lostpointercapture', joyEnd);
 
 const actbtn = $('actbtn');
 actbtn.addEventListener('pointerdown', e => { e.preventDefault(); unlock(); pressAction(); });
@@ -577,7 +601,7 @@ function doAction(fresh) {
     const l = G.s.up.rod;
     G.fishing = { phase: 'wait', t: 0, bite: (1.5 + Math.random() * 3.5) / (1 + (l - 1) * 0.35), win: 0.75 + l * 0.15, x: me.x + Math.sin(me.ry) * 1.7, z: me.z + Math.cos(me.ry) * 1.7 };
     play('water');
-  } else if (r.a) {
+  } else if (r.a && (fresh || r.a.t !== 'pickup')) {
     send(r.a);
     G.hop = 1;
   }
@@ -669,12 +693,12 @@ function gameFrame(dt, now) {
   const items = hotbarItems(s);
   if (!items.includes(G.sel)) G.sel = 'hoe';
   const sig = items.map(i => i + (s.inv[i] || '')).join() + G.sel;
-  if (sig !== G.hotSig) {
+  if (sig !== G.hotSig && !uiPress) {
     G.hotSig = sig;
     G.hot = items;
     $('hotbar').innerHTML = items.map((id, i) => slotHtml(s, id, i, G.sel)).join('');
   }
-  panels.update(s, G);
+  if (!uiPress) panels.update(s, G);
 }
 
 let last = performance.now();

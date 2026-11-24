@@ -31,6 +31,18 @@ export function migrate(s) {
   for (const k of Object.keys(base)) if (s[k] === undefined) s[k] = base[k];
   for (const k of Object.keys(UPGRADES)) if (s.up[k] === undefined) s.up[k] = UPGRADES[k].start;
   for (const k of Object.keys(base.stats)) if (s.stats[k] === undefined) s.stats[k] = 0;
+  for (const k of ['money', 'xp', 'time', 'dayTime']) if (!Number.isFinite(s[k])) s[k] = 0;
+  for (const k of ['level', 'day']) if (!Number.isInteger(s[k]) || s[k] < 1) s[k] = 1;
+  for (const [k, o] of Object.entries(s.obj)) {
+    const p = PLACE[o?.k], [x, z] = k.split(',').map(Number);
+    if (p && !buildingAt(x, z)) continue;
+    if (p) {
+      addInv(s, o.k, 1);
+      if (o.o) addInv(s, p.out, o.o);
+      if (o.n) addInv(s, p.in[0], o.n);
+    }
+    delete s.obj[k];
+  }
   return s;
 }
 
@@ -401,7 +413,7 @@ const ACTIONS = {
   upgrade(s, a, out) {
     if (!has(UPGRADES, a.id)) return false;
     const u = upgradeInfo(s, a.id);
-    if (u.done) return false;
+    if (u.done || (a.lvl !== undefined && a.lvl !== u.level)) return false;
     if (u.req > s.level) { out.msg = `Erst ab Level ${u.req}.`; return false; }
     if (s.money < u.cost) { out.msg = 'Nicht genug Taler.'; return false; }
     s.money -= u.cost;
@@ -413,7 +425,7 @@ const ACTIONS = {
   },
   order(s, a, out) {
     const o = s.orders[a.i];
-    if (!o) return false;
+    if (!o || (a.item !== undefined && (a.item !== o.item || a.n !== o.n))) return false;
     if (!takeInv(s, o.item, o.n)) { out.msg = 'Dafür fehlt noch etwas.'; return false; }
     s.money += o.reward;
     s.stats.earned += o.reward;

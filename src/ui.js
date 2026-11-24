@@ -24,7 +24,7 @@ function upgradeRow(s, id) {
   const sub = `${pips(i.level, i.max)} Jetzt: ${u.desc(i.level)}` + (i.done ? '' : `<br>➜ ${u.desc(i.level + 1)}`);
   if (i.done) return row(u.icon, u.name, sub, '<span class="lv">MAX</span>');
   const locked = i.req > s.level;
-  return row(u.icon, u.name + (locked ? lvTag(i.req) : ''), sub, btn(`🪙 ${i.cost}`, { t: 'upgrade', id }, 'pink', locked || s.money < i.cost), locked);
+  return row(u.icon, u.name + (locked ? lvTag(i.req) : ''), sub, btn(`🪙 ${i.cost}`, { t: 'upgrade', id, lvl: i.level }, 'pink', locked || s.money < i.cost), locked);
 }
 
 function placeRow(s, id) {
@@ -110,7 +110,7 @@ const PANELS = {
     let h = '<div class="note">Die Leute im Dorf wünschen sich Waren von eurer Farm – sie zahlen extra! Alle 3 Tage kommen neue Wünsche.</div>';
     s.orders.forEach((o, i) => {
       const have = s.inv[o.item] || 0, it = ITEMS[o.item];
-      h += row(it.icon, `${o.n}× ${it.name}`, `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐`, btn('Abgeben', { t: 'order', i }, 'pink', have < o.n));
+      h += row(it.icon, `${o.n}× ${it.name}`, `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐`, btn('Abgeben', { t: 'order', i, item: o.item, n: o.n }, 'pink', have < o.n));
     });
     h += `<div class="note">Erledigte Aufträge: ${s.stats.orders}</div>`;
     return h;
@@ -118,7 +118,7 @@ const PANELS = {
   friends(s, g) {
     const link = g.code ? `${location.origin}${location.pathname}?join=${g.code}` : '';
     let h = g.code
-      ? `<div class="row"><div class="ic">💌</div><div class="tx"><b style="font-size:28px;letter-spacing:5px">${g.code}</b><small>Schick diesen Code (oder den Link) an deinen Lieblingsmenschen. Sie öffnet das Spiel und gibt ihn bei „Mit Code beitreten“ ein.</small></div>
+      ? `<div class="row"><div class="ic">💌</div><div class="tx"><b style="font-size:28px;letter-spacing:5px">${esc(g.code)}</b><small>Schick diesen Code (oder den Link) an deinen Lieblingsmenschen. Sie öffnet das Spiel und gibt ihn bei „Mit Code beitreten“ ein.</small></div>
          <div class="bt"><button class="btn small pink" data-ui="share">Link teilen</button><button class="btn small white" data-ui="copy">Kopieren</button></div></div>`
       : `<div class="note">${g.role === 'host' ? '⏳ Einladen gerade nicht möglich (keine Verbindung zum Vermittlungs-Server). Spielen geht trotzdem!' : ''}</div>`;
     h += `<input type="hidden" id="invlink" value="${esc(link)}">`;

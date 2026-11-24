@@ -21,7 +21,7 @@ export function host(code, h) {
       code,
       send(id, msg) { const c = conns.get(id); if (c?.open) c.send(msg); },
       broadcast(msg, except) { for (const [id, c] of conns) if (id !== except && c.open) c.send(msg); },
-      drop(id) { const c = conns.get(id); conns.delete(id); if (c) setTimeout(() => c.close(), 300); },
+      drop(id) { const c = conns.get(id); conns.delete(id); if (c) setTimeout(() => c.close(), 1000); },
       close() { peer.destroy(); },
       get online() { return !peer.disconnected; },
     };
@@ -45,8 +45,11 @@ export function join(code, h) {
     let done = false, live = false;
     const fail = e => { if (!done) { done = true; clearTimeout(timer); peer.destroy(); reject(e); } };
     const timer = setTimeout(() => fail({ type: 'timeout' }), 15000);
-    peer.on('error', e => { if (!done) fail(e); else if (live) { live = false; h.onClose(); } });
+    // Nach dem Verbinden zählt nur die direkte Verbindung; Fehler des Vermittlungs-Servers sind dann egal.
+    peer.on('error', e => { if (!done) fail(e); });
+    peer.on('disconnected', () => setTimeout(() => { if (live && !peer.destroyed && peer.disconnected) peer.reconnect(); }, 2000));
     peer.on('open', () => {
+      if (done) return; // 'open' kommt nach reconnect() erneut – keine zweite Verbindung aufbauen
       const c = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
       c.on('open', () => {
         done = live = true;
