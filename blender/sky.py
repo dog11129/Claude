@@ -40,13 +40,19 @@ try:
         m.torus(0.13, 0.03, 0x7A3B3B, 0, -0.1, -0.12, seg=12, tseg=5, arc=PI, rx=PI / 2, ry=PI)
         return m.build()
 
-    def moon():
+    def moon():  # Sichel aus weichen Kugeln (dick in der Mitte, spitz an den Enden), schläft
         m = Model('skymoon')
-        m.ball(1.0, 0xFFF4C8, 0, 0, 0, sy=0.15, seg=32)
-        m.ball(0.92, 0x3A4F96, 0.55, -0.02, 0.32, sy=0.17, seg=28)  # Schatten macht die Sichel
-        for x, z, r in ((-0.55, -0.35, 0.12), (-0.35, 0.45, 0.08), (-0.7, 0.15, 0.06)): m.ball(r, 0xEFE2B0, x, -0.13, z, sy=0.2, seg=8)
-        m.box(0.16, 0.02, 0.03, 'dark', -0.42, -0.15, 0.1, r=0.01)  # schlafendes Auge
-        m.ball(0.1, 0xFF9AA8, -0.5, -0.14, -0.12, sy=0.2, sz=0.6, seg=8)
+        n = 18
+        for i in range(n):
+            t = i / (n - 1); a = math.radians(100 + t * 160)
+            r = 0.36 * math.sin(PI * t) ** 0.7 + 0.05
+            m.ball(r, 0xFFF4C8, math.cos(a) * 0.62, 0, math.sin(a) * 0.62, sy=0.35, seg=14)
+        for x, z, r in ((-0.62, -0.32, 0.07), (-0.48, 0.42, 0.05)): m.ball(r, 0xEFE2B0, x, -0.12, z, sy=0.3, seg=8)
+        m.torus(0.07, 0.016, 'dark', -0.66, -0.15, 0.06, seg=10, tseg=4, arc=PI, rx=PI / 2, ry=PI)  # geschlossenes Auge
+        m.ball(0.07, 0xFF9AA8, -0.7, -0.13, -0.1, sy=0.25, sz=0.6, seg=8)
+        for k in range(5):  # kleines Sternchen daneben
+            a = k * 1.2566 + PI / 2
+            m.ball(0.06, 0xFFF0A8, 0.45 + math.cos(a) * 0.05, 0, 0.55 + math.sin(a) * 0.05, sx=1.4, sy=0.3, sz=0.5, ry=-a + PI / 2, seg=6)
         return m.build()
 
     def wing():

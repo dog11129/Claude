@@ -5,6 +5,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, ball, cyl, cone } from './models.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
+import { tex, model } from './assets.js';
 export { FURNITURE, WALLS, FLOORS };
 
 const PI = Math.PI, H = PI / 2;
@@ -538,11 +539,12 @@ function window_(p, gl, u, hd, flowers) {
   if (flowers) p.push(C(0.07, 0.055, 0.1, TERRA, u + 0.35, 1.06, z + 0.09, 12), B(0.07, LEAF, u + 0.35, 1.15, z + 0.09), B(0.025, ROSE, u + 0.38, 1.2, z + 0.13), B(0.025, BUTTER, u + 0.31, 1.18, z + 0.14));
 }
 
-function buildRoom(w, d, wallId, floorId) {
+function buildRoom(w, d, wallId, floorId, textured = false) {
   const Wd = WALLS.find(x => x[0] === wallId) || WALLS[0], Fl = FLOORS.find(x => x[0] === floorId) || FLOORS[0];
   const p = [], gl = [], hw = w / 2, hd = d / 2, wh = ROOM_H + 0.1, wy = ROOM_H / 2 - 0.05, base = Wd[2];
   seed = 1234;
-  floorParts(p, gl, w, d, Fl);
+  if (textured) p.push(box(w, 0.1, d, shade(Fl[2], -0.12), 0, -0.06, 0)); // Muster kommt als Textur aus Blender
+  else floorParts(p, gl, w, d, Fl);
   // Wände: Rückwand und Seitenwände in voller Höhe, vorne nur ein niedriges Mäuerchen mit Türöffnung
   p.push(box(w + 2 * T, wh, T, base, 0, wy, -hd - T / 2));
   for (const s of [-1, 1]) {
@@ -555,13 +557,33 @@ function buildRoom(w, d, wallId, floorId) {
   p.push(box(w + 2 * T + 0.04, 0.07, T + 0.04, TRIM, 0, ROOM_H + 0.035, -hd - T / 2), box(w, 0.14, 0.05, BASE, 0, 0.07, -hd + 0.025));
   // Türschwelle und Fußmatte
   p.push(box(1.3, 0.1, T, TRIM, 0, -0.04, hd + T / 2), soft(1.0, 0.03, 0.46, 0xc98d55, 0, 0.025, hd + T / 2, 0.2), soft(0.84, 0.032, 0.32, 0xe8b27a, 0, 0.027, hd + T / 2, 0.2), ...flatHeart(0.25, ROSE, 0.04, 0.012).map(q => (q.g.translate(0, 0, hd + T / 2), q)));
+  if (textured) return [p, gl]; // Tapete und Fenster kommen aus Blender
   wallParts(p, gl, w, d, Wd);
   (w >= 6 ? [-w / 4, w / 4] : [0]).forEach((u, i) => window_(p, gl, u, hd, i === 0));
   return [p, gl];
 }
 
 export function makeRoom(w, d, wallId, floorId) {
-  return instance(built(['room', w, d, wallId, floorId].join(), () => buildRoom(w, d, wallId, floorId)), false);
+  const fl = tex('floor_' + floorId, w / 2, d / 2), wl = tex('wall_' + wallId);
+  if (!fl || !wl) return instance(built(['room', w, d, wallId, floorId].join(), () => buildRoom(w, d, wallId, floorId)), false);
+  // Raum-Hülle (Wände, Leisten, Schwelle) + Boden und Tapete als Blender-Texturen (2×2 Felder bzw. 2 breit × Raumhöhe)
+  const g = instance(built(['roomshell', w, d, wallId, floorId].join(), () => buildRoom(w, d, wallId, floorId, true)), false), hw = w / 2, hd = d / 2;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ map: fl }));
+  floor.rotation.x = -PI / 2; floor.position.y = 0.002; floor.receiveShadow = true;
+  g.add(floor);
+  const wall = (L, x, z, ry) => {
+    const t = tex('wall_' + wallId, L / 2, 1), m = new THREE.Mesh(new THREE.PlaneGeometry(L, ROOM_H), new THREE.MeshLambertMaterial({ map: t }));
+    m.position.set(x, ROOM_H / 2, z); m.rotation.y = ry; m.receiveShadow = true;
+    g.add(m);
+  };
+  wall(w, 0, -hd + 0.004, 0); wall(d, -hw + 0.004, 0, H); wall(d, hw - 0.004, 0, -H);
+  (w >= 6 ? [-w / 4, w / 4] : [0]).forEach((u, i) => {
+    for (const n of i === 0 ? ['room_window_f', 'room_window_f__glow'] : ['room_window', 'room_window__glow']) {
+      const m = model(n);
+      if (m) { m.position.set(u, 0, -hd); g.add(m); }
+    }
+  });
+  return g;
 }
 
 // Für den Blender-Export (tools/dump-shapes.mjs): Fenster mit Vorhängen (an der Wand bei z = 0)

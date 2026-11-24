@@ -136,3 +136,24 @@ export function flatGeometry(name) {
   FLAT.set(name, g);
   return g;
 }
+
+// ---------- Texturen aus Blender (assets/tex/*.webp, kachelbar) ----------
+const TEXS = new Map();
+export async function loadTextures(names) {
+  const loader = new THREE.TextureLoader();
+  await Promise.all(names.map(n => loader.loadAsync(new URL(`../assets/tex/${n}.webp`, import.meta.url).href).then(t => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 4;
+    TEXS.set(n, t);
+  }).catch(e => console.warn('Textur fehlt:', n, e))));
+}
+// Kopie mit eigener Wiederholung (teilt das Bild)
+export function tex(name, rx = 1, ry = 1) {
+  const t = TEXS.get(name);
+  if (!t) return null;
+  const c = t.clone();
+  c.repeat.set(rx, ry);
+  c.needsUpdate = true;
+  return c;
+}

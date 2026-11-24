@@ -34,7 +34,7 @@ import { crop } from './plants.js';
 import { placeable } from './nature.js';
 import { building } from './buildings.js';
 import { Zones } from './zones.js';
-import { tickAssets, part, snow, model, GLOW_VC } from './assets.js';
+import { tickAssets, part, snow, model, GLOW_VC, tex, flatGeometry } from './assets.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE } from './data.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, balloonPos, turnipSeller } from './state.js';
@@ -276,15 +276,45 @@ export class World {
     sky.add(this.stars);
     this.clouds = [];
     for (let i = 0; i < 9; i++) {
-      const p = [];
-      for (let j = 0; j < 5; j++) p.push(M.ball(2 + Math.random() * 1.5, 0xffffff, j * 2.2 - 4.4, Math.random(), Math.random() * 1.5, 1, 0.6, 1, 7));
-      const c = M.model(p, [], false);
-      c.children[0].material = CLOUD_MAT;
+      let c = model('cloud_' + (i % 4)); // Wolken aus Blender, sonst die alten Kugelwolken
+      if (c) { c.traverse(o => { if (o.isMesh) { o.material = CLOUD_MAT; o.castShadow = o.receiveShadow = false; } }); c.rotation.y = i * 1.3; }
+      else {
+        const p = [];
+        for (let j = 0; j < 5; j++) p.push(M.ball(2 + Math.random() * 1.5, 0xffffff, j * 2.2 - 4.4, Math.random(), Math.random() * 1.5, 1, 0.6, 1, 7));
+        c = M.model(p, [], false);
+        c.children[0].material = CLOUD_MAT;
+      }
       c.userData = { a: i / 9 * Math.PI * 2, r: 60 + Math.random() * 50, y: 24 + Math.random() * 12 };
       this.clouds.push(c);
       this.scene.add(c);
     }
     this.scene.add(sky);
+    // Sonne und Mond mit Gesicht (aus Blender), schweben vor der Kamera am Himmel – sieht man beim Blick nach oben
+    for (const k of ['skysun', 'skymoon']) {
+      const m = model(k);
+      if (!m) continue;
+      const mat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, transparent: true });
+      mat.defines = { NO_CURVE: '' };
+      m.traverse(o => { if (o.isMesh) { o.material = mat; o.castShadow = o.receiveShadow = false; o.renderOrder = -1; } });
+      m.scale.setScalar(k === 'skysun' ? 11 : 9);
+      m.frustumCulled = false;
+      this[k] = m;
+      this.scene.add(m);
+    }
+  }
+  // Sonne/Mond: am Tag wandert die Sonne von Ost nach West, nachts der Mond
+  placeSunMoon(hour, day) {
+    for (const [k, vis, t] of [['skysun', day, (hour - 6) / 14], ['skymoon', 1 - day, ((hour + 4) % 24) / 10]]) {
+      const m = this[k];
+      if (!m) continue;
+      m.visible = vis > 0.15;
+      if (!m.visible) continue;
+      m.traverse(o => { if (o.isMesh) o.material.opacity = Math.min(1, (vis - 0.15) * 3); });
+      const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw), side = (Math.min(1, Math.max(0, t)) - 0.5) * 2;
+      const D = 190, e = 0.75 - Math.abs(side) * 0.35;
+      m.position.set(this.target.x + (fx - fz * side * 0.7) * D, Math.sin(e) * D, this.target.z + (fz + fx * side * 0.7) * D);
+      m.lookAt(this.camera.position);
+    }
   }
 
   // Feine, gekachelte Detailtextur aus dem Canvas (keine Bilddateien nötig)
@@ -313,8 +343,8 @@ export class World {
     geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
     geo.computeVertexNormals();
     this.colorGround('summer');
-    // Gras mit dem typischen, feinen Rautenmuster
-    const grassTex = this.detailTex((g, rnd) => {
+    // Gras: Detailtextur aus Blender (sonst das alte, feine Rautenmuster aus dem Canvas)
+    const grassTex = tex('grass', 48, 48) || this.detailTex((g, rnd) => {
       for (let y = 0; y < 128; y += 16) for (let x = 0; x < 128; x += 16) {
         const o = (y / 16) % 2 ? 8 : 0;
         g.fillStyle = `hsl(0 0% ${90 + rnd() * 4}%)`;
@@ -329,8 +359,9 @@ export class World {
     const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: grassTex }));
     ground.receiveShadow = true;
     this.scene.add(ground);
-    // Sand-Erdwege und der runde Dorfplatz
-    const pathTex = this.detailTex((g, rnd) => {
+    // Sand-Erdwege und der runde Dorfplatz (Kiesel-Textur aus Blender, 2 Felder je Kachel)
+    const pathB = tex('path'), tile = pathB ? 2 : 3;
+    const pathTex = pathB || this.detailTex((g, rnd) => {
       for (let i = 0; i < 90; i++) {
         const x = rnd() * 128, y = rnd() * 128, r = 1.5 + rnd() * 3.5;
         g.fillStyle = `hsl(35 25% ${72 + rnd() * 22}%)`;
@@ -339,7 +370,7 @@ export class World {
     }, [1, 1]);
     for (const [x, z, w, d] of PATHS) {
       const map = pathTex.clone();
-      map.repeat.set(w / 3, d / 3);
+      map.repeat.set(w / tile, d / tile);
       map.needsUpdate = true;
       const p = new THREE.Mesh(new THREE.PlaneGeometry(w, d, Math.ceil(w * 2), Math.ceil(d * 2)), new THREE.MeshLambertMaterial({ color: 0xe9d29e, map })); // fein unterteilt, damit die Krümmung mitgeht
       p.rotation.x = -Math.PI / 2;
@@ -348,15 +379,27 @@ export class World {
       this.scene.add(p);
     }
     const pm = pathTex.clone();
-    pm.repeat.set(2.4, 2.4);
+    pm.repeat.set(PLAZA.r * 2 / tile, PLAZA.r * 2 / tile);
     pm.needsUpdate = true;
     const plaza = new THREE.Mesh(new THREE.RingGeometry(0, PLAZA.r, 40, 8), new THREE.MeshLambertMaterial({ color: 0xefdcaa, map: pm }));
     plaza.rotation.x = -Math.PI / 2;
     plaza.position.set(PLAZA.x, 0.014, PLAZA.z);
     plaza.receiveShadow = true;
     const ring = [];
-    for (let i = 0; i < 30; i++) { const a = i / 30 * Math.PI * 2; ring.push(M.ball(0.17 + (i % 3) * 0.03, i % 2 ? 0xd8cfc2 : 0xc9bfb1, PLAZA.x + Math.cos(a) * (PLAZA.r + 0.05), 0.02, PLAZA.z + Math.sin(a) * (PLAZA.r + 0.05), 1.2, 0.45, 1, 7)); }
-    this.scene.add(plaza, M.model(ring, [], false));
+    const stoneG = flatGeometry('pondstone');
+    if (stoneG) { // Randsteine aus Blender
+      const im = new THREE.InstancedMesh(stoneG, M.MAT, 30), d = new THREE.Object3D();
+      for (let i = 0; i < 30; i++) {
+        const a = i / 30 * Math.PI * 2;
+        d.position.set(PLAZA.x + Math.cos(a) * (PLAZA.r + 0.05), 0.0, PLAZA.z + Math.sin(a) * (PLAZA.r + 0.05)); d.rotation.set(0, -a, 0); d.scale.setScalar(0.55 + (i % 3) * 0.08); d.updateMatrix();
+        im.setMatrixAt(i, d.matrix);
+      }
+      im.receiveShadow = true;
+      this.scene.add(plaza, im);
+    } else {
+      for (let i = 0; i < 30; i++) { const a = i / 30 * Math.PI * 2; ring.push(M.ball(0.17 + (i % 3) * 0.03, i % 2 ? 0xd8cfc2 : 0xc9bfb1, PLAZA.x + Math.cos(a) * (PLAZA.r + 0.05), 0.02, PLAZA.z + Math.sin(a) * (PLAZA.r + 0.05), 1.2, 0.45, 1, 7)); }
+      this.scene.add(plaza, M.model(ring, [], false));
+    }
     this.buildWater();
     this.buildBridges();
   }
@@ -601,10 +644,10 @@ export class World {
 
   // ---------- Schmetterlinge (Tag) & Glühwürmchen (Nacht) ----------
   buildCritters() {
-    const wing = new THREE.PlaneGeometry(0.16, 0.12);
-    wing.translate(0.08, 0, 0);
-    wing.rotateX(-Math.PI / 2);
-    this.flies = new THREE.InstancedMesh(wing, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), 28);
+    const bw = flatGeometry('bfly_wing'); // Flügel aus Blender (mit halbem Körper), sonst eine flache Platte
+    let wing = bw;
+    if (!wing) { wing = new THREE.PlaneGeometry(0.16, 0.12); wing.translate(0.08, 0, 0); wing.rotateX(-Math.PI / 2); }
+    this.flies = new THREE.InstancedMesh(wing, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, vertexColors: !!bw }), 28);
     this.flyData = Array.from({ length: 14 }, (_, i) => ({ hx: (Math.random() - 0.5) * 26, hz: (Math.random() - 0.5) * 24, p: Math.random() * 100, s: 0.15 + Math.random() * 0.15, gone: 0 }));
     const cols = [0xffb3d1, 0xfff07a, 0xb7a6ff, 0xffffff, 0x8fd6ff, 0xffa65c];
     this.flyData.forEach((f, i) => { this.flies.setColorAt(i * 2, C(cols[i % 6])); this.flies.setColorAt(i * 2 + 1, C(cols[i % 6])); });
@@ -619,8 +662,7 @@ export class World {
     this.fireflies.frustumCulled = false;
     this.scene.add(this.fireflies);
     // Fischschatten im Fluss, im Teich und vor der Küste
-    const fg2 = new THREE.CircleGeometry(1, 14);
-    fg2.rotateX(-Math.PI / 2);
+    const fb = flatGeometry('fishshadow'), fg2 = fb ? fb.clone().scale(0.8, 0.2, 0.8) : new THREE.CircleGeometry(1, 14).rotateX(-Math.PI / 2);
     this.fishM = new THREE.InstancedMesh(fg2, new THREE.MeshBasicMaterial({ color: 0x14394a, transparent: true, opacity: 0.38, depthWrite: false }), 20);
     this.fishM.frustumCulled = false;
     this.fishM.renderOrder = 0;
@@ -1162,8 +1204,16 @@ export class World {
       this.scene.add(this.shoot);
       this.shootT = -1;
       // Regenbogen: sieben bunte Bögen weit im Norden
-      const g = new THREE.Group(), cols = [0xff5a5a, 0xffa23a, 0xffe14a, 0x6fdc6a, 0x5ab8ff, 0x6f6aff, 0xb46aff];
-      cols.forEach((c, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(60 - i * 1.6, 0.8, 4, 60, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.35, fog: false, depthWrite: false })); m.material.defines = { NO_CURVE: '' }; g.add(m); });
+      let g = model('rainbow'); // aus Blender, mit Wölkchen an den Füßen
+      if (g) {
+        const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35, fog: false, depthWrite: false });
+        mat.defines = { NO_CURVE: '' };
+        g.traverse(o => { if (o.isMesh) { o.material = mat; o.castShadow = o.receiveShadow = false; } });
+      } else {
+        g = new THREE.Group();
+        const cols = [0xff5a5a, 0xffa23a, 0xffe14a, 0x6fdc6a, 0x5ab8ff, 0x6f6aff, 0xb46aff];
+        cols.forEach((c, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(60 - i * 1.6, 0.8, 4, 60, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.35, fog: false, depthWrite: false })); m.material.defines = { NO_CURVE: '' }; g.add(m); });
+      }
       g.position.set(0, -6, -110);
       this.rainbow = g;
       this.scene.add(g);
@@ -1172,7 +1222,7 @@ export class World {
     const rb = s.rainbowDay === s.day && !rain && hour < 13 ? 1 : 0;
     this.rainbowA = (this.rainbowA || 0) + (rb - (this.rainbowA || 0)) * 0.02;
     this.rainbow.visible = this.rainbowA > 0.01;
-    this.rainbow.children.forEach(m => { m.material.opacity = 0.32 * this.rainbowA; });
+    this.rainbow.traverse(m => { if (m.isMesh) m.material.opacity = 0.32 * this.rainbowA; });
     this.rainbow.position.x = this.target.x;
     this.rainbow.position.z = this.target.z - 110;
     // Sternschnuppen in Sternschnuppen-Nächten (nur zum Anschauen und Wünschen, jedes Gerät sieht eigene)
@@ -1303,6 +1353,7 @@ export class World {
     this.lamp.intensity = night * 12;
     const a = Math.min(1, Math.max(0, (hour - 6) / 14)) * Math.PI;
     this.sunDir = new THREE.Vector3(-Math.cos(a) * 0.8, 1.1, 0.6).normalize();
+    this.placeSunMoon(hour, rain ? 0 : day);
     M.GLOW.color.copy(GLOW_DAY).lerp(GLOW_NIGHT, Math.min(1, night * 1.5));
     GLOW_VC.color.setScalar(0.9 + Math.min(1, night * 1.5) * 1.6);
     this.waterU.night.value = night * 0.8;

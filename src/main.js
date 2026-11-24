@@ -11,7 +11,8 @@ import { cleanLook, randomLook } from './avatar.js';
 import { NPCS, npcLine, giftReply } from './npc.js';
 import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, inPond, onPier, PATHS, PLAZA } from './island.js';
 import { zoneOf, clampPos, STREET, TROPIC, TOURS, BOAT_PRICE, shopOpen, concertNow } from './newleaf.js';
-import { loadAssets } from './assets.js';
+import { loadAssets, loadTextures } from './assets.js';
+import { FLOORS, WALLS } from './furni-data.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -37,7 +38,8 @@ audio.sound = settings.sound;
 audio.music = settings.music;
 
 // Blender-Modelle laden (der Ladebildschirm zeigt den Fortschritt)
-await loadAssets(['buildings', 'nature', 'crops', 'place', 'furniture', 'characters'], f => { const el = document.querySelector('#loading div'); if (el) el.innerHTML = `<span>🏝️</span><br>Kuschelinsel lädt… ${Math.round(f * 100)}%`; });
+await loadAssets(['buildings', 'nature', 'crops', 'place', 'furniture', 'characters', 'sky'], f => { const el = document.querySelector('#loading div'); if (el) el.innerHTML = `<span>🏝️</span><br>Kuschelinsel lädt… ${Math.round(f * 100)}%`; });
+await loadTextures(['grass', 'path', ...FLOORS.map(f => 'floor_' + f[0]), ...WALLS.map(w => 'wall_' + w[0])]);
 const world = new World($('c'), $('labels'), settings.quality);
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
