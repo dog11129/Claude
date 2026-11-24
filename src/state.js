@@ -425,6 +425,7 @@ function festMorning(s) {
       s.eggs[k] = n % 5;
       n++;
     }
+    s.fest.total = Object.keys(s.eggs).length;
   }
   const note = (title, text, item, n) => s.mail.push({ kind: 'note', from: 'rosi', title, text, item: item || null, n: n || 1, day: s.day });
   if (F) {
@@ -762,13 +763,13 @@ const ACTIONS = {
       addXp(s, 2, out);
       fx(out, a.x, a.z, '🥚', 'sparkle');
       out.snd = 'egg';
-      if (f && n >= EGGS && !f.done) {
+      if (f && n >= (f.total || EGGS) && !f.done) {
         f.done = 1;
         addInv(s, 'eiernest', 1); s.money += 1000; s.stats.earned += 1000;
         (s.diary ||= []).push({ day: s.day, icon: '🥚', text: 'Alle 10 Eier bei der Eiersuche gefunden!' });
         out.msg = '🎉 Alle 10 Eier gefunden! Dafür gibt es ein 🪺 Eiernest und 1.000 Taler!';
         out.snd = 'fanfare';
-      } else out.msg = `🥚 Ei gefunden! (${n} von ${EGGS})`;
+      } else out.msg = `🥚 Ei gefunden! (${n} von ${f?.total || EGGS})`;
       return true;
     }
     if (s.drift?.[k]) {
