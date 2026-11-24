@@ -180,17 +180,19 @@ function refill(s) {
   // jeden Morgen eine Flaschenpost mit Bauplan am Strand
   s.ground ||= {};
   for (const [k, g] of Object.entries(s.ground)) if (g.id === 'bottle') delete s.ground[k];
-  for (let t = 0; t < 300; t++) {
-    const [x, z] = randTile(), k = key(x, z);
-    if (sand(x, z) && coast(x, z) > -2 && !s.shells[k] && !s.obj[k] && !resAt(s, k) && !s.ground[k]) { s.ground[k] = { id: 'bottle', n: 1 }; break; }
-  }
+  const shore = shoreTiles().filter(([x, z, c]) => c > -2 && !s.shells[key(x, z)] && !s.obj[key(x, z)] && !resAt(s, key(x, z)) && !s.ground[key(x, z)]);
+  if (shore.length) { const [x, z] = pick(shore); s.ground[key(x, z)] = { id: 'bottle', n: 1 }; }
   s.dives = [];
   while (s.dives.length < DIVES) newDive(s);
   s.drift = {}; // Treibholz am Strand
-  for (let t = 0, n = 0; n < 3 && t < 400; t++) {
-    const [x, z] = randTile(), k = key(x, z);
-    if (sand(x, z) && coast(x, z) > -2.5 && !s.shells[k] && !s.obj[k] && !resAt(s, k) && !s.ground[k]) { s.drift[k] = 1; n++; }
-  }
+  const wood = shoreTiles().filter(([x, z, c]) => c > -2.5 && !s.shells[key(x, z)] && !s.obj[key(x, z)] && !resAt(s, key(x, z)) && !s.ground[key(x, z)]);
+  for (let n = 0; n < 3 && wood.length; n++) { const [x, z] = wood.splice(rnd(wood.length), 1)[0]; s.drift[key(x, z)] = 1; }
+}
+// Strandfelder nah am Wasser (für Flaschenpost & Treibholz)
+let SHORE = null;
+function shoreTiles() {
+  if (!SHORE) { SHORE = []; for (let x = -MAP; x <= MAP; x++) for (let z = -MAP; z <= MAP; z++) if (sand(x, z) && coast(x, z) > -2.5) SHORE.push([x, z, coast(x, z)]); }
+  return SHORE;
 }
 // Luftblasen im Meer: hier liegt ein Meerestier
 function newDive(s) {
