@@ -14,7 +14,7 @@ export const LOOKS = {
   shoes: ['#6b4a32', '#3b3b4a', '#f5f5f5', '#ff6b6b', '#ffd23f', '#6cc4ff'],
   hat: [['none', 'Ohne'], ['straw', 'Strohhut'], ['cap', 'Mütze'], ['flowers', 'Blumenkranz'], ['bunny', 'Hasenohren'], ['crown', 'Krone'], ['beanie', 'Strickmütze'], ['cat', 'Katzenohren'], ['bow', 'Schleife'], ['cowboy', 'Cowboyhut'], ['wizard', 'Zauberhut']],
   glasses: [['none', 'Ohne'], ['round', 'Rund'], ['sun', 'Sonnenbrille'], ['heart', 'Herzbrille']],
-  pet: [['none', 'Kein Haustier'], ['cat', 'Katze'], ['dog', 'Hund'], ['bunny', 'Hase'], ['chick', 'Küken'], ['fox', 'Fuchs'], ['pig', 'Schwein']],
+  pet: [['none', 'Kein Haustier'], ['cat', 'Katze'], ['dog', 'Hund'], ['bunny', 'Hase'], ['chick', 'Küken'], ['fox', 'Fuchs']],
   petColor: ['#e8a35c', '#f5f0e6', '#8a8a92', '#6b4a32', '#3b3b40', '#ffd966'],
 };
 const KEYS = Object.keys(LOOKS);
@@ -422,17 +422,7 @@ function petParts(kind, C) {
       neck: [0, 0.3, 0.13], tail: [ell(0.075, C, 0, 0.06, -0.12, 1, 1, 2, 0.6, 0, 0, 8), ball(0.055, 0xffffff, 0, 0.15, -0.255, 1, 1, 1, 6)], tailAt: [0, 0.19, -0.18],
       a: legs(0x4a3426, 0.035, 0.12, [[0.07, 0.1], [-0.07, -0.13]]), b: legs(0x4a3426, 0.035, 0.12, [[-0.07, 0.1], [0.07, -0.13]]),
     };
-    case 'pig': { // bleibt rosa, die Fellfarbe tönt nur leicht
-      const P = mix(0xffb8c8, C, 0.15), PD = mix(0xff97ae, C, 0.1);
-      return {
-        body: [ell(0.15, P, 0, 0.17, -0.03, 1, 0.9, 1.25, 0, 0, 0, 10)],
-        head: [ell(0.13, P, 0, 0.02, 0, 1.1, 0.98, 1, 0, 0, 0, 10), cyl(0.05, 0.055, 0.05, PD, 0, -0.02, 0.13, 12, Math.PI / 2),
-          ...[-1, 1].flatMap(s => [ell(0.01, 0x9a4a5e, 0.02 * s, -0.02, 0.157, 0.8, 1.2, 0.5), ell(0.055, P, 0.075 * s, 0.1, 0.03, 0.85, 1.35, 0.35, 0.95, 0, -0.45 * s, 8),
-            ell(0.035, PD, 0.077 * s, 0.103, 0.037, 0.8, 1.2, 0.3, 0.95, 0, -0.45 * s)]), ...eyes(0.045, 0.1, 0.06), ...blush(-0.03, 0.095, 0.095)],
-        neck: [0, 0.27, 0.14], tail: [ring(0.028, 0.009, PD, 0, 0.03, -0.02, Math.PI * 1.6, -0.7)], tailAt: [0, 0.2, -0.2],
-        a: legs(P, 0.04, 0.1, [[0.075, 0.1], [-0.075, -0.13]]), b: legs(P, 0.04, 0.1, [[-0.075, 0.1], [0.075, -0.13]]),
-      };
-    }
+  }
   return { // Katze
     body: [ell(0.13, C, 0, 0.17, -0.03, 0.95, 0.85, 1.35, 0, 0, 0, 8), ell(0.08, L, 0, 0.17, 0.09, 1, 1, 0.6)],
     head: [ell(0.13, C, 0, 0.03, 0, 1.12, 0.95, 1, 0, 0, 0, 9), ell(0.05, L, 0, -0.025, 0.1, 1.4, 0.8, 0.7), ell(0.015, 0xff8fab, 0, -0.005, 0.13, 1.3, 0.8, 0.8),
