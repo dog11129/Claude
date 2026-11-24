@@ -338,6 +338,8 @@ export const FEST_DECO = {
   kuerbis: [['lantern_pumpkin', -3, 1], ['lantern_pumpkin', 3, 1], ['lantern_pumpkin', -2, -1], ['lantern_pumpkin', 2, -1], ['lantern_pumpkin', -2, 3], ['lantern_pumpkin', 2, 3]],
   lichter: [['lichterbaum', -2, 3], ['snowman', 2, 3]],
 };
+// Blumen-Kreuzungen: zwei verschiedene, gegossene Blumen nebeneinander -> manchmal keimt über Nacht eine seltene Blume daneben
+export const HYBRIDS = { 'rose+tulpe': 'mohn', 'kosmee+tulpe': 'lilie', 'hyazinthe+stiefmuetterchen': 'kornblume', 'kosmee+rose': 'mohn', 'hyazinthe+rose': 'kornblume', 'stiefmuetterchen+tulpe': 'lilie', 'kosmee+sonnenblume': 'lilie', 'hyazinthe+kosmee': 'kornblume' };
 export const BIRTHDAYS = { mira: ['spring', 2], bruno: ['summer', 1], pippa: ['summer', 5], lio: ['autumn', 4], kalle: ['winter', 2], wanda: ['autumn', 7] };
 
 for (const [id, name, icon, sell] of BUGS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 150) };

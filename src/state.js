@@ -4,7 +4,7 @@ import {
   UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS, SEASON_LEN, SEASON_IDS, isFlower,
   RES_SPOTS, TREE_FRUIT, FRUIT_REGROW, BUGS, FOSSILS, SHELLS, SHELLS_PER_DAY, WEEDS_PER_DAY, RECIPES, DIG_SPOTS_PER_DAY,
   NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK, SEA, DIVES, STARTER_DIY, DIY_IDS,
-  FESTS, BIRTHDAYS, CONTEST_SECS, CONTEST_AT, FEST_DECO,
+  FESTS, BIRTHDAYS, CONTEST_SECS, CONTEST_AT, FEST_DECO, HYBRIDS,
 } from './data.js';
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
@@ -472,7 +472,34 @@ function contestTick(s) {
   return changed;
 }
 
+// Über Nacht: Blumen-Kreuzungen (gegossene, blühende Nachbarblumen verschiedener Sorte)
+function crossBreed(s) {
+  let n = 0;
+  const bloom = k => { const t = s.tiles[k]; return t?.c && isFlower(t.c.k) && t.c.g >= CROPS[t.c.k].grow && (t.w > 0 || s.weather !== 'sun') ? t.c.k : null; };
+  for (const k of Object.keys(s.tiles)) {
+    if (n >= 2) break;
+    const a = bloom(k);
+    if (!a) continue;
+    const [x, z] = k.split(',').map(Number);
+    for (const [dx, dz] of [[1, 0], [0, 1]]) {
+      const b = bloom(key(x + dx, z + dz));
+      if (!b || b === a) continue;
+      const h = HYBRIDS[[a, b].sort().join('+')];
+      if (!h || Math.random() > 0.3) continue;
+      const spot = [[x - 1, z], [x + 1 + dx, z + dz], [x, z - 1], [x + dx, z + dz + 1], [x, z + 1], [x + 1, z - 1]].find(([i, j]) => canPlace(s, i, j) && !s.paths?.[key(i, j)]);
+      if (!spot) continue;
+      s.tiles[key(...spot)] = { w: 0, c: { k: h, g: 0 } };
+      (s.diary ||= []).push({ day: s.day + 1, icon: CROPS[h].icon, text: `Eine seltene ${CROPS[h].name} ist zwischen ${CROPS[a].name} und ${CROPS[b].name} gekeimt!` });
+      s.bred = (s.bred || 0) + 1;
+      n++;
+      break;
+    }
+  }
+  return n;
+}
+
 function newDay(s) {
+  const bred = crossBreed(s);
   s.day++;
   s.dayTime = 0;
   const sea = seasonOf(s.day), wet = { spring: 0.25, summer: 0.15, autumn: 0.28, winter: 0.35 }[sea], was = s.weather;
@@ -526,6 +553,7 @@ function newDay(s) {
   }
   s.stars = Math.max(s.stars || 1, sc.stars);
   festMorning(s);
+  if (bred) s.mail.push({ kind: 'note', from: 'lio', title: '🌱 Etwas Neues blüht!', text: `Hallo ihr zwei!\nIch hab heute früh in eurem Garten etwas entdeckt: Zwischen euren Blumen ist eine seltene Sorte gekeimt! Das passiert manchmal, wenn verschiedene Blumen nebeneinander stehen und gut gegossen sind.\n\nLio 🦊`, day: s.day });
   if (s.diary?.length > 120) s.diary.splice(0, s.diary.length - 120);
   if (s.mail.length > 20) s.mail.splice(0, s.mail.length - 20);
   fillOrders(s);
@@ -1014,6 +1042,15 @@ const ACTIONS = {
     (s.diary ||= []).push({ day: s.day, icon: '💌', text: `${from} hat ${to} einen Brief geschrieben` });
     out.msg = `💌 Brief an ${to} eingeworfen – er liegt morgen früh im Briefkasten!`;
     out.snd = 'love';
+    return true;
+  },
+  riddle(s, a, out) { // Foto-Rätsel gelöst
+    if ((s.riddles?.day === s.day ? s.riddles.n : 0) >= 5) { out.msg = '🧩 Gelöst! (Für heute gibt es keine Taler mehr dafür.)'; return true; }
+    s.riddles = { day: s.day, n: (s.riddles?.day === s.day ? s.riddles.n : 0) + 1 };
+    s.money += 300; s.stats.earned += 300;
+    (s.diary ||= []).push({ day: s.day, icon: '🧩', text: `${String(a.name || '').slice(0, 16)} hat ${String(a.from || 'ein').slice(0, 16)}s Foto-Rätsel gelöst` });
+    out.msg = '🧩 Ort gefunden! +300 Taler';
+    out.snd = 'found';
     return true;
   },
   diary(s, a, out) { // eigener Tagebuch-Eintrag

@@ -166,6 +166,11 @@ input[type=text]:focus { border-color: var(--pink); }
 #clockpill .ico { width: 38px; height: 38px; margin: 0; }
 #ctime { font-size: 26px; font-weight: 700; letter-spacing: .5px; color: var(--ink); }
 #clock { font-size: 12px; font-weight: 600; color: var(--soft); margin-top: 3px; }
+#riddle { position: fixed; left: max(12px, var(--safe-l, 0px)); bottom: 110px; width: 220px; background: #fff; border-radius: 16px; padding: 8px; box-shadow: var(--shadow); z-index: 6; font-size: 13px; }
+#riddle img { width: 100%; border-radius: 10px; display: block; }
+#riddle div { display: flex; flex-direction: column; gap: 2px; padding: 6px 4px 2px; }
+#riddlehot { font-weight: 700; font-size: 16px; }
+#riddlex { position: absolute; top: -10px; right: -10px; width: 32px; height: 32px; font-size: 14px; }
 #hidepill { font-size: 16px; font-weight: 700; background: #e9e0ff; color: #5b3fa6; }
 body.eyesclosed #c { filter: blur(14px) brightness(.45); transition: filter .4s; }
 body.eyesclosed::after { content: '🙈'; position: fixed; inset: 0; display: grid; place-items: center; font-size: 96px; pointer-events: none; z-index: 5; }
@@ -519,11 +524,13 @@ body.skyview #skybtn { background: #7f8fd8; }
 <div id="photobar" class="hidden">
   <button class="round" data-prot="-1">⟲</button>
   <button id="shutter">📸</button>
+  <button class="round" id="riddlebtn" title="Als Foto-Rätsel schicken">🧩</button>
   <button class="round" data-prot="1">⟳</button>
   <button class="round" id="photoexit">✖️</button>
 </div>
 <div id="photohint" class="pill hidden">Ziehen = drehen & neigen · Zoomen = Mausrad / zwei Finger</div>
 <div id="flash"></div>
+<div id="riddle" class="hidden"><img id="riddleimg" alt=""><div><b id="riddletxt"></b><span id="riddlehot"></span></div><button class="round" id="riddlex" title="Aufgeben">✖️</button></div>
 <div id="fade"></div>
 
 <div id="panel" class="hidden">

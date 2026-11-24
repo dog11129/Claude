@@ -423,3 +423,23 @@ test('Feste: Eiersuche, Kürbisfest, Turnier, Geburtstag', async () => {
   tick(s, CONTEST_SECS + 1, true);
   assert.ok(s.contest.res.length === 1 && s.money > before, 'Runde ausgewertet');
 });
+
+test('Blumen-Kreuzung: verschiedene Blumen nebeneinander', async () => {
+  const { CROPS } = await import('../src/data.js');
+  let ok = false;
+  for (let i = 0; i < 40 && !ok; i++) {
+    const s = newFarm();
+    const spots = Object.keys(s.tiles).length ? [] : null;
+    // zwei blühende, gegossene Blumen auf freien Rasenfeldern
+    let a = null;
+    for (let x = -10; x <= 10 && !a; x++) for (let z = -6; z <= 10 && !a; z++) {
+      const S = [[x, z], [x + 1, z], [x - 1, z], [x + 2, z], [x, z - 1], [x, z + 1]];
+      if (S.every(([i, j]) => canPlace(s, i, j))) a = [x, z];
+    }
+    s.tiles[a[0] + ',' + a[1]] = { w: 100, c: { k: 'tulpe', g: CROPS.tulpe.grow } };
+    s.tiles[(a[0] + 1) + ',' + a[1]] = { w: 100, c: { k: 'rose', g: CROPS.rose.grow } };
+    tick(s, DAY, true);
+    ok = Object.values(s.tiles).some(t => t.c?.k === 'mohn');
+  }
+  assert.ok(ok, 'irgendwann keimt ein Mohn');
+});

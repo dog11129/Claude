@@ -298,6 +298,36 @@ function grp(parent, x = 0, y = 0, z = 0) {
   return g;
 }
 
+// Gesichtsausdrücke bei Emotes: Herzaugen, rote Bäckchen, Tränchen, Ärger-Zeichen, Glitzer
+const emojiMat = {};
+function faceMat(e) {
+  if (emojiMat[e]) return emojiMat[e];
+  if (typeof document === 'undefined') return BLUSH_MAT;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  g.font = '52px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(e, 32, 36);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return (emojiMat[e] = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+}
+const BLUSH_MAT = new THREE.MeshBasicMaterial({ color: 0xff7f9a, transparent: true, opacity: 0.55, depthWrite: false });
+const EXPR = { '❤️': 'love', '❤': 'love', '🥰': 'love', '😘': 'kiss', '😊': 'shy', '🙈': 'shy', '😢': 'cry', '😂': 'laugh', '😡': 'angry', '🎉': 'sparkle', '✨': 'sparkle', '🤔': 'think' };
+function buildFace(neck) {
+  const f = new THREE.Group();
+  f.position.set(0, HEAD + EY, 0);
+  neck.add(f);
+  const plane = (e, x, y, z, sz) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(sz, sz), faceMat(e)); m.position.set(x, y, z); m.rotation.x = -0.55; m.visible = false; m.castShadow = false; m.renderOrder = 3; f.add(m); return m; };
+  const blush = [-1, 1].map(s => { const m = new THREE.Mesh(new THREE.CircleGeometry(0.045, 14), BLUSH_MAT); m.scale.y = 0.55; m.position.set(0.17 * s, -0.065, 0.255); m.rotation.y = 0.45 * s; m.visible = false; f.add(m); return m; });
+  return {
+    blush, hearts: [-1, 1].map(s => plane('❤️', 0.115 * s, 0.01, 0.31, 0.13)),
+    tears: [-1, 1].map(s => plane('💧', 0.17 * s, -0.04, 0.29, 0.1)),
+    angry: plane('💢', 0.16, 0.24, 0.24, 0.17), spark: plane('✨', -0.24, 0.18, 0.2, 0.16), think: plane('💭', 0.26, 0.26, 0.12, 0.18),
+  };
+}
+
 export function makeAvatar(look) {
   const l = cleanLook(look);
   const root = new THREE.Group(), rig = grp(root), hips = grp(rig, 0, HIP), torso = grp(hips);
@@ -311,6 +341,7 @@ export function makeAvatar(look) {
   mesh(bgeo(headNames(l), l, 'head' + [l.skin, l.hairStyle, l.hairColor, l.hat, l.glasses, l.topColor, l.bottomColor], () => headParts(l)), neck, 0, HEAD);
   const eyes = mesh(bgeo(['av_eyes_' + l.eyes], l, 'eyes' + l.eyes, () => eyeParts(l.eyes)), neck, 0, HEAD + EY);
   eyes.castShadow = false;
+  const face = buildFace(neck);
 
   let held = null, heldMesh = null, level = false, ph = 0, T = Math.random() * 9, blinkAt = 1 + Math.random() * 3;
   const c = { ...REST };
@@ -415,6 +446,15 @@ export function makeAvatar(look) {
     armL.rotation.set(c.aLx, 0, c.aLz); armR.rotation.set(c.aRx, 0, -c.aRz);
     hand.rotation.x = (level ? -(c.aRx + c.tx) : 0) + c.hand;
     eyes.scale.y = eye;
+    // Gesichtsausdruck
+    const ex = EXPR[st.emote] || null;
+    face.blush.forEach(m => { m.visible = ['love', 'kiss', 'shy'].includes(ex); });
+    face.hearts.forEach((m, i) => { m.visible = ex === 'love'; m.scale.setScalar(1 + Math.sin(T * 8 + i) * 0.12); });
+    if (ex === 'love') eyes.scale.y = 0.01;
+    face.tears.forEach((m, i) => { m.visible = ex === 'cry' || ex === 'laugh'; m.position.y = -0.04 - ((T * (ex === 'laugh' ? 1.6 : 0.9) + i * 0.5) % 1) * 0.12; });
+    face.angry.visible = ex === 'angry'; face.angry.scale.setScalar(1 + Math.abs(Math.sin(T * 10)) * 0.25);
+    face.spark.visible = ex === 'sparkle'; face.spark.rotation.z = T * 2;
+    face.think.visible = ex === 'think'; face.think.position.y = 0.22 + Math.sin(T * 3) * 0.02;
   };
   root.userData.update(1, {});
   return root;

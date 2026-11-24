@@ -425,7 +425,35 @@ export class World {
     }
     col.needsUpdate = true;
   }
+  // Felsbrocken an der Klippenwand im Norden und ein paar Felsnadeln im Meer
+  buildCliffRocks() {
+    if (this.cliffRocks || !model('rock')) return;
+    const g = this.cliffRocks = new THREE.Group();
+    let seed = 7;
+    const r = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const fall = riverX(cliffZ(riverX(-16)));
+    for (let x = -19; x <= 19; x += 1.1 + r() * 1.3) {
+      if (Math.abs(x - fall) < 2.2 || coast(x, cliffZ(x)) > -1.5) continue;
+      const m = model(r() < 0.35 ? 'rock_small' : 'rock'), sc = 0.9 + r() * 0.9, cz = cliffZ(x);
+      m.position.set(x + (r() - 0.5) * 0.4, -0.25 + r() * 0.9, cz - 0.1 - r() * 0.3);
+      m.rotation.set((r() - 0.5) * 0.5, r() * 6.28, (r() - 0.5) * 0.4);
+      m.scale.set(sc * 1.2, sc * (0.8 + r() * 0.5), sc);
+      g.add(m);
+    }
+    for (const [x, z, sc] of [[-20, 9, 2.4], [-17.5, 15.5, 1.6], [19.5, 11, 2.1], [21, -4, 1.8], [12, 21.5, 1.5], [-21.5, -8, 1.7]]) {
+      if (coast(x, z) < 0.5) continue;
+      const m = model('rock');
+      m.position.set(x, -0.9, z); m.rotation.y = x * z; m.scale.set(sc, sc * 1.9, sc);
+      g.add(m);
+      const m2 = model('rock_small');
+      m2.position.set(x + 0.9, -0.5, z + 0.6); m2.scale.setScalar(sc * 0.7);
+      g.add(m2);
+    }
+    g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    this.scene.add(g);
+  }
   syncSeason(s) {
+    this.buildCliffRocks();
     const season = seasonOf(s.day);
     if (season === this.season) return;
     this.season = season;

@@ -158,6 +158,7 @@ function hostData(id, d) {
   if (d.t === 'look') Object.assign(p, cleanProfile(d));
   if (d.t === 'act') handleAct(id, d.a);
   if (d.t === 'chat') chat(id, d.text);
+  if (d.t === 'riddle') riddle(id, d);
   if (d.t === 'emote') emote(id, d.e);
   if (d.t === 'hug' && typeof d.id === 'string') social(id, d.id, 'hug');
   if (d.t === 'soc' && typeof d.id === 'string' && Object.hasOwn(SOCIAL, d.k)) social(id, d.id, d.k);
@@ -183,7 +184,7 @@ function handleAct(id, a) {
     if (t - last < (a.t === 'bug' ? 1200 : 2500)) return;
     G.lastCatch[id] = t;
   }
-  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a);
+  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a);
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
   const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday };
@@ -295,6 +296,7 @@ function guestData(d) {
     case 'lvl': onLevel(d.l); break;
     case 'ach': onAch(d.ids); break;
     case 'chat': showChat(d); break;
+    case 'riddle': showRiddle(d); break;
     case 'emote': showEmote(d.id, d.e); break;
     case 'soc': if (Object.hasOwn(SOCIAL, d.k)) onSocial(d.a, d.b, d.k); break;
     case 'toast': toast(d.text); if (d.snd) play(d.snd); break;
@@ -460,6 +462,56 @@ function updateHide(me, now) {
   if (seeker && d < 1.3) { sendSocial(h.hider, 'found'); endHide(true); return; }
   if (left <= 0) endHide(false);
 }
+// ---------- Zu zweit: Foto-Rätsel ----------
+// Foto machen ➜ an die anderen schicken ➜ wer den Ort findet, bekommt Taler
+function riddle(id, d) { // beim Host: prüfen und an alle anderen weitergeben
+  const p = G.players[id];
+  if (!p || typeof d.img !== 'string' || !d.img.startsWith('data:image/jpeg') || d.img.length > 300000 || ![d.x, d.z].every(Number.isFinite)) return;
+  const m = { t: 'riddle', img: d.img, x: d.x, z: d.z, from: id, name: p.name };
+  G.net?.broadcast(m, id);
+  if (id !== G.me) showRiddle(m);
+}
+function sendRiddle() {
+  const others = Object.keys(G.players).filter(id => id !== G.me);
+  if (!others.length) { toast('🧩 Foto-Rätsel gehen nur zu zweit – lade jemanden auf eure Insel ein!'); return; }
+  const src = new Image();
+  src.onload = () => {
+    const c = document.createElement('canvas'), w = 480, h = Math.round(src.height / src.width * w);
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(src, 0, 0, w, h);
+    const me = G.players[G.me], m = { t: 'riddle', img: c.toDataURL('image/jpeg', 0.7), x: Math.round(me.x * 10) / 10, z: Math.round(me.z * 10) / 10 };
+    sendTo(m, () => riddle(G.me, m));
+    play('shutter');
+    toast('🧩 Foto-Rätsel verschickt! Mal sehen, wer den Ort zuerst findet …');
+    setPhoto(false);
+  };
+  src.src = world.snapshot();
+}
+function showRiddle(d) {
+  if (d.from === G.me || typeof d.img !== 'string' || !d.img.startsWith('data:image/jpeg')) return;
+  G.riddle = { x: d.x, z: d.z, name: d.name, from: d.from };
+  $('riddleimg').src = d.img;
+  setText('riddletxt', `🧩 Wo hat ${d.name} dieses Foto gemacht?`);
+  $('riddle').classList.remove('hidden');
+  toast(`🧩 ${d.name} schickt dir ein Foto-Rätsel! Finde den Ort.`, true);
+  play('chat');
+}
+function updateRiddle(me) {
+  const r = G.riddle;
+  if (!r) return;
+  const d = Math.hypot(r.x - me.x, r.z - me.z);
+  setText('riddlehot', d < 2.5 ? '🎉' : d < 5 ? '🔥 Heiß!' : d < 10 ? '☀️ Warm' : d < 18 ? '🌤️ Lauwarm' : '❄️ Kalt');
+  if (d < 2.5) {
+    G.riddle = null;
+    $('riddle').classList.add('hidden');
+    send({ t: 'riddle', from: r.name });
+    world.burst(me.x, me.z, 'coin', 1.6);
+    world.float(me.x, me.z, '🧩🎉', 2);
+    play('found');
+  }
+}
+$('riddlex').onclick = () => { G.riddle = null; $('riddle').classList.add('hidden'); toast('🧩 Rätsel aufgegeben.'); };
+$('riddlebtn').onclick = sendRiddle;
 // ---------- Zu zweit: Händchen halten (wer steht, läuft mit) ----------
 function updateHand(me, now) {
   const h = G.hand;
@@ -1799,6 +1851,7 @@ function gameFrame(dt, now) {
   updateFest(me, now);
   updateHide(me, now);
   updateHand(me, now);
+  updateRiddle(me);
 
   let prompt = null;
   if (shown && !G.fishing) {
@@ -1907,4 +1960,4 @@ function demoFarm() {
 
 showMenu(joinParam ? 'join' : 'title');
 requestAnimationFrame(frame);
-window.__game = { get G() { return G; }, world, S, profile, settings, openTalk, social };  // für Tests & Fehlersuche
+window.__game = { get G() { return G; }, world, S, profile, settings, openTalk, social, showRiddle };  // für Tests & Fehlersuche
