@@ -90,6 +90,14 @@ const check = (ok, what) => { console.log((ok ? '✔ ' : '✘ ') + what); if (!o
   await sleep(600);
   check(await A.evaluate(() => Object.values(window.__game.G.players).some(p => p.look.hat === 'crown')), 'Neues Aussehen des Gasts sieht der Host');
 
+  await A.evaluate(() => { const g = window.__game.G; g.s.dayTime = 0.85; g.players.h.pose = 'sleep'; });
+  await sleep(500);
+  check(await A.evaluate(() => window.__game.G.s.day === 1), 'Nur einer im Bett: noch kein neuer Tag');
+  await B.evaluate(() => { const g = window.__game.G; g.players[g.me].pose = 'sleep'; });
+  await A.waitForFunction(() => window.__game.G.s.day === 2, null, { timeout: 5000 }).catch(() => {});
+  await sleep(600);
+  check(await A.evaluate(() => window.__game.G.s.day === 2) && await B.evaluate(() => window.__game.G.players[window.__game.G.me].pose === null), 'Beide schlafen → neuer Tag, beide wach');
+
   await A.evaluate(() => [...document.querySelectorAll('[data-open=settings]')][0].click());
   await A.click('#pbody [data-ui=leave]');
   await sleep(800);

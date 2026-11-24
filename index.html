@@ -170,7 +170,7 @@ body.touch #chatlog { bottom: 210px; }
 body.wantland.portrait.ingame #rotatehint { display: flex; }
 
 /* Fenster im Spiel */
-#panel { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(90,70,54,.28); padding: 10px; animation: fadein .15s; }
+#panel { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; background: rgba(90,70,54,.28); padding: 10px; animation: fadein .15s; }
 @keyframes fadein { from { opacity: 0; } }
 #panel .card { width: min(640px, 100%); max-height: min(88vh, 780px); display: flex; flex-direction: column; padding: 14px; animation: slideup .2s; }
 #panel header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -254,6 +254,7 @@ body.wantland.portrait.ingame #rotatehint { display: flex; }
 .dlgname small { opacity: .85; margin-left: 6px; font-weight: 600; }
 #dlgtext { font-size: 18px; line-height: 1.45; margin: 4px 2px 12px; min-height: 2.9em; }
 .dlgbtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.dlgbtns .btn { flex: 1 1 auto; }
 #dlggifts { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; max-height: 34vh; overflow-y: auto; margin-bottom: 10px; touch-action: pan-y; }
 #dlggifts button { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 4px; font-size: 26px; position: relative; }
 #dlggifts button small { display: block; font-size: 10px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

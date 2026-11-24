@@ -25,7 +25,7 @@ und können die Farm später auch selbst hosten. Der Code bleibt pro Farm gleich
 | Laufen | WASD / Pfeiltasten | links wischen |
 | Hinlaufen & benutzen | Klick auf Feld, Tier, Gebäude … | irgendwo antippen |
 | Aktion vor der Figur | E / Leertaste (halten = wiederholen) | großer rosa Knopf |
-| Werkzeug / Samen | 1–9 oder anklicken | unten antippen |
+| Werkzeug / Samen | 1–9 oder anklicken (Hacke, Kanne, Hand, Axt, Schaufel, Kescher) | unten antippen |
 | Kamera | Mausrad = Zoom, rechte Maustaste ziehen oder Z/C = drehen | zwei Finger = Zoom & drehen, 🔄 |
 | Chat / Emotes | Enter / Q | 💬 / 😊 |
 | Laden, Lager, Hof-Buch, Freunde | B, I, O, F | Knöpfe oben rechts |
@@ -33,15 +33,16 @@ und können die Farm später auch selbst hosten. Der Code bleibt pro Farm gleich
 
 ## Was es gibt
 
-- **Anbau:** 8 Pflanzen (Weizen bis Kürbis), umgraben → säen → gießen → ernten, manche tragen mehrfach. Regen und Sprinkler gießen automatisch.
-- **Tiere:** Hühner, Kühe, Schafe, Schweine – füttern, streicheln (glückliche Tiere geben öfter doppelt), Produkte einsammeln.
-- **Verarbeitung:** Mayo-Maschine, Einmachtopf, Käserei, Webstuhl, Ölpresse; Apfelbäume und Bienenstöcke.
-- **Upgrades:** Farm (Feldgröße, Haus, Hühnerstall, Stall), Ausrüstung (Hacke, Gießkanne, Sichel, Stiefel, Angel), Waren (Qualität = höhere Preise).
-- **Deko:** Blumenbeete, Wege, Zäune, Laternen, Kirschbäume, Herzbogen, Brunnen, Bänke zum Hinsetzen …
-- **Figuren:** Charakter-Editor mit Hautfarben, 8 Frisuren, Augen, Outfits, 11 Kopfbedeckungen, Brillen und Haustieren (Katze, Hund, Hase, Küken, Fuchs), die euch folgen.
-- **Miteinander:** Einladungscode/-link, bis zu 4 Spieler, Chat mit Sprechblasen, Emotes mit Animationen, Umarmen 🤗, Hinbeamen, automatisches Neu-Verbinden.
-- **Außerdem:** Angeln, Aufträge aus dem Dorf, 22 Erfolge mit Belohnungen, Farm-Level, Tag & Nacht, Regen, Fotomodus, Musik & Umgebungsgeräusche.
-- **Grafik:** Wind in Gras und Pflanzen, Partikel, Schmetterlinge, Glühwürmchen, leuchtende Laternen. Drei Grafikstufen (Handy startet auf „Mittel“).
+- **Anbau:** 12 Pflanzen mit Jahreszeiten (in ihrer Saison wachsen sie doppelt so schnell), umgraben → säen → gießen → ernten, manche tragen mehrfach. Regen, Schnee und Sprinkler gießen automatisch.
+- **Jahreszeiten:** Frühling mit Blütenblättern, Sommer, Herbstlaub, Winter mit Schnee und gefrorenem Teich – je 7 Tage.
+- **Tiere:** Hühner, Kühe, Schafe, Schweine – füttern, streicheln, Produkte einsammeln.
+- **Nachbarn:** Mira (Igel-Bäckerin), Bruno (Bär-Schreiner), Pippa (Enten-Fischerin) und Lio (Fuchs-Künstler) spazieren über den Hof. Plaudern, Geschenke machen, Freundschaft (10 Herzen), Briefe mit Geschenken, ihre Aufträge erfüllen.
+- **Sammeln:** Angeln (Fische je Jahreszeit), Kescher für Schmetterlinge & Käfer, Schaufel für Fossilien an glitzernden Stellen, Bäume schütteln – alles landet im **Sammelbuch**.
+- **Herstellen:** Holz (Axt) und Steine (Schaufel) sammeln, an der Werkbank Deko & Möbel bauen, in der Gartenküche oder am Herd 10 Gerichte kochen.
+- **Zuhause:** Das Haus betreten und gemeinsam einrichten – 36 Möbel, Teppiche, Wandbilder, 8 Tapeten & 8 Böden. Aufs Sofa setzen, im Bett schlafen (wenn alle schlafen, ist es Morgen).
+- **Upgrades:** Feld, Haus (größeres Zimmer), Ställe, Werkzeuge, Warenqualität.
+- **Miteinander:** Einladungscode, bis zu 4 Spieler, Chat, 20 Emotes mit Animationen, Zusammen-Aktionen (Umarmen, Küsschen, High-Five, Tanzen), Hinbeamen, automatisches Neu-Verbinden.
+- **Außerdem:** Aufträge, 32 Erfolge, Farm-Level, Tag & Nacht, Fotomodus, Charakter-Editor mit Haustier, Musik & Umgebungsgeräusche.
 
 ## Technik
 
@@ -54,6 +55,7 @@ und können die Farm später auch selbst hosten. Der Code bleibt pro Farm gleich
 | `src/data.js` | Pflanzen, Tiere, Gegenstände, Upgrades, Erfolge |
 | `src/state.js` | Spiellogik (läuft beim Host) |
 | `src/world.js`, `src/models.js`, `src/avatar.js` | 3D-Welt, Modelle, Spielfiguren |
+| `src/npc.js`, `src/furniture.js`, `src/furni-data.js` | Nachbarn (Modelle & Dialoge), Möbel & Zimmer |
 | `src/main.js`, `src/menu.js`, `src/ui.js` | Menü, Steuerung, Multiplayer, Fenster |
 | `src/net.js`, `src/audio.js` | Netzwerk, Klang |
 
