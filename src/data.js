@@ -100,6 +100,7 @@ export const FIELDS = [null, [0, 0, -1, -1]];
 
 // Alle Gegenstände. cat = Warengruppe für Preis-Ausbauten und Museum.
 export const ITEMS = {
+  bonbon:    { name: 'Bonbon',       icon: '🍬', sell: 40, cat: 'misc' },
   apfel:     { name: 'Apfel',        icon: '🍎', sell: 100, cat: 'fruit', xp: 1 },
   kirsche:   { name: 'Kirschen',     icon: '🍒', sell: 100, cat: 'fruit', xp: 1 },
   orange:    { name: 'Orange',       icon: '🍊', sell: 100, cat: 'fruit', xp: 1 },
@@ -256,6 +257,15 @@ export const PLACE = {
   sandburg:   { name: 'Sandburg',      icon: '🏰', medals: 2, lvl: 1, kind: 'deco', solid: 1 },
   // Belohnungen
   pokal:      { name: 'Wohnwert-Pokal', icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Vom Wohnwert-Verein für ein wunderschönes Zuhause' },
+  // Feste, Geburtstage und Turniere
+  eiernest:   { name: 'Eiernest',      icon: '🪺', lvl: 1, kind: 'deco', solid: 1, desc: 'Für alle 10 Eier bei der Eiersuche' },
+  herzballon: { name: 'Herzballon',    icon: '🎈', lvl: 1, kind: 'deco', solid: 1, desc: 'Andenken ans Sommerfeuerwerk' },
+  kuerbislaterne: { name: 'Kürbislaterne', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Für Bonbons von allen Nachbarn beim Kürbisfest' },
+  lichterbaum: { name: 'Lichterbaum',  icon: '🎄', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Geschenk zum Lichterfest' },
+  schneemann: { name: 'Schneemann',    icon: '⛄', lvl: 1, kind: 'deco', solid: 1, desc: 'Aus Schneebällen gerollt' },
+  torte:      { name: 'Geburtstagstorte', icon: '🎂', lvl: 1, kind: 'deco', solid: 1, desc: 'Dankeschön für ein Geburtstagsgeschenk' },
+  angelpokal: { name: 'Angel-Pokal',   icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gold beim Angelturnier' },
+  kaeferpokal:{ name: 'Krabbeltier-Pokal', icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gold beim Krabbeltier-Turnier' },
   baustelle:  { name: 'Bauplatz-Pflock', icon: '🚩', lvl: 1, kind: 'site', solid: 1, desc: 'Markiert den Bauplatz für ein Inselprojekt' },
 };
 // Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
@@ -306,9 +316,29 @@ export const HATS = [
 ];
 export const COLORS = ['#ff8fab', '#ffb86b', '#ffe066', '#8fd694', '#6cc4ff', '#b39cff', '#ff6b6b', '#f5f5f5'];
 export const EMOTE_LIST = [['❤️', 'Liebe'], ['👋', 'Winken'], ['😂', 'Lachen'], ['😮', 'Staunen'], ['🎉', 'Jubeln'], ['🥰', 'Verliebt'], ['😘', 'Küsschen'], ['💃', 'Tanzen'],
-  ['👏', 'Klatschen'], ['🎵', 'Singen'], ['👍', 'Super'], ['✨', 'Drehen'], ['😊', 'Schüchtern'], ['🙈', 'Verlegen'], ['🤔', 'Grübeln'], ['😢', 'Traurig'], ['😡', 'Grummelig'], ['😴', 'Müde'], ['💤', 'Schlafen'], ['🍀', 'Glück']];
+  ['👏', 'Klatschen'], ['🎵', 'Singen'], ['👍', 'Super'], ['✨', 'Drehen'], ['😊', 'Schüchtern'], ['🙈', 'Verlegen'], ['🤔', 'Grübeln'], ['😢', 'Traurig'], ['😡', 'Grummelig'], ['😴', 'Müde'], ['💤', 'Schlafen'], ['🍀', 'Glück'], ['🐾', 'Haustier-Trick']];
 export const EMOTES = EMOTE_LIST.map(e => e[0]);
-export const SOCIAL = { hug: ['🤗', 'Umarmen'], kiss: ['😘', 'Küsschen'], highfive: ['✋', 'High-Five'], dance: ['💃', 'Zusammen tanzen'] };
+export const SOCIAL = { hug: ['🤗', 'Umarmen'], kiss: ['😘', 'Küsschen'], highfive: ['✋', 'High-Five'], dance: ['💃', 'Zusammen tanzen'], hand: ['🤝', 'Händchen halten'], hide: ['🙈', 'Verstecken spielen'], found: ['🎉', 'Gefunden'] };
+
+// Feste & Turniere im Jahreskreis: Jahreszeit + Tag der Jahreszeit (1–7)
+export const FESTS = {
+  eier:      { sea: 'spring', d: 4, name: 'Eiersuche', icon: '🥚', desc: '10 bunte Eier sind auf der Insel versteckt – unter Bäumen, am Strand, hinter Häusern. Wer findet alle?' },
+  kaefer:    { sea: 'spring', d: 6, name: 'Krabbeltier-Turnier', icon: '🦋', contest: 'bug', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Insekten fangen wie möglich.' },
+  angeln:    { sea: 'summer', d: 3, name: 'Angelturnier', icon: '🎣', contest: 'fish', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Fische fangen wie möglich.' },
+  feuerwerk: { sea: 'summer', d: 6, name: 'Sommerfeuerwerk', icon: '🎆', desc: 'Ab 19 Uhr leuchtet ein Feuerwerk über dem Meer. Am schönsten zu zweit am Strand!' },
+  kaefer2:   { sea: 'autumn', d: 2, name: 'Krabbeltier-Turnier', icon: '🐞', contest: 'bug', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Insekten fangen wie möglich.' },
+  kuerbis:   { sea: 'autumn', d: 5, name: 'Kürbisfest', icon: '🎃', desc: 'Die Insel leuchtet orange! Besucht alle Nachbarn – jede und jeder hat Bonbons für euch.' },
+  angeln2:   { sea: 'winter', d: 3, name: 'Eisangel-Turnier', icon: '🎣', contest: 'fish', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Fische fangen wie möglich.' },
+  lichter:   { sea: 'winter', d: 5, name: 'Lichterfest', icon: '🎄', desc: 'Der Lichterbaum strahlt auf dem Dorfplatz und alle beschenken sich. Schaut in den Briefkasten!' },
+};
+export const CONTEST_SECS = 180;
+export const CONTEST_AT = [2, 3];   // Turnierstand auf dem Dorfplatz
+// Fest-Deko auf dem Dorfplatz (Modell, x, z) – diese Felder sind an dem Tag belegt
+export const FEST_DECO = {
+  kuerbis: [['lantern_pumpkin', -3, 1], ['lantern_pumpkin', 3, 1], ['lantern_pumpkin', -2, -1], ['lantern_pumpkin', 2, -1], ['lantern_pumpkin', -2, 3], ['lantern_pumpkin', 2, 3]],
+  lichter: [['lichterbaum', -2, 3], ['snowman', 2, 3]],
+};
+export const BIRTHDAYS = { mira: ['spring', 2], bruno: ['summer', 1], pippa: ['summer', 5], lio: ['autumn', 4], kalle: ['winter', 2], wanda: ['autumn', 7] };
 
 for (const [id, name, icon, sell] of BUGS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 150) };
 for (const [id, name, icon, sell] of FOSSILS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 200) };
@@ -459,11 +489,11 @@ export const BALLOON_GIFTS = [ // [Art, Gewicht]
 
 // ---------- Tagesabläufe der Nachbarn: [ab Stunde, x, z, Radius x, Radius z] ----------
 export const NPC_PLAN = {
-  mira:  [[6, -14, 8.8, 1, 0.5], [9, -1.8, 3.6, 1.3, 0.6], [12, -8, 2.3, 1.4, 0.5], [15, -12, 4, 2.4, 1.4], [18, 1.8, 4, 1, 0.5], [20.5, -14, 8.8, 1, 0.5]],
-  pippa: [[6, -9, 19.5, 0.2, 2.6], [10, -4, 17, 2.6, 0.8], [13, -12.4, -1.6, 0.8, 0.8], [16, -4.6, 14.6, 1.1, 0.5], [19, -1.6, -1.4, 1, 0.4], [21, -4.6, 14.6, 1.1, 0.5]],
-  bruno: [[6, 12.5, 10.6, 1, 0.5], [8, 10.8, 2, 0.4, 1.4], [11, -4.5, -9.4, 1, 0.3], [14, 1.6, 4.4, 1.2, 0.6], [17, 13, -5.2, 1.6, 0.4], [20, 12.5, 10.6, 1, 0.5]],
-  lio:   [[6, 15.5, 1.7, 0.6, 0.4], [9, 13, -5.3, 1.7, 0.5], [12, 16.6, 7.5, 0.7, 2], [15, 2.6, 0.2, 0.6, 1.6], [18, 12.8, 2.3, 1.9, 0.9], [20.5, 15.5, 1.7, 0.6, 0.4]],
-  kalle: [[6, -9, 10.8, 1, 0.5], [8, -12.3, -4.2, 0.4, 1.0], [11, -1.6, -1.4, 1, 0.4], [14, -8, 4.6, 1.2, 0.5], [17, -12.3, -3.6, 0.4, 0.8], [20, -9, 10.8, 1, 0.5]],
+  mira:  [[6, -14, 8.8, 1, 0.5], [9, -1.9, 3.7, 0.4, 0.3], [12, -8, 2.3, 1.4, 0.5], [15, -12, 4, 2.4, 1.4], [18, 1.8, 4.1, 0.3, 0.2], [20.5, -14, 8.8, 1, 0.5]],
+  pippa: [[6, -9, 19.5, 0.2, 2.6], [10, -4, 17, 2.6, 0.8], [13, -12.4, -1.6, 0.8, 0.8], [16, -4.6, 14.6, 1.1, 0.5], [19, 0.5, 4.2, 0.3, 0.2], [21, -4.6, 14.6, 1.1, 0.5]],
+  bruno: [[6, 12.5, 10.6, 1, 0.5], [8, 10.8, 2, 0.4, 1.4], [11, -4.5, -9.4, 1, 0.3], [14, 0.8, 4.6, 0.3, 0.2], [17, 13, -5.2, 1.6, 0.4], [20, 12.5, 10.6, 1, 0.5]],
+  lio:   [[6, 15.5, 1.7, 0.6, 0.4], [9, 13, -5.3, 1.7, 0.5], [12, 16.6, 7.5, 0.7, 2], [15, 2.2, 4.7, 0.3, 0.2], [18, 12.8, 2.3, 1.9, 0.9], [20.5, 15.5, 1.7, 0.6, 0.4]],
+  kalle: [[6, -9, 10.8, 1, 0.5], [8, -12.3, -4.2, 0.4, 1.0], [11, -0.5, 3.9, 0.3, 0.2], [14, -8, 4.6, 1.2, 0.5], [17, -12.3, -3.6, 0.4, 0.8], [20, -9, 10.8, 1, 0.5]],
   wanda: [[6, 3, 10.8, 1, 0.5], [8.5, -15, -1.5, 0.8, 0.3], [11.5, 4.6, 4.4, 0.6, 1.0], [14.5, 13, -5.3, 1.5, 0.4], [17.5, -15, -1.5, 0.8, 0.3], [20, 3, 10.8, 1, 0.5]],
 };
 

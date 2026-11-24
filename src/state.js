@@ -4,6 +4,7 @@ import {
   UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS, SEASON_LEN, SEASON_IDS, isFlower,
   RES_SPOTS, TREE_FRUIT, FRUIT_REGROW, BUGS, FOSSILS, SHELLS, SHELLS_PER_DAY, WEEDS_PER_DAY, RECIPES, DIG_SPOTS_PER_DAY,
   NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK, SEA, DIVES, STARTER_DIY, DIY_IDS,
+  FESTS, BIRTHDAYS, CONTEST_SECS, CONTEST_AT, FEST_DECO,
 } from './data.js';
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
@@ -147,6 +148,11 @@ function refill(s) {
   }
   s.dives = [];
   while (s.dives.length < DIVES) newDive(s);
+  s.drift = {}; // Treibholz am Strand
+  for (let t = 0, n = 0; n < 3 && t < 400; t++) {
+    const [x, z] = randTile(), k = key(x, z);
+    if (sand(x, z) && coast(x, z) > -2.5 && !s.shells[k] && !s.obj[k] && !RES_SPOTS[k] && !s.ground[k]) { s.drift[k] = 1; n++; }
+  }
 }
 // Luftblasen im Meer: hier liegt ein Meerestier
 function newDive(s) {
@@ -280,6 +286,10 @@ export function blocked(s, x, z, swim) {
   if (!walkable(x, z)) return true;
   const tx = Math.round(x), tz = Math.round(z);
   if (buildingAt(tx, tz) || RES_SPOTS[key(tx, tz)]) return true;
+  if (Math.abs(tx) <= 3 && tz >= -1 && tz <= 3) { // Dorfplatz: Turnierstand und Fest-Deko
+    const f = festToday(s);
+    if (f && ((tx === CONTEST_AT[0] && tz === CONTEST_AT[1] && FESTS[f].contest) || FEST_DECO[f]?.some(([, x, z]) => x === tx && z === tz))) return true;
+  }
   const o = s.obj[key(tx, tz)];
   return !!(o && PLACE[o.k].solid);
 }
@@ -350,6 +360,7 @@ export function tick(s, dt, auth) {
   }
   const rain = s.weather !== 'sun'; // Regen und Schnee gießen
   const sea = seasonOf(s.day), nice = ord(s) === 'schoen';
+  if (auth && contestTick(s)) changed = true;
   // Tour auf der Tropeninsel: Zeit abgelaufen
   if (auth && s.tour && s.time > s.tour.end) { s.tourEnd = { k: s.tour.k, ok: false, t: s.time }; s.tour = null; changed = true; }
   // Geschenkballons: tagsüber ab und zu, fliegen von einer Seite zur anderen
@@ -380,6 +391,83 @@ export function tick(s, dt, auth) {
       t.w -= dt;
       if (t.w <= 0) { t.w = 0; changed = true; }
     }
+  }
+  return changed;
+}
+
+// ---------- Feste, Geburtstage, Turniere ----------
+export const daySea = day => ((day - 1) % SEASON_LEN) + 1;
+export function festOf(day) {
+  const sea = seasonOf(day), d = daySea(day);
+  for (const [k, f] of Object.entries(FESTS)) if (f.sea === sea && f.d === d) return k;
+  return null;
+}
+export function birthdayOf(day) {
+  const sea = seasonOf(day), d = daySea(day);
+  for (const [id, [bs, bd]] of Object.entries(BIRTHDAYS)) if (bs === sea && bd === d) return id;
+  return null;
+}
+let festMemo = [0, null];
+export const festToday = s => (festMemo[0] === s.day ? festMemo[1] : (festMemo = [s.day, festOf(s.day)])[1]);
+export const contestDay = s => FESTS[festOf(s.day)]?.contest || null;
+export const contestOpen = s => { const h = 6 + s.dayTime * 18; return !!contestDay(s) && h >= 9 && h < 18; };
+const EGGS = 10;
+function festMorning(s) {
+  const f = festOf(s.day), F = FESTS[f];
+  s.eggs = {};
+  s.fest = f ? { k: f, day: s.day, eggs: 0, candy: [], done: 0 } : null;
+  s.contest = F?.contest ? { k: F.contest, day: s.day, runs: {}, best: {}, res: [] } : null;
+  if (f === 'eier') {
+    for (let t = 0, n = 0; n < EGGS && t < 600; t++) {
+      const [x, z] = randTile(), k = key(x, z);
+      if (!walkable(x, z) || isWater(x, z) || onBridge(x, z) || onPier(x, z) || onPlaza(x, z, 0.5) || buildingAt(x, z) || RES_SPOTS[k] || s.obj[k] || s.tiles[k] || s.shells[k] || s.ground?.[k] || s.eggs[k]) continue;
+      if (Object.keys(s.eggs).some(q => { const [a, b] = q.split(',').map(Number); return Math.hypot(a - x, b - z) < 4; })) continue; // schön verteilt
+      s.eggs[k] = n % 5;
+      n++;
+    }
+  }
+  const note = (title, text, item, n) => s.mail.push({ kind: 'note', from: 'rosi', title, text, item: item || null, n: n || 1, day: s.day });
+  if (F) {
+    const gift = { feuerwerk: ['herzballon', 'Als kleines Andenken lege ich euch einen Herzballon bei.'], lichter: ['lichterbaum', 'Für euren Garten: ein eigener kleiner Lichterbaum!'] }[f];
+    note(`${F.icon} Heute: ${F.name}!`, `Liebe Bürgermeister,\n${F.desc}${gift ? '\n' + gift[1] : ''}\n\nEure Rosi 🦌`, gift?.[0]);
+  }
+  if (f === 'lichter') for (const id of NPC_IDS) if (hearts(s, id) >= 1) {
+    const [item, n] = NPC_DATA[id].gift;
+    s.mail.push({ kind: 'note', from: id, title: `🎁 Frohes Lichterfest von ${NPC_DATA[id].name}!`, text: `Ihr Lieben,\nein kleines Geschenk für euch – danke, dass ihr so tolle Nachbarn seid!\n\n${NPC_DATA[id].name} ${NPC_DATA[id].icon}`, item, n: Math.min(n, 3), day: s.day });
+  }
+  const b = birthdayOf(s.day);
+  if (b) note(`🎂 ${NPC_DATA[b].name} hat heute Geburtstag!`, `Liebe Bürgermeister,\nheute feiert ${NPC_DATA[b].name} ${NPC_DATA[b].icon} Geburtstag! Schaut doch vorbei – über ein kleines Geschenk freut sich das Geburtstagskind ganz besonders.\n\nEure Rosi 🦌`);
+  const tomorrow = birthdayOf(s.day + 1);
+  if (tomorrow) note(`🎈 Morgen hat ${NPC_DATA[tomorrow].name} Geburtstag`, `Psst! Morgen ist ${NPC_DATA[tomorrow].name}s Geburtstag. Vielleicht habt ihr ja noch etwas, worüber ${NPC_DATA[tomorrow].name} sich freut?\n\nEure Rosi 🦌`);
+  for (const id of NPC_IDS) if (s.npc[id]?.bday === s.day - 1) // Dankeschön fürs Geburtstagsgeschenk
+    s.mail.push({ kind: 'note', from: id, title: `🎂 Danke für das Geschenk!`, text: `Ihr Lieben,\ngestern war so ein schöner Geburtstag – und euer Geschenk hat mich riesig gefreut! Hier ist ein Stück von meiner Torte. Na ja … die ganze Torte. Zum Aufstellen!\n\n${NPC_DATA[id].name} ${NPC_DATA[id].icon}`, item: 'torte', n: 1, day: s.day });
+}
+// Turnier: Runde beim Stand anmelden, Fänge zählen, nach 3 Minuten wertet der Host aus
+const MEDAL = n => n >= 9 ? 'gold' : n >= 6 ? 'silber' : n >= 3 ? 'bronze' : null;
+function contestCount(s, by, kind, out) {
+  const c = s.contest, r = c?.runs?.[by];
+  if (!r || c.k !== kind || s.time > r.until) return;
+  r.n++;
+  out.contest = r.n;
+}
+function contestTick(s) {
+  const c = s.contest;
+  if (!c) return false;
+  let changed = false;
+  for (const [by, r] of Object.entries(c.runs)) {
+    if (s.time <= r.until) continue;
+    delete c.runs[by];
+    const medal = MEDAL(r.n), first = r.n > (c.best[by] || 0);
+    c.best[by] = Math.max(c.best[by] || 0, r.n);
+    const money = { gold: 3000, silber: 1500, bronze: 600 }[medal] || 100;
+    s.money += money; s.stats.earned += money;
+    let item = null;
+    const cup = c.k === 'fish' ? 'angelpokal' : 'kaeferpokal';
+    if (medal === 'gold' && !s.cups?.[cup]) { (s.cups ||= {})[cup] = s.day; addInv(s, cup, 1); item = cup; }
+    c.res.push({ by, name: r.name, n: r.n, medal, money, item, first, t: s.time });
+    if (c.res.length > 12) c.res.shift();
+    (s.diary ||= []).push({ day: s.day, icon: c.k === 'fish' ? '🎣' : '🦋', text: `${r.name}: ${r.n} beim ${c.k === 'fish' ? 'Angel' : 'Krabbeltier'}-Turnier${medal ? ` – ${{ gold: '🥇 Gold', silber: '🥈 Silber', bronze: '🥉 Bronze' }[medal]}` : ''}` });
+    changed = true;
   }
   return changed;
 }
@@ -437,7 +525,9 @@ function newDay(s) {
     if (sc.stars === 5 && !s.mayor.five) { s.mayor.five = s.day; s.money += 10000; }
   }
   s.stars = Math.max(s.stars || 1, sc.stars);
-  if (s.mail.length > 12) s.mail.splice(0, s.mail.length - 12);
+  festMorning(s);
+  if (s.diary?.length > 120) s.diary.splice(0, s.diary.length - 120);
+  if (s.mail.length > 20) s.mail.splice(0, s.mail.length - 20);
   fillOrders(s);
 }
 
@@ -638,6 +728,31 @@ const ACTIONS = {
       out.snd = 'harvest';
       return true;
     }
+    if (s.eggs?.[k] !== undefined) {
+      delete s.eggs[k];
+      const f = s.fest?.k === 'eier' ? s.fest : null, n = f ? ++f.eggs : 0;
+      addXp(s, 2, out);
+      fx(out, a.x, a.z, '🥚', 'sparkle');
+      out.snd = 'egg';
+      if (f && n >= EGGS && !f.done) {
+        f.done = 1;
+        addInv(s, 'eiernest', 1); s.money += 1000; s.stats.earned += 1000;
+        (s.diary ||= []).push({ day: s.day, icon: '🥚', text: 'Alle 10 Eier bei der Eiersuche gefunden!' });
+        out.msg = '🎉 Alle 10 Eier gefunden! Dafür gibt es ein 🪺 Eiernest und 1.000 Taler!';
+        out.snd = 'fanfare';
+      } else out.msg = `🥚 Ei gefunden! (${n} von ${EGGS})`;
+      return true;
+    }
+    if (s.drift?.[k]) {
+      delete s.drift[k];
+      const extra = Math.random() < 0.25 ? pick(['bernstein', 'perle', 'sternsplitter'].filter(id => has(ITEMS, id))) : null;
+      addInv(s, 'holz', 2);
+      if (extra) addInv(s, extra, 1);
+      fx(out, a.x, a.z, '+2 🪵', 'leaf');
+      out.msg = extra ? `🪵 Treibholz – und darin verfangen: ${ITEMS[extra].icon} ${ITEMS[extra].name}!` : '🪵 Treibholz aufgesammelt!';
+      out.snd = 'harvest';
+      return true;
+    }
     if (s.weeds[k]) {
       delete s.weeds[k];
       addInv(s, 'unkraut', 1);
@@ -665,6 +780,7 @@ const ACTIONS = {
     fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`, 'water');
     out.caught = id;
     out.snd = 'harvest';
+    contestCount(s, a.by, 'fish', out);
     return true;
   },
   bug(s, a, out) {
@@ -680,6 +796,7 @@ const ACTIONS = {
     fx(out, a.x, a.z, `+1 ${icon}`, 'sparkle');
     out.caught = id;
     out.snd = 'harvest';
+    contestCount(s, a.by, 'bug', out);
     return true;
   },
   chop(s, a, out) {
@@ -873,6 +990,47 @@ const ACTIONS = {
     }
     s.met[a.id] = 1;
     questEvent(s, 'met', Object.keys(s.met).length, out);
+    const f = s.fest;
+    if (f?.k === 'kuerbis' && f.day === s.day && !f.candy.includes(a.id)) {
+      f.candy.push(a.id);
+      addInv(s, 'bonbon', 2);
+      out.msg = `🍬 ${NPC_DATA[a.id].name} schenkt euch 2 Bonbons! (${f.candy.length} von ${NPC_IDS.length} Nachbarn)`;
+      out.snd = 'love';
+      if (f.candy.length >= NPC_IDS.length && !f.done) {
+        f.done = 1; addInv(s, 'kuerbislaterne', 1);
+        (s.diary ||= []).push({ day: s.day, icon: '🎃', text: 'Beim Kürbisfest alle Nachbarn besucht' });
+        out.msg = '🎃 Alle Nachbarn besucht! Als Dank gibt es eine leuchtende Kürbislaterne!';
+        out.snd = 'fanfare';
+      }
+    }
+    return true;
+  },
+  letter(s, a, out) { // Brief an jemanden, kommt am nächsten Morgen an
+    const text = String(a.text || '').trim().slice(0, 400), to = String(a.to || '').trim().slice(0, 16), from = String(a.name || '').slice(0, 16) || 'Jemand';
+    if (!text || !to) return false;
+    if (a.item && (!has(ITEMS, a.item) || !(s.inv[a.item] > 0))) return false;
+    if (a.item) takeInv(s, a.item, 1);
+    s.mail.push({ kind: 'letter', from, to, text, item: a.item || null, n: 1, paper: [0, 1, 2, 3].includes(a.paper) ? a.paper : 0, day: s.day, arrive: s.day + 1 });
+    (s.diary ||= []).push({ day: s.day, icon: '💌', text: `${from} hat ${to} einen Brief geschrieben` });
+    out.msg = `💌 Brief an ${to} eingeworfen – er liegt morgen früh im Briefkasten!`;
+    out.snd = 'love';
+    return true;
+  },
+  diary(s, a, out) { // eigener Tagebuch-Eintrag
+    const text = String(a.text || '').trim().slice(0, 120);
+    if (!text) return false;
+    (s.diary ||= []).push({ day: s.day, icon: '✍️', text: `${String(a.name || '').slice(0, 16)}: ${text}` });
+    out.msg = '📔 Ins Tagebuch geschrieben!';
+    out.snd = 'plopp';
+    return true;
+  },
+  contest(s, a, out) { // beim Turnierstand anmelden
+    const c = s.contest;
+    if (!c || !contestOpen(s) || typeof a.by !== 'string') { out.msg = 'Das Turnier ist gerade nicht geöffnet (9–18 Uhr).'; return false; }
+    if (c.runs[a.by]) return false;
+    c.runs[a.by] = { until: s.time + CONTEST_SECS, n: 0, name: String(a.name || '').slice(0, 16) || 'Jemand' };
+    out.msg = `${c.k === 'fish' ? '🎣' : '🦋'} Los geht's! 3 Minuten – fangt so viele ${c.k === 'fish' ? 'Fische' : 'Insekten'} wie möglich!`;
+    out.snd = 'whistle';
     return true;
   },
   gift(s, a, out) {
@@ -882,7 +1040,9 @@ const ACTIONS = {
     if (!takeInv(s, a.item, 1)) return false;
     const r = d.loves.includes(a.item) ? 'love' : d.likes.includes(a.item) ? 'like' : d.dislikes.includes(a.item) ? 'dislike' : 'neutral';
     n.gift = s.day;
-    n.f = Math.max(0, n.f + { love: 80, like: 40, neutral: 20, dislike: -10 }[r]);
+    const bday = birthdayOf(s.day) === a.id;
+    n.f = Math.max(0, n.f + { love: 80, like: 40, neutral: 20, dislike: -10 }[r] * (bday && r !== 'dislike' ? 2 : 1));
+    if (bday) { n.bday = s.day; out.bday = 1; (s.diary ||= []).push({ day: s.day, icon: '🎂', text: `${d.name} zum Geburtstag beschenkt` }); }
     questEvent(s, 'gift', 1, out);
     if (r === 'love') questEvent(s, 'gift_love', 1, out);
     addXp(s, 3, out);
@@ -1291,6 +1451,9 @@ export function resolve(s, me, sel, at) {
     if (sel === 'shovel') return s.res[k] > 0 ? { a: { t: 'mine', x, z }, label: '🪨 Draufhauen', tiles: one } : { label: '🪨 Morgen wieder', tiles: one };
     return { label: '🪨 Felsen · mit der Schaufel draufhauen', tiles: one };
   }
+  if (contestDay(s) && x === CONTEST_AT[0] && z === CONTEST_AT[1]) return { ui: 'contest', label: `🏆 ${FESTS[festOf(s.day)].name}`, tiles: one };
+  if (s.eggs?.[k] !== undefined) return { a: { t: 'pick', x, z }, label: '🥚 Ei aufheben', tiles: one };
+  if (s.drift?.[k]) return { a: { t: 'pick', x, z }, label: '🪵 Treibholz aufheben', tiles: one };
   if (s.shells?.[k]) return { a: { t: 'pick', x, z }, label: `${ITEMS[s.shells[k]].icon} Aufheben`, tiles: one };
   if (s.weeds?.[k] && sel !== 'shovel') return { a: { t: 'pick', x, z }, label: '🌿 Unkraut zupfen', tiles: one };
 

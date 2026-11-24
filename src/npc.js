@@ -393,6 +393,12 @@ export function makeNpc(id) {
     eyes.visible = !joyOn; joyM.visible = joyOn;
   };
   root.userData.update(1, {});
+  // Anbaupunkte für Accessoires (Partyhut, Schirm, Schal)
+  root.updateMatrixWorld(true);
+  const nw = new THREE.Vector3();
+  neck.getWorldPosition(nw);
+  const bb = new THREE.Box3().setFromObject(body);
+  Object.assign(root.userData, { neck, torso, neckY: nw.y, bodyR: Math.min(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2 });
   return root;
 }
 
@@ -719,6 +725,48 @@ export function npcLine(id, ctx = {}) {
   let r = Math.random() * pools.reduce((s, [, w]) => s + w, 0), pool = pools[0][0];
   for (const [p, w] of pools) if ((r -= w) < 0) { pool = p; break; }
   return fill(pick(pool), { p: ctx.player || 'du', q: ctx.partner || '' });
+}
+
+// Feste & Geburtstage: besondere Sprüche ({b} = Geburtstagskind)
+const FEST_LINES = {
+  eier: ['Eiersuche! Ich hab schon eins hinter dem Rathaus gesehen … oder war das ein Stein?', 'Wer alle Eier findet, bekommt bestimmt etwas Schönes! Viel Glück, {p}!', 'Psst: Eier verstecken sich gern unter Bäumen und am Strand.'],
+  kaefer: ['Heute ist Krabbeltier-Turnier! Am Stand auf dem Dorfplatz kannst du mitmachen.', 'Ich hab heute schon drei Schmetterlinge verscheucht. Aus Versehen. Beim Turnier wird das besser!'],
+  kaefer2: ['Heute ist Krabbeltier-Turnier! Am Stand auf dem Dorfplatz kannst du mitmachen.', 'Im Herbst krabbeln die Käfer besonders gern über das Laub. Perfektes Turnierwetter!'],
+  angeln: ['Angelturnier! Pippa trainiert schon seit Tagen. Am Stand auf dem Dorfplatz geht\'s los.', 'Drei Minuten, so viele Fische wie möglich – traust du dich, {p}?'],
+  angeln2: ['Eisangeln! Die Fische sind im Winter etwas verschlafen. Beim Turnier musst du flink sein!', 'Am Turnierstand auf dem Dorfplatz kannst du dich anmelden. Ich drück dir die Pfoten!'],
+  feuerwerk: ['Heute Abend gibt\'s Feuerwerk! Ich such mir schon mal einen Platz am Strand.', 'Feuerwerk ist am schönsten, wenn man es mit jemandem zusammen anschaut, findest du nicht?', 'Ab 19 Uhr über dem Meer! Ich bin sooo gespannt!'],
+  kuerbis: ['Fröhliches Kürbisfest, {p}! Hier, für dich – Bonbons!', 'Süßes für dich! Hast du schon alle Nachbarn besucht?', 'Die ganze Insel leuchtet orange. Ist das nicht wunderschön?'],
+  lichter: ['Frohes Lichterfest, {p}! Hast du schon in den Briefkasten geschaut?', 'Der Lichterbaum auf dem Dorfplatz funkelt so schön … ich könnte stundenlang hinschauen.', 'Lichterfest ist mein liebster Tag im ganzen Jahr. Alle sind so warm und lieb zueinander.'],
+};
+const BDAY_OWN = ['Heute ist mein Geburtstag! Wie schön, dass du vorbeikommst, {p}!', 'Hihi, du hast an meinen Geburtstag gedacht? Ich freu mich so!', 'Ich hab Geburtstag! Ich trag sogar einen Partyhut. Steht er mir?'];
+const BDAY_OTHER = ['Weißt du, wer heute Geburtstag hat? {b}! Hast du schon gratuliert?', 'Heute ist {b}s Geburtstag! Ich hab ein Geschenk versteckt. Psst!'];
+export function festLine(id, ctx) {
+  if (ctx.bday === id) return fill(pick(BDAY_OWN), { p: ctx.player || 'du' });
+  const r = Math.random();
+  if (ctx.bday && r < 0.35) return fill(pick(BDAY_OTHER), { b: NPCS[ctx.bday]?.name || '' });
+  if (ctx.fest && FEST_LINES[ctx.fest] && r < 0.7) return fill(pick(FEST_LINES[ctx.fest]), { p: ctx.player || 'du' });
+  return null;
+}
+// Nachbarn plaudern miteinander ({n} = der andere)
+const CHAT = {
+  any: ['Hast du gesehen, wie schön es heute am Fluss ist?', '{n}! Schön, dich zu sehen!', 'Ich hab gehört, im Museum gibt es was Neues.', 'Wollen wir morgen zusammen angeln gehen, {n}?',
+    'Mmmh, riechst du das? Bestimmt backt Mira wieder.', 'Die Bürgermeister sind echt lieb, findest du nicht?', 'Hihi, das ist ja eine lustige Geschichte!', 'Ich hab eine Muschel gefunden, so groß wie meine Pfote!',
+    'Erzähl mal, {n}, was gibt\'s Neues?', 'Nein! Wirklich? Das glaub ich nicht!', 'Weißt du noch, letzte Woche? Hihi.', 'Ich mag deine Frisur heute, {n}.'],
+  rain: ['Gut, dass ich meinen Schirm dabeihabe!', 'Regen ist super für die Blumen.'],
+  snow: ['Brrr! Zum Glück hab ich meinen Schal.', 'Wollen wir nachher einen Schneemann bauen, {n}?'],
+  winter: ['Brrr! Zum Glück hab ich meinen Schal.', 'Heißer Tee wäre jetzt was, oder {n}?'],
+  evening: ['Was für ein schöner Abend.', 'Bald geh ich ins Bett … aber erst noch ein bisschen quatschen!'],
+};
+export function chatLine(a, b, ctx = {}) {
+  const pool = [...CHAT.any];
+  if (ctx.bday === b) return `Alles Gute zum Geburtstag, ${NPCS[b]?.name}! 🎂`;
+  if (ctx.bday === a) return 'Danke, danke! Ich hab heute Geburtstag! 🎉';
+  if (ctx.weather === 'rain') pool.push(...CHAT.rain, ...CHAT.rain);
+  if (ctx.weather === 'snow') pool.push(...CHAT.snow, ...CHAT.snow);
+  if (ctx.season === 'winter') pool.push(...CHAT.winter);
+  if (ctx.hour >= 18) pool.push(...CHAT.evening);
+  if (ctx.fest && FEST_LINES[ctx.fest] && Math.random() < 0.4) return fill(pick(FEST_LINES[ctx.fest]), { p: NPCS[b]?.name || '' });
+  return fill(pick(pool), { n: NPCS[b]?.name || '' });
 }
 
 export function giftReply(id, reaction, itemName) {

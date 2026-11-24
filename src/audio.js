@@ -87,6 +87,16 @@ const SFX = {
   splash: t => { noise(t, 0.25, 1200, 0.4); tone(300, t, 0.15, 'sine', 0.1, sfxGain, 600); },
   chop: t => { noise(t, 0.08, 900, 0.6, sfxGain, 3); tone(180, t, 0.12, 'triangle', 0.2, sfxGain, 120); },
   door: t => { tone(520, t, 0.12, 'sine', 0.12, sfxGain, 660); tone(780, t + 0.1, 0.18, 'sine', 0.12); },
+  // Update 6: Feste, Turniere, Pfützen
+  egg: t => [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, t + i * 0.06, 0.18, 'sine', 0.12)),
+  fanfare: t => { [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, t + [0, 0.11, 0.22, 0.33, 0.5, 0.66, 0.78, 0.95][i], i === 7 ? 0.6 : 0.14, 'square', 0.06)); [262, 330, 392].forEach(f => tone(f, t + 0.95, 0.7, 'triangle', 0.08)); },
+  whistle: t => { tone(2100, t, 0.18, 'sine', 0.12, sfxGain, 2300); tone(2100, t + 0.22, 0.4, 'sine', 0.12, sfxGain, 2500); },
+  launch: t => { noise(t, 0.6, 1800, 0.06, sfxGain, 6); tone(500, t, 0.7, 'sine', 0.03, sfxGain, 1600); },
+  boom: t => { noise(t, 0.5, 220, 0.5, sfxGain, 0.8); noise(t, 0.12, 1400, 0.25); for (let i = 0; i < 8; i++) noise(t + 0.25 + Math.random() * 0.5, 0.03, 3500 + Math.random() * 2000, 0.07, sfxGain, 4); },
+  puddle: t => { noise(t, 0.12, 1600, 0.3, sfxGain, 3); tone(520, t, 0.08, 'sine', 0.08, sfxGain, 900); },
+  plopp: t => tone(380, t, 0.09, 'sine', 0.18, sfxGain, 760),
+  party: t => [784, 880, 784, 1047, 988].forEach((f, i) => tone(f, t + i * 0.13, 0.2, 'triangle', 0.12)),
+  found: t => { [659, 784, 988, 1319].forEach((f, i) => tone(f, t + i * 0.08, 0.25, 'triangle', 0.14)); noise(t + 0.3, 0.3, 3000, 0.08, sfxGain, 2); },
 };
 
 // Echte Aufnahmen (Musik & Effekte aus assets/audio, aufgelistet in list.json). Fehlt eine Datei, spielt die erzeugte Version.

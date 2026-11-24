@@ -166,6 +166,19 @@ input[type=text]:focus { border-color: var(--pink); }
 #clockpill .ico { width: 38px; height: 38px; margin: 0; }
 #ctime { font-size: 26px; font-weight: 700; letter-spacing: .5px; color: var(--ink); }
 #clock { font-size: 12px; font-weight: 600; color: var(--soft); margin-top: 3px; }
+#hidepill { font-size: 16px; font-weight: 700; background: #e9e0ff; color: #5b3fa6; }
+body.eyesclosed #c { filter: blur(14px) brightness(.45); transition: filter .4s; }
+body.eyesclosed::after { content: '🙈'; position: fixed; inset: 0; display: grid; place-items: center; font-size: 96px; pointer-events: none; z-index: 5; }
+.letter.paper1 { background: #eaf6ff; } .letter.paper2 { background: #fff1e0; } .letter.paper3 { background: #f2f6ff; }
+.field { display: flex; gap: 8px; align-items: center; margin: 6px 0; font-weight: 600; }
+.field input, .field select { flex: 1; font: inherit; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--line); background: #fff; }
+.papers { display: flex; gap: 6px; }
+#lttext { width: 100%; font: inherit; padding: 10px; border-radius: 12px; border: 2px solid var(--line); resize: vertical; margin: 6px 0; box-sizing: border-box; }
+.diaryadd { display: flex; gap: 8px; margin-bottom: 8px; }
+.diaryadd input { flex: 1; font: inherit; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--line); }
+.dyline { display: flex; gap: 8px; padding: 4px 2px; border-bottom: 1px dashed var(--line); }
+.dyline span { width: 24px; text-align: center; }
+#contestpill { font-size: 16px; font-weight: 700; background: #fff3c4; color: #8a5a00; }
 #questpill { pointer-events: auto; font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #questpill.ready { background: linear-gradient(135deg, #fff3b0, var(--yellow)); animation: wiggle 1.6s ease-in-out infinite; }
 @keyframes wiggle { 0%, 70%, 100% { rotate: 0deg; } 80% { rotate: -2deg; } 90% { rotate: 2deg; } }
@@ -421,6 +434,8 @@ body.skyview #skybtn { background: #7f8fd8; }
     <span class="pill" id="lvlpill"><img class="ico staric" src="assets/ui/star.webp" alt="" draggable="false"><span id="lvl">1</span> <span id="lvlbar"><i></i></span></span>
     <button class="pill hidden" id="invite">💌 Einladen: <b id="invcode"></b></button>
     <button class="pill hidden" id="questpill"></button>
+    <div class="pill hidden" id="contestpill"></div>
+    <div class="pill hidden" id="hidepill"></div>
   </div>
   <div id="topbtns">
     <button class="round phonebtn" data-open="phone" title="Inselhandy (H)"><img class="ico" src="assets/ui/phone.webp" alt="" draggable="false"><span class="dot hidden" id="orderdot"></span></button>

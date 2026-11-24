@@ -224,8 +224,8 @@ test('Nachbarn: Gespräche, Geschenke, Briefe, Wünsche', () => {
   assert.equal(act(s, { t: 'gift', id: 'mira', item: 'kirschtorte' }).ok, false, 'ein Geschenk pro Tag');
   s.npc.mira.f = 250;
   tick(s, DAY, true);
-  assert.equal(s.mail.length, 1, 'Brief bei 2 Herzen');
-  assert.ok(act(s, { t: 'mail', i: 0 }).ok);
+  assert.equal(s.mail.filter(m => !m.kind).length, 1, 'Brief bei 2 Herzen');
+  assert.ok(act(s, { t: 'mail', i: s.mail.findIndex(m => !m.kind) }).ok);
   assert.ok(s.inv.apfelkuchen >= 1, 'Geschenk aus dem Brief');
   assert.ok(s.orders.every(o => o.npc && ITEMS[o.item]), 'Wünsche kommen von Nachbarn');
 });
@@ -394,4 +394,32 @@ test('Angeln: Schattengröße bestimmt den Fisch', () => {
   for (let i = 0; i < 30; i++) assert.equal(act(s, { t: 'fish', x: 0, z: 26, size: 6 }).caught, 'hai', 'Flosse = Hai (im Sommer)');
   s.day = 1; // Frühling: keine Haie – dann irgendein Meeresfisch
   assert.ok(act(s, { t: 'fish', x: 0, z: 26, size: 6 }).ok);
+});
+
+test('Feste: Eiersuche, Kürbisfest, Turnier, Geburtstag', async () => {
+  const S = await import('../src/state.js');
+  const { FESTS, NPC_IDS, CONTEST_SECS } = await import('../src/data.js');
+  assert.equal(S.festOf(4), 'eier');
+  assert.equal(S.birthdayOf(2), 'mira');
+  const s = newFarm();
+  while (s.day < 4) tick(s, DAY, true);
+  assert.equal(s.fest?.k, 'eier');
+  const eggs = Object.keys(s.eggs);
+  assert.equal(eggs.length, 10, '10 Eier versteckt');
+  for (const k of eggs) { const [x, z] = k.split(',').map(Number); assert.ok(act(s, { t: 'pick', x, z }).ok); }
+  assert.equal(s.inv.eiernest, 1, 'Eiernest für alle Eier');
+  // Kürbisfest (Herbst, Tag 5)
+  while (S.festOf(s.day) !== 'kuerbis') tick(s, DAY, true);
+  for (const id of NPC_IDS) act(s, { t: 'talk', id });
+  assert.equal(s.inv.bonbon, NPC_IDS.length * 2);
+  assert.equal(s.inv.kuerbislaterne, 1);
+  // Turnier
+  while (!S.contestDay(s)) tick(s, DAY, true);
+  s.dayTime = 0.3;
+  assert.ok(act(s, { t: 'contest', by: 'h', name: 'Shawn' }).ok);
+  const kind = S.contestDay(s);
+  for (let i = 0; i < 9; i++) kind === 'fish' ? act(s, { t: 'fish', x: 0, z: 0, by: 'h' }) : act(s, { t: 'bug', x: 0, z: 0, by: 'h' });
+  const before = s.money;
+  tick(s, CONTEST_SECS + 1, true);
+  assert.ok(s.contest.res.length === 1 && s.money > before, 'Runde ausgewertet');
 });

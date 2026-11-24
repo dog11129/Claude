@@ -73,7 +73,17 @@ export function placeable(k, ready, fruit) {
     if (ready) { const l = part(g, 'leaves') || g, ly = l === g ? 0 : l.position.y; hang(l, 'banane', 0.02, 1.2 - ly, 0.16, 1.4); hang(l, 'banane', -0.12, 1.25 - ly, -0.06, 1.2); }
     return g;
   }
-  return model(k) || oldPlaceable(k, ready);
+  if (k === 'eiernest') { // Nest aus Zweigen mit drei bunten Eiern
+    const g = new THREE.Group();
+    const nest = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.12, 8, 16), new THREE.MeshLambertMaterial({ color: 0xb88a5a }));
+    nest.rotation.x = Math.PI / 2; nest.position.y = 0.1; nest.castShadow = true; g.add(nest);
+    const hay = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.26, 0.08, 16), new THREE.MeshLambertMaterial({ color: 0xe8cf8a }));
+    hay.position.y = 0.06; g.add(hay);
+    [[0, 0.02, 0], [0.15, -0.1, 0.9], [-0.14, -0.08, -0.8]].forEach(([x, z, r], i) => { const e = model('egg_' + [0, 3, 1][i]); if (e) { e.position.set(x, 0.06, z); e.rotation.y = r; e.scale.setScalar(1.5); g.add(e); } });
+    return g;
+  }
+  const alias = { kuerbislaterne: 'lantern_pumpkin', schneemann: 'snowman', herzballon: 'heart_balloon', torte: 'cake', angelpokal: 'pokal', kaeferpokal: 'pokal', lichterbaum: 'lichterbaum' }[k];
+  return model(alias || k) || oldPlaceable(k, ready);
 }
 
 // Landschaft: Wald auf den Klippen, Grasbüschel, Wildblumen, Teichsteine – gleiche Verteilung wie vorher,

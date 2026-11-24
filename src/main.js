@@ -1,14 +1,14 @@
 // Spielablauf: Menü, Steuerung, Host/Gast-Logik, Speichern.
 import { World, esc, cropInfo } from './world.js';
 import * as S from './state.js';
-import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT, PAVE, WEEKDAYS, weekday, FOSSILS } from './data.js';
+import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY, RES_SPOTS, TREE_FRUIT, PAVE, WEEKDAYS, weekday, FOSSILS, FESTS, CONTEST_SECS } from './data.js';
 const FOSSIL_IDS = FOSSILS.map(f => f[0]);
 import * as net from './net.js';
 import { audio, unlock, play, setMusic, setVolumes, ambience, speak, musicTick } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { Editor, settingsHtml, setOwnedHats, PRESETS, SETTING_DEFAULTS } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
-import { NPCS, npcLine, giftReply } from './npc.js';
+import { NPCS, npcLine, giftReply, festLine } from './npc.js';
 import { isWater, isSea, isBeach, walkable, coast, cliffZ, inRiver, onBridge, inPond, onPier, PATHS, PLAZA } from './island.js';
 import { zoneOf, clampPos, STREET, TROPIC, TOURS, BOAT_PRICE, shopOpen, concertNow } from './newleaf.js';
 import { loadAssets, loadTextures } from './assets.js';
@@ -39,7 +39,7 @@ audio.sound = settings.sound;
 audio.music = settings.music;
 
 // Blender-Modelle laden (der Ladebildschirm zeigt den Fortschritt)
-await loadAssets(['buildings', 'nature', 'crops', 'place', 'furniture', 'characters', 'sky'], f => { const el = document.querySelector('#loading div'); if (el) el.innerHTML = `<span>🏝️</span><br>Kuschelinsel lädt… ${Math.round(f * 100)}%`; });
+await loadAssets(['buildings', 'nature', 'crops', 'place', 'furniture', 'characters', 'sky', 'extras'], f => { const el = document.querySelector('#loading div'); if (el) el.innerHTML = `<span>🏝️</span><br>Kuschelinsel lädt… ${Math.round(f * 100)}%`; });
 await loadTextures(['grass', 'path', 'cobble', 'glint', ...FLOORS.map(f => 'floor_' + f[0]), ...WALLS.map(w => 'wall_' + w[0])]);
 const world = new World($('c'), $('labels'), settings.quality);
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
@@ -136,6 +136,8 @@ function hostData(id, d) {
   const p = G.players[id];
   if (d.t === 'join') {
     G.players[id] = newPlayer(id, d.profile);
+    const fr = (G.s.friends ||= []);
+    if (!fr.includes(G.players[id].name)) { fr.push(G.players[id].name); if (fr.length > 8) fr.shift(); }
     G.net.send(id, { t: 'welcome', id, s: pack(G.s), players: G.players, code: G.code });
     say(`💕 ${G.players[id].name} ist da!`, 'join');
     return;
@@ -181,10 +183,10 @@ function handleAct(id, a) {
     if (t - last < (a.t === 'bug' ? 1200 : 2500)) return;
     G.lastCatch[id] = t;
   }
-  const out = S.act(G.s, a);
+  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a);
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -219,6 +221,9 @@ function social(a, b, k) {
   const pa = G.players[a], pb = G.players[b];
   if (!(Math.hypot(pa.x - pb.x, pa.z - pb.z) <= 3)) return;
   if (k === 'hug') { const out = {}; S.questEvent(G.s, 'hug', 1, out); G.dirty = true; if (out.quest) questDone(out.quest); }
+  const moment = { hug: ['🤗', 'haben sich umarmt'], kiss: ['😘', 'haben sich ein Küsschen gegeben'], dance: ['💃', 'haben zusammen getanzt'], hand: ['🤝', 'sind Händchen haltend spazieren gegangen'], hide: ['🙈', 'haben Verstecken gespielt'] }[k];
+  const dk = `${G.s.day}${k}`;
+  if (moment && G.diaryDone?.[dk] !== true) { (G.diaryDone ||= {})[dk] = true; (G.s.diary ||= []).push({ day: G.s.day, icon: moment[0], text: `${pa.name} & ${pb.name} ${moment[1]}` }); G.dirty = true; }
   G.net?.broadcast({ t: 'soc', a, b, k });
   G.net?.broadcast({ t: 'hug', a, b }); // für ältere Versionen
   onSocial(a, b, k);
@@ -346,7 +351,8 @@ function showFx(fx) {
   }
 }
 function onRes(r) {
-  if (r.reaction && G.talk) giftAnswer(r.reaction);
+  if (r.reaction && G.talk) giftAnswer(r.reaction, r.bday);
+  if (r.contest) { const me = G.players[G.me]; world.float(me.x, me.z, `🏆 ${r.contest}`, 2.2, { cls: 'big' }); bump('contestpill', 'pop'); }
   if (r.snd) play(r.snd);
   else if (r.msg && !r.ok) play('fail');
   if (r.msg) toast(r.msg);
@@ -387,6 +393,7 @@ function showChat(m) {
 function showEmote(id, e, ms = 2600) {
   G.social[id] = { ...G.social[id], emote: e, emoteUntil: performance.now() + ms };
   const p = G.players[id];
+  if (e === '🐾') { if (!world.petTrick(id) && id === G.me) toast('🐾 Du hast noch kein Haustier – im Charakter-Menü kannst du eins aussuchen!'); play('plopp'); return; }
   if (p) world.emoteFx(p.x, p.z, e);
   play({ '❤️': 'love', '🥰': 'love', '😘': 'love', '🎉': 'level', '👏': 'coin', '😂': 'chat', '💃': 'join', '🎵': 'join' }[e] || 'chat');
 }
@@ -402,9 +409,67 @@ function onSocial(a, b, k) {
     else animate(k);
   }
   const x = (pa.x + pb.x) / 2, z = (pa.z + pb.z) / 2;
+  if (k === 'hand') {
+    const on = !(G.hand && [G.hand.a, G.hand.b].includes(a) && [G.hand.a, G.hand.b].includes(b));
+    G.hand = on ? { a, b } : null;
+    world.float(x, z, on ? '🤝💕' : '👋', 1.9);
+    if (a === G.me || b === G.me) toast(on ? `🤝 Ihr haltet Händchen! Wer stehen bleibt, wird mitgezogen. Nochmal antippen zum Loslassen.` : '👋 Ihr lasst los.');
+    play(on ? 'love' : 'click');
+  }
+  if (k === 'hide' && (a === G.me || b === G.me)) startHide(a, b);
+  if (k === 'found' && (a === G.me || b === G.me) && G.hide) endHide(true);
   if (k === 'hug') { world.burst(x, z, 'heart', 1.3); world.float(x, z, '💕', 1.7); world.emoteFx(x, z, '🥰'); play('love'); }
   if (k === 'kiss') { world.emoteFx(x, z, '😘'); world.float(x, z, '😘', 1.9); play('love'); }
   if (k === 'highfive') { setTimeout(() => { world.burst(x, z, 'coin', 1.7); world.float(x, z, '✋✨', 2); play('coin'); }, 180); }
+}
+// ---------- Zu zweit: Verstecken ----------
+const HIDE_COUNT = 15, HIDE_SEEK = 120;
+function startHide(seeker, hider) {
+  G.hide = { seeker, hider, t0: performance.now(), phase: 'count' };
+  const me = G.me === seeker;
+  toast(me ? `🙈 Augen zu! Zähl bis ${HIDE_COUNT} – ${G.players[hider].name} versteckt sich …` : `🏃 Schnell verstecken! ${G.players[seeker].name} zählt bis ${HIDE_COUNT}.`, true);
+  play('whistle');
+}
+function endHide(found) {
+  const h = G.hide;
+  if (!h) return;
+  G.hide = null;
+  document.body.classList.remove('eyesclosed');
+  $('hidepill').classList.add('hidden');
+  const hp = G.players[h.hider], sp = G.players[h.seeker];
+  if (found) {
+    toast(G.me === h.seeker ? `🎉 Gefunden! ${hp?.name || ''} hatte sich gut versteckt!` : `😆 ${sp?.name || ''} hat dich gefunden!`, true);
+    if (hp) { world.burst(hp.x, hp.z, 'heart', 1.4); world.float(hp.x, hp.z, '🙈🎉', 2); }
+    play('found');
+  } else { toast(G.me === h.seeker ? `⏰ Zeit um! ${hp?.name || ''} hat gewonnen.` : '🏆 Zeit um – du warst unauffindbar!', true); play('fanfare'); }
+}
+function updateHide(me, now) {
+  const h = G.hide;
+  if (!h) return;
+  const t = (now - h.t0) / 1000, seeker = G.me === h.seeker, other = G.players[seeker ? h.hider : h.seeker];
+  if (!other) return endHide(false);
+  if (h.phase === 'count') {
+    document.body.classList.toggle('eyesclosed', seeker);
+    setText('hidepill', `🙈 ${Math.max(0, Math.ceil(HIDE_COUNT - t))}`);
+    $('hidepill').classList.remove('hidden');
+    if (t >= HIDE_COUNT) { h.phase = 'seek'; document.body.classList.remove('eyesclosed'); toast(seeker ? '👀 Such!' : '🤫 Psst … die Suche beginnt!'); play('whistle'); }
+    return;
+  }
+  const left = Math.max(0, Math.ceil(HIDE_COUNT + HIDE_SEEK - t)), d = Math.hypot(other.x - me.x, other.z - me.z);
+  setText('hidepill', seeker ? `${d < 3 ? '🔥 Heiß!' : d < 7 ? '☀️ Warm' : d < 12 ? '🌤️ Lauwarm' : '❄️ Kalt'} · ${left} s` : `🤫 Versteckt · ${left} s`);
+  if (seeker && d < 1.3) { sendSocial(h.hider, 'found'); endHide(true); return; }
+  if (left <= 0) endHide(false);
+}
+// ---------- Zu zweit: Händchen halten (wer steht, läuft mit) ----------
+function updateHand(me, now) {
+  const h = G.hand;
+  if (!h || (h.a !== G.me && h.b !== G.me)) return;
+  const o = G.players[h.a === G.me ? h.b : h.a];
+  if (!o) { G.hand = null; return; }
+  const d = Math.hypot(o.x - me.x, o.z - me.z);
+  if (d > 8) { G.hand = null; toast('👋 Ihr habt euch losgelassen.'); return; }
+  if (d > 1.25 && !me.m && !G.goal && !busy()) G.goal = { player: o.id, last: { x: me.x, z: me.z, t: now } };
+  if (now > (G.handFx || 0)) { G.handFx = now + 1800; world.float((o.x + me.x) / 2, (o.z + me.z) / 2, '💗', 1.6, { life: 1.2, rise: 0.5 }); }
 }
 function animate(kind) {
   const me = G.players[G.me];
@@ -420,6 +485,9 @@ function announceDay() {
   if (weekday(s.day) === 6) say('🎸 Heute ab 20 Uhr: Livemusik im Mondschein-Club in der Bummelgasse!');
   if (s.mail.some(m => m.kind && m.day === s.day)) say('💌 Im Briefkasten liegt neue Post!');
   if (Object.values(s.shells).includes('sternsplitter')) say('🌟 Am Strand glitzern Sternsplitter!');
+  const fest = FESTS[S.festOf(s.day)], bd = S.birthdayOf(s.day);
+  if (fest) say(`${fest.icon} Heute: ${fest.name}! ${fest.desc}`, 'party');
+  if (bd) say(`🎂 Heute hat ${NPCS[bd].name} ${NPCS[bd].icon} Geburtstag!`);
   saveFarm();
 }
 
@@ -769,6 +837,15 @@ const panels = new Panels({
     if (kind === 'app') openApp(d.app);
     if (kind === 'pave') { G.pathType = d.k; select('pave', true); panels.close(); toast(d.k === 'none' ? '🧹 Designer: Wege entfernen' : `${PAVE[d.k].icon} Designer: ${PAVE[d.k].name} – tippe auf Rasen oder Sand`); }
     if (kind === 'emote') { sendEmote(d.e); panels.close(); }
+    if (kind === 'write') panels.show('letter');
+    if (kind === 'sendletter') {
+      const to = $('ltto')?.value.trim(), text = $('lttext')?.value.trim(), item = $('ltitem')?.value || null, paper = +(document.querySelector('[data-paper].on')?.dataset.paper || 0);
+      if (!to || !text) { toast('✍️ Erst einen Namen und ein paar liebe Worte eintragen!'); return; }
+      send({ t: 'letter', to, text, item, paper });
+      panels.close();
+      world.float(G.players[G.me].x, G.players[G.me].z, '💌', 2);
+    }
+    if (kind === 'diaryadd') { const t = $('dytext')?.value.trim(); if (t) { send({ t: 'diary', text: t }); $('dytext').value = ''; } }
     if (kind === 'soc' && Object.hasOwn(G.players, G.together || '')) { sendSocial(G.together, d.k); panels.close(); }
     if (kind === 'leave') leave();
     if (kind === 'sail') {
@@ -814,7 +891,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    designer: ['designer'], friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'] }[app];
+    designer: ['designer'], friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'] }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -887,7 +964,7 @@ $('rotbtn').onclick = () => world.rotate(Math.PI / 4);
 const keys = new Set();
 const joy = { x: 0, y: 0, id: null };
 let actHeld = false, nextAct = 0;
-const busy = () => !G?.ready || panels.open || editor.isOpen || G.photo || G.talk;
+const busy = () => !G?.ready || panels.open || editor.isOpen || G.photo || G.talk || (G.hide?.phase === 'count' && G.hide.seeker === G.me);
 
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') { if (e.key === 'Escape') closeChat(); return; }
@@ -1305,7 +1382,7 @@ function arrive(me, at, act) {
 // ---------- Gespräche mit Nachbarn ----------
 function talkCtx(id) {
   const s = G.s, partner = Object.values(G.players).find(p => p.id !== G.me);
-  return { hearts: S.hearts(s, id), season: S.seasonOf(s.day), weather: s.weather, hour: 6 + s.dayTime * 18, player: profile.name, partner: partner?.name || null, day: s.day };
+  return { hearts: S.hearts(s, id), season: S.seasonOf(s.day), weather: s.weather, hour: 6 + s.dayTime * 18, player: profile.name, partner: partner?.name || null, day: s.day, fest: S.festOf(s.day), bday: S.birthdayOf(s.day) };
 }
 function openTalk(id) {
   if (!G?.ready || !NPCS[id]) return;
@@ -1322,9 +1399,10 @@ function openTalk(id) {
   const N = NPCS[id], h = S.hearts(G.s, id);
   $('dlgname').style.background = N.color;
   $('dlgname').innerHTML = `${N.icon} ${N.name}<small>${'❤️'.repeat(Math.ceil(h / 2)) || '🤍'}</small>`;
-  say2(npcLine(id, talkCtx(id)));
+  const ctx = talkCtx(id);
+  say2(festLine(id, ctx) || npcLine(id, ctx));
   world.npcSay(id, 'happy');
-  play('chat');
+  play(ctx.bday === id ? 'party' : 'chat');
 }
 let typeTimer = null, typeFull = '';
 const VOWELS = 'aeiouäöüy';
@@ -1373,9 +1451,10 @@ function closeTalk() {
   document.body.classList.remove('talking');
   $('dialog').classList.add('hidden');
 }
-function giftAnswer(reaction) {
+function giftAnswer(reaction, bday) {
   const id = G.talk.id;
-  say2(giftReply(id, reaction, ITEMS[G.talk.gift]?.name || ''));
+  say2(bday && reaction !== 'dislike' ? `Ein Geburtstagsgeschenk für mich?! ${ITEMS[G.talk.gift]?.name || ''} – das ist ja wunderschön! Danke, danke, DANKE! 🎂` : giftReply(id, reaction, ITEMS[G.talk.gift]?.name || ''));
+  if (bday) { const n = world.npcM.get(id); if (n) { world.burst(n.x, n.z, 'coin', 1.6); for (let i = 0; i < 5; i++) world.float(n.x + (Math.random() - 0.5) * 1.4, n.z, ['🎉', '🎂', '🎈', '✨'][i % 4], 1.4 + Math.random()); } play('party'); }
   world.npcSay(id, { love: 'love', like: 'happy', neutral: 'happy', dislike: 'sad' }[reaction]);
   const n = world.npcM.get(id);
   if (n && reaction !== 'dislike') { world.burst(n.x, n.z, 'heart', 1.4); world.emoteFx(n.x, n.z, reaction === 'love' ? '🥰' : '❤️'); }
@@ -1468,6 +1547,38 @@ function updateFishing(dt) {
     if (f.t > f.win) { stopFishing(false); toast('🐟 Der Fisch ist entwischt…'); play('fail'); }
   }
   f.nib = Math.max(0, (f.nib || 0) - dt);
+}
+
+// ---------- Feste: Turnier-Anzeige, Feuerwerk, Pfützen ----------
+world.onBoom = () => play('boom');
+function updateFest(me, now) {
+  const s = G.s, c = s.contest, run = c?.runs?.[G.me], hour = 6 + s.dayTime * 18;
+  const txt = run ? `${c.k === 'fish' ? '🎣' : '🦋'} ${Math.max(0, Math.ceil(run.until - s.time))} s · ${run.n} ${c.k === 'fish' ? 'Fische' : 'Insekten'}` : '';
+  setText('contestpill', txt);
+  $('contestpill').classList.toggle('hidden', !txt);
+  // Ergebnisse (für alle sichtbar)
+  const res = c?.res || [];
+  if (G.resSeen === undefined || G.resDay !== s.day) { G.resSeen = res.length; G.resDay = s.day; }
+  for (const r of res.slice(G.resSeen)) {
+    const medal = { gold: '🥇 Gold', silber: '🥈 Silber', bronze: '🥉 Bronze' }[r.medal] || 'Danke fürs Mitmachen';
+    toast(`🏆 ${r.name}: ${r.n} ${c.k === 'fish' ? 'Fische' : 'Insekten'} – ${medal}! +${r.money} Taler${r.item ? ` und ein ${ITEMS[r.item].icon} ${ITEMS[r.item].name}` : ''}`, 'ach');
+    const p = Object.values(G.players).find(q => q.name === r.name);
+    if (p) { world.burst(p.x, p.z, 'coin', 1.6); for (let i = 0; i < 4; i++) world.float(p.x + (Math.random() - 0.5), p.z, ['🏆', '🎉', '✨'][i % 3], 1.6 + Math.random()); }
+    play(r.medal ? 'fanfare' : 'ach');
+  }
+  G.resSeen = res.length;
+  // Sommerfeuerwerk über dem Meer (19–24 Uhr)
+  const home = Math.abs(me.z) < 150 && me.x < 150;
+  if (S.festOf(s.day) === 'feuerwerk' && hour >= 19 && home && now > (G.nextFw || 0)) {
+    G.nextFw = now + 500 + Math.random() * 1300;
+    world.firework(me.x - 10 + Math.random() * 20, Math.min(me.z, 6) - 14 - Math.random() * 6, 13 + Math.random() * 6);
+    play('launch');
+    if (!G.fwSeen) { G.fwSeen = 1; toast('🎆 Das Feuerwerk beginnt! Tippe auf 🔭 (PC: K) und schau in den Himmel.', true); }
+  }
+  // Durch Pfützen patschen
+  if (me.m && now > (G.splashT || 0)) for (const p of world.puddles || []) {
+    if (Math.hypot(p.x - me.x, p.z - me.z) < 0.55) { G.splashT = now + 450; world.burst(me.x, me.z, 'splash', 0.05); world.burst(me.x, me.z, 'drop', 0.1); play('puddle'); break; }
+  }
 }
 
 // Info-Zeile für das markierte Feld
@@ -1578,6 +1689,8 @@ function drawMap() {
   if (G.goal && G.goal.x !== undefined) { g.strokeStyle = '#ff5d7a'; g.lineWidth = 3; g.beginPath(); g.arc(X(G.goal.x), X(G.goal.z), sc * 0.8, 0, 7); g.stroke(); }
 }
 $('pbody').addEventListener('click', e => {
+  const pp = e.target.closest('[data-paper]');
+  if (pp) { document.querySelectorAll('[data-paper]').forEach(x => x.classList.toggle('on', x === pp)); play('click'); return; }
   if (e.target.id !== 'mapcv') return;
   const r = e.target.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 2 * MAPR - MAPR, z = (e.clientY - r.top) / r.height * 2 * MAPR - MAPR;
   const me = G.players[G.me];
@@ -1683,6 +1796,9 @@ function gameFrame(dt, now) {
   if (actHeld && now > nextAct) { nextAct = now + 300; execute(G.ctx, false); }
   updateFishing(dt);
   updateTour();
+  updateFest(me, now);
+  updateHide(me, now);
+  updateHand(me, now);
 
   let prompt = null;
   if (shown && !G.fishing) {
