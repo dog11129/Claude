@@ -729,6 +729,20 @@ function toggleFullscreen() {
 }
 for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => document.body.classList.toggle('fs', isFs()));
 $('fsbtn').onclick = toggleFullscreen;
+// ---------- Als App installieren (Android/PC: Browser-Dialog, iPhone/iPad: Anleitung) ----------
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+let installEv = null;
+const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+$('b-install').classList.toggle('hidden', standalone || !ios);
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; $('b-install').classList.remove('hidden'); });
+addEventListener('appinstalled', () => { installEv = null; $('b-install').classList.add('hidden'); toast('📲 Kuschelinsel ist jetzt als App installiert!'); });
+$('b-install').onclick = async () => {
+  if (!installEv) { $('fshelp').classList.remove('hidden'); return; }
+  installEv.prompt();
+  const { outcome } = await installEv.userChoice.catch(() => ({}));
+  if (outcome === 'accepted') $('b-install').classList.add('hidden');
+  installEv = null;
+};
 $('fsok').onclick = () => $('fshelp').classList.add('hidden');
 // beim Antippen im Menü automatisch ins Vollbild (Browser verlangen dafür einen Tipp)
 document.addEventListener('click', e => {

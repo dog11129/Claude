@@ -10,7 +10,7 @@
 <title>Kuschelinsel</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -288,6 +288,8 @@ body.wantland.portrait.ingame #rotatehint { display: flex; }
   background: radial-gradient(ellipse at 50% 10%, rgba(255,255,255,.35), transparent 60%); }
 #menu .screen { width: min(460px, 100%); animation: slideup .3s; }
 .logo { text-align: center; margin-bottom: 18px; }
+.logo .appico { width: clamp(70px, 15vw, 104px); height: auto; border-radius: 24%; margin-bottom: 14px; box-shadow: 0 8px 22px rgba(200,90,130,.3); animation: iconbob 3.2s ease-in-out infinite; }
+@keyframes iconbob { 50% { transform: translateY(-6px) rotate(-2deg); } }
 .logo .sun { font-size: clamp(54px, 12vw, 86px); display: inline-block; animation: spin 30s linear infinite; filter: drop-shadow(0 6px 10px rgba(255,180,0,.35)); }
 .logo h1 { font-size: clamp(48px, 11vw, 84px); margin: -8px 0 0; color: #fff; letter-spacing: 1px; line-height: 1;
   text-shadow: 0 4px 0 var(--pinkd), 0 8px 0 rgba(232,106,139,.35), 0 14px 28px rgba(90,70,54,.35); }
@@ -446,7 +448,7 @@ body.skyview #skybtn { background: #7f8fd8; }
 
 <div id="menu" class="hidden">
   <section id="m-title" class="screen">
-    <div class="logo"><span class="sun">🏝️</span><h1>Kuschelinsel</h1><p>Euer gemeinsames Inselleben</p></div>
+    <div class="logo"><img class="appico" src="icon-192.png" alt="" draggable="false"><h1>Kuschelinsel</h1><p>Euer gemeinsames Inselleben</p></div>
     <div class="mainbtns">
       <button class="big pink hidden" id="b-continue"><span class="i">▶️</span><span>Weiterspielen<small id="continue-sub"></small></span></button>
       <button class="big hidden" id="b-rejoin"><span class="i">💞</span><span>Wieder zu Besuch<small id="rejoin-sub"></small></span></button>
@@ -454,6 +456,7 @@ body.skyview #skybtn { background: #7f8fd8; }
       <button class="big" data-go="join"><span class="i">💌</span><span>Mit Code beitreten<small>Auf die Insel deines Lieblingsmenschen fliegen</small></span></button>
       <button class="big" data-go="char"><span class="i">👗</span><span>Charakter<small>Aussehen & Haustier</small></span></button>
       <button class="big" data-go="settings"><span class="i">⚙️</span><span>Einstellungen<small>Grafik, Ton, Querformat</small></span></button>
+      <button class="big hidden" id="b-install"><span class="i">📲</span><span>Als App aufs Handy<small>Eigenes Symbol, ohne Adressleiste, auch offline</small></span></button>
     </div>
     <div class="hello" id="hello"></div>
   </section>
@@ -518,10 +521,10 @@ body.skyview #skybtn { background: #7f8fd8; }
 <div id="toasts"></div>
 <div id="cover" class="hidden"><div class="card"><div class="spin">🌻</div><p id="covertext">Verbinde…</p><button class="btn white hidden" id="coverbtn">Zum Menü</button></div></div>
 <div id="fshelp" class="hidden"><div class="card">
-  <h3>📱 Vollbild auf dem iPhone</h3>
-  <p>Safari erlaubt auf dem iPhone kein Vollbild für Spiele. So geht's trotzdem:</p>
+  <h3>📲 Kuschelinsel als App</h3>
+  <p>Auf dem iPhone/iPad geht das über Safari – dann läuft das Spiel ohne Adressleiste im Vollbild:</p>
   <ol><li>Unten auf <b>Teilen</b> <span class="shr">⬆︎</span> tippen</li><li><b>„Zum Home-Bildschirm“</b> wählen</li><li>Kuschelinsel über das neue Symbol starten – ohne Adressleiste, ganz im Vollbild</li></ol>
-  <p class="note">Achtung: Die Home-Bildschirm-App hat einen eigenen Speicher. Eine in Safari besiedelte Insel siehst du dort nicht – am besten dort neu gründen oder beim Partner beitreten.</p>
+  <p class="note">Die Home-Bildschirm-App hat einen eigenen Speicher. Deine Insel nimmst du so mit: in Safari unter „Meine Inseln“ auf 💾 tippen, dann in der App „📂 Insel aus Datei laden“.</p>
   <button class="btn pink" id="fsok">Alles klar</button>
 </div></div>
 <div id="rotatehint"><span>📱</span>Dreh dein Handy ins Querformat<button class="btn white" id="rotoff">Querformat ausschalten</button></div>
