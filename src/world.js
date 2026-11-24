@@ -26,6 +26,7 @@ const FINISH = {
 };
 import * as M from './models.js';
 import * as N from './nature.js';
+import { bridgeParts } from './bridges.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS } from './npc.js';
 import { makeAnimal } from './animals.js';
@@ -485,31 +486,9 @@ export class World {
     this.scene.add(pond);
   }
 
-  // Holzbrücken über den Fluss und der Steg ins Meer
+  // Holzbrücken über den Fluss und der Steg ins Meer (aus Blender, sonst die alten Formen)
   buildBridges() {
-    const p = [], W = 0xc9945e, WD = 0x9a6a40, L = 0xe3b47c;
-    for (const bz of BRIDGES) {
-      const x0 = riverX(bz), len = (RIVER_W + 0.75) * 2;
-      for (let i = 0; i < 11; i++) {
-        const t = i / 10 - 0.5, x = x0 + t * len, y = 0.06 + Math.cos(t * Math.PI) * 0.12;
-        p.push(M.box(len / 10.5, 0.08, BRIDGE_W * 2, i % 2 ? W : L, x, y, bz));
-      }
-      for (const sz of [-1, 1]) {
-        const z = bz + sz * (BRIDGE_W - 0.05);
-        for (let i = 0; i <= 4; i++) { const t = i / 4 - 0.5, x = x0 + t * len; p.push(M.cyl(0.05, 0.06, 0.55, WD, x, 0.3 + Math.cos(t * Math.PI) * 0.1, z, 7)); }
-        for (let i = 0; i < 8; i++) {
-          const t0 = i / 8 - 0.5, t1 = (i + 1) / 8 - 0.5, xa = x0 + t0 * len, xb = x0 + t1 * len;
-          const ya = 0.55 + Math.cos(t0 * Math.PI) * 0.12, yb = 0.55 + Math.cos(t1 * Math.PI) * 0.12;
-          p.push(M.box(xb - xa + 0.02, 0.07, 0.08, W, (xa + xb) / 2, (ya + yb) / 2, z, 0, 0, Math.atan2(yb - ya, xb - xa)));
-        }
-      }
-    }
-    // Steg
-    const { x, z0, z1, w } = PIER;
-    for (let z = z0; z < z1; z += 0.42) p.push(M.box(w * 2, 0.07, 0.38, Math.round(z * 3) % 2 ? W : L, x, 0.02, z + 0.21));
-    for (let z = z0 + 1.4; z < z1; z += 1.6) for (const sx of [-1, 1]) p.push(M.cyl(0.07, 0.08, 1.4, WD, x + sx * (w - 0.05), -0.55, z, 8));
-    for (const sx of [-1, 1]) p.push(M.cyl(0.08, 0.08, 0.55, WD, x + sx * (w - 0.05), 0.25, z1 - 0.2, 8));
-    this.scene.add(M.model(p));
+    this.scene.add(model('world_bridges') || M.model(bridgeParts()));
   }
 
   // ---------- Gras (instanziert, wiegt im Wind) ----------

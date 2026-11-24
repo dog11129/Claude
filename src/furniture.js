@@ -30,6 +30,7 @@ function place(g, c, x, y, z, rx, ry, rz) {
 function soft(w, h, d, c, x = 0, y = 0, z = 0, e = 0.3, ry = 0, rx = 0, rz = 0) {
   const g = new THREE.SphereGeometry(1, 12, 8), a = g.attributes.position.array;
   for (let i = 0; i < a.length; i++) a[i] = Math.sign(a[i]) * Math.abs(a[i]) ** e;
+  g.userData.soft = e; // für den Blender-Export
   g.scale(w / 2, h / 2, d / 2);
   return place(g, c, x, y, z, rx, ry, rz);
 }
@@ -562,3 +563,6 @@ function buildRoom(w, d, wallId, floorId) {
 export function makeRoom(w, d, wallId, floorId) {
   return instance(built(['room', w, d, wallId, floorId].join(), () => buildRoom(w, d, wallId, floorId)), false);
 }
+
+// Für den Blender-Export (tools/dump-shapes.mjs): Fenster mit Vorhängen (an der Wand bei z = 0)
+export const __room = { window: flowers => { const p = [], gl = []; window_(p, gl, 0, 0, flowers); return [p, gl]; } };

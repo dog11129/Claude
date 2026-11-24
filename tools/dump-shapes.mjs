@@ -12,7 +12,7 @@ THREE.BufferGeometry.prototype.applyMatrix4 = function (m) {
   return orig.call(this, m);
 };
 const A = await import('../src/avatar.js'), Npc = await import('../src/npc.js'), Ani = await import('../src/animals.js');
-const Mo = await import('../src/models.js');
+const Mo = await import('../src/models.js'), Br = await import('../src/bridges.js'), Fu = await import('../src/furniture.js');
 
 const TYPES = { SphereGeometry: 's', CylinderGeometry: 'c', ConeGeometry: 'k', TorusGeometry: 't', BoxGeometry: 'b' };
 const r4 = v => Math.round(v * 1e5) / 1e5;
@@ -26,7 +26,7 @@ function prim({ g, c }) {
     t: [P.radius, P.tube, P.radialSegments, P.tubularSegments, P.arc],
     b: [P.width, P.height, P.depth],
   }[t];
-  return [t === 'k' ? 'c' : t, p.map(r4), (g.userData.M || new THREE.Matrix4()).elements.map(r4), new THREE.Color(c).getHex()];
+  return [t === 'k' ? 'c' : t, p.map(r4), (g.userData.M || new THREE.Matrix4()).elements.map(r4), new THREE.Color(c).getHex(), g.userData.soft || 1];
 }
 const out = {};
 const put = (name, parts) => { if (parts && parts.length) out[name] = parts.map(prim); };
@@ -62,6 +62,13 @@ for (const [id, fn] of Object.entries(Ani.__shapes)) {
   const D = fn();
   for (const n of ['body', 'head', 'eyes', 'joy', 'tail', 'legA', 'legB']) put(`ani_${id}_${n}`, D[n]);
   put(`ani_${id}_earL`, D.ear(1)); put(`ani_${id}_earR`, D.ear(-1));
+}
+// ---------- Welt: Brücken & Steg, Zimmerfenster (Leuchtteile bekommen warmes Licht als Farbe) ----------
+put('world_bridges', Br.bridgeParts());
+for (const f of [false, true]) {
+  const [p, gl] = Fu.__room.window(f);
+  put('room_window' + (f ? '_f' : ''), p);
+  put('room_window' + (f ? '_f' : '') + '__glow', gl.map(q => ({ ...q, c: 0xfff2c8 })));
 }
 // ---------- Bodenkram und Geschenkballon ----------
 for (const k of Mo.GROUND_KINDS) put('ground_' + k, Mo.__parts.groundParts(k));

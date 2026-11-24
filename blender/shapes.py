@@ -16,12 +16,13 @@ try:
                 except ValueError: pass
         return faces
 
-    def sphere(bm, r, ws, hs, ps, pl, ts, tl):
+    def sphere(bm, r, ws, hs, ps, pl, ts, tl, soft=1):
         ws = max(14, int(ws * 1.6)); hs = max(9, int(hs * 1.6))
+        sf = lambda q: math.copysign(abs(q) ** soft, q) if soft != 1 else q  # weicher Klotz (Kugel zum Würfel gedrückt)
         rows = []
         for iy in range(hs + 1):
             v = iy / hs; th = ts + v * tl
-            rows.append([bm.verts.new((-r * math.cos(ps + ix / ws * pl) * math.sin(th), r * math.cos(th), r * math.sin(ps + ix / ws * pl) * math.sin(th))) for ix in range(ws + 1)])
+            rows.append([bm.verts.new(tuple(r * sf(q) for q in (-math.cos(ps + ix / ws * pl) * math.sin(th), math.cos(th), math.sin(ps + ix / ws * pl) * math.sin(th)))) for ix in range(ws + 1)])
         return grid(bm, rows)
 
     def cylinder(bm, rt, rb, h, rs, hs, open_, ts, tl):
@@ -59,9 +60,9 @@ try:
     def build_piece(name, prims):
         m = Model(name)
         bm, cl = m.bm, m.cl
-        for t, p, e, c in prims:
+        for t, p, e, c, sft in prims:
             before = set(bm.faces)
-            if t == 's': sphere(bm, *p)
+            if t == 's': sphere(bm, *p, soft=sft)
             elif t == 'c': cylinder(bm, *p)
             elif t == 't': torus(bm, *p)
             elif t == 'b': box(bm, *p)
