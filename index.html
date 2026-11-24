@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#9fd9ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Kuschelhof</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌻</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fff8f0; --card: #fffdf9; --ink: #5a4636; --soft: #a08a76; --pink: #ff8fab; --pinkd: #f06a8d;
+  --green: #7cc96a; --greend: #5aa84a; --yellow: #ffd66b; --blue: #6cc4ff; --line: #f0e2d2;
+  --shadow: 0 4px 0 rgba(90,70,54,.18), 0 8px 24px rgba(90,70,54,.15);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #9fd9ff; color: var(--ink);
+  font-family: 'Fredoka', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
+canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+input { font: inherit; color: var(--ink); user-select: text; -webkit-user-select: text; }
+.hidden { display: none !important; }
+
+/* Beschriftungen über der 3D-Welt */
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.tag { position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform; }
+.tag.name { font-size: 13px; font-weight: 600; color: #fff; background: rgba(90,70,54,.55); padding: 1px 8px; border-radius: 10px; }
+.tag.name.me { background: rgba(240,106,141,.75); }
+.tag.chat { background: #fff; padding: 5px 10px; border-radius: 12px; font-size: 14px; max-width: 220px; white-space: normal; box-shadow: var(--shadow); }
+.tag.emote { font-size: 34px; animation: pop .3s; }
+.tag.bubble { background: #fff; border-radius: 14px; padding: 2px 7px; font-size: 18px; box-shadow: 0 2px 0 rgba(90,70,54,.2); animation: bob 1.4s ease-in-out infinite; }
+.tag.bubble b { font-size: 12px; margin-left: 2px; }
+.tag.bubble.small { font-size: 12px; animation: none; opacity: .9; }
+.tag.hungry { background: #fff3d6; }
+.floater { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 20px; color: #fff; text-shadow: 0 2px 0 rgba(90,70,54,.5), 0 0 6px rgba(90,70,54,.4); white-space: nowrap; }
+@keyframes bob { 50% { margin-top: -5px; } }
+@keyframes pop { from { scale: .3; } }
+
+/* HUD */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+#hud > * { pointer-events: auto; }
+.pill { background: var(--card); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+#stats { position: absolute; left: max(10px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); display: flex; flex-wrap: wrap; gap: 8px; max-width: max(52vw, calc(100vw - 400px)); pointer-events: none; }
+#lvlbar { width: 70px; height: 9px; background: var(--line); border-radius: 9px; overflow: hidden; }
+#lvlbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--yellow)); width: 0; transition: width .4s; }
+#topbtns { position: absolute; right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 46vw; }
+.round { width: 46px; height: 46px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow); font-size: 22px; display: grid; place-items: center; position: relative; }
+.round:active, .btn:active, .slot:active { transform: translateY(2px); }
+.round .dot { position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--pink); color: #fff; font-size: 11px; display: grid; place-items: center; padding: 0 4px; }
+#invite { background: var(--pink); color: #fff; pointer-events: auto; }
+#hint { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); pointer-events: none; font-size: 15px; }
+#hint kbd { background: var(--line); border-radius: 6px; padding: 0 6px; font-family: inherit; }
+#hotbar { position: absolute; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; background: rgba(255,253,249,.85);
+  border-radius: 18px; box-shadow: var(--shadow); max-width: calc(100vw - 20px); overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+#hotbar::-webkit-scrollbar { display: none; }
+.slot { width: 54px; height: 54px; flex: 0 0 auto; border-radius: 14px; background: #fff; border: 3px solid transparent; font-size: 26px; position: relative; display: grid; place-items: center; }
+.slot.sel { border-color: var(--pink); background: #fff0f4; }
+.slot .n { position: absolute; right: 3px; bottom: 0; font-size: 12px; font-weight: 700; }
+.slot .k { position: absolute; left: 4px; top: 1px; font-size: 10px; color: var(--soft); }
+.slot .seed { position: absolute; left: 2px; bottom: 1px; font-size: 13px; }
+#chatlog { position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: 150px; width: min(320px, 70vw); display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+#chatlog div { background: rgba(255,253,249,.88); border-radius: 12px; padding: 4px 10px; font-size: 14px; animation: fadeout 12s forwards; }
+#chatlog b { color: var(--pinkd); }
+@keyframes fadeout { 85% { opacity: 1; } to { opacity: 0; } }
+#chatform { position: absolute; left: 50%; top: 70px; transform: translateX(-50%); display: flex; gap: 6px; width: min(460px, 92vw); }
+#chatform input { flex: 1; border: 3px solid var(--pink); border-radius: 14px; padding: 10px 12px; font-size: 16px; outline: none; }
+
+/* Handy-Steuerung */
+#joy { position: absolute; left: 0; bottom: 0; width: 50vw; height: 60vh; }
+#joybase { position: absolute; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,.35); border: 3px solid rgba(255,255,255,.7); transform: translate(-50%, -50%); pointer-events: none; }
+#joyknob { position: absolute; width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: var(--shadow); transform: translate(-50%, -50%); pointer-events: none; }
+#actwrap { position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: max(86px, calc(env(safe-area-inset-bottom) + 76px)); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#actbtn { width: 84px; height: 84px; border-radius: 50%; background: var(--pink); color: #fff; font-size: 34px; box-shadow: 0 5px 0 var(--pinkd), 0 10px 24px rgba(90,70,54,.25); }
+#actbtn:active, #actbtn.on { transform: translateY(4px); box-shadow: 0 1px 0 var(--pinkd); }
+#actlabel { font-size: 13px; font-weight: 600; background: var(--card); border-radius: 10px; padding: 2px 8px; box-shadow: var(--shadow); white-space: nowrap; }
+body:not(.touch) #joy, body:not(.touch) #actwrap { display: none; }
+body.touch #hint { display: none; }
+body.touch #chatlog { bottom: 200px; }
+
+/* Fenster / Menüs */
+.card { background: var(--card); border-radius: 24px; box-shadow: var(--shadow); padding: 18px; }
+.btn { background: var(--green); color: #fff; font-weight: 600; border-radius: 14px; padding: 10px 16px; box-shadow: 0 4px 0 var(--greend); font-size: 16px; }
+.btn.pink { background: var(--pink); box-shadow: 0 4px 0 var(--pinkd); }
+.btn.white { background: #fff; color: var(--ink); box-shadow: 0 4px 0 var(--line); border: 2px solid var(--line); }
+.btn.small { padding: 6px 10px; font-size: 14px; border-radius: 10px; }
+.btn:disabled { background: #d8cfc6; box-shadow: 0 4px 0 #c2b6aa; cursor: not-allowed; }
+#panel { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(90,70,54,.25); padding: 10px; }
+#panel .card { width: min(620px, 100%); max-height: min(86vh, 760px); display: flex; flex-direction: column; padding: 14px; }
+#panel header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+#panel h2 { margin: 0; font-size: 22px; flex: 1; }
+#ptabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; flex: 0 0 auto; }
+#ptabs button { flex: 0 0 auto; background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 6px 10px; font-weight: 600; }
+#ptabs button.on { background: var(--pink); color: #fff; border-color: var(--pink); }
+#pbody { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 2px; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; background: #fff; margin-bottom: 6px; border: 2px solid var(--line); }
+.row .ic { font-size: 30px; width: 40px; text-align: center; flex: 0 0 auto; }
+.row .tx { flex: 1; min-width: 0; }
+.row .tx b { display: block; }
+.row .tx small { color: var(--soft); display: block; line-height: 1.25; }
+.row .bt { display: flex; gap: 6px; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
+.row.locked { opacity: .55; }
+.money { color: #c98a00; font-weight: 700; white-space: nowrap; }
+.lv { display: inline-block; background: var(--line); border-radius: 8px; padding: 0 6px; font-size: 12px; margin-left: 4px; }
+.pips { color: var(--pink); letter-spacing: 1px; }
+.note { color: var(--soft); font-size: 14px; margin: 4px 2px 10px; }
+
+/* Hauptmenü */
+#menu { position: fixed; inset: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 20px 12px 30px; gap: 14px; touch-action: pan-y; }
+#menu h1 { font-size: clamp(40px, 9vw, 72px); margin: 10px 0 0; color: #fff; text-shadow: 0 4px 0 var(--pinkd), 0 8px 20px rgba(90,70,54,.3); letter-spacing: 1px; }
+#menu .sub { margin-top: -10px; color: #fff; font-weight: 600; text-shadow: 0 2px 4px rgba(90,70,54,.4); }
+#menu .card { width: min(460px, 100%); display: flex; flex-direction: column; gap: 10px; }
+#menu h3 { margin: 0; }
+#menu input[type=text] { border: 3px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 17px; outline: none; width: 100%; }
+#menu input[type=text]:focus { border-color: var(--pink); }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatches button { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--line); }
+.swatches button.on { box-shadow: 0 0 0 3px var(--pink); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 5px 9px; }
+.chips button.on { border-color: var(--pink); background: #fff0f4; }
+.joinrow { display: flex; gap: 8px; }
+#jcode { text-transform: uppercase; letter-spacing: 4px; text-align: center; font-weight: 700; }
+.farm { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; border: 2px solid var(--line); background: #fff; }
+.farm .tx { flex: 1; }
+.farm small { color: var(--soft); display: block; }
+.err { color: #d64545; font-weight: 600; min-height: 1em; }
+
+#toasts { position: fixed; left: 50%; top: 66px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: 92vw; }
+#toasts div { background: var(--card); border-radius: 14px; padding: 8px 14px; box-shadow: var(--shadow); font-weight: 600; animation: pop .25s, fadeout 4s forwards; text-align: center; max-width: 460px; }
+#toasts div.big { background: var(--yellow); font-size: 18px; animation: pop .25s, fadeout 6s forwards; }
+#cover { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(90,70,54,.35); z-index: 10; }
+#cover .card { text-align: center; max-width: 360px; }
+.spin { display: inline-block; animation: spin 1.2s linear infinite; font-size: 30px; }
+@keyframes spin { to { rotate: 360deg; } }
+#fishbar { position: absolute; left: 50%; top: 32%; transform: translateX(-50%); font-size: 18px; }
+@media (max-width: 560px), (max-height: 500px) {
+  .round { width: 40px; height: 40px; font-size: 19px; }
+  .slot { width: 48px; height: 48px; font-size: 23px; }
+  #stats .pill { padding: 4px 9px; font-size: 14px; }
+  #lvlbar { width: 46px; }
+}
+@media (max-height: 500px) { #menu { padding-top: 6px; } #menu h1 { margin: 0; } #actwrap { bottom: 76px; } #actbtn { width: 72px; height: 72px; }
+  #panel { padding: 4px; } #panel .card { max-height: 98vh; padding: 10px; } #panel h2 { font-size: 18px; } .row { padding: 5px 8px; margin-bottom: 4px; } .row .ic { font-size: 24px; } .note { margin: 2px 2px 6px; }
+  #toasts div.big { font-size: 15px; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+
+<div id="hud" class="hidden">
+  <div id="stats">
+    <span class="pill">🪙 <span id="money">0</span></span>
+    <span class="pill"><span id="clock">☀️ Tag 1 · 06:00</span></span>
+    <span class="pill">⭐ <span id="lvl">1</span> <span id="lvlbar"><i></i></span></span>
+    <button class="pill hidden" id="invite">💌 Einladen: <b id="invcode"></b></button>
+  </div>
+  <div id="topbtns">
+    <button class="round" data-open="shop" title="Laden (B)">🛒</button>
+    <button class="round" data-open="sell" title="Lager & Verkaufen (I)">🎒</button>
+    <button class="round" data-open="orders" title="Aufträge (O)">📋<span class="dot hidden" id="orderdot"></span></button>
+    <button class="round" data-open="friends" title="Freunde (F)">👥<span class="dot" id="pcount">1</span></button>
+    <button class="round" id="chatbtn" title="Chat (Enter)">💬</button>
+    <button class="round" data-open="emotes" title="Emotes (Q)">😊</button>
+    <button class="round" data-open="settings" title="Menü (Esc)">⚙️</button>
+  </div>
+  <div id="hint" class="pill hidden"></div>
+  <div id="chatlog"></div>
+  <form id="chatform" class="hidden"><input id="chatin" maxlength="120" placeholder="Nachricht…" autocomplete="off"><button class="btn pink">Senden</button></form>
+  <div id="fishbar" class="pill hidden"></div>
+  <div id="joy"><div id="joybase" class="hidden"></div><div id="joyknob" class="hidden"></div></div>
+  <div id="actwrap"><div id="actlabel">…</div><button id="actbtn">✋</button></div>
+  <div id="hotbar"></div>
+</div>
+
+<div id="menu" class="hidden">
+  <h1>🌻 Kuschelhof</h1>
+  <div class="sub">Eure gemeinsame kleine Farm</div>
+  <div class="card">
+    <h3>Du</h3>
+    <input type="text" id="pname" maxlength="16" placeholder="Dein Name">
+    <div class="err" id="perr"></div>
+    <div class="swatches" id="pcolors"></div>
+    <div class="chips" id="phats"></div>
+  </div>
+  <div class="card">
+    <h3>💌 Mit Code beitreten</h3>
+    <div class="joinrow"><input type="text" id="jcode" maxlength="5" placeholder="CODE"><button class="btn pink" id="jbtn">Beitreten</button></div>
+    <div class="err" id="jerr"></div>
+  </div>
+  <div class="card">
+    <h3>🏡 Deine Farmen</h3>
+    <div id="farms"></div>
+    <div class="joinrow"><input type="text" id="fname" maxlength="24" placeholder="Name der neuen Farm"><button class="btn" id="newbtn">Neue Farm</button></div>
+  </div>
+</div>
+
+<div id="panel" class="hidden">
+  <div class="card">
+    <header><h2 id="ptitle"></h2><span class="pill">🪙 <span id="pmoney"></span></span><button class="round" id="pclose">✖️</button></header>
+    <div id="ptabs"></div>
+    <div id="pbody"></div>
+  </div>
+</div>
+<div id="toasts"></div>
+<div id="cover" class="hidden"><div class="card"><div class="spin">🌻</div><p id="covertext">Verbinde…</p><button class="btn white hidden" id="coverbtn">Zum Menü</button></div></div>
+
+<script src="vendor/peerjs.min.js"></script>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
