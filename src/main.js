@@ -569,7 +569,7 @@ function needName() {
 }
 
 // ---------- Charakter-Editor ----------
-const preview = { id: 'preview', name: '', look: profile.look, x: 0.5, z: -5, ry: 0.3, m: false, an: 0, held: null };
+const preview = { id: 'preview', name: '', look: profile.look, x: -2.4, z: 2.6, ry: 0.3, m: false, an: 0, held: null };
 function openEditor() {
   const inGame = !!G?.ready, me = inGame && G.players[G.me], before = me && { ...me.look };
   interrupt();
@@ -1330,7 +1330,7 @@ function demoFarm() {
   const s = S.newFarm('Demo');
   s.dayTime = 0.3;
   s.up.house = 2;
-  for (const [x, z, k] of [[2, 4, 'laterne'], [-2, 4, 'laterne'], [3, -1, 'bank'], [-3, 6, 'blumen'], [3, 6, 'blumen'], [-6, 4, 'apfelbaum'], [6, 3, 'kirschbaum'], [-1, 8, 'herz'], [-12, -6, 'zwerg']]) {
+  for (const [x, z, k] of [[2, 4, 'laterne'], [-5, 5, 'laterne'], [3, -1, 'bank'], [-3, 6, 'blumen'], [3, 6, 'blumen'], [-6, 4, 'apfelbaum'], [6, 3, 'kirschbaum'], [-1, 8, 'herz'], [-12, -6, 'zwerg']]) {
     if (S.canPlace(s, x, z)) s.obj[S.key(x, z)] = { k, r: 0, t: 1e9 };
   }
   return s;

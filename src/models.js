@@ -25,7 +25,7 @@ THREE.ShaderChunk.project_vertex = `vec4 mvPosition = vec4( transformed, 1.0 );
   vec2 cfh = normalize( cfw.xz + vec2( 1e-5 ) );
   float cD = cameraPosition.y * length( cfw.xz ) / max( -cfw.y, 0.08 );
   float cd = dot( cwp.xz - cameraPosition.xz, cfh ) - cD;
-  cwp.y -= ${CURVE_K.toFixed(5)} * cd * cd;
+  cwp.y -= ${CURVE_K.toFixed(5)} * cd * cd * smoothstep( 0.25, 0.45, -cfw.y ); // flache Blicke (Editor, Vorschaubilder) bleiben gerade
   mvPosition = viewMatrix * cwp;
 #endif
 gl_Position = projectionMatrix * mvPosition;`;
@@ -33,7 +33,8 @@ gl_Position = projectionMatrix * mvPosition;`;
 export function curveDrop(camera, x, z) {
   const e = camera.matrixWorld.elements, fx = -e[8], fy = -e[9], fz = -e[10], h = Math.hypot(fx, fz) || 1e-5;
   const D = camera.position.y * h / Math.max(-fy, 0.08), d = ((x - camera.position.x) * fx + (z - camera.position.z) * fz) / h - D;
-  return CURVE_K * d * d;
+  const t = Math.min(1, Math.max(0, (-fy - 0.25) / 0.2));
+  return CURVE_K * d * d * t * t * (3 - 2 * t);
 }
 export const MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 MAT.onBeforeCompile = cozy;
