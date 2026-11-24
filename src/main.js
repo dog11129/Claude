@@ -1,9 +1,9 @@
 // Spielablauf: Menü, Steuerung, Host/Gast-Logik, Speichern.
 import { World, esc, cropInfo } from './world.js';
 import * as S from './state.js';
-import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL } from './data.js';
+import { SPAWN, SPEED, EMOTES, ITEMS, CROPS, ANIMALS, PLACE, BUILDINGS, MAP, ACHIEVEMENTS, SEASONS, SOCIAL, STORY } from './data.js';
 import * as net from './net.js';
-import { audio, unlock, play, setMusic, setVolumes, ambience, blip } from './audio.js';
+import { audio, unlock, play, setMusic, setVolumes, ambience, blip, musicFor } from './audio.js';
 import { Panels, hotbarItems, slotHtml } from './ui.js';
 import { Editor, settingsHtml } from './menu.js';
 import { cleanLook, randomLook } from './avatar.js';
@@ -154,6 +154,11 @@ function say(text, snd) {
 }
 
 function handleAct(id, a) {
+  if (a && (a.t === 'bug' || a.t === 'fish')) { // nicht im Sekundentakt fangen
+    const t = performance.now(), last = (G.lastCatch ||= {})[id] || 0;
+    if (t - last < (a.t === 'bug' ? 1200 : 2500)) return;
+    G.lastCatch[id] = t;
+  }
   const out = S.act(G.s, a);
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
@@ -161,6 +166,7 @@ function handleAct(id, a) {
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
+  if (out.quest) questDone(out.quest);
   if (out.ok && out.msg && ['buyAnimal', 'upgrade', 'order'].includes(a.t)) {
     const text = `${G.players[id]?.name}: ${out.msg}`;
     G.net?.broadcast({ t: 'toast', text }, id);
@@ -180,10 +186,17 @@ function emote(id, e) {
   G.net?.broadcast({ t: 'emote', id, e });
   showEmote(id, e);
 }
+function questDone(title) {
+  const text = `📜 Quest geschafft: ${title} – Belohnung im 📋 Hof-Buch abholen!`;
+  G.net?.broadcast({ t: 'toast', text, snd: 'ach' });
+  toast(text, 'ach');
+  play('ach');
+}
 function social(a, b, k) {
   if (!Object.hasOwn(G.players, a) || !Object.hasOwn(G.players, b) || a === b) return;
   const pa = G.players[a], pb = G.players[b];
   if (!(Math.hypot(pa.x - pb.x, pa.z - pb.z) <= 3)) return;
+  if (k === 'hug') { const out = {}; S.questEvent(G.s, 'hug', 1, out); G.dirty = true; if (out.quest) questDone(out.quest); }
   G.net?.broadcast({ t: 'soc', a, b, k });
   G.net?.broadcast({ t: 'hug', a, b }); // für ältere Versionen
   onSocial(a, b, k);
@@ -584,7 +597,7 @@ function openEditor() {
     onCancel: () => { back(); if (inGame) me.look = before; else showMenu(joinParam ? 'join' : 'title'); },
   });
 }
-const previewCam = (x, z) => (matchMedia('(orientation: portrait)').matches ? { x, z, lift: 0.75 } : { x, z, shift: 0.95 });
+const previewCam = (x, z) => (matchMedia('(orientation: portrait)').matches ? { x, z, lift: 0.45 } : { x, z, shift: 0.95 });
 
 // ---------- Einstellungen ----------
 document.addEventListener('click', e => {
@@ -669,6 +682,7 @@ function togglePanel(kind, tab) {
 }
 for (const b of document.querySelectorAll('[data-open]')) b.onclick = () => togglePanel(b.dataset.open);
 $('invite').onclick = () => togglePanel('friends');
+$('questpill').onclick = () => { interrupt(); panels.show('orders', 'quests'); play('click'); };
 
 // ---------- Fotomodus ----------
 function setPhoto(on) {
@@ -735,7 +749,7 @@ addEventListener('keydown', e => {
     else if (panels.open) panels.close(); else panels.show('settings');
     return;
   }
-  if (editor.isOpen) return;
+  if (editor.isOpen || G.talk) return;
   if (k === 'p') { setPhoto(!G.photo); return; }
   if (k === 'z') world.rotate(-Math.PI / 4);
   if (k === 'c') world.rotate(Math.PI / 4);
@@ -881,7 +895,8 @@ function execute(r, fresh) {
   if (r.npc) { if (fresh) openTalk(r.npc); return; }
   if (r.hug) { if (fresh) { interrupt(); G.together = r.hug; panels.show('together'); play('click'); } return; }
   if (r.net) {
-    if (!fresh) return;
+    if (!fresh || performance.now() < (G.netCool || 0)) return;
+    G.netCool = performance.now() + 900;
     animate('net');
     const c = world.nearCritter(r.net.x, r.net.z), k = S.key(Math.round(r.net.x), Math.round(r.net.z));
     const flowers = ['blumen', 'kirschbaum'].includes(G.s.obj[k]?.k) || G.s.tiles[k]?.c?.k === 'sonnenblume';
@@ -903,7 +918,7 @@ function execute(r, fresh) {
     if (!fresh) return;
     interrupt();
     fade();
-    play('place');
+    play('door');
     const [, d] = S.roomSize(G.s);
     if (r.enter) Object.assign(me, { x: S.HOME_X, z: d / 2 - 0.7, ry: Math.PI, pose: null });
     else Object.assign(me, { x: 0, z: -7.6, ry: 0, pose: null });
@@ -926,10 +941,14 @@ function execute(r, fresh) {
 }
 
 function standUp(me) {
-  const sleep = me.pose === 'sleep';
+  const c = Math.cos(me.ry), s = Math.sin(me.ry), sleep = me.pose === 'sleep';
   me.pose = null;
-  if (sleep) { me.x += Math.cos(me.ry) * 1.3; me.z -= Math.sin(me.ry) * 1.3; } // neben das Bett
-  else { me.x += Math.sin(me.ry) * 0.8; me.z += Math.cos(me.ry) * 0.8; }
+  // freien Platz neben Bett/Sitz suchen: vorne, rechts, links, Fußende – sonst an die Tür
+  const spots = sleep ? [[c * 1.3, -s * 1.3], [-c * 1.3, s * 1.3], [s * 0.9, c * 0.9], [c * 0.9, -s * 0.9], [-c * 0.9, s * 0.9]] : [[s * 0.8, c * 0.8], [c * 0.8, -s * 0.8], [-c * 0.8, s * 0.8], [-s * 0.8, -c * 0.8]];
+  const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25], [0, 0]].some(([a, b]) => S.blocked(G.s, x + a, z + b));
+  const ok = spots.find(([dx, dz]) => free(me.x + dx, me.z + dz));
+  if (ok) { me.x += ok[0]; me.z += ok[1]; }
+  else if (S.inside(me)) { me.x = S.HOME_X; me.z = S.roomSize(G.s)[1] / 2 - 0.7; }
 }
 
 function tapAt(cx, cy) {
@@ -1214,6 +1233,7 @@ function gameFrame(dt, now) {
     preview: editor.isOpen ? previewCam(me.x, me.z) : null,
   });
   ambience({ day: info.day, night: info.night, rain: s.weather === 'rain', walking: me.m });
+  musicFor(info.night > 0.6 ? 'night' : 'day');
   // Nachbarn sagen ab und zu etwas, wenn man in der Nähe ist
   if (now > (G.nextChatter || 0) && !G.talk) {
     G.nextChatter = now + 14000 + Math.random() * 12000;
@@ -1230,7 +1250,13 @@ function gameFrame(dt, now) {
   setText('lvl', String(s.level));
   const pct = Math.min(100, s.xp / (40 * s.level * s.level) * 100) + '%';
   if (hud.pct !== pct) { hud.pct = pct; document.querySelector('#lvlbar i').style.width = pct; }
-  const ready = s.orders.filter(o => (s.inv[o.item] || 0) >= o.n).length;
+  const ready = s.orders.filter(o => (s.inv[o.item] || 0) >= o.n).length + (s.quest.done ? 1 : 0) + s.daily.filter(d => d.done && !d.claimed).length;
+  // Quest-Anzeige: aktuelles Kapitel der Hof-Geschichte
+  const q = STORY[s.quest.i];
+  const qt = !q ? '' : s.quest.done ? `🎁 ${q.title}: Belohnung abholen!` : `📜 ${q.title} · ${Math.min(s.quest.p, q.n)}/${q.n}`;
+  setText('questpill', qt);
+  $('questpill').classList.toggle('hidden', !qt || G.photo);
+  $('questpill').classList.toggle('ready', !!s.quest.done);
   setText('orderdot', ready ? String(ready) : '');
   $('orderdot').classList.toggle('hidden', !ready);
   const np = Object.keys(G.players).length;

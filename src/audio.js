@@ -29,6 +29,7 @@ export function unlock() {
     src.start();
     setVolumes();
     setMusic(audio.music);
+    loadAudio();
   }
   if (ctx.state === 'suspended') ctx.resume();
 }
@@ -37,7 +38,7 @@ export function setVolumes() {
   if (!ctx) return;
   sfxGain.gain.value = audio.sound * 0.6;
   ambGain.gain.value = audio.sound * 0.5;
-  musicGain.gain.value = audio.music * 0.07;
+  musicGain.gain.value = audio.music * (musicBuf.day ? 0.35 : 0.07);
 }
 
 function tone(f, t0, dur, type = 'sine', vol = 0.2, out = sfxGain, f2) {
@@ -84,7 +85,53 @@ const SFX = {
   shutter: t => { noise(t, 0.05, 3000, 0.5); noise(t + 0.08, 0.06, 2000, 0.4); },
   ach: t => [784, 988, 1175, 1568].forEach((f, i) => tone(f, t + i * 0.07, 0.4, 'sine', 0.16)),
   splash: t => { noise(t, 0.25, 1200, 0.4); tone(300, t, 0.15, 'sine', 0.1, sfxGain, 600); },
+  chop: t => { noise(t, 0.08, 900, 0.6, sfxGain, 3); tone(180, t, 0.12, 'triangle', 0.2, sfxGain, 120); },
+  door: t => { tone(520, t, 0.12, 'sine', 0.12, sfxGain, 660); tone(780, t + 0.1, 0.18, 'sine', 0.12); },
 };
+
+// Echte Aufnahmen (Musik & Effekte aus assets/audio). Fehlt eine Datei, spielt die erzeugte Version.
+const SAMPLES = {}, SAMPLE_FILES = {
+  harvest: 'sfx-harvest.mp3', coin: 'sfx-coin.mp3', level: 'sfx-level.mp3', ach: 'sfx-quest.mp3', till: 'sfx-dig.mp3', water: 'sfx-water.mp3',
+  place: 'sfx-place.mp3', splash: 'sfx-splash.mp3', door: 'sfx-door.mp3', love: 'sfx-love.mp3', chop: 'sfx-chop.mp3', click: 'sfx-click.mp3',
+};
+const TRACKS = { day: 'music-day.mp3', night: 'music-night.mp3' };
+let musicBuf = {}, musicSrc = null, musicKind = null, loading = false;
+async function loadAudio() {
+  if (loading) return;
+  loading = true;
+  const get = async f => { try { const r = await fetch('assets/audio/' + f); return r.ok ? await ctx.decodeAudioData(await r.arrayBuffer()) : null; } catch { return null; } };
+  await Promise.all(Object.entries(SAMPLE_FILES).map(async ([k, f]) => { const b = await get(f); if (b) SAMPLES[k] = b; }));
+  for (const [k, f] of Object.entries(TRACKS)) { const b = await get(f); if (b) musicBuf[k] = b; }
+  if (musicBuf.day) { clearInterval(musicTimer); musicKind = null; }
+}
+function sample(name) {
+  const b = SAMPLES[name];
+  if (!b) return false;
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = b;
+  src.playbackRate.value = 0.94 + Math.random() * 0.12; // nie zweimal genau gleich
+  g.gain.value = name === 'click' ? 0.5 : 0.9;
+  src.connect(g).connect(sfxGain);
+  src.start();
+  return true;
+}
+// Musik je Tageszeit, mit sanftem Überblenden
+export function musicFor(kind) {
+  if (!ctx || !audio.music || !musicBuf.day) return;
+  const want = musicBuf[kind] ? kind : 'day';
+  if (want === musicKind) return;
+  musicKind = want;
+  const t = ctx.currentTime, old = musicSrc;
+  if (old) { old.g.gain.setTargetAtTime(0, t, 1.2); setTimeout(() => old.src.stop(), 5000); }
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = musicBuf[want];
+  src.loop = true;
+  g.gain.value = 0;
+  g.gain.setTargetAtTime(1, t, 1.5);
+  src.connect(g).connect(musicGain);
+  src.start();
+  musicSrc = { src, g };
+}
 
 // Plapper-Stimme der Nachbarn: kurze, weiche Silben in eigener Tonlage
 export function blip(base) {
@@ -94,7 +141,8 @@ export function blip(base) {
 }
 
 export function play(name) {
-  if (!ctx || !audio.sound || !SFX[name]) return;
+  if (!ctx || !audio.sound) return;
+  if (sample(name) || !SFX[name]) return;
   SFX[name](ctx.currentTime + 0.01);
 }
 
@@ -125,7 +173,9 @@ export function setMusic(vol) {
   audio.music = vol;
   setVolumes();
   clearInterval(musicTimer);
-  if (!ctx || !vol) return;
+  if (!ctx) return;
+  if (!vol && musicSrc) { musicSrc.src.stop(); musicSrc = null; musicKind = null; }
+  if (!vol || musicBuf.day) return;
   let step = 0;
   musicTimer = setInterval(() => {
     if (ctx.state !== 'running') return;

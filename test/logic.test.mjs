@@ -220,3 +220,38 @@ test('Zuhause: Möbel stellen, Teppiche, Wandschmuck, Kollision, Schlafen', asyn
   assert.ok(S.sleepThrough(s));
   assert.equal(s.day, d + 1);
 });
+
+test('Quests: Geschichte und Tagesaufgaben mit Belohnung', async () => {
+  const { STORY, DAILY } = await import('../src/data.js');
+  const s = newFarm();
+  assert.equal(s.daily.length, 3);
+  for (const x of [-6, -5, -4, -3]) act(s, { t: 'till', x, z: 0, dx: 1, dz: 0 });
+  for (const x of [-6, -5, -4, -3]) act(s, { t: 'plant', x, z: 0, dx: 1, dz: 0, item: 's_weizen' });
+  assert.ok(s.quest.done, 'erste Quest: 4 gesät');
+  assert.equal(act(s, { t: 'claim', q: 1 }).ok, s.daily[1].done === true, 'Tagesaufgabe nur wenn erledigt');
+  const m = s.money, out = act(s, { t: 'claim', q: 'story' });
+  assert.ok(out.ok);
+  assert.equal(s.money, m + STORY[0].money);
+  assert.equal(s.quest.i, 1);
+  assert.equal(act(s, { t: 'claim', q: 'story' }).ok, false, 'nicht doppelt');
+  assert.equal(act(s, { t: 'claim', q: 7 }).ok, false);
+  s.daily = [{ i: DAILY.findIndex(d => d[1] === 'water'), p: 0 }];
+  act(s, { t: 'water', x: -6, z: 0, dx: 1, dz: 0 });
+  assert.equal(s.daily[0].p, 1);
+  for (const q of STORY) for (const id of Object.keys(q.items || {})) assert.ok(id in (await import('../src/data.js')).ITEMS, 'Belohnung existiert: ' + id);
+});
+
+test('Review: Wandschmuck eigene Ebene, keine Überschneidung, Tür bleibt frei', async () => {
+  const S = await import('../src/state.js');
+  const s = newFarm();
+  s.inv.bild = 1; s.inv.sofa = 1; s.inv.esstisch = 1; s.inv.stuhl = 2;
+  assert.ok(act(s, { t: 'hplace', x: 3, z: 0, item: 'bild', r: 0 }).ok, 'Bild an rechter Wand');
+  assert.ok(act(s, { t: 'hplace', x: 3, z: -1, item: 'sofa', r: 1 }).ok, 'Sofa gedreht darunter');
+  assert.equal(act(s, { t: 'hplace', x: 2, z: 0, item: 'esstisch', r: 0 }).ok, false, 'Tisch überschneidet Sofa nicht');
+  assert.ok(S.blocked(s, S.HOME_X + 3, 0), 'Sofa blockiert trotz Bild');
+  assert.equal(act(s, { t: 'hplace', x: 0, z: 2, item: 'stuhl', r: 0 }).ok, false, 'vor der Tür bleibt frei');
+  const old = newFarm(); delete old.digs; delete old.res; old.obj['13,2'] = { k: 'zwerg', r: 0 }; old.home.items['-1,-2'] = { k: 'bild', r: 0 }; delete old.home.walls;
+  migrate(old);
+  assert.equal(old.obj['13,2'], undefined, 'Gnom auf Baumplatz zurück ins Lager');
+  assert.ok(old.inv.zwerg >= 1 && old.digs.length && old.home.walls['-1,-2'], 'Grabstellen & Wandschmuck migriert');
+});

@@ -2,7 +2,7 @@
 import {
   DAY, WET, MAP, CROPS, ANIMALS, ANIMAL_NAMES, PENS, BUILDINGS, POND, FIELDS, ITEMS, FISH, PLACE,
   MACHINE_CAP, UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS, SEASON_LEN, SEASON_IDS,
-  RES_SPOTS, BUGS, FOSSILS, RECIPES, DIG_SPOTS_PER_DAY, NPC_DATA, NPC_IDS,
+  RES_SPOTS, BUGS, FOSSILS, RECIPES, DIG_SPOTS_PER_DAY, NPC_DATA, NPC_IDS, STORY, DAILY,
 } from './data.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 
@@ -20,7 +20,8 @@ export function newFarm(name = 'Kuschelhof') {
     inv: { s_weizen: 10, s_karotte: 6, futter: 0 },
     up: {}, tiles: {}, obj: {}, animals: [], orders: [], nextId: 1, ach: {},
     album: {}, res: {}, shook: {}, digs: [], mail: [], npc: {},
-    home: { wall: 'vanille', floor: 'dielen', items: {}, rugs: {} },
+    home: { wall: 'vanille', floor: 'dielen', items: {}, rugs: {}, walls: {} },
+    quest: { i: 0, p: 0 }, daily: [], met: {},
     stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0 },
   };
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
@@ -29,6 +30,7 @@ export function newFarm(name = 'Kuschelhof') {
   s.obj[key(2, -4)] = { k: 'blumen', r: 0 };
   s.inv.holz = 0;
   refill(s);
+  newDailies(s);
   fillOrders(s);
   return s;
 }
@@ -46,6 +48,25 @@ export function npcPos(id, t) {
 }
 export const npcAwake = s => { const h = 6 + s.dayTime * 18; return h >= 7 && h < 21.5; };
 
+// ---------- Quests ----------
+function newDailies(s) {
+  const pool = DAILY.map((d, i) => i).sort(() => Math.random() - 0.5).slice(0, 3);
+  s.daily = pool.map(i => ({ i, p: 0 }));
+}
+// Etwas ist passiert (gegossen, geerntet, …): Fortschritt für Geschichte und Tagesaufgaben
+export function questEvent(s, ev, n = 1, out) {
+  const q = STORY[s.quest.i];
+  if (q && !s.quest.done) {
+    if (q.ev === ev) s.quest.p = q.ev === 'level' || q.ev === 'met' ? n : s.quest.p + n;
+    if (s.quest.p >= q.n) { s.quest.done = true; if (out) out.quest = q.title; }
+  }
+  for (const d of s.daily) {
+    if (d.done || DAILY[d.i][1] !== ev) continue;
+    d.p += n;
+    if (d.p >= DAILY[d.i][2]) { d.done = true; if (out) out.quest = DAILY[d.i][0]; }
+  }
+}
+
 // Morgens: Bäume & Felsen auffüllen, neue Grabstellen verstecken
 function refill(s) {
   for (const [k, kind] of Object.entries(RES_SPOTS)) s.res[k] = 3;
@@ -53,22 +74,25 @@ function refill(s) {
   s.digs = [];
   for (let tries = 0; s.digs.length < DIG_SPOTS_PER_DAY && tries < 200; tries++) {
     const x = rnd(2 * MAP - 1) - MAP + 1, z = rnd(2 * MAP - 1) - MAP + 1, k = key(x, z);
-    if (canPlace(s, x, z) && !inField(s, x, z) && !s.digs.includes(k) && !nearPath(x, z)) s.digs.push(k);
+    if (canPlace(s, x, z) && !inField(s, x, z) && !nearPath(x, z) && (x - POND.cx) ** 2 + (z - POND.cz) ** 2 > (POND.r + 0.8) ** 2) s.digs.push(k);
   }
 }
 const nearPath = (x, z) => Math.abs(x) <= 1 && z < 0;
 
 // Alte Spielstände mit neuen Feldern ergänzen, damit Updates nichts kaputt machen.
 export function migrate(s) {
+  const fresh = !s.digs || !s.res;
   const base = newFarm(s.name);
   for (const k of Object.keys(base)) if (s[k] === undefined) s[k] = base[k];
   for (const k of Object.keys(UPGRADES)) if (s.up[k] === undefined) s.up[k] = UPGRADES[k].start;
   for (const k of Object.keys(base.stats)) if (s.stats[k] === undefined) s.stats[k] = 0;
   for (const k of ['money', 'xp', 'time', 'dayTime']) if (!Number.isFinite(s[k])) s[k] = 0;
   for (const k of ['level', 'day']) if (!Number.isInteger(s[k]) || s[k] < 1) s[k] = 1;
+  s.home.walls ||= {};
+  for (const [k, o] of Object.entries(s.home.items)) if (FURNITURE[o?.k]?.wall) { s.home.walls[k] = o; delete s.home.items[k]; }
   for (const [k, o] of Object.entries(s.obj)) {
     const p = PLACE[o?.k], [x, z] = k.split(',').map(Number);
-    if (p && !buildingAt(x, z)) continue;
+    if (p && !buildingAt(x, z) && !RES_SPOTS[k]) continue;
     if (p) {
       addInv(s, o.k, 1);
       if (o.o) addInv(s, p.out, o.o);
@@ -76,6 +100,7 @@ export function migrate(s) {
     }
     delete s.obj[k];
   }
+  if (fresh) refill(s);
   return s;
 }
 
@@ -98,7 +123,7 @@ export const inPond = (x, z) => (x - POND.cx) ** 2 + (z - POND.cz) ** 2 <= POND.
 
 export function canPlace(s, x, z) {
   const k = key(x, z);
-  return Math.abs(x) < MAP && Math.abs(z) < MAP && !buildingAt(x, z) && !inPond(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k];
+  return Math.abs(x) < MAP && Math.abs(z) < MAP && !buildingAt(x, z) && !inPond(x, z) && !s.tiles[k] && !s.obj[k] && !RES_SPOTS[k] && !s.digs?.includes(k);
 }
 
 // ---------- Zuhause (Innenraum liegt weit weg bei x = HOME_X, damit es eine eigene Welt ist) ----------
@@ -112,8 +137,9 @@ export function footprint(k, x, z, r) {
   for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) out.push([x + i, z + j]);
   return out;
 }
-export function homeAt(s, x, z, rugs) { // welches Möbel liegt auf dieser Kachel?
-  const map = rugs ? s.home.rugs : s.home.items;
+const layer = (s, f) => f.rug ? s.home.rugs : f.wall ? s.home.walls : s.home.items;
+export function homeAt(s, x, z, kind) { // welches Möbel liegt auf dieser Kachel? kind: true/'rugs' = Teppiche, 'walls' = Wandschmuck
+  const map = kind === 'walls' ? s.home.walls : kind ? s.home.rugs : s.home.items;
   for (const [k, o] of Object.entries(map)) {
     const [ax, az] = k.split(',').map(Number);
     if (footprint(o.k, ax, az, o.r).some(([i, j]) => i === x && j === z)) return { key: k, o, x: ax, z: az };
@@ -130,9 +156,10 @@ export function canFurnish(s, k, x, z, r) {
   if (!f) return false;
   if (f.wall) {
     const wr = wallRot(s, x, z);
-    return wr >= 0 && footprint(k, x, z, wr).every(([i, j]) => inRoom(s, i, j) && !Object.entries(s.home.items).some(([kk, o]) => FURNITURE[o.k].wall && footprint(o.k, ...kk.split(',').map(Number), o.r).some(([a, b]) => a === i && b === j)));
+    return wr >= 0 && footprint(k, x, z, wr).every(([i, j]) => inRoom(s, i, j) && !homeAt(s, i, j, 'walls'));
   }
-  return footprint(k, x, z, r).every(([i, j]) => inRoom(s, i, j) && !(f.rug ? homeAt(s, i, j, true) : (homeAt(s, i, j) && !FURNITURE[homeAt(s, i, j).o.k].wall)));
+  const [, d] = roomSize(s);
+  return footprint(k, x, z, r).every(([i, j]) => inRoom(s, i, j) && !homeAt(s, i, j, f.rug) && (f.rug || !f.solid || !(i === 0 && j === (d - 1) / 2))); // Platz vor der Tür bleibt frei
 }
 function homeBlocked(s, x, z) {
   const [w, d] = roomSize(s), lx = x - HOME_X, door = Math.abs(lx) < 0.6;
@@ -239,6 +266,7 @@ function newDay(s) {
   for (const a of s.animals) a.pet = 0;
   s.orders = s.orders.filter(o => s.day - o.day < 3);
   refill(s);
+  newDailies(s);
   // Briefe der Nachbarn bei neuen Herzen (2, 4, 6, 8, 10)
   for (const id of NPC_IDS) {
     const n = friend(s, id), h = hearts(s, id);
@@ -267,6 +295,7 @@ function collect(s, id, out) { // ins Sammelbuch eintragen
 // Alle liegen im Bett und es ist Abend? Dann beginnt gleich der nächste Morgen.
 export function sleepThrough(s) {
   if (6 + s.dayTime * 18 < 18) return false;
+  questEvent(s, 'sleep');
   newDay(s);
   return true;
 }
@@ -304,6 +333,7 @@ function addXp(s, n, out) {
     s.xp -= needXp(s.level);
     s.level++;
     out.levelUp = s.level;
+    questEvent(s, 'level', s.level, out);
   }
   if (s.level >= MAX_LEVEL) s.xp = Math.min(s.xp, needXp(MAX_LEVEL));
 }
@@ -340,6 +370,7 @@ const ACTIONS = {
       if (t) { t.w = WET; n++; fx(out, x, z, '', 'water'); }
     }
     out.snd = 'water';
+    if (n) questEvent(s, 'water', n, out);
     return n > 0;
   },
   plant(s, a, out) {
@@ -354,6 +385,7 @@ const ACTIONS = {
       n++;
     }
     out.snd = 'plant';
+    if (n) questEvent(s, 'plant', n, out);
     return n > 0;
   },
   harvest(s, a, out) {
@@ -375,6 +407,7 @@ const ACTIONS = {
     if (!entries.length) return false;
     fx(out, a.x, a.z, entries.map(([k, n]) => `+${n} ${ITEMS[k].icon}`).join(' '));
     addXp(s, xp, out);
+    questEvent(s, 'harvest', entries.reduce((t, e) => t + e[1], 0), out);
     out.snd = 'harvest';
     return true;
   },
@@ -454,7 +487,7 @@ const ACTIONS = {
       out.snd = 'plant';
       return true;
     }
-    if (!an.pet) { an.pet = 1; an.love = Math.min(10, an.love + 1); addXp(s, 1, out); }
+    if (!an.pet) { an.pet = 1; an.love = Math.min(10, an.love + 1); addXp(s, 1, out); questEvent(s, 'pet', 1, out); }
     fx(out, pos.x, pos.z, '❤️', 'heart');
     out.snd = 'love';
     return true;
@@ -465,6 +498,7 @@ const ACTIONS = {
     addInv(s, id, 1);
     collect(s, id, out);
     s.stats.fish++;
+    questEvent(s, 'fish', 1, out);
     if (id === 'schatz') s.stats.treasure++;
     addXp(s, ITEMS[id].xp, out);
     fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`, 'water');
@@ -480,6 +514,7 @@ const ACTIONS = {
     addInv(s, id, 1);
     collect(s, id, out);
     s.stats.bugs = (s.stats.bugs || 0) + 1;
+    questEvent(s, 'bug', 1, out);
     addXp(s, ITEMS[id].xp, out);
     fx(out, a.x, a.z, `+1 ${icon}`, 'sparkle');
     out.caught = id;
@@ -494,9 +529,10 @@ const ACTIONS = {
     const n = Math.random() < 0.3 ? 2 : 1;
     addInv(s, 'holz', n);
     s.stats.wood = (s.stats.wood || 0) + n;
+    questEvent(s, 'chop', n, out);
     addXp(s, 1, out);
     fx(out, a.x, a.z, `+${n} 🪵`, 'leaf');
-    out.snd = 'till';
+    out.snd = 'chop';
     return true;
   },
   mine(s, a, out) {
@@ -507,6 +543,7 @@ const ACTIONS = {
     const id = Math.random() < 0.06 ? 'kristall' : 'stein';
     addInv(s, id, 1);
     if (id === 'kristall') collect(s, id, out);
+    questEvent(s, 'mine', 1, out);
     addXp(s, 1, out);
     fx(out, a.x, a.z, `+1 ${ITEMS[id].icon}`, 'dust');
     out.snd = 'place';
@@ -530,6 +567,7 @@ const ACTIONS = {
       addInv(s, id, 1);
       collect(s, id, out);
       s.stats.dug = (s.stats.dug || 0) + 1;
+      questEvent(s, 'dig', 1, out);
       addXp(s, ITEMS[id].xp, out);
       fx(out, a.x, a.z, `+1 ${icon}`, 'dirt');
       out.caught = id;
@@ -548,6 +586,7 @@ const ACTIONS = {
     for (const [id, n] of Object.entries(r.in)) takeInv(s, id, n);
     addInv(s, r.out, r.n);
     if (r.st === 'cook') s.stats.cooked = (s.stats.cooked || 0) + 1; else s.stats.crafted = (s.stats.crafted || 0) + 1;
+    questEvent(s, r.st === 'cook' ? 'cook' : 'craft', 1, out);
     addXp(s, 3 + (ITEMS[r.out].xp || 2), out);
     out.msg = `${r.st === 'cook' ? '🍳' : '🔨'} ${r.n > 1 ? r.n + '× ' : ''}${ITEMS[r.out].name} fertig!`;
     out.snd = 'level';
@@ -556,7 +595,9 @@ const ACTIONS = {
   talk(s, a, out) {
     if (!has(NPC_DATA, a.id)) return false;
     const n = friend(s, a.id);
-    if (n.talk !== s.day) { n.talk = s.day; n.f += 15; addXp(s, 1, out); }
+    if (n.talk !== s.day) { n.talk = s.day; n.f += 15; addXp(s, 1, out); questEvent(s, 'talk', 1, out); }
+    s.met[a.id] = 1;
+    questEvent(s, 'met', Object.keys(s.met).length, out);
     return true;
   },
   gift(s, a, out) {
@@ -567,6 +608,8 @@ const ACTIONS = {
     const r = d.loves.includes(a.item) ? 'love' : d.likes.includes(a.item) ? 'like' : d.dislikes.includes(a.item) ? 'dislike' : 'neutral';
     n.gift = s.day;
     n.f = Math.max(0, n.f + { love: 80, like: 40, neutral: 20, dislike: -10 }[r]);
+    questEvent(s, 'gift', 1, out);
+    if (r === 'love') questEvent(s, 'gift_love', 1, out);
     addXp(s, 3, out);
     out.reaction = r;
     out.snd = r === 'dislike' ? 'fail' : 'love';
@@ -576,15 +619,17 @@ const ACTIONS = {
     if (!has(FURNITURE, a.item) || !(s.inv[a.item] > 0)) return false;
     const f = FURNITURE[a.item], r = f.wall ? wallRot(s, a.x, a.z) : [0, 1, 2, 3].includes(a.r) ? a.r : 0;
     if (!canFurnish(s, a.item, a.x, a.z, r)) { out.msg = 'Hier ist kein Platz.'; return false; }
+    if (layer(s, f)[key(a.x, a.z)]) return false;
     takeInv(s, a.item, 1);
-    (f.rug ? s.home.rugs : s.home.items)[key(a.x, a.z)] = { k: a.item, r };
+    layer(s, f)[key(a.x, a.z)] = { k: a.item, r };
+    questEvent(s, 'furnish', 1, out);
     out.snd = 'place';
     return true;
   },
   hpick(s, a, out) {
-    const h = homeAt(s, a.x, a.z) || homeAt(s, a.x, a.z, true);
+    const h = homeAt(s, a.x, a.z) || homeAt(s, a.x, a.z, 'walls') || homeAt(s, a.x, a.z, true);
     if (!h) return false;
-    delete (FURNITURE[h.o.k].rug ? s.home.rugs : s.home.items)[h.key];
+    delete layer(s, FURNITURE[h.o.k])[h.key];
     addInv(s, h.o.k, 1);
     out.snd = 'place';
     return true;
@@ -600,9 +645,32 @@ const ACTIONS = {
     out.snd = 'coin';
     return true;
   },
+  claim(s, a, out) {
+    let money = 0, items = {}, title;
+    if (a.q === 'story') {
+      const q = STORY[s.quest.i];
+      if (!q || !s.quest.done) return false;
+      money = q.money || 0; items = q.items || {}; title = q.title;
+      s.quest = { i: s.quest.i + 1, p: 0 };
+      const nx = STORY[s.quest.i]; // manche Ziele sind schon erfüllt
+      if (nx?.ev === 'level') questEvent(s, 'level', s.level);
+      if (nx?.ev === 'met') questEvent(s, 'met', Object.keys(s.met).length);
+    } else {
+      const d = s.daily[a.q];
+      if (!d || !d.done || d.claimed) return false;
+      d.claimed = true;
+      money = DAILY[d.i][3]; title = DAILY[d.i][0];
+      addXp(s, 10, out);
+    }
+    s.money += money;
+    for (const [id, n] of Object.entries(items)) if (ITEMS[id]) addInv(s, id, n);
+    out.msg = `🎁 ${title}: ${[money ? money + ' Taler' : '', ...Object.entries(items).map(([id, n]) => `${n}× ${ITEMS[id]?.icon || ''} ${ITEMS[id]?.name || id}`)].filter(Boolean).join(', ')}`;
+    out.snd = 'level';
+    return true;
+  },
   mail(s, a, out) {
     const m = s.mail[a.i];
-    if (!m) return false;
+    if (!m || (a.from !== undefined && (a.from !== m.from || a.hearts !== m.hearts))) return false;
     s.mail.splice(a.i, 1);
     if (m.item && has(ITEMS, m.item)) { addInv(s, m.item, m.n || 1); out.msg = `🎁 ${m.n || 1}× ${ITEMS[m.item].name} erhalten!`; out.snd = 'love'; }
     return true;
@@ -630,6 +698,7 @@ const ACTIONS = {
     const used = new Set(s.animals.map(x => x.name));
     const name = ANIMAL_NAMES.find(n => !used.has(n)) || d.name + ' ' + s.nextId;
     s.animals.push({ id: s.nextId++, k: a.id, name, fed: 0, p: 0, ready: false, love: 0, pet: 0 });
+    questEvent(s, 'buyAnimal', 1, out);
     out.msg = `${d.icon} ${name} wohnt jetzt auf eurer Farm!`;
     out.snd = 'love';
     return true;
@@ -640,6 +709,7 @@ const ACTIONS = {
     s.money += m;
     s.stats.earned += m;
     out.msg = `+${m} Taler`;
+    questEvent(s, 'sell', m, out);
     out.snd = 'coin';
     return true;
   },
@@ -654,6 +724,7 @@ const ACTIONS = {
     s.money += m;
     s.stats.earned += m;
     out.msg = `Alles verkauft: +${m} Taler`;
+    questEvent(s, 'sell', m, out);
     out.snd = 'coin';
     return true;
   },
@@ -665,6 +736,11 @@ const ACTIONS = {
     if (s.money < u.cost) { out.msg = 'Nicht genug Taler.'; return false; }
     s.money -= u.cost;
     s.up[a.id]++;
+    if (a.id === 'house') for (const [k, o] of Object.entries(s.home.walls)) {
+      const [x, z] = k.split(',').map(Number);
+      if (wallRot(s, x, z) !== o.r) { delete s.home.walls[k]; addInv(s, o.k, 1); }
+    }
+    if (a.id === 'field') questEvent(s, 'field', 1, out);
     addXp(s, 10, out);
     out.msg = `${UPGRADES[a.id].icon} ${UPGRADES[a.id].name}: ${UPGRADES[a.id].desc(s.up[a.id])}`;
     out.snd = 'level';
@@ -677,6 +753,7 @@ const ACTIONS = {
     s.money += o.reward;
     s.stats.earned += o.reward;
     s.stats.orders++;
+    questEvent(s, 'order', 1, out);
     if (NPC_DATA[o.npc]) friend(s, o.npc).f += 40;
     addXp(s, o.xp, out);
     s.orders.splice(a.i, 1);
@@ -695,6 +772,7 @@ export function act(s, a) {
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
   if (['till', 'water', 'plant', 'harvest'].includes(a.t) && !isDir(a.dx, a.dz)) return out;
   if ((a.t === 'order' || a.t === 'mail') && !Number.isInteger(a.i)) return out;
+  if (a.t === 'claim' && a.q !== 'story' && ![0, 1, 2].includes(a.q)) return out;
   out.ok = ACTIONS[a.t](s, a, out);
   if (out.ok) checkAchievements(s, out);
   return out;
@@ -723,7 +801,7 @@ function resolveHome(s, me, sel, at) {
   const lx = (at ? at.x : me.x + Math.sin(me.ry) * 0.9) - HOME_X, lz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
   const x = Math.round(lx), z = Math.round(lz), [, d] = roomSize(s), W = ([i, j]) => [i + HOME_X, j], one = [W([x, z])];
   if (lz > (d - 1) / 2 + 0.3 && Math.abs(lx) < 0.8) return { exit: true, label: '🚪 Hinausgehen', tiles: [], px: lx + HOME_X, pz: lz };
-  const h = homeAt(s, x, z), rug = homeAt(s, x, z, true), base = { px: lx + HOME_X, pz: lz };
+  const h = homeAt(s, x, z) || (sel === 'hand' && homeAt(s, x, z, 'walls')), rug = homeAt(s, x, z, true), base = { px: lx + HOME_X, pz: lz };
   if (h) {
     const f = FURNITURE[h.o.k], tiles = footprint(h.o.k, h.x, h.z, h.o.r).map(W);
     const cx = h.x + ((h.o.r % 2 ? f.d : f.w) - 1) / 2 + HOME_X, cz = h.z + ((h.o.r % 2 ? f.w : f.d) - 1) / 2;
@@ -780,6 +858,7 @@ export function resolve(s, me, sel, at) {
     return { label: '🪨 Felsen · Schaufel zum Abbauen', tiles: one };
   }
 
+  if (sel === 'net') return { net: { x: px, z: pz }, label: '🦋 Kescher schwingen', tiles: [] };
   const o = s.obj[k];
   if (o) {
     const p = PLACE[o.k];
@@ -795,7 +874,6 @@ export function resolve(s, me, sel, at) {
 
   const t = s.tiles[k];
   if (t && t.c && stage(t.c) === 3) return { a: { t: 'harvest', x, z, dx, dz }, label: `${CROPS[t.c.k].icon} Ernten`, tiles: area(s.up.sickle, x, z, dx, dz) };
-  if (sel === 'net') return { net: { x: px, z: pz }, label: '🦋 Kescher schwingen', tiles: [] };
   if (sel === 'shovel') {
     if (s.digs.includes(k)) return { a: { t: 'dig', x, z }, label: '✨ Ausgraben', tiles: one };
     if (t && !t.c) return { a: { t: 'dig', x, z }, label: '🟫 Beet einebnen', tiles: one };

@@ -1,5 +1,5 @@
 // Fenster-Inhalte (Laden, Lager, Aufträge, Freunde, Einstellungen). Reines HTML, Klicks gehen an Callbacks.
-import { CROPS, ANIMALS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SOCIAL } from './data.js';
+import { CROPS, ANIMALS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SOCIAL, STORY, DAILY } from './data.js';
 import { settingsHtml } from './menu.js';
 import { price, upgradeInfo, capacity, animalCount, seasonOf, hearts } from './state.js';
 import { NPCS, letter, requestLine } from './npc.js';
@@ -15,7 +15,7 @@ const time = s => s >= 60 ? `${Math.round(s / 6) / 10} Min` : `${s} s`;
 
 export const TABS = {
   shop: [['seeds', '🌱 Samen'], ['animals', '🐾 Tiere'], ['furn', '🛋️ Möbel'], ['deco', '🌷 Deko'], ['farm', '🏡 Farm'], ['tools', '🛠️ Werkzeug'], ['goods', '💎 Waren']],
-  orders: [['orders', '📋 Aufträge'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Statistik']],
+  orders: [['quests', '📜 Quests'], ['orders', '📋 Aufträge'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Statistik']],
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
 };
 const TITLES = { shop: '🛒 Laden', sell: '🎒 Lager & Verkauf', orders: '📋 Hof-Buch', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten' };
@@ -140,6 +140,20 @@ const PANELS = {
       }
       return h;
     }
+    if (tab === 'quests') {
+      const q = STORY[s.quest.i], rw = x => [x.money ? money(x.money) : '', ...Object.entries(x.items || {}).map(([id, n]) => `${n}× ${ITEMS[id]?.icon || ''} ${ITEMS[id]?.name || id}`)].filter(Boolean).join(' · ');
+      let h = `<div class="quest-hero"><div class="qh-top"><span class="qh-chap">Kapitel ${Math.min(s.quest.i + 1, STORY.length)}/${STORY.length}</span><b>📜 Hof-Geschichte</b></div>`;
+      h += q ? `<h3>${q.title}</h3><p>${q.desc}</p><div class="bar big"><i style="width:${Math.min(1, s.quest.p / q.n) * 100}%"></i><span>${Math.min(s.quest.p, q.n)}/${q.n}</span></div>
+        <div class="qh-rw">🎁 ${rw(q)}</div>${s.quest.done ? btn('Belohnung abholen 🎁', { t: 'claim', q: 'story' }, 'pink glow') : ''}`
+        : '<h3>🎉 Geschichte abgeschlossen!</h3><p>Ihr habt alle Kapitel geschafft. Ihr seid echte Hof-Stars!</p>';
+      h += '</div><h3>☀️ Aufgaben für heute</h3><div class="note">Jeden Morgen gibt es drei neue Aufgaben.</div>';
+      s.daily.forEach((d, i) => {
+        const [title, , n, reward] = DAILY[d.i];
+        h += `<div class="row${d.claimed ? ' done' : ''}"><div class="ic">${d.claimed ? '✅' : d.done ? '🎁' : '⭐'}</div><div class="tx"><b>${title}</b><small>Belohnung ${money(reward)} + 10 ⭐</small><div class="bar"><i style="width:${Math.min(1, d.p / n) * 100}%"></i></div></div>
+          <div class="bt">${d.claimed ? '<span class="lv">erledigt</span>' : d.done ? btn('Abholen', { t: 'claim', q: i }, 'pink') : `<span class="lv">${Math.min(d.p, n)}/${n}</span>`}</div></div>`;
+      });
+      return h;
+    }
     if (tab === 'friends') {
       let h = '<div class="note">Plaudert jeden Tag mit euren Nachbarn und macht ihnen Geschenke – je mehr Herzen, desto mehr verraten sie über sich (und schicken euch Briefe 💌).</div>';
       for (const [id, N] of Object.entries(NPCS)) {
@@ -202,7 +216,7 @@ const PANELS = {
   mail(s, g) {
     if (!s.mail.length) return '<div class="note">📭 Der Briefkasten ist leer. Freundet euch mit den Nachbarn an – manchmal schreiben sie euch!</div>';
     return s.mail.map((m, i) => { const L = (lines['mail' + i + m.from + m.hearts] ||= letter(m.from, m.hearts, g.myName)); return `<div class="letter"><h3>${NPCS[m.from]?.icon || '💌'} ${esc(L.title)}</h3><p>${esc(L.text).replace(/\n/g, '<br>')}</p>
-      ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item]?.icon || '🎁'}</div><div class="tx"><b>Geschenk: ${m.n || 1}× ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i }, 'white')}</div>`}</div>`; }).join('');
+      ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item]?.icon || '🎁'}</div><div class="tx"><b>Geschenk: ${m.n || 1}× ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i, from: m.from, hearts: m.hearts })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i, from: m.from, hearts: m.hearts }, 'white')}</div>`}</div>`; }).join('');
   },
   settings(s, g, tab) {
     if (tab === 'options') return settingsHtml(g.settings, g.touch);
@@ -275,7 +289,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.animals.map(a => [a.ready, a.fed > 0, a.love, a.pet]), Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily]);
     if (sig === this.sig) return;
     this.sig = sig;
     const body = $('pbody'), y = body.scrollTop;

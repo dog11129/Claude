@@ -315,3 +315,34 @@ for (const [id, f] of Object.entries(FURN)) {
   ITEMS[id] = { name: f.name, icon: f.icon, buy: f.buy, lvl: f.lvl, furn: id };
   if (f.craft) RECIPES['f_' + id] = { st: 'craft', out: id, n: 1, in: f.craft, lvl: f.lvl };
 }
+
+// Quests: die Hof-Geschichte (nacheinander) und tägliche Aufgaben. ev = Ereignis, n = Ziel
+export const STORY = [
+  { title: 'Der erste Samen', desc: 'Sät 4 Samen auf umgegrabene Felder.', ev: 'plant', n: 4, money: 100, items: { s_karotte: 5 } },
+  { title: 'Wasser marsch!', desc: 'Gießt 6 Felder mit der Gießkanne.', ev: 'water', n: 6, money: 80 },
+  { title: 'Erntezeit', desc: 'Erntet 8 Pflanzen.', ev: 'harvest', n: 8, money: 150, items: { s_kartoffel: 4 } },
+  { title: 'Hallo Nachbarn!', desc: 'Plaudert mit allen vier Nachbarn.', ev: 'met', n: 4, money: 200, items: { kuchen: 1 } },
+  { title: 'Kleine Händler', desc: 'Verdient 500 Taler durch Verkäufe.', ev: 'sell', n: 500, items: { blumen: 2, weg: 6 } },
+  { title: 'Holzfäller', desc: 'Hackt 5 Holz an wilden Bäumen (Axt).', ev: 'chop', n: 5, money: 150 },
+  { title: 'Steinreich', desc: 'Baut 3 Steine an Felsen ab (Schaufel).', ev: 'mine', n: 3, money: 150 },
+  { title: 'Selbstgebaut', desc: 'Baut etwas an der Werkbank.', ev: 'craft', n: 1, items: { stuhl: 1, hocker: 1 } },
+  { title: 'Erste Federn', desc: 'Kauft ein Tier (der Hühnerstall kostet 500 Taler).', ev: 'buyAnimal', n: 1, money: 300, items: { futter: 10 } },
+  { title: 'Kuschelzeit', desc: 'Streichelt eure Tiere 5-mal (an verschiedenen Tagen oder Tieren).', ev: 'pet', n: 5, money: 250 },
+  { title: 'Am Teich', desc: 'Fangt 3 Fische.', ev: 'fish', n: 3, money: 200, items: { s_erdbeere: 4 } },
+  { title: 'Krabbeltiere', desc: 'Fangt 3 Insekten mit dem Kescher.', ev: 'bug', n: 3, money: 250 },
+  { title: 'Schatzsuche', desc: 'Grabt 2 Funde an glitzernden Stellen aus.', ev: 'dig', n: 2, money: 300 },
+  { title: 'Kochstunde', desc: 'Kocht 2 Gerichte in der Gartenküche.', ev: 'cook', n: 2, items: { herd: 1, kuechenzeile: 1 } },
+  { title: 'Ein gemütliches Zuhause', desc: 'Stellt 5 Möbel im Haus auf.', ev: 'furnish', n: 5, items: { teppich_rund: 1, kerzen: 1, topfpflanze: 1 } },
+  { title: 'Herzensgeschenk', desc: 'Schenkt einem Nachbarn etwas, das er liebt.', ev: 'gift_love', n: 1, money: 500 },
+  { title: 'Zu zweit', desc: 'Umarmt euch auf dem Hof 🤗', ev: 'hug', n: 1, items: { herz: 1, herzteppich: 1 } },
+  { title: 'Gute Nacht', desc: 'Schlaft eine Nacht im Bett durch.', ev: 'sleep', n: 1, items: { stehlampe: 1, teddy: 1 } },
+  { title: 'Größer träumen', desc: 'Erweitert das Feld (Laden ➜ Farm).', ev: 'field', n: 1, money: 800 },
+  { title: 'Hof-Stars', desc: 'Erreicht Farm-Level 8.', ev: 'level', n: 8, money: 2000, items: { bett: 1 } },
+];
+export const DAILY = [
+  ['Gießt 12 Felder', 'water', 12, 120], ['Erntet 10 Pflanzen', 'harvest', 10, 150], ['Streichelt 3 Tiere', 'pet', 3, 120],
+  ['Fangt 2 Fische', 'fish', 2, 150], ['Fangt 2 Insekten', 'bug', 2, 150], ['Plaudert mit 2 Nachbarn', 'talk', 2, 100],
+  ['Hackt 4 Holz', 'chop', 4, 120], ['Kocht ein Gericht', 'cook', 1, 200], ['Verkauft Waren für 400 Taler', 'sell', 400, 150],
+  ['Erfüllt einen Auftrag', 'order', 1, 250], ['Umarmt euch 💕', 'hug', 1, 150], ['Macht einem Nachbarn ein Geschenk', 'gift', 1, 120],
+  ['Grabt etwas aus', 'dig', 1, 150], ['Sät 8 Samen', 'plant', 8, 100],
+];

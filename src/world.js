@@ -636,7 +636,7 @@ export class World {
     }
     this.furnM ||= new Map();
     const seen = new Set();
-    for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r']]) for (const [k, o] of Object.entries(map)) {
+    for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r'], [h.walls || {}, 'w']]) for (const [k, o] of Object.entries(map)) {
       const id = tag + k + o.k + o.r, f = FURNITURE[o.k];
       if (!f) continue;
       seen.add(id);
@@ -886,7 +886,8 @@ export class World {
     this.syncHome(s);
     this.syncGrass(s);
     this.syncPlayers(players, me, dt, !opt.hideNames);
-    const info = this.light(s), rain = s.weather === 'rain', snowing = s.weather === 'snow';
+    const indoors = this.target.x > HOME_X / 2; // im Haus regnet es nicht
+    const info = this.light(s), rain = s.weather === 'rain' && !indoors, snowing = s.weather === 'snow' && !indoors;
 
     // Zielfeld-Markierung
     const tiles = opt.tiles || [];
@@ -956,7 +957,7 @@ export class World {
       if (this.ripe.length && Math.random() < 0.7) { const e = this.ripe[Math.floor(Math.random() * this.ripe.length)]; this.burst(e.x + (Math.random() - 0.5) * 0.5, e.z + (Math.random() - 0.5) * 0.5, 'sparkle', 0.4 + Math.random() * 0.5); }
       if (rain) for (let i = 0; i < 4; i++) this.burst(this.target.x + (Math.random() - 0.5) * 16, this.target.z + (Math.random() - 0.5) * 12, 'splash', 0.03);
       // Jahreszeit: Blütenblätter im Frühling, bunte Blätter im Herbst
-      const drift = { spring: 'petal', autumn: 'fall' }[this.season];
+      const drift = !indoors && { spring: 'petal', autumn: 'fall' }[this.season];
       if (drift && !rain && Math.random() < 0.5) this.burst(this.target.x + (Math.random() - 0.5) * 18, this.target.z + (Math.random() - 0.5) * 14, drift, 4 + Math.random() * 2);
     }
     this.updateParticles(dt);
