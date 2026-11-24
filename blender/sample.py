@@ -48,7 +48,7 @@ try:
         WALL = 0xFFE8DA
         m.box(W + 0.3, D + 0.3, B, 'stoneD', 0, 0, B / 2, r=0.1)
         for i in range(5):  # Bruchsteine am Sockel
-            m.ball(0.17, 'stone', -W / 2 + 0.3 + i * 0.8, -D / 2 - 0.12, 0.17, sy=0.45, sz=0.75, seg=8, bump=0.1)
+            m.ball(0.17, 'stoneD', -W / 2 + 0.3 + i * 0.8, -D / 2 - 0.12, 0.17, sy=0.45, sz=0.75, seg=8, bump=0.1)
         m.box(W, D, top, WALL, 0, 0, B + top / 2, r=0.15)
         m.gable(W - 0.06, D - 0.06, 1.25, WALL, 0, 0, B + top)
         m.roof(W, D, 1.25, 'coral', z=B + top, th=0.24, over=0.3, ridge='berry')
@@ -122,30 +122,38 @@ try:
             m.ball(r * 0.35, 'white', sx * sep - 0.015, y - 0.025, z + 0.025, seg=6)
             m.ball(0.05, 'blush', sx * (sep + 0.08), y + 0.02, z - 0.08, sx=1.2, sy=0.35, sz=0.7, seg=8)
 
+    def spikes(m, c, r, color, ymin, zmin, n=90, L=0.19, w=0.065):
+        for i in range(n):  # gleichmäßig verteilte Punkte auf der Kugel (Goldener Winkel)
+            zz = 1 - 2 * (i + 0.5) / n; rr = math.sqrt(1 - zz * zz); a = i * 2.39996
+            d = Vector((rr * math.cos(a), rr * math.sin(a), zz))
+            if d.y < ymin or d.z < zmin: continue
+            base = Vector(c) + d * (r - 0.03)
+            m.stick(base, base + (d + Vector((0, 0.35, 0.15))).normalized() * L, w, color, 0.0, seg=6)
+
     def mira():
-        m = Model('npc_mira'); FUR = 0xF3D4AE; SPINE = 0x8A6046; FACE = 0xFBE7CF
+        m = Model('npc_mira'); FUR = 0xE9C49B; SPINE = 0x7E5537; FACE = 0xFCEAD6
         for sx in (-1, 1):
             m.ball(0.1, FUR, sx * 0.12, 0, 0.12, sz=1.2, seg=10)
             m.ball(0.09, 'woodD', sx * 0.12, -0.05, 0.04, sx=1, sy=1.3, sz=0.5, seg=10)
-        m.ball(0.31, 'rose', 0, 0, 0.45, sz=1.0, seg=20)                    # Kleid
+        m.ball(0.31, 'rose', 0, 0, 0.45, seg=20)                            # Kleid
+        spikes(m, (0, 0.03, 0.47), 0.3, SPINE, 0.15, -0.5, n=70, L=0.16)
         m.box(0.36, 0.06, 0.36, 'white', 0, -0.27, 0.42, r=0.08, rx=0.12)   # Schürze
         m.box(0.14, 0.03, 0.1, 'pink', 0, -0.31, 0.36, r=0.03)
-        for sx in (-1, 1): m.ball(0.08, FUR, sx * 0.32, -0.04, 0.48, sx=0.9, sz=1.4, ry=sx * 0.5, seg=10)
-        m.ball(0.34, FACE, 0, 0, 0.98, seg=22)
-        for i in range(46):  # Stacheln auf Rücken und Kopf
-            a = (i * 2.39996) % (2 * PI); e = -0.6 + (i / 46) * 1.9
-            d = Vector((math.cos(a) * math.cos(e), abs(math.sin(a)) * math.cos(e) + 0.25, math.sin(e)))
-            d.normalize()
-            if d.y < 0.05: continue
-            base = Vector((0, 0, 0.95)) + d * 0.3 if e > -0.2 else Vector((0, 0.02, 0.5)) + d * 0.27
-            m.stick(base, base + d * 0.2, 0.06, SPINE, 0.0, seg=6)
-        m.ball(0.13, FACE, 0, -0.33, 0.92, sx=1, sy=1.3, sz=0.85, seg=14)
-        m.ball(0.045, 'black', 0, -0.48, 0.95, seg=10)
-        eyes(m, 1.02, -0.3, sep=0.13)
-        for sx in (-1, 1): m.ball(0.07, FUR, sx * 0.24, 0.02, 1.22, sy=0.5, seg=10)
+        for sx in (-1, 1):
+            m.ball(0.08, FUR, sx * 0.31, -0.05, 0.47, sx=0.9, sz=1.4, ry=sx * 0.5, seg=10)
+            m.ball(0.06, FACE, sx * 0.35, -0.08, 0.36, seg=8)
+        m.ball(0.34, SPINE, 0, 0.02, 0.98, seg=22)                         # Kopf (Stachelkappe)
+        spikes(m, (0, 0.02, 0.98), 0.34, SPINE, -0.05, -0.25, n=110, L=0.2)
+        m.ball(0.31, FACE, 0, -0.08, 0.95, sx=1.0, sy=0.85, sz=0.95, seg=22)  # helles Gesicht
+        m.ball(0.12, FACE, 0, -0.36, 0.9, sx=1, sy=1.25, sz=0.85, seg=14)
+        m.ball(0.045, 'black', 0, -0.5, 0.93, seg=10)
+        eyes(m, 1.0, -0.33, sep=0.13)
+        for sx in (-1, 1):
+            m.ball(0.075, FUR, sx * 0.24, -0.02, 1.2, sy=0.55, seg=10)
+            m.ball(0.04, 'pink', sx * 0.24, -0.06, 1.2, sy=0.3, seg=8)
         # Bäckermütze
-        m.cyl(0.16, 0.17, 0.12, 'white', 0, 0.02, 1.33, seg=18)
-        for dx, dz in ((0, 0.12), (-0.09, 0.07), (0.09, 0.07)): m.ball(0.12, 'white', dx, 0.02, 1.38 + dz, seg=12)
+        m.cyl(0.16, 0.17, 0.12, 'white', 0, 0.0, 1.32, seg=18, rx=-0.2)
+        for dx, dz in ((0, 0.12), (-0.09, 0.07), (0.09, 0.07)): m.ball(0.12, 'white', dx, 0.02, 1.38 + dz, seg=12, bump=0.05)
         return m.build()
 
     def player():
@@ -160,9 +168,13 @@ try:
             m.stick((sx * 0.28, 0, 0.56), (sx * 0.34, -0.02, 0.38), 0.05, 'skin')
             m.ball(0.06, 'skin', sx * 0.34, -0.02, 0.36, seg=10)
         m.ball(0.37, 'skin', 0, 0, 1.0, seg=24)
-        m.ball(0.39, HAIR, 0, 0.04, 1.07, sx=1.0, sy=1.0, sz=0.9, seg=24, half=True, rx=-0.35)
-        m.ball(0.14, HAIR, -0.27, 0.06, 1.33, seg=14); m.ball(0.14, HAIR, 0.27, 0.06, 1.33, seg=14)
-        m.ball(0.12, HAIR, 0, -0.27, 1.25, sx=2.0, sy=0.6, sz=0.6, seg=14)
+        m.ball(0.392, HAIR, 0, 0.03, 1.03, seg=24, half=True, rx=-0.75)          # Haare hinten und oben
+        m.ball(0.38, HAIR, 0, 0.06, 0.98, sx=1.02, sy=0.95, sz=1.0, seg=24, half=True, rx=0.9)
+        for i in range(5):                                                       # Pony
+            a = -0.8 + i * 0.4
+            m.ball(0.1, HAIR, math.sin(a) * 0.3, -0.26 + abs(math.sin(a)) * 0.09, 1.24 - abs(a) * 0.05, sx=1.1, sy=0.7, sz=0.75, seg=12)
+        for sx in (-1, 1): m.ball(0.09, HAIR, sx * 0.33, -0.1, 0.93, sx=0.6, sy=0.8, sz=1.5, seg=10)
+        m.ball(0.14, HAIR, -0.27, 0.08, 1.33, seg=14, bump=0.05); m.ball(0.14, HAIR, 0.27, 0.08, 1.33, seg=14, bump=0.05)
         eyes(m, 0.98, -0.34, sep=0.13, r=0.06)
         m.torus(0.035, 0.012, 'dark', 0, -0.365, 0.88, arc=PI, rx=PI / 2, ry=PI, seg=10, tseg=5)
         return m.build()

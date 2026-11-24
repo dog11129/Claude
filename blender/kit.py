@@ -14,9 +14,9 @@ def lin(h):  # Hex (sRGB) -> lineare Farbe
 
 # ---------- Palette (für alle Modelle gleich) ----------
 P = dict(
-    cream=0xFFF4E2, creamD=0xF3DFC4, white=0xFFFDF8, stone=0xD9D0C5, stoneD=0xB8AEA3, dark=0x4A3B36,
+    cream=0xFFEBD3, creamD=0xF1D9BC, white=0xFBF6EE, stone=0xCFC5B8, stoneD=0xA9A096, dark=0x4A3B36,
     wood=0xD9A26C, woodL=0xEEC995, woodD=0x9F6B46, bark=0x8E5E3E,
-    leaf=0x7CCB5B, leafD=0x58AA48, leafL=0xA6DE78, grass=0x8BD067,
+    leaf=0x74C455, leafD=0x4F9F44, leafL=0x9CD86E, grass=0x7DC35A,
     coral=0xF2806E, rose=0xFF9DB6, pink=0xFFC4D2, berry=0xE84D5E, red=0xF0504F,
     sky=0x9FD8FF, blue=0x6FA0E6, blueD=0x4D7CC4, mint=0x86D6BC, teal=0x4FB3A5,
     yellow=0xFFD95C, orange=0xFFA548, lilac=0xC9B4F7, purple=0x9B7BE0,
@@ -228,7 +228,7 @@ def stage(target=(0, 0, 0.8), dist=16, el=40, az=0, lens=36, res=(1600, 900), or
     sun = bpy.data.objects.get('K_Sun')
     if not sun:
         sun = bpy.data.objects.new('K_Sun', bpy.data.lights.new('K_Sun', 'SUN')); collection('KStage').objects.link(sun)
-    sun.data.energy = 3.2; sun.data.angle = math.radians(12); sun.data.color = (1, 0.96, 0.9)
+    sun.data.energy = 2.4; sun.data.angle = math.radians(10); sun.data.color = (1, 0.95, 0.88)
     sun.rotation_euler = (math.radians(50), math.radians(-12), math.radians(-35))
     t = Vector(target); a = math.radians(az); e = math.radians(el)
     cam.location = t + Vector((math.sin(a) * math.cos(e) * dist, -math.cos(a) * math.cos(e) * dist, math.sin(e) * dist))
@@ -239,13 +239,13 @@ def stage(target=(0, 0, 0.8), dist=16, el=40, az=0, lens=36, res=(1600, 900), or
     sc.camera = cam
     w = sc.world or bpy.data.worlds.new('World'); sc.world = w; w.use_nodes = True
     bg = w.node_tree.nodes.get('Background')
-    if bg: bg.inputs['Color'].default_value = lin(0xBFE7FF); bg.inputs['Strength'].default_value = 1.1
+    if bg: bg.inputs['Color'].default_value = lin(0xBFE2FF); bg.inputs['Strength'].default_value = 0.6
     for eng in ('BLENDER_EEVEE_NEXT', 'BLENDER_EEVEE'):
         try: sc.render.engine = eng; break
         except Exception: pass
     sc.render.resolution_x, sc.render.resolution_y = res
     sc.render.film_transparent = False
-    try: sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'
+    try: sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'; sc.view_settings.exposure = -0.15
     except Exception: pass
     try: sc.eevee.taa_render_samples = 32
     except Exception: pass
