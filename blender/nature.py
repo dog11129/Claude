@@ -41,10 +41,10 @@ try:
             x, y, z = on_ball(0, 0, CZ, 1.0, a, e, 0.85)
             c.ball(0.2, L[3], x, y, z, sz=0.7, seg=10)
         if season == 'spring':  # Blütentupfer
-            for i in range(26):
+            for i in range(34):
                 a = i * 2.39996; e = -0.3 + (i % 9) / 9 * 1.4
-                x, y, z = on_ball(0, 0, CZ, 1.04, a, e, 0.86)
-                c.ball(0.075, 0xFFB8D2 if i % 3 else 0xFFFFFF, x, y, z, sz=0.8, seg=8)
+                x, y, z = on_ball(0, 0, CZ, 1.05, a, e, 0.86)
+                c.ball(0.1, 0xFFB8D2 if i % 3 else 0xFFFFFF, x, y, z, sz=0.75, seg=8)
                 if i % 3 == 0: c.ball(0.03, 'yellow', x * 1.02, y * 1.02, z + 0.01, seg=6)
         if season == 'autumn':  # ein paar rote Blätter
             for i in range(14):
@@ -66,9 +66,9 @@ try:
         f.ball(0.18, 0x6AA84A, x, 0, z + 0.05, sz=0.8, seg=12)
         for i in range(7):
             a = i / 7 * 2 * PI + 0.2
-            for k in range(6):
-                t = (k + 0.5) / 6; d = t * 1.3; dz = 0.18 - t * t * 0.8
-                f.ball(0.23 * (1 - t * 0.45), 0x58B84C if k % 2 else 0x6CC65A, x + math.cos(a) * d, math.sin(a) * d, z + dz, sx=1.15, sy=0.75, sz=0.24, rz=a, seg=10)
+            for k in range(8):  # dicht überlappende Polster = ein durchgehender, hängender Wedel
+                t = (k + 0.5) / 8; d = 0.1 + t * 1.25; dz = 0.16 - t * t * 0.75
+                f.ball(0.3 * (1 - t * 0.55), 0x58B84C if (k + i) % 2 else 0x6CC65A, x + math.cos(a) * d, math.sin(a) * d, z + dz, sx=1.35, sy=0.95, sz=0.2, rz=a, ry=0.25 * t, seg=10)
         return m.build()
 
     # ---------- Obst (Ursprung = Mitte) ----------
@@ -89,9 +89,14 @@ try:
             m.ball(0.14, 0x7A4E2E, 0, 0, 0, sz=0.95, seg=14, bump=0.06)
             for k in range(3): m.ball(0.018, 0x3E2A1C, math.cos(k * 2.1) * 0.05, -0.12, 0.03 + math.sin(k * 2.1) * 0.03, seg=6)
         elif kind == 'banane':
-            for k in range(4):
-                m.torus(0.16, 0.035, 0xFFE05A, -0.02 + k * 0.05, 0.03 * k, 0.05 - k * 0.025, seg=12, tseg=8, arc=1.3, rx=PI / 2, rz=PI * 0.62)
-            m.cyl(0.02, 0.02, 0.12, 'leafD', 0, 0, 0.12, seg=6)
+            for b in range(3):  # drei gebogene Bananen am Stiel
+                yaw = (b - 1) * 0.55
+                for k in range(7):
+                    t = k / 6; ang = -1.0 + t * 1.6
+                    px, pz = math.sin(ang) * 0.17, 0.12 - math.cos(ang) * 0.17
+                    r = 0.042 * (1 - abs(t - 0.5) * 0.9)
+                    m.ball(r, 0xFFE05A if k < 6 else 0x8A6A3A, px * math.cos(yaw), px * math.sin(yaw) - 0.02 * b, pz, seg=10)
+            m.cyl(0.022, 0.026, 0.1, 0x9BC24A, -0.15, 0, 0.1, seg=8, ry=-0.4)
         elif kind == 'mango':
             m.ball(0.13, 0xFFA03C, 0, 0, 0, sx=0.85, sz=1.05, seg=14); m.ball(0.08, 0xF56A4A, 0.05, -0.06, 0.04, sy=0.5, seg=8)
         if kind not in ('kirsche', 'kokosnuss', 'banane'):
@@ -116,11 +121,11 @@ try:
     def shell(kind):
         m = Model('shell_' + kind)
         if kind == 'herzmuschel':
-            m.ball(0.13, 0xFFC7D6, 0, 0, 0.0, sy=1.1, sz=0.5, seg=14, half=True)
-            for i in range(5):
-                a = (i - 2) * 0.32
-                m.stick((math.sin(a) * 0.02, 0.1, 0.0), (math.sin(a) * 0.13, -0.12, 0.03), 0.014, 0xFFA9BF, 0.02, seg=6)
-            m.ball(0.035, 0xFFB0C4, 0, 0.13, 0.02, sx=1.4, sz=0.6, seg=8)
+            m.ball(0.13, 0xFFC7D6, 0, 0, 0.0, sy=1.1, sz=0.5, seg=16, half=True)
+            for i in range(5):  # Rippen auf der Schale, fächerförmig vom Scharnier
+                a = (i - 2) * 0.36
+                m.ball(0.1, 0xFFA9BF, -math.sin(a) * 0.035, 0.035 - math.cos(a) * 0.035, 0.0, sx=0.16, sy=1.0, sz=0.66, rz=a, seg=10, half=True)
+            for k in (-1, 1): m.ball(0.03, 0xFFB0C4, k * 0.035, 0.13, 0.0, sx=1.2, sz=0.6, seg=8, half=True)
         elif kind == 'kauri':
             m.ball(0.1, 0xF7E7D6, 0, 0, 0.05, sx=0.8, sy=1.25, sz=0.65, seg=14)
             m.ball(0.05, 0xD9A97E, 0.03, -0.02, 0.09, sx=0.5, sy=1.6, sz=0.4, seg=8)
@@ -159,10 +164,13 @@ try:
 
     def dig():
         m = Model('dig')
-        for i in range(5):
-            a = i / 5 * 2 * PI + 0.3
-            m.ball(0.12, 0x5E3F24, math.cos(a) * 0.12, math.sin(a) * 0.12, 0.0, sx=1.6, sy=0.3, sz=0.08, rz=a, seg=8)
-        m.ball(0.08, 0x6E4A2A, 0, 0, 0.0, sz=0.18, seg=10)
+        for i in range(4):
+            a = i / 4 * 2 * PI + 0.4
+            m.ball(0.08, 0x5E3F24, math.cos(a) * 0.08, math.sin(a) * 0.08, 0.0, sx=1.5, sy=0.35, sz=0.12, rz=a, seg=8)
+        m.ball(0.07, 0x6E4A2A, 0, 0, 0.0, sz=0.22, seg=10)
+        for i in range(4):
+            a = i / 4 * 2 * PI
+            m.ball(0.025, 0xFFF3A8, 0.05 + math.cos(a) * 0.03, -0.05 + math.sin(a) * 0.03, 0.05, sx=1.8, sy=0.4, sz=0.4, rz=a, seg=6, glow=True)
         m.ball(0.035, 0xFFF3A8, 0.05, -0.05, 0.04, seg=6, glow=True)
         return m.build()
 
@@ -194,8 +202,8 @@ try:
         old = arrange(objs, cols=cols, gap=gap)
         rows = (len(objs) + cols - 1) // cols
         stage(target=(0, -(rows - 1) * gap * 0.45, zt), dist=(cols * gap) * 1.25 + 1, el=34, lens=40)
-        if i == 1:
-            bpy.data.objects['K_Ground'].hide_render = False
+        for g in ('K_Ground', 'K_Path'):
+            if bpy.data.objects.get(g): bpy.data.objects[g].hide_render = False
         outs.append(render('natur_%d' % (i + 1)))
         for o, p in zip(objs, old): o.location = p; vis(o, False)
     for o in N.values(): o.location = (0, 0, 0)
