@@ -21,6 +21,8 @@ import * as XS from './extras.js';
 import * as PAT from './patterns.js';
 import { TRIP, TRIP_PRICE } from './trips.js';
 import { REEF, REEF_BUOY, cableBuilt, cableStop, taleState, beachOpen, beachKind } from './extras2.js';
+import { initFun2, uiW, travelW, contextW, executeW, updateW, iceMove, gameOn, setSled } from './client/fun2.js';
+import { APP_PANELS_W } from './ui-extra.js';
 import { initFun, autoQuality, startRide, updateRide, photoEntry, drawStars, setBike, startKite, kitePull, updateKite, endKite } from './client/fun.js';
 import { DEPTH, DEPTH_LV, DEPTH_UP, DEPTH_DOOR, DEPTH_STAIRS, ECHO_NOTES } from './extras3.js';
 import { WRECK, WRECK_BUOY, RIDE_SECS, ridePos, skyGiftTimes, wishNow, BRIGHT, STAR_SECTORS, PHOTO_THEMES, photoTheme } from './extras3.js';
@@ -61,6 +63,7 @@ initFun({
   send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), setText: (id, v) => setText(id, v), bump: (id, c) => bump(id, c),
   applyView: () => applyView(), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), isleKey: () => isleKey(),
 });
+initFun2({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
   world.setQuality({ scale: settings.scale, shadows: settings.shadows, bloom: settings.bloom, grass: settings.grass, lights: settings.lights, view: settings.view });
@@ -191,6 +194,7 @@ function hostData(id, d) {
     p.run = d.run === true;
     p.sw = d.sw === true;
     p.bk = d.bk === true; // Fahrrad
+    p.sl = d.sl === true; // Schlitten
     p.kh = Number.isFinite(d.kh) ? Math.max(0, Math.min(120, d.kh)) : 0; // Drachen-Höhe
     p.rh = Number.isFinite(d.rh) ? Math.max(0, Math.min(12, d.rh)) : 0; // Ballonfahrt
   }
@@ -777,7 +781,7 @@ function netTick() {
   } else {
     const me = G.players[G.me];
     if (!me || G.reconnecting || G.ended) return;
-    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, kh: me.kh || 0, rh: me.rh || 0 };
+    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, sl: !!me.sled, kh: me.kh || 0, rh: me.rh || 0 };
     const sig = JSON.stringify(msg);
     if (sig !== G.lastMove || now - (G.lastMoveT || 0) > 1000) { G.conn?.send(msg); G.lastMove = sig; G.lastMoveT = now; }
     if (now - G.lastHost > 9000) lostConnection();
@@ -1125,6 +1129,7 @@ updOrient();
 const panels = new Panels({
   act: a => send(a),
   async ui(kind, d) {
+    if (kind.startsWith('w:')) { uiW(kind.slice(2), d); return; } // Inselleben 4 (client/fun2.js)
     if (kind === 'app') openApp(d.app);
     if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
     if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
@@ -1254,7 +1259,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'] }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -1322,7 +1327,7 @@ $('rotbtn').onclick = () => world.rotate(Math.PI / 4);
 const keys = new Set();
 const joy = { x: 0, y: 0, id: null };
 let actHeld = false, nextAct = 0;
-const busy = () => !G?.ready || !!G.kite || !!G.ride || panels.open || editor.isOpen || G.photo || G.talk || (G.hide?.phase === 'count' && G.hide.seeker === G.me);
+const busy = () => !G?.ready || !!G.kite || !!G.ride || gameOn() || panels.open || editor.isOpen || G.photo || G.talk || (G.hide?.phase === 'count' && G.hide.seeker === G.me);
 
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') { if (e.key === 'Escape') closeChat(); return; }
@@ -1638,6 +1643,7 @@ function context(me, at) {
   }
   if (!at && G.sel === 'kite' && !S.inside(me)) return { kite: true, label: '🪁 Drachen steigen lassen', tiles: [] };
   if (!at && G.sel === 'bike') return { bike: true, label: me.bike ? '🚲 Absteigen' : '🚲 Aufs Fahrrad', tiles: [] };
+  if (!at && (G.sel === 'bino' || G.sel === 'sled')) { const c = contextW(me, null); if (c) return c; }
   const p = at || { x: me.x + Math.sin(me.ry) * 0.9, z: me.z + Math.cos(me.ry) * 0.9 };
   const n = world.npcNear(p.x, p.z, at ? 0.9 : 1.1);
   if (n?.visitor) return { ui: 'visitor', visitor: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
@@ -1645,7 +1651,9 @@ function context(me, at) {
   for (const o of Object.values(G.players)) {
     if (o.id !== G.me && Math.hypot(o.x - p.x, o.z - p.z) < 0.75) return { hug: o.id, label: `🤗 ${o.name} umarmen`, tiles: [], px: o.x, pz: o.z };
   }
-  return { ...S.resolve(G.s, me, G.sel === 'pave' ? 'pave:' + (G.pathType || 'erde') : G.sel, at), px: p.x, pz: p.z };
+  const rr = S.resolve(G.s, me, G.sel === 'pave' ? 'pave:' + (G.pathType || 'erde') : G.sel, at);
+  if (!at) { const sb = contextW(me, rr); if (sb) return sb; } // Schneeball
+  return { ...rr, px: p.x, pz: p.z };
 }
 
 function pressAction() {
@@ -1665,6 +1673,7 @@ function pressAction() {
 
 function execute(r, fresh) {
   if (!r) return;
+  if (executeW(r, fresh)) return;
   const me = G.players[G.me];
   if (r.npc === 'hoppel') { if (fresh) { interrupt(); panels.show('turnip'); world.npcSay('hoppel', 'happy'); world.npcBubble('hoppel', 'Rüben! Frische Rüben!'); play('chat'); } return; }
   if (r.npc) { if (fresh) openTalk(r.npc); return; }
@@ -1744,7 +1753,7 @@ function execute(r, fresh) {
     const h = 6 + G.s.dayTime * 18;
     toast(h >= 18 ? (Object.keys(G.players).length > 1 ? '😴 Gute Nacht! Wenn alle im Bett liegen, beginnt ein neuer Tag.' : '😴 Gute Nacht!') : '😴 Ein kleines Nickerchen … (Schlafen geht ab 18 Uhr bis zum Morgen)');
   } else if (r.sit) {
-    if (fresh) Object.assign(me, { x: r.sit.x, z: r.sit.z, ry: r.sit.r * Math.PI / 2, pose: 'sit' });
+    if (fresh) { Object.assign(me, { x: r.sit.x, z: r.sit.z, ry: r.sit.r * Math.PI / 2, pose: 'sit' }); if (r.bath) send({ t: 'volc', op: 'bath' }); }
   } else if (r.fish) {
     if (fresh) startFishing(me);
   } else if (r.a && (fresh || r.a.t !== 'pickup')) {
@@ -1791,7 +1800,7 @@ function tapAt(cx, cy) {
 }
 
 // Was zeigen Maus oder Finger an – und kann die Figur es von hier aus benutzen?
-const usable = r => !!r && !!(r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
+const usable = r => !!r && !!(r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
 const reachOf = r => r.npc ? 1.9 : r.hug ? 1.5 : r.ui || r.go || r.enter || r.exit || r.visit ? 2.2 : r.fish ? 1.8 : r.net ? 2 : 1.6;
 function aimAt(cx, cy) {
   const me = G.players[G.me];
@@ -1853,7 +1862,7 @@ function travel(where) {
   interrupt();
   panels.close();
   fade();
-  const to = where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
+  const to = travelW(where) || (where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
@@ -1863,7 +1872,7 @@ function travel(where) {
     reefup: [REEF_BUOY[0], REEF_BUOY[1] + 0.8, 0, '🫧 Wieder an der Oberfläche!', 'splash'],
     wreck: [WRECK.x, WRECK.z + WRECK.r - 2.6, Math.PI, G.s.wreck?.found ? '⚓ Hinab zum Schiffswrack!' : '⚓ Ein altes Segelschiff! Öffnet die ✨ Truhen – irgendwo steckt ein Hinweis auf die Kapitänskajüte.', 'bubble'],
     wreckup: [WRECK_BUOY[0], WRECK_BUOY[1] + 0.8, 0, '🫧 Wieder an der Oberfläche!', 'splash'],
-  }[where] || areaTravel(where, me);
+  }[where] || areaTravel(where, me));
   if (!to) return;
   Object.assign(me, { x: to[0], z: to[1], ry: to[2], pose: null });
   world.yawT = world.yaw = 0;
@@ -2382,11 +2391,13 @@ function gameFrame(dt, now) {
     if (me.pose) standUp(me);
     const swim = (s.inv.neopren || 0) > 0 && !S.inside(me);
     me.run = !me.sw && (keys.has('shift') || Math.hypot(joy.x, joy.y) > 0.92);
-    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike ? 1.75 : me.run ? 1.6 : 1);
+    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike ? 1.75 : me.sled ? 1.55 : me.run ? 1.6 : 1);
     const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b, swim));
     const stuck = !free(me.x, me.z);
-    if (stuck || free(me.x + wx * sp, me.z)) me.x += wx * sp;
-    if (stuck || free(me.x, me.z + wz * sp)) me.z += wz * sp;
+    if (!iceMove(me, wx * sp, wz * sp, free)) { // auf dem Eis rutscht man (client/fun2.js)
+      if (stuck || free(me.x + wx * sp, me.z)) me.x += wx * sp;
+      if (stuck || free(me.x, me.z + wz * sp)) me.z += wz * sp;
+    }
     me.ry = Math.atan2(wx, wz);
     if (G.fishing) stopFishing();
     if (S.inside(me)) { const R = S.roomOf(s, S.roomIdAt(me.z)); if (me.z - R.z0 > R.size[1] / 2 + 0.25) execute({ exit: true, room: R.id }, true); } // durch die Tür hinaus
@@ -2394,7 +2405,7 @@ function gameFrame(dt, now) {
     if (me.x < -150) { const A = S.AREAS[S.areaOf(me)]; if (me.z - A.z > A.d + 0.7) travel('island'); }
   } else me.run = false;
   const wasSw = me.sw;
-  me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit' && !G.ride;
+  me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit' && !G.ride && !G.canoe;
   if (me.bike && (me.sw || S.inside(me) || ['reef', 'wreck', 'depths'].includes(zoneOf(me)) || me.pose || !(s.inv.fahrrad > 0))) setBike(false, true);
   if (me.sw && !wasSw) { world.burst(me.x, me.z, 'splash', -0.2); play('splash'); if (!G.swimTip) { G.swimTip = 1; toast('🤿 Du schwimmst! Bei Luftblasen 🫧 Aktion drücken zum Tauchen.'); } }
   me.held = heldItem();
@@ -2428,6 +2439,7 @@ function gameFrame(dt, now) {
   if (actHeld && now > nextAct) { nextAct = now + 300; execute(G.ctx, false); }
   updateFishing(dt);
   updateKite(dt);
+  updateW(dt);
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)

@@ -7,6 +7,8 @@ import { price, upgradeInfo, seasonOf, hearts, halfDay, turnipSeller, turnipPric
 import { NPCS, letter, requestLine, npcLine } from './npc.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
+import { PANELS_W, TITLES_W, TABS_W, APPS_W } from './ui-extra.js';
+import { VOLCANO_PRICE, VOLCANO_LVL } from './extras4.js';
 import { TRIP_KINDS, TRIP_PRICE, tripLayout } from './trips.js';
 import { guideList } from './guide.js';
 import { RIDE_PRICE, SKY_GIFTS, GARDEN_BUGS, GRILL_OF, grillParty, C4_W, C4_H, PHOTO_THEMES, photoTheme, BRIGHT, NWISH, ECHO_SYMS } from './extras3.js';
@@ -103,7 +105,7 @@ const SHOP = {
     for (const [id, u] of Object.entries(UPGRADES)) if (u.tab === 'tools') h += upgradeRow(s, id);
     const ws = s.inv.neopren > 0;
     h += row('🤿', 'Neoprenanzug' + (ws ? ' <span class="lv">✓ gekauft</span>' : ''), 'Damit könnt ihr alle im Meer schwimmen und bei Luftblasen 🫧 nach Meerestieren tauchen.', ws ? '' : btn('🪙 3000', { t: 'buy', id: 'neopren', n: 1 }, 'pink', s.money < 3000));
-    for (const [id, price, lv, text] of [['drache', 1800, 1, 'Am Strand steigen lassen: Im richtigen Moment ziehen, wenn eine Böe kommt. Frühlings- und Herbst-Samstage: Drachenfest!'], ['fahrrad', 4500, 2, 'Fast doppelt so schnell über die Insel – in der Leiste wählen und auf- oder absteigen.']]) {
+    for (const [id, price, lv, text] of [['fernglas', 2400, 1, 'In der Leiste wählen und Ausschau halten: 20 Vögel fürs Naturbuch.'], ['schlitten', 2200, 1, 'Im Winter über den Schnee sausen – in der Leiste auf- und absteigen.'], ['kanu', 6800, 3, 'An der Flussmündung einsteigen und flussaufwärts paddeln – bis zur Grotte hinter dem Wasserfall.'], ['drache', 1800, 1, 'Am Strand steigen lassen: Im richtigen Moment ziehen, wenn eine Böe kommt. Frühlings- und Herbst-Samstage: Drachenfest!'], ['fahrrad', 4500, 2, 'Fast doppelt so schnell über die Insel – in der Leiste wählen und auf- oder absteigen.']]) {
       const got = s.inv[id] > 0, lk = s.level < lv;
       h += row(itemIcon(id), ITEMS[id].name + (got ? ' <span class="lv">✓ gekauft</span>' : lk ? lvTag(lv) : ''), text, got ? '' : btn(`🪙 ${price}`, { t: 'buy', id, n: 1 }, 'pink', lk || s.money < price));
     }
@@ -266,7 +268,7 @@ const PANELS = {
       ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
       ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
       ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0],
-      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['stars', '✨', 'Sternbilder', '#8f9ee8'], ['guide', '📘', 'Inselführer', '#9fd8c8', guideList(s).filter(x => !x.done).length > 25 ? '!' : 0], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
+      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['stars', '✨', 'Sternbilder', '#8f9ee8'], ['guide', '📘', 'Inselführer', '#9fd8c8', guideList(s).filter(x => !x.done).length > 25 ? '!' : 0], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2'], ...APPS_W];
     const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
     return `<div class="phone-top"><b>${s.real ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : `${hh}:${String(mm).padStart(2, '0')}`}</b><span>${WEEKDAYS[weekday(s.day)]} · ${esc(s.name)}</span></div>
       <div class="apps">${apps.map(([id, ic, l, c, dot]) => `<button data-ui="app" data-app="${id}"><span class="ai" style="background:${c}">${ic}${dot ? `<i>${dot}</i>` : ''}</span><small>${l}</small></button>`).join('')}</div>`;
@@ -636,6 +638,9 @@ const PANELS = {
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Insel wird gespeichert</small></span></button>`;
   },
 };
+Object.assign(PANELS, PANELS_W); // Inselleben 4 (ui-extra.js)
+Object.assign(TITLES, TITLES_W);
+Object.assign(TABS, TABS_W);
 
 // ---------- Bürgermeister-Update: Rathaus, Baustelle, Bummelgasse, Tropeninsel ----------
 const myKey = g => g.players?.[g.me]?.key || 'host';
@@ -719,7 +724,9 @@ Object.assign(PANELS, {
     return hero('🦭 Käpt\'n Flossi', 'Ahoi! Zur Tropeninsel?', `Hinter dem Horizont liegt eine kleine Tropeninsel: immer Sommer, seltene Käfer, süße Früchte und Kikis Tauschhütte mit Touren. Die Überfahrt kostet ${money(BOAT_PRICE)} – zurück ist gratis.`)
       + `<button class="big pink" data-ui="sail"${s.money < BOAT_PRICE ? ' disabled' : ''}><span class="i">⛵</span><span>Zur Tropeninsel<small>${fmt(BOAT_PRICE)} Taler</small></span></button>`
       + `<div class="note" style="margin-top:10px">🎲 <b>Ausflug ins Blaue:</b> Jeden Tag fahre ich zu einer anderen kleinen Insel – mal Bambus, mal ein Wasserfall mit seltenen Fischen, mal Kristalle, Blüten, Obst oder ganz viele Krabbeltiere!${s.trip?.day === s.day ? ' Heute: <b>' + TRIP_KINDS[tripLayout(s.trip.seed).kind].icon + ' ' + TRIP_KINDS[tripLayout(s.trip.seed).kind].name + '</b>.' : ''}</div>`
-      + `<button class="big" data-ui="trip"${s.money < TRIP_PRICE ? ' disabled' : ''}><span class="i">🎲</span><span>Ausflug zur Zufallsinsel<small>${fmt(TRIP_PRICE)} Taler</small></span></button>`;
+      + `<button class="big" data-ui="trip"${s.money < TRIP_PRICE ? ' disabled' : ''}><span class="i">🎲</span><span>Ausflug zur Zufallsinsel<small>${fmt(TRIP_PRICE)} Taler</small></span></button>`
+      + `<div class="note" style="margin-top:10px">🌋 <b>Vulkaninsel:</b> heiße Quellen zum Baden mit den Nachbarn, schwarzer Obsidian und Feuerfalter.${s.level < VOLCANO_LVL ? ` Ab Insel-Level ${VOLCANO_LVL}.` : ''}</div>`
+      + `<button class="big" data-act='${JSON.stringify({ ui: 'w:volcano' })}'${s.money < VOLCANO_PRICE || s.level < VOLCANO_LVL ? ' disabled' : ''}><span class="i">🌋</span><span>Zur Vulkaninsel<small>${fmt(VOLCANO_PRICE)} Taler</small></span></button>`;
   },
   boatback(s) {
     return hero('🦭 Käpt\'n Flossi', 'Schon genug Sonne?', s.tour ? 'Achtung: Eure Tour läuft noch!' : 'Ich bringe dich zurück zum Steg auf eurer Insel.')
@@ -754,6 +761,7 @@ Object.assign(PANELS, {
     let h = hero(STREET_SHOPS.club.who, 'Mondschein-Club', 'Quak! Abends ab 18 Uhr legt DJ Quak auf. Und jeden <b>Samstag ab 20 Uhr</b> spielt Lotte Laute live – dann dürft ihr euch ein Lied wünschen!');
     if (!shopOpen(s, 'club')) return h + closed(s, 'club');
     h += '<button class="big pink" data-ui="dance"><span class="i">💃</span><span>Tanzen!<small>Auf die Tanzfläche</small></span></button><br>';
+    h += `<button class="big" data-act='${JSON.stringify({ ui: 'w:dancepanel' })}'><span class="i">🎶</span><span>Tanzabend<small>Rhythmus-Spiel mit den Nachbarn</small></span></button><br>`;
     if (concertNow(s)) h += `<button class="big" data-act='${JSON.stringify({ t: 'song' })}' ${s.concert === s.day ? 'disabled' : ''}><span class="i">🎸</span><span>Lied wünschen<small>${s.concert === s.day ? 'Heute schon gewünscht' : 'Lotte spielt für euch'}</small></span></button><br>`;
     const have = SONGS.filter(([id]) => s.songs?.[id]).length;
     h += `<h3>🎵 Liederbuch <span class="lv">${have}/${SONGS.length}</span></h3><div class="album">${SONGS.map(([id, n]) => s.songs?.[id] ? `<div class="got"><span>💿</span><small>${n}</small></div>` : '<div><span>❔</span><small>???</small></div>').join('')}</div>`;
@@ -844,7 +852,7 @@ export class Panels {
     const now = performance.now(); // höchstens 5× pro Sekunde prüfen (sig = null erzwingt sofort)
     if (this.sig && now - (this.checked || 0) < 200) return;
     this.checked = now;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.birds?.n, s.tidebook, s.stamps, s.capsules, g.capSel, s.golf, s.dance, s.cafe, s.library, s.radio, s.guestbook?.length, g.gbPx, g.gbSt, s.fashion, s.gardenc, s.giant, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;
@@ -872,13 +880,16 @@ const TOOLS = {
   pave: [icon('pave'), 'Insel-Designer: Wege legen (nochmal antippen = Wegart wählen)'],
 };
 // Werkzeuge ohne eigenes Blender-Bild bekommen das gerenderte Item-Bild
-const TOOL_ITEM = { spade: ['baumschaufel', 'Baumschaufel: Bäume & Palmen ausgraben und woanders einpflanzen'], kite: ['drache', 'Drachen steigen lassen'], bike: ['fahrrad', 'Fahrrad: auf- und absteigen'] };
+const TOOL_ITEM = { spade: ['baumschaufel', 'Baumschaufel: Bäume & Palmen ausgraben und woanders einpflanzen'], kite: ['drache', 'Drachen steigen lassen'], bike: ['fahrrad', 'Fahrrad: auf- und absteigen'], bino: ['fernglas', 'Fernglas: nach Vögeln Ausschau halten'], sled: ['schlitten', 'Schlitten: im Winter auf- und absteigen'] };
 export function hotbarItems(s) {
   // Aufstellen, Einrichten und Wege legen geht jetzt im 🔨 Baumodus
   const items = ['hand', 'net', 'shovel', 'axe', 'can', 'sling'];
   if (s.inv.baumschaufel > 0) items.push('spade');
   if (s.inv.drache > 0) items.push('kite');
   if (s.inv.fahrrad > 0) items.push('bike');
+  if (s.inv.fernglas > 0) items.push('bino');
+  if (s.inv.schlitten > 0) items.push('sled');
+  if (s.inv.duenger > 0) items.push('duenger');
   for (const k of Object.keys(CROPS)) if (s.inv['s_' + k] > 0) items.push('s_' + k);
   for (const [id, it] of Object.entries(ITEMS)) if (it.sapling && s.inv[id] > 0) items.push(id);
   return items;

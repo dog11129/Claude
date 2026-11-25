@@ -26,10 +26,10 @@ def serve():
 INIT = ("localStorage.setItem('kh.settings', JSON.stringify({quality:'low',sound:0,music:0,fullscreen:false}));"
         "localStorage.setItem('kh.profile', JSON.stringify({name:'Test'}));localStorage.setItem('ki.tutorial','true');localStorage.setItem('ki.buildTip','true')")
 # Fenster, die nur mit Zusammenhang (Gesprächspartner, Ort …) sinnvoll sind, werden über ihren echten Weg getestet
-PANELS = ['depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
+PANELS = ['nature', 'stamps', 'capsule', 'golf', 'dancegame', 'cafe', 'library', 'radio', 'guestbook', 'fashion', 'gardenc', 'depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
           'chest', 'mayor', 'boat', 'tailor', 'garden', 'club', 'hut', 'phone', 'map', 'turnip', 'designer', 'recipes', 'shop', 'sell', 'orders', 'museum',
           'friends', 'emotes', 'settings', 'craft', 'cook', 'together', 'mail', 'contest', 'diary', 'fests']
-PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'nroom:mira']
+PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'volcano', 'pier', 'grotto', 'grottoup', 'nroom:mira']
 
 def chrome():
     for p in (os.environ.get('CHROME'), '/usr/bin/google-chrome', '/usr/bin/chromium'):
@@ -91,6 +91,16 @@ async def main():
                 await frames(pg, 2)
             ok(len(errs) == n0, f'Fenster {k}' + (f' ({len(tabs)} Reiter)' if tabs else ''))
         await pg.evaluate('window.__game.panels.close()')
+        # 4b) Minispiele starten und wieder schließen (Minigolf, Tanzabend, Kaffee)
+        for btn, panel in (('w:golf', 'golf'), ('w:dance', 'dancegame'), ('w:brew', 'cafe')):
+            n0 = len(errs)
+            await pg.evaluate(f"window.__game.panels.show('{panel}')")
+            await frames(pg, 2)
+            await pg.evaluate(f"""document.querySelector(`[data-act*='"{btn}"']`)?.click()""")
+            await frames(pg, 6)
+            on = await pg.evaluate("!document.getElementById('mgame').classList.contains('hidden')")
+            await pg.click('#mgquit')
+            ok(on and len(errs) == n0, f'Minispiel {btn[2:]}')
         await pg.screenshot(path=shot('smoke-pc.png'))
         # 5) Handy: Fenster passen in die Breite, Spiele & Sterne lassen sich antippen
         ph = await open_game(b, url, errs, 'Handy', viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2)

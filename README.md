@@ -37,7 +37,28 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🏮 Neu: Höhlen-Tiefen
+### 🌋 Neu: Inselleben 4
+- **🔨 Baumodus mit Vorschau:** Aufs Feld tippen = die Vorschau bleibt dort stehen. Mit 🔄 (oder R) drehen, mit ✔ „Hier hinstellen“ (oder Enter, oder nochmal aufs selbe Feld) bestätigen, mit ✖/Esc abbrechen – draußen und im Haus.
+- **🏠 Haus umziehen:** Baumodus ➜ 🏠 Haus. Vorschau des Hauses samt Briefkasten, Platzprüfung, 5.000 Taler aus der Inselkasse. Drinnen bleibt alles, wie es ist.
+- **Bessere Kollision:** Möbel blockieren nach ihrer echten Form statt nach ganzen Kacheln, Wände sind knapper. Auf den Brücken läuft man oben auf den gewölbten Bohlen, das Geländer und die Blumenkästen sind fest.
+- **❄️ Winterspaß:** Schneebälle auf Freunde und Nachbarn werfen (10 Treffer am Tag = Preis), Schlitten fahren (Krämerladen), auf dem zugefrorenen Teich Runden drehen – man rutscht!
+- **🔭 Vogelbeobachtung:** Fernglas in der Leiste, 20 Vögel je nach Ort, Uhrzeit und Jahreszeit (Uhu nachts im Wald, Eisvogel am Fluss, Papagei auf der Tropeninsel …). Ein Vogelhäuschen lockt seltene an. Alles im 🔭 Naturbuch.
+- **🌊 Gezeiten-Tümpel:** Fünf Felsbecken am Strand. Bei Ebbe (6–9 und 15–18 Uhr) sitzen Krebse, Schnecken, Seesterne und Glasgarnelen darin.
+- **🛶 Kanu-Tour:** An der Flussmündung einsteigen, flussaufwärts paddeln, Treibgut einsammeln – bis zur leuchtenden Grotte hinter dem Wasserfall mit drei seltenen Fischen und einer Truhe.
+- **🌋 Vulkaninsel** (Käpt'n Flossi, ab Level 4): heiße Quellen, in denen zwei Nachbarn mitbaden, Obsidianfelsen (Schaufel) und Feuerfalter (Kescher).
+- **⛳ Minigolf** (Rathaus-Projekt): 9 Bahnen zum Ziehen und Loslassen, Platzrekord und Pokal.
+- **💃 Tanzabend** im Mondschein-Club: Rhythmus-Spiel mit drei Liedern (Pfeiltasten oder Spuren antippen), Bronze/Silber/Gold.
+- **⏳ Zeitkapsel:** Brief und bis zu drei Sachen vergraben, nach 7 oder 30 Tagen mit der Schaufel ausgraben.
+- **📮 Stempelrallye:** Zehn Stempelpfosten auf der Insel, in der Gasse, auf der Tropeninsel und in den Gebieten – jede/r hat einen eigenen Pass.
+- **☕ Inselcafé** (Rathaus-Projekt): Getränke selbst zubereiten (im richtigen Moment tippen), Stempelkarte, täglich ein Nachbar zum Plaudern.
+- **📚 Bibliothek** (Rathaus-Projekt): jeden Tag ein Rätselbuch, 20 Bücher fürs Regal, abends Lesestunde für alle Nachbarn.
+- **📻 Inselradio** (Möbel): Nachbarn moderieren mit Nachrichten aus eurer Insel, Wunschlieder und eure Inselmelodie.
+- **📖 Gästebuch** (Deko): Einträge mit Stempel und kleiner Zeichnung; manchmal schreibt ein Nachbar hinein.
+- **👗 Modenschau:** jeden Tag ein Thema, drei Nachbarn vergeben Sterne (Handy ➜ Mode).
+- **🌷 Gartenwettbewerb:** Am letzten Tag jeder Jahreszeit bewertet die Jury Blumen, Sorten, Farben und Deko.
+- **🎃 Riesengemüse:** Reife Kürbisse, Melonen und Kartoffeln gießen und mit Riesendünger füttern – beim Kürbisfest wird gewogen.
+
+### 🏮 Höhlen-Tiefen
 - **Hinab unter die Kristallhöhle:** An der Werkbank eine **Grubenlaterne** bauen (Kristall, 2 Eisen, 2 Holz), dann hinten in der Kristallhöhle die Treppe hinab. Unten ist es dunkel – nur die Laterne leuchtet.
 - **✨ Glühwurmgrotte:** Fünf Kristalle im Steinkreis – jeder schaltet beim Antippen auch seine beiden Nachbarn um. Leuchten alle fünf, gleitet die Kristalltür zur Seite.
 - **🎵 Echohalle:** Die singende Tür summt vier Töne (▶️ Anhören). Auf den vier Klangsteinen nachspielen – links der tiefste, rechts der höchste Ton.
@@ -183,6 +204,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/trips.js`, `src/patterns.js`, `src/photos.js` | Zufallsinseln, Pixel-Muster, Fotoalbum & Postkarten (IndexedDB) |
 | `src/cloud.js`, `cloud/worker.js`, `cloud/dev-server.mjs` | Cloud-Spielstand & Verbindungsserver (Browser-Seite, Cloudflare Worker, lokaler Nachbau für Tests) |
 | `src/extras2.js`, `src/extras3.js`, `src/features/*.js` | Neuere Inhalte, je Thema eine Datei (Geschichten, Hof, Riff, Strand, Seilbahn, Ballon, Schmetterlinge, Wrack, Spiele, Fotowettbewerb, Grill, Sterne, Nachbarzimmer, Höhlen-Tiefen) |
+| `src/extras4.js`, `src/client/fun2.js`, `src/ui-extra.js`, `src/world-extra.js` | Inselleben 4: Logik, Minispiele & Fahrten im Browser, Fenster, 3D (Grotte, Vulkan, Tümpel, Stempel) |
 | `src/client/fun.js`, `src/guide.js` | Ballonfahrt, Fotowettbewerb-Knopf, Sternbild-Editor, Fahrrad, Drachen · Inselführer |
 | `src/models-extra.js` | Modelle der neuen Deko und Möbel |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |

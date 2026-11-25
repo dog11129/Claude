@@ -524,6 +524,9 @@ body.skyview #skybtn { background: #7f8fd8; }
 /* Baumodus */
 #buildbar { position: absolute; left: 50%; bottom: max(8px, var(--safe-b)); transform: translateX(-50%); width: min(860px, calc(100vw - 16px)); background: rgba(255,248,238,.95); backdrop-filter: blur(8px); border-radius: 24px; box-shadow: 0 6px 0 rgba(160,120,90,.18), 0 10px 30px rgba(90,70,50,.18); padding: 8px 10px 10px; z-index: 6; }
 #bhead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#mgame { position: fixed; inset: 0; z-index: 40; background: rgba(40,30,30,.45); display: grid; place-items: center; }
+#mgame.hidden { display: none; } .mgbox { background: #fff8ee; border-radius: 22px; padding: 10px 12px; text-align: center; box-shadow: 0 10px 40px #0004; }
+#mghead { font-weight: 800; font-size: 18px; margin-bottom: 6px; } #mgfoot { min-height: 22px; margin: 6px 0; font-size: 14px; } #mgcv { touch-action: none; border-radius: 14px; display: block; margin: 0 auto; }
 #bconfirm { display: flex; align-items: center; gap: 6px; margin: 2px 0 6px; padding: 6px 8px; border-radius: 16px; background: #fff; box-shadow: 0 2px 0 #ecd9c3; animation: pop .2s; }
 #bconfirm.hidden { display: none; } #bcname { flex: 1; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #bconfirm.bad #bcok { opacity: .45; } #bconfirm.bad #bcname { color: #d0505a; }

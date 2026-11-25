@@ -14,6 +14,7 @@ import { TRIP, TRIP_KINDS, tripLayout, tripUses, nodeThing } from './trips.js';
 import { REEF, REEF_SLOTS, REEF_SPOTS, reefScore } from './extras2.js';
 import { WRECK, WRECK_CHESTS, WRECK_PORTS, WRECK_DOOR, DEPTH, DEPTH_LV, DEPTH_UP, DEPTH_DOOR, DEPTH_VEINS, DEPTH_RING, ECHO_STONES, DEPTH_LAKE, DEPTH_STAIRS, depthAt } from './extras3.js';
 import { itemModel } from './itemmodels.js';
+import { zonesW, lightsW } from './world-extra.js';
 
 function canvasTex(w, h, paint, rep) {
   const c = document.createElement('canvas');
@@ -552,6 +553,7 @@ export class Zones {
   update(world, s, t, night, target) {
     this.tropic.userData.u.t.value = t;
     this.tropic.userData.u.night.value = night;
+    if (zonesW(this, world, s, t, target)) return; // Grotte & Vulkaninsel (world-extra.js)
     const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 1900 ? 'depths' : target.z > 1350 ? 'wreck' : target.z > 1000 ? 'reef' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
     this.street.visible = where === 'street';
     this.tropic.visible = where === 'tropic';
@@ -705,6 +707,8 @@ export class Zones {
     }
   }
   lights(target) {
+    const lw = lightsW(this, target);
+    if (lw !== undefined) return lw || null;
     if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
     return target.z < -150 ? this.street.userData.lights : target.z > 1900 ? this.depths?.userData.lights || null : target.z > 1350 ? this.wreck?.userData.lights || null : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
   }

@@ -4,13 +4,13 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
-| place | 105 | 49 | 56 |
-| furniture | 89 | 41 | 48 |
+| place | 115 | 49 | 66 |
+| furniture | 90 | 41 | 49 |
 | items | 142 | 0 | 142 |
 | crops | 102 | 42 | 60 |
-| Icons | 393 | 0 eigene Bilder | 393 gerendert |
+| Icons | 429 | 0 eigene Bilder | 429 gerendert |
 
-## place – noch Platzhalter (56)
+## place – noch Platzhalter (66)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -63,6 +63,13 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Telefonzelle | `telefonzelle` | 0.74 × 2.48 × 0.74 | 132 |
 | Eiswagen | `eiswagen` | 1.62 × 2.12 × 1.4 | 1476 |
 | Musikbox | `musikbox` | 0.7 × 1.31 × 0.48 | 604 |
+| Gästebuch | `gaestebuch` | 0.5 × 0.98 × 0.36 | 104 |
+| Garten-Pokal | `gartenpokal` | 0.48 × 0.75 × 0.44 | 2240 |
+| Riesengemüse-Pokal | `gemuesepokal` | 0.48 × 0.86 × 0.44 | 1112 |
+| Mode-Pokal | `modepokal` | 0.48 × 0.76 × 0.44 | 1192 |
+| Rallye-Pokal | `rallyepokal` | 0.48 × 0.86 × 0.44 | 932 |
+| Minigolf-Pokal | `golfpokal` | 0.48 × 0.93 × 0.44 | 1124 |
+| Tanz-Pokal | `tanzpokal` | 0.48 × 0.81 × 0.44 | 1124 |
 | Sandburgen-Pokal | `strandpokal` | 0.48 × 0.97 × 0.44 | 1052 |
 | Drachen-Pokal | `windpokal` | 0.48 × 1.1 × 0.44 | 920 |
 | Grundstück | `grundstueck` | 1.45 × 1.04 × 1.46 | 200 |
@@ -70,8 +77,11 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Campingplatz | `campingplatz` | 2.31 × 1.3 × 1.99 | 252 |
 | Seilbahn | `seilbahn` | 1.8 × 6.23 × 6.23 | 572 |
 | Ballonplatz | `ballonplatz` | 2.49 × 5.34 × 2.49 | 1376 |
+| Minigolfplatz | `minigolf` | 2.7 × 0.86 × 2.7 | 452 |
+| Inselcafé | `inselcafe` | 2.5 × 1.61 × 2.4 | 824 |
+| Bibliothek | `bibliothek` | 2.4 × 2.55 × 2.33 | 264 |
 
-## furniture – noch Platzhalter (48)
+## furniture – noch Platzhalter (49)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -99,6 +109,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Wandas Teleskop | `sternteleskop` | 0.5 × 1.44 × 0.88 | 468 |
 | Korallenlampe | `korallenlampe` | 0.45 × 0.52 × 0.4 | 920 |
 | Spieltisch | `spieltisch` | 0.84 × 0.79 × 0.84 | 520 |
+| Inselradio | `inselradio` | 0.56 × 0.74 × 0.28 | 536 |
 | Ohrensessel | `ohrensessel` | 0.78 × 1.13 × 0.66 | 1272 |
 | Schaukelstuhl | `schaukelstuhl` | 1.15 × 1.12 × 1.12 | 816 |
 | Bodenkissen | `bodenkissen` | 0.7 × 0.28 × 0.65 | 528 |

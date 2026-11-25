@@ -29,6 +29,7 @@ import * as N from './nature.js';
 import { bridgeParts } from './bridges.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS, chatLine } from './npc.js';
+import { updateIslandW, syncSled } from './world-extra.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
 import { placeable } from './nature.js';
@@ -1034,7 +1035,7 @@ export class World {
       }
       if (st === 3) this.ripe.push(e);
       const pop = Math.min(1, (this.time - e.born) * 4);
-      e.m.scale.setScalar(e.base * (0.5 + 0.5 * (1 - (1 - pop) ** 3) + (pop < 1 ? Math.sin(pop * Math.PI) * 0.15 : 0)));
+      e.m.scale.setScalar(e.base * (1 + Math.min(10, t.c.gs || 0) * 0.13) * (0.5 + 0.5 * (1 - (1 - pop) ** 3) + (pop < 1 ? Math.sin(pop * Math.PI) * 0.15 : 0))); // Riesengemüse wächst mit
     }
     for (const [k, e] of this.crops) if (!seen.has(k)) { this.vanish(e.m); this.crops.delete(k); }
   }
@@ -1671,14 +1672,15 @@ export class World {
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
       const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000 && e.z < 1900;
-      e.m.position.set(e.x, bridgeY(e.x, e.z) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
+      e.m.position.set(e.x, (p.cn ? -0.12 : bridgeY(e.x, e.z)) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : p.sl && !p.sw ? 0.22 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
       if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
       if (deep && Math.random() < 0.05) this.burst(e.x + Math.sin(e.ry) * 0.15, e.z + Math.cos(e.ry) * 0.15, 'bubble', 1.4);
       const emote = p.emoteUntil > now ? p.emote : null;
-      e.m.userData.update(dt, { speed: p.pose || bk ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: bk ? 'sit' : p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
+      e.m.userData.update(dt, { speed: p.pose || bk ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: bk || (p.sl && !p.sw) ? 'sit' : p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
       this.syncBike(e, bk, dt);
+      syncSled(this, e, !!p.sl && !p.sw);
       this.syncKite(e, p.kh || 0, dt);
       this.syncRide(e, p.rh || 0);
 
@@ -1711,7 +1713,7 @@ export class World {
   }
 
   light(s) {
-    const hour = 6 + s.dayTime * 18, cave = this.target.z > 1900; // Höhlen-Tiefen: immer Nacht, nur die Laterne leuchtet
+    const hour = 6 + s.dayTime * 18, cave = this.target.z > 1900 && this.target.z < 3000; // Tiefen & Grotte // Höhlen-Tiefen: immer Nacht, nur die Laterne leuchtet
     const day = cave ? 0 : smooth(4.8, 6.8, hour) * (1 - smooth(17.5, 21, hour));
     const dusk = cave ? 0 : Math.max(1 - smooth(6, 8, hour), smooth(16.5, 18.5, hour) * (1 - smooth(19.5, 21.5, hour)));
     const night = 1 - day;
@@ -1756,7 +1758,7 @@ export class World {
       this.hemi.intensity = 0.55;
       this.lamp.intensity = 22;
       for (const k of ['skysun', 'skymoon']) if (this[k]) this[k].visible = false;
-    } else if (this.target.z > 1000) { // Korallenriff: türkises Dämmerlicht, kurze Sicht, kein Himmel
+    } else if (this.target.z > 1000 && this.target.z < 1900) { // Korallenriff: türkises Dämmerlicht, kurze Sicht, kein Himmel
       top.setRGB(0.04, 0.26, 0.4).lerp(this.fogCol.setRGB(0.02, 0.05, 0.13), night * 0.8);
       hor.setRGB(0.1, 0.52, 0.64).lerp(this.fogCol.setRGB(0.03, 0.09, 0.2), night * 0.8);
       this.scene.fog.color.copy(hor);
@@ -2048,6 +2050,7 @@ export class World {
     this.syncPuddles(s, info.hour);
     this.syncAurora(s, info.night || 0);
     this.zones.update(this, s, this.time, info.night || 0, this.target);
+    updateIslandW(this, s, this.time); // Gezeiten-Tümpel, Stempelpfosten, Zeitkapseln
     this.syncConsts(s, info.night || 0, !!opt.sky);
     this.syncSkyGifts(opt.skyGifts);
     if (this.animations !== false) tickAssets(dt);
