@@ -42,6 +42,20 @@ export const BRIDGES = [-6, 11];       // z-Positionen der Brücken
 export const BRIDGE_W = 0.85;          // halbe Breite der Brücke
 export const inRiver = (x, z) => z > cliffZ(x) - 30 && Math.abs(x - riverX(z)) < RIVER_W && coast(x, z) < 0.5;
 export const onBridge = (x, z) => BRIDGES.some(b => Math.abs(z - b) < BRIDGE_W && Math.abs(x - riverX(b)) < RIVER_W + 0.7);
+// Geländer (links & rechts) und die Blumenkästen an den Brückenenden sind fest – auch vom Ufer aus
+export const BRIDGE_HALF = RIVER_W + 0.75; // halbe Länge der Brücke (wie in bridges.js)
+export const bridgeRail = (x, z) => BRIDGES.some(b => {
+  const dx = Math.abs(x - riverX(b)), dz = Math.abs(z - b);
+  return (dx <= BRIDGE_HALF + 0.1 && dz > BRIDGE_W - 0.13 && dz < BRIDGE_W + 0.08) || (Math.abs(dx - BRIDGE_HALF - 0.05) < 0.22 && Math.abs(dz - BRIDGE_W - 0.07) < 0.16);
+});
+// Höhe der gewölbten Brücke (Oberkante der Bohlen), sonst 0 – damit Figuren oben drauf laufen statt hindurch
+export function bridgeY(x, z) {
+  for (const b of BRIDGES) {
+    const dx = x - riverX(b);
+    if (Math.abs(z - b) < BRIDGE_W + 0.05 && Math.abs(dx) < BRIDGE_HALF) return 0.1 + Math.cos(dx / (BRIDGE_HALF * 2) * Math.PI) * 0.12;
+  }
+  return 0;
+}
 
 export const POND = { cx: -15, cz: -4, r: 2.1 };
 export const inPond = (x, z) => (x - POND.cx) ** 2 + (z - POND.cz) ** 2 <= POND.r ** 2;

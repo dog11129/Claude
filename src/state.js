@@ -6,7 +6,7 @@ import {
   NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK, SEA, DIVES, STARTER_DIY, DIY_IDS,
   FESTS, BIRTHDAYS, CONTEST_SECS, CONTEST_AT, FEST_DECO, HYBRIDS,
 } from './data.js';
-import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
+import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, bridgeRail, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import * as X from './extras.js';
 import * as Y from './extras2.js';
@@ -267,6 +267,8 @@ export function migrate(s) {
   tr.rm = Object.fromEntries(Object.keys(tr.rm || {}).filter(k => RES_SPOTS[k] === 'tree' || RES_SPOTS[k] === 'palm').map(k => [k, 1]));
   tr.add = Object.fromEntries(Object.entries(tr.add || {}).filter(([k, v]) => /^-?\d+,-?\d+$/.test(k) && (v?.kind === 'tree' || v?.kind === 'palm') && ITEMS[v.fruit]).map(([k, v]) => [k, { kind: v.kind, fruit: v.fruit }]));
   if (Array.isArray(s.dives)) s.dives = s.dives.filter(d => !d || !Number.isFinite(d.x) || swimmable(d.x, d.z));
+  s.housePos = s.housePos && Number.isInteger(s.housePos.dx) && Number.isInteger(s.housePos.dz) && Math.abs(s.housePos.dx) <= MAP && Math.abs(s.housePos.dz) <= MAP ? { dx: s.housePos.dx, dz: s.housePos.dz } : null;
+  applyHouse(s);
   X.migrateX(s);
   return s;
 }
@@ -278,6 +280,35 @@ export const stage = c => {
 
 export const inField = () => false;
 
+// ---------- Haus umziehen: Haus & Briefkasten an einen neuen Platz (Versatz in s.housePos) ----------
+// Die Baumverteilung (RES_SPOTS) rechnet weiter mit dem alten Platz, damit alle Bäume der Spielstände bleiben.
+const HOUSE0 = { house: { ...BUILDINGS.house }, mail: { ...BUILDINGS.mail } };
+export const HOUSE_HOME = [Math.round(HOUSE0.house.cx), Math.round(HOUSE0.house.cz)]; // Mitte des Hauses am Anfang
+export const HOUSE_MOVE_PRICE = 5000;
+export function applyHouse(s) {
+  const dx = s?.housePos?.dx || 0, dz = s?.housePos?.dz || 0;
+  for (const id of ['house', 'mail']) {
+    const o = HOUSE0[id];
+    Object.assign(BUILDINGS[id], { x0: o.x0 + dx, x1: o.x1 + dx, z0: o.z0 + dz, z1: o.z1 + dz, cx: o.cx + dx, cz: o.cz + dz, ox: o.ox + dx, oz: o.oz + dz });
+  }
+}
+export const houseShift = () => [BUILDINGS.house.x0 - HOUSE0.house.x0, BUILDINGS.house.z0 - HOUSE0.house.z0];
+// Passt das Haus mit seiner Mitte auf Feld (tx, tz)? Haus, Briefkasten, Platz vor der Tür und Abstand zu Gebäuden
+export function houseFit(s, tx, tz) {
+  const dx = tx - HOUSE_HOME[0], dz = tz - HOUSE_HOME[1], H = HOUSE0.house;
+  const x0 = H.x0 + dx, x1 = H.x1 + dx, z0 = H.z0 + dz, z1 = H.z1 + dz, [sx, sz] = houseShift();
+  if (dx === sx && dz === sz) return { ok: false, why: '🏠 Hier steht euer Haus schon.' };
+  const tiles = [[x0 - 1, z1 + 1]], cx = Math.round(H.cx + dx); // Haus, Briefkasten, drei Felder vor der Tür
+  for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) tiles.push([x, z]);
+  for (let x = cx - 1; x <= cx + 1; x++) tiles.push([x, z1 + 1]);
+  for (let x = x0 - 1; x <= x1 + 1; x++) for (let z = z0 - 1; z <= z1 + 2; z++) { const b = buildingAt(x, z); if (b && b !== 'house' && b !== 'mail') return { ok: false, why: `🏠 Zu nah an: ${BUILDINGS[b].name}`, tiles, dx, dz }; }
+  for (const [x, z] of tiles) {
+    const k = key(x, z);
+    if (!grass(x, z) || gateAt(x, z)) return { ok: false, why: '🏠 Hier ist kein Platz – Wasser, Strand, Klippe oder Weg zum Tor', tiles, dx, dz };
+    if (s.obj[k] || resAt(s, k) || s.tiles[k] || s.digs?.includes(k) || s.ground?.[k] || s.shells?.[k] || s.weeds?.[k]) return { ok: false, why: '🏠 Da steht noch etwas im Weg (Baum, Deko, Beet, Unkraut …)', tiles, dx, dz };
+  }
+  return { ok: true, tiles, dx, dz };
+}
 export function buildingAt(x, z) {
   for (const [id, b] of Object.entries(BUILDINGS)) if (x >= b.x0 && x <= b.x1 && z >= b.z0 && z <= b.z1) return id;
   return null;
@@ -339,11 +370,28 @@ export function canFurnish(s, k, x, z, r, R = roomOf(s)) {
   const [, d] = R.size;
   return footprint(k, x, z, r).every(([i, j]) => inRoom(s, i, j, R) && !homeAt(s, i, j, f.rug, R) && (f.rug || !f.solid || !(i === 0 && j === (d - 1) / 2))); // Platz vor der Tür bleibt frei
 }
+// Kollision im Haus: Wände knapp, Möbel nach ihrer echten Form. Die 3D-Welt trägt die Maße jedes Möbels
+// in FURN_HIT ein ([halbe Breite, halbe Tiefe, Versatz x, Versatz z], ungedreht); ohne die (Tests) gilt das Raster.
+export const FURN_HIT = {};
+export function furnBox(k, ax, az, r) {
+  const f = FURNITURE[k], [fw, fd] = r % 2 ? [f.d, f.w] : [f.w, f.d], cx = ax + (fw - 1) / 2, cz = az + (fd - 1) / 2;
+  const h = FURN_HIT[k];
+  if (!h) return [cx - fw / 2 + 0.12, cx + fw / 2 - 0.12, cz - fd / 2 + 0.12, cz + fd / 2 - 0.12];
+  let [hw, hd, ox, oz] = h; // Modell um r·90° gedreht (wie in der Welt: rotation.y = r·π/2)
+  for (let i = 0; i < ((r % 4) + 4) % 4; i++) [hw, hd, ox, oz] = [hd, hw, oz, -ox];
+  return [cx + ox - hw, cx + ox + hw, cz + oz - hd, cz + oz + hd];
+}
 function homeBlocked(s, x, z) {
   const R = roomOf(s, roomIdAt(z)), [w, d] = R.size, lx = x - HOME_X, lz = z - R.z0, door = Math.abs(lx) < 0.6;
-  if (Math.abs(lx) > w / 2 - 0.28 || lz < -d / 2 + 0.28 || lz > d / 2 + (door ? 0.6 : -0.28)) return true;
-  const h = homeAt(s, Math.round(lx), Math.round(lz), false, R);
-  return !!(h && FURNITURE[h.o.k].solid);
+  if (Math.abs(lx) > w / 2 - 0.1 || lz < -d / 2 + 0.1 || lz > d / 2 + (door ? 0.6 : -0.1)) return true;
+  for (const [k, o] of Object.entries(R.items)) {
+    if (!FURNITURE[o.k]?.solid) continue;
+    const [ax, az] = k.split(',').map(Number);
+    if (Math.abs(ax - lx) > 3.5 || Math.abs(az - lz) > 3.5) continue;
+    const [x0, x1, z0, z1] = furnBox(o.k, ax, az, o.r || 0);
+    if (lx > x0 && lx < x1 && lz > z0 && lz < z1) return true;
+  }
+  return false;
 }
 
 // Zimmer für eine Möbel-Aktion: eigenes Haus oder (a.room) das Zimmer eines Nachbarn ab 3 Herzen
@@ -384,6 +432,7 @@ export function blocked(s, x, z, swim) {
     return !!(n && SOLID.includes(n.kind));
   }
   if (gateAt(Math.round(x), Math.round(z))) return true;
+  if (bridgeRail(x, z)) return true; // Brückengeländer
   if (swim && swimmable(x, z)) return Math.abs(x - PIER.x) < PIER.w + 0.3 && z > PIER.z0 && z < PIER.z1; // unter dem Steg durch geht nicht
   if (!walkable(x, z)) return true;
   const tx = Math.round(x), tz = Math.round(z);
@@ -1301,6 +1350,21 @@ const ACTIONS = {
     return true;
   },
   // Insel-Erweiterung im Rathaus freischalten (Taler aus der Inselkasse, Material aus der eigenen Tasche)
+  // Haus samt Briefkasten umziehen (Taler aus der Inselkasse)
+  movehouse(s, a, out) {
+    if (!Number.isInteger(a.x) || !Number.isInteger(a.z)) return false;
+    const f = houseFit(s, a.x, a.z);
+    if (!f.ok) { out.msg = f.why; return false; }
+    if (s.money < HOUSE_MOVE_PRICE) { out.msg = `🏠 Ein Umzug kostet ${fmt(HOUSE_MOVE_PRICE)} Taler aus der Inselkasse.`; return false; }
+    s.money -= HOUSE_MOVE_PRICE;
+    s.housePos = f.dx || f.dz ? { dx: f.dx, dz: f.dz } : null;
+    applyHouse(s);
+    (s.diary ||= []).push({ day: s.day, icon: '🏠', text: 'Unser Haus ist umgezogen!' });
+    out.msg = '🏠 Umgezogen! Euer Haus steht jetzt am neuen Platz – drinnen bleibt alles, wie es war.';
+    out.fx.push({ x: BUILDINGS.house.cx, z: BUILDINGS.house.cz, txt: '🏠✨', k: 'dust' });
+    out.snd = 'level';
+    return true;
+  },
   expand(s, a, out) {
     const A = AREAS[a.id];
     if (!A || !has(AREAS, a.id) || s.areas[a.id]) return false;

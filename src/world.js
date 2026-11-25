@@ -45,8 +45,8 @@ import { itemModel } from './itemmodels.js';
 import { AREAS } from './areas.js';
 import { patMesh, patTexture } from './patterns.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
-import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, roomOf, roomIdAt, nroomZ, NROOM_SIZE, homeAt, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
-import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng, COAST_GLSL } from './island.js';
+import { FURN_HIT, stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, roomOf, roomIdAt, nroomZ, NROOM_SIZE, homeAt, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
+import { bridgeY, coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng, COAST_GLSL } from './island.js';
 
 const C = h => new THREE.Color(h);
 const SKY_TOP = [C(0x4fb3f6), C(0x3a4f96), C(0x14224d)], SKY_HOR = [C(0xd2f0ff), C(0xffb88f), C(0x34507e)];
@@ -885,7 +885,8 @@ export class World {
       this.ghost = null;
       this.ghostK = k;
       if (g) {
-        const m = g.kind === 'furn' ? (model(g.id) || makeFurniture(g.id)) : placeable(g.id, true);
+        const m = g.kind === 'furn' ? (model(g.id) || makeFurniture(g.id)) : g.kind === 'house' ? building('house', g.lv || 1, this.season) : placeable(g.id, true);
+        if (g.kind === 'house') this.ghostAsset = !!m.userData.asset;
         this.ghostMat ||= new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.6, depthWrite: false });
         m.traverse(o => { if (o.isMesh) { o.material = this.ghostMat; o.castShadow = false; o.receiveShadow = false; o.renderOrder = 3; } });
         this.ghost = m;
@@ -893,10 +894,11 @@ export class World {
       }
     }
     if (!this.ghost) return;
-    this.ghost.position.set(g.x, (g.y || 0) + 0.02 + Math.sin(this.time * 5) * 0.02, g.z);
+    if (g.kind === 'house' && !this.ghostAsset) this.ghost.position.set(g.fx, 0.02, g.fz); // einfaches Ersatzmodell liegt anders
+    else this.ghost.position.set(g.x, (g.y || 0) + 0.02 + Math.sin(this.time * 5) * 0.02, g.z);
     this.ghost.rotation.y = (g.r || 0) * Math.PI / 2;
     this.ghostMat.color.set(g.ok ? 0xffffff : 0xff6b6b);
-    this.ghostMat.opacity = g.ok ? 0.62 : 0.4;
+    this.ghostMat.opacity = (g.ok ? 0.62 : 0.4) + (g.hold ? 0.15 : -0.12); // festgehaltene Vorschau kräftiger
   }
 
   pick(cx, cy) {
@@ -976,7 +978,7 @@ export class World {
 
   // ---------- statische Teile, die sich mit Upgrades ändern ----------
   syncStatic(s) {
-    const sig = `${s.up.house}|${s.mail?.length ? 1 : 0}|${this.season}`;
+    const sig = `${s.up.house}|${s.mail?.length ? 1 : 0}|${this.season}|${BUILDINGS.house.x0},${BUILDINGS.house.z0}`;
     if (this.static.sig === sig) return;
     if (this.static.group) this.scene.remove(this.static.group);
     const g = new THREE.Group();
@@ -988,7 +990,7 @@ export class World {
       g.add(m);
       if (id === 'office') this.clock = { h: part(m, 'clock_h'), m: part(m, 'clock_m') };
       // Kamin des neuen Hauses (Blender: x 1.3, y 0.5 → Spiel: z -0.5)
-      if (id === 'house') this.chimney = m.userData.asset ? { x: B.cx + 1.3, z: B.cz - 0.5, y: s.up.house >= 4 ? 3.75 : 3.6 } : { x: -7.7, z: -11, y: 3.9 };
+      if (id === 'house') this.chimney = m.userData.asset ? { x: B.cx + 1.3, z: B.cz - 0.5, y: s.up.house >= 4 ? 3.75 : 3.6 } : { x: B.ox + 1.3, z: B.oz - 11, y: 3.9 };
     }
     this.scene.add(g);
     this.static = { ...this.static, sig, group: g };
@@ -1149,6 +1151,10 @@ export class World {
       if (store.has(id)) continue;
       const [x, z] = k.split(',').map(Number), [fw, fd] = o.r % 2 ? [f.d, f.w] : [f.w, f.d];
       const m = model(o.k) || makeFurniture(o.k);
+      if (f.solid && !FURN_HIT[o.k]) { // echte Form für die Kollision (ungedreht, Mitte = Modellursprung)
+        const b = new THREE.Box3().setFromObject(m), pad = 0.04;
+        if (Number.isFinite(b.min.x)) FURN_HIT[o.k] = [Math.max(0.12, (b.max.x - b.min.x) / 2 - pad), Math.max(0.12, (b.max.z - b.min.z) / 2 - pad), (b.max.x + b.min.x) / 2, (b.max.z + b.min.z) / 2];
+      }
       if (f.pattern) { // Musterrahmen: eigenes Bild
         const pic = patMesh(new THREE.PlaneGeometry(0.56, 0.56), px || '0'.repeat(256), { bg: px ? '#ffffff' : '#f4ece0' });
         pic.position.set(0, 1.45, -0.425);
@@ -1417,7 +1423,7 @@ export class World {
       // kleiner Freudenhüpfer, wenn ein Nachbar etwas sagt
       if (e.hop < 1) e.hop = Math.min(1, e.hop + dt * 3.2);
       const hy = e.hop < 1 && this.animations !== false ? Math.abs(Math.sin(e.hop * Math.PI * 2)) * 0.18 * (1 - e.hop * 0.5) : 0;
-      e.m.position.set(e.x, hy, e.z);
+      e.m.position.set(e.x, hy + bridgeY(e.x, e.z), e.z);
       e.m.rotation.y += angDiff(e.m.rotation.y, e.ry) * Math.min(1, dt * 8);
       const md = this.npcMood[id];
       e.m.userData.update(dt, { speed: e.speed, talking: talk, mood: md && md.until > this.time ? md.mood : null, time: this.time });
@@ -1665,7 +1671,7 @@ export class World {
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
       const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000 && e.z < 1900;
-      e.m.position.set(e.x, -0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
+      e.m.position.set(e.x, bridgeY(e.x, e.z) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
       if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
@@ -1928,7 +1934,7 @@ export class World {
         a.x += (tx - a.x) * Math.min(1, dt * 2); a.z += (tz - a.z) * Math.min(1, dt * 2);
         const v = Math.hypot(a.x - px, a.z - pz) / dt;
         if (v > 0.02) a.ry = Math.atan2(a.x - px, a.z - pz);
-        a.m.position.set(a.x, 0, a.z);
+        a.m.position.set(a.x, bridgeY(a.x, a.z), a.z);
         a.m.rotation.y += angDiff(a.m.rotation.y, a.ry) * 0.15;
         a.m.userData.update(dt, { speed: Math.min(1, v * 2), happy: petNow && happy >= 3, hungry: !fed });
       }
@@ -2003,7 +2009,7 @@ export class World {
       if (v > 0.05) e.ry = Math.atan2(e.x - ox, e.z - oz);
       if (talk) e.ry = Math.atan2(this.npcTalk.x - e.x, this.npcTalk.z - e.z);
       e.speed += (Math.min(0.7, v) - e.speed) * Math.min(1, dt * 6);
-      e.m.position.set(e.x, 0, e.z);
+      e.m.position.set(e.x, bridgeY(e.x, e.z), e.z);
       e.m.rotation.y += angDiff(e.m.rotation.y, e.ry) * Math.min(1, dt * 8);
       e.m.userData.update(dt, { speed: e.speed, talking: talk, time: this.time });
       const r = s.residents?.[id];
