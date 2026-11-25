@@ -67,7 +67,7 @@ async def main():
             ok(r is True, 'Host sieht die Bewegung des Gastes')
             # Sandburg: Name kommt vom Host, nicht vom Gast
             await B.evaluate("""(() => { const {G, S, send} = window.__game; let p = null;
-                for (let x = -30; x <= 30 && !p; x++) for (let z = -30; z <= 30 && !p; z++) { const k = S.key(x, z); if (S.sandX(x, z) && !G.s.digs.includes(k) && !G.s.obj[k] && !G.s.shells?.[k]) p = [x, z]; }
+                for (let x = -30; x <= 30 && !p; x++) for (let z = -30; z <= 30 && !p; z++) { const k = S.key(x, z); if (S.sandX(x, z) && !G.s.digs.includes(k) && !G.s.obj[k] && !G.s.shells?.[k] && !G.s.ground?.[k] && !G.s.drift?.[k] && !S.resAt(G.s, k)) p = [x, z]; }
                 send({ t: 'castle', op: 'build', x: p[0], z: p[1], name: 'Schummel' }); })()""")
             r = await until(A, "Object.keys(window.__game.G.s.castles || {}).length > 0 && JSON.stringify(Object.values(window.__game.G.s.castles).map(c => [c.name, c.by]))")
             ok(isinstance(r, str) and 'Mia' in r and 'Schummel' not in r, f'Sandburg des Gastes {r}')
