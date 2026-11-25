@@ -7,6 +7,7 @@ import { GLOW_VC } from './assets.js';
 import * as W from './extras4.js';
 import { zonesV, lightsV } from './world-extra2.js';
 import { zones6, lights6 } from './world-extra3.js';
+import { zones7, lights7 } from './world-extra4.js';
 
 const glowModel = (p, g) => { const m = M.model(p, g); if (m.children[1]) m.children[1].material = GLOW_VC; return m; };
 const put = (g, m, x, z, ry = 0) => { m.position.set(x, 0, z); m.rotation.y = ry; g.add(m); return m; };
@@ -133,7 +134,7 @@ function updateGrotto(zones, world, s, t) {
 }
 // Aus zones.update: true, wenn die Kamera bei Grotte oder Vulkan ist (dann sind die anderen fernen Orte aus)
 export function zonesW(zones, world, s, t, target) {
-  const dv = zonesV(zones, world, s, t, target), fv = zones6(zones, world, s, t, target), deep = dv || fv; // Hochsee (world-extra2.js), Jahrmarkt (world-extra3.js)
+  const dv = zonesV(zones, world, s, t, target), fv = zones6(zones, world, s, t, target), f7 = zones7(zones, world, s, t, target), deep = dv || fv || f7; // Hochsee (world-extra2.js), Jahrmarkt (world-extra3.js), Moor & Bambushain (world-extra4.js)
   const where = deep ? null : W.zoneW(target.z);
   if (zones.grottoW) zones.grottoW.visible = where === 'grotto';
   if (zones.volcanoW) zones.volcanoW.visible = where === 'volcano';
@@ -144,4 +145,4 @@ export function zonesW(zones, world, s, t, target) {
   else { if (!zones.volcanoW) { zones.volcanoW = buildVolcano(); zones.scene.add(zones.volcanoW); } updateVolcano(zones, world, s, t); }
   return true;
 }
-export const lightsW = (zones, target) => (target.z < -450 && Math.abs(target.x) < 150 ? lights6(zones, target) : target.z > 3600 ? lightsV(zones, target) : target.z > 3000 ? zones.volcanoW?.userData.lights : target.z > 2600 ? zones.grottoW?.userData.lights : undefined);
+export const lightsW = (zones, target) => (target.z < -750 && Math.abs(target.x) < 150 ? lights7(zones, target) : target.z < -450 && Math.abs(target.x) < 150 ? lights6(zones, target) : target.z > 3600 ? lightsV(zones, target) : target.z > 3000 ? zones.volcanoW?.userData.lights : target.z > 2600 ? zones.grottoW?.userData.lights : undefined);

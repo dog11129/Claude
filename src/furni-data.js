@@ -122,6 +122,15 @@ Object.assign(FURNITURE, {
   honigvitrine:   { name: 'Honigvitrine',    icon: '🍯', buy: 0, lvl: 1, cat: 'kueche', w: 1, d: 1, solid: true, rare: 'bees' },
   bandposter:     { name: 'Bandposter',      icon: '🎸', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'band' },
 });
+// Inselleben 7: Bambus, Wetter, Feste
+Object.assign(FURNITURE, {
+  bambuslampe:    { name: 'Bambuslampe',     icon: '🏮', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true },
+  blitzlampe:     { name: 'Blitzlampe',      icon: '⚡', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true },
+  teeschale:      { name: 'Tee-Set',         icon: '🍵', buy: 0, lvl: 1, cat: 'tische', w: 1, d: 1, solid: true, rare: 'bamboo' },
+  gymnastikmatte: { name: 'Gymnastikmatte',  icon: '🤸', buy: 0, lvl: 1, cat: 'teppiche', w: 1, d: 2, solid: false, rug: true, rare: 'gym' },
+  neujahrsglocke: { name: 'Neujahrsglocke',  icon: '🔔', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'fest' },
+  froschkoenig:   { name: 'Froschkönig-Figur', icon: '🐸', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'moor' },
+});
 export const WOOL_COLORS = [['rot', 'rot', 0xe8505a], ['rosa', 'rosa', 0xff9ab8], ['gelb', 'gelb', 0xf2cf4a], ['orange', 'orange', 0xff9a3a], ['lila', 'lila', 0xa98bff], ['blau', 'blau', 0x5a9ae8], ['weiss', 'weiß', 0xf4f0e6]];
 FURNITURE.aquarium.tank = 'fish'; // das bekannte Aquarium bekommt Bewohner (Größe bleibt, alte Spielstände unverändert)
 for (const [c, cn] of WOOL_COLORS) {

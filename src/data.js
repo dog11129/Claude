@@ -251,6 +251,15 @@ export const ITEMS = {
   sonnenpfirsich: { name: 'Sonnenpfirsich', icon: '🍑', sell: 650, cat: 'fruit', xp: 4, hybrid: 1 },
   rubinapfel:    { name: 'Rubinapfel',     icon: '🍎', sell: 700, cat: 'fruit', xp: 4, hybrid: 1 },
   goldbirne:     { name: 'Goldbirne',      icon: '🍐', sell: 700, cat: 'fruit', xp: 4, hybrid: 1 },
+  // Inselleben 7 (src/extras7.js)
+  seerose:       { name: 'Seerose',        icon: '🪷', sell: 380, cat: 'misc', xp: 2 },
+  schilf:        { name: 'Schilf',         icon: '🌾', sell: 40, cat: 'mat', xp: 1 },
+  blitzstein:    { name: 'Blitzstein',     icon: '⚡', sell: 1500, cat: 'misc', xp: 5, desc: 'Liegt nach einem Gewitter auf der Insel' },
+  irrlicht:      { name: 'Irrlicht',       icon: '💫', sell: 900, cat: 'misc', xp: 4, desc: 'An Nebelmorgen mit dem Kescher gefangen' },
+  gruener_tee:   { name: 'Grüner Tee',     icon: '🍵', sell: 300, cat: 'dish', xp: 2 },
+  papierlaterne: { name: 'Papierlaterne',  icon: '🏮', sell: 80, cat: 'misc', xp: 1, desc: 'Für den Laternenumzug im Herbst' },
+  feder:         { name: 'Vogelfeder',     icon: '🪶', sell: 120, cat: 'misc', xp: 1 },
+  sprossenpfanne: { name: 'Sprossenpfanne', icon: '🥘', sell: 900, cat: 'dish', xp: 4 },
   zuckerwatte:   { name: 'Zuckerwatte',    icon: '🍭', sell: 60, cat: 'dish', xp: 1 },
   kandisapfel:   { name: 'Kandisapfel',    icon: '🍎', sell: 90, cat: 'dish', xp: 1 },
   lutscher:      { name: 'Lutscher',       icon: '🍭', sell: 30, cat: 'dish', xp: 1 },
@@ -369,6 +378,13 @@ export const BUGS = [
   ['rosenschwaermer', 'Rosenschwärmer', '🦋', 2200, ['summer', 'autumn'], 'garden', 12, null, 'rose'],
   ['dahlienpfau', 'Dahlienpfau', '🦋', 2600, ['summer', 'autumn'], 'garden', 10, null, 'dahlie'],
   ['eisfalter', 'Eisfalter', '🦋', 3000, ['winter'], 'garden', 10, null, 'christrose'],
+  // Inselleben 7: nur im Seerosenmoor (Frösche auf den Seerosenblättern, Libellen über dem Wasser)
+  ['laubfrosch', 'Laubfrosch', '🐸', 420, ['spring', 'summer', 'autumn'], 'moor', 30],
+  ['moorfrosch', 'Moorfrosch', '🐸', 650, ['spring', 'summer'], 'moor', 18],
+  ['goldfrosch', 'Goldfrosch', '🐸', 2600, ['summer'], 'moor', 4],
+  ['azurjungfer', 'Azurjungfer', '🦋', 520, ['spring', 'summer'], 'moor', 26],
+  ['mosaikjungfer', 'Mosaikjungfer', '🦋', 900, ['summer', 'autumn'], 'moor', 14],
+  ['feuerlibelle', 'Feuerlibelle', '🦋', 1700, ['summer'], 'moor', 6],
 ];
 for (const b of BUGS) b[4] ||= ['spring', 'summer', 'autumn', 'winter'];
 
@@ -410,6 +426,10 @@ export const PLACE = {
   heu:        { name: 'Strohballen',   icon: '🟨', buy: 150,  lvl: 2, kind: 'deco', solid: 1 },
   pilz:       { name: 'Fliegenpilz',   icon: '🍄', buy: 200,  lvl: 1, kind: 'deco' },
   laterne:    { name: 'Laterne',       icon: '🏮', buy: 400,  lvl: 2, kind: 'deco', solid: 1, glow: 1 },
+  nistkasten: { name: 'Nistkasten',    icon: '🐦', buy: 900, lvl: 1, kind: 'deco', solid: 1, desc: 'In die Nähe von Bäumen stellen – Vögel ziehen ein und brüten' },
+  marktstand: { name: 'Marktstand',    icon: '🧺', buy: 2500, lvl: 2, kind: 'deco', solid: 1, desc: 'Samstags Bauernmarkt: die Nachbarn kaufen eure Ernte' },
+  bambuszaun: { name: 'Bambuszaun',    icon: '🎋', lvl: 1, kind: 'deco', solid: 1, desc: 'Aus dem Bambushain' },
+  irrlichtlaterne: { name: 'Irrlicht-Laterne', icon: '💫', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Drei Irrlichter in einem Glas' },
   schafweide: { name: 'Schafweide',    icon: '🐑', buy: 6800, lvl: 2, kind: 'producer', farm: 1, solid: 1, item: 'wolle', n: 1, every: DAY, desc: 'Zwei Schafe geben jeden Tag Wolle – wenn sie gefüttert sind (🌾 Weizen, 🥕 Karotte, 🍎 Apfel)' },
   bienenkasten: { name: 'Bienenkasten', icon: '🐝', buy: 3200, lvl: 1, kind: 'deco', solid: 1, desc: 'Neben blühende Blumen stellen – der Honig schmeckt nach den Blumen ringsum' },
   picknickdecke: { name: 'Picknickdecke', icon: '🧺', buy: 1600, lvl: 1, kind: 'deco', desc: 'Ein Gericht auslegen – die Nachbarn kommen zum Picknick' },
@@ -592,6 +612,8 @@ export const FESTS = {
   kaefer2:   { sea: 'autumn', d: 2, name: 'Krabbeltier-Turnier', icon: '🐞', contest: 'bug', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Insekten fangen wie möglich.' },
   kuerbis:   { sea: 'autumn', d: 5, name: 'Kürbisfest', icon: '🎃', desc: 'Die Insel leuchtet orange! Besucht alle Nachbarn – jede und jeder hat Bonbons für euch.' },
   angeln2:   { sea: 'winter', d: 3, name: 'Eisangel-Turnier', icon: '🎣', contest: 'fish', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Fische fangen wie möglich.' },
+  laternen:  { sea: 'autumn', d: 6, name: 'Laternenumzug', icon: '🏮', desc: 'Abends ab 18 Uhr: Laterne basteln (Werkbank) oder von Mira bekommen, auf dem Dorfplatz den Umzug beginnen – alle Nachbarn laufen singend hinter euch her.' },
+  silvester: { sea: 'winter', d: 7, name: 'Silvesternacht', icon: '🎆', desc: 'Im Handy eigene Raketen gestalten, ab 22 Uhr auf dem Dorfplatz den Countdown starten – das letzte Feuerwerk des Jahres!' },
   lichter:   { sea: 'winter', d: 5, name: 'Lichterfest', icon: '🎄', desc: 'Der Lichterbaum strahlt auf dem Dorfplatz und alle beschenken sich. Schaut in den Briefkasten!' },
 };
 export const CONTEST_SECS = 180;
@@ -703,6 +725,12 @@ export const RECIPES = {
   t_grubenlaterne: { st: 'craft', out: 'grubenlaterne', n: 1, in: { kristall: 1, eisen: 2, holz: 2 }, gem: 1 },
   // Siegerrezepte vom Kochwettbewerb (excl: nur nach einem Sieg)
   t_gluehlaterne: { st: 'craft', out: 'gluehlaterne', n: 1, in: { gluehwuermchen: 3, eisen: 1, holz: 1 }, gem: 1 },
+  b_bambuszaun: { st: 'craft', out: 'bambuszaun', n: 2, in: { bambus: 3 } },
+  b_bambuslampe: { st: 'craft', out: 'bambuslampe', n: 1, in: { bambus: 4, harz: 1 } },
+  w_irrlichtlaterne: { st: 'craft', out: 'irrlichtlaterne', n: 1, in: { irrlicht: 3, eisen: 1 }, gem: 1 },
+  w_blitzlampe: { st: 'craft', out: 'blitzlampe', n: 1, in: { blitzstein: 2, eisen: 2 }, gem: 1 },
+  l_papierlaterne: { st: 'craft', out: 'papierlaterne', n: 1, in: { holz: 1, ast: 1 }, gem: 1 },
+  sprossenpfanne: { st: 'cook', out: 'sprossenpfanne', n: 1, in: { bambussprosse: 2, karotte: 1 } },
   erdbeermarmelade: { st: 'cook', out: 'erdbeermarmelade', n: 1, in: { erdbeere: 3, zucker: 1 } },
   apfelmus: { st: 'cook', out: 'apfelmus', n: 1, in: { apfel: 3, zucker: 1 } },
   traubensaft: { st: 'cook', out: 'traubensaft', n: 1, in: { traube: 3 } },
@@ -785,6 +813,8 @@ export const STORY = [
   { title: 'Die Inselband', desc: 'Übt ein Instrument (Handy ➜ Band) und gebt abends auf dem Dorfplatz ein Konzert.', ev: 'band', n: 1, money: 3000 },
   { title: 'Gäste, Gäste!', desc: 'Bewirtet im Inselrestaurant 20 Gäste.', ev: 'resto', n: 20, money: 4000 },
   { title: 'Die alte Seekarte', desc: 'Holt euch bei Käpt\'n Flossi die alte Seekarte und folgt allen fünf Spuren bis zur Truhe.', ev: 'pirate', n: 5, money: 5000 },
+  { title: 'Ein Steg ins Moor', desc: 'Baut an drei Tagen am Nordrand der Blütenwiese den Steg zum Seerosenmoor (je 10 Holz und 5 Steine).', ev: 'steg', n: 3, money: 4000 },
+  { title: 'Frühsport', desc: 'Macht an drei Morgen zwischen 6 und 8:30 Uhr vor dem Dorfbaum bei der Morgengymnastik mit.', ev: 'gym', n: 3, money: 2500 },
 ];
 export const DAILY = [
   ['Gießt 8 Blumen', 'water', 8, 300], ['Erntet 6 Blumen oder Gemüse', 'harvest', 6, 400], ['Pflückt 6 Obst', 'fruit', 6, 400],
@@ -804,6 +834,7 @@ export const DAILY = [
   ['Liefert einen Blumenstrauß', 'bouquet', 1, 500], ['Reitet mit dem Pony aus', 'ride_pony', 1, 400], ['Fangt einen Hochseefisch', 'bigfish', 1, 600],
   ['Holt eine Medaille bei der Olympiade', 'medal', 1, 400], ['Lotst ein Schiff mit dem Leuchtturm', 'ship', 1, 500],
   ['Habt Spaß auf dem Jahrmarkt', 'fair', 2, 500], ['Bewirtet 8 Gäste im Inselrestaurant', 'resto', 8, 600], ['Füttert ein Wildtier', 'wild', 1, 300], ['Gebt ein Konzert mit der Inselband', 'band', 1, 500],
+  ['Fangt oder pflückt 3-mal etwas im Seerosenmoor', 'moor', 3, 500], ['Sammelt 2-mal im Bambushain', 'bamboo', 2, 400], ['Macht bei der Morgengymnastik mit', 'gym', 1, 300], ['Baut euren Marktstand auf', 'market', 1, 500],
 ];
 
 // ---------- Wochentage, Rübenbörse ----------

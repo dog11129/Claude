@@ -4,16 +4,20 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
-| place | 129 | 49 | 80 |
-| furniture | 133 | 41 | 92 |
+| place | 133 | 49 | 84 |
+| furniture | 140 | 41 | 99 |
 | items | 142 | 0 | 142 |
 | crops | 102 | 42 | 60 |
-| Icons | 518 | 0 eigene Bilder | 518 gerendert |
+| Icons | 544 | 0 eigene Bilder | 544 gerendert |
 
-## place – noch Platzhalter (80)
+## place – noch Platzhalter (84)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
+| Nistkasten | `nistkasten` | 0.42 × 1.79 × 0.44 | 320 |
+| Marktstand | `marktstand` | 1.75 × 1.88 × 0.93 | 860 |
+| Bambuszaun | `bambuszaun` | 0.95 × 1.07 × 0.12 | 164 |
+| Irrlicht-Laterne | `irrlichtlaterne` | 0.42 × 1.59 × 0.44 | 1140 |
 | Schafweide | `schafweide` | 1.37 × 1.17 × 1.82 | 136 |
 | Bienenkasten | `bienenkasten` | 0.65 × 1.13 × 0.65 | 544 |
 | Picknickdecke | `picknickdecke` | 1.6 × 0.4 × 1.6 | 600 |
@@ -95,7 +99,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Bimmelbahn | `bahnhof` | 2.6 × 1.76 × 1.63 | 148 |
 | Inselrestaurant | `restaurant` | 2.47 × 2.02 × 2.47 | 472 |
 
-## furniture – noch Platzhalter (92)
+## furniture – noch Platzhalter (99)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -104,7 +108,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Pilzlampe | `pilzlampe` | 0.6 × 0.79 × 0.6 | 1560 |
 | Edelsteinvitrine | `edelsteinvitrine` | 0.7 × 1.04 × 0.5 | 620 |
 | Zapfenkranz | `zapfenkranz` | 0.64 × 0.64 × 0.16 | 2328 |
-| Honigregal | `honigregal` | 0.8 × 1.2 × 0.36 | 608 |
+| Honigregal | `honigregal` | 0.8 × 1 × 0.36 | 672 |
 | Baumstumpf-Tisch | `baumstumpftisch` | 0.89 × 0.53 × 0.84 | 1224 |
 | Sternenglobus | `sternglobus` | 0.56 × 1.06 × 0.67 | 976 |
 | Mondsessel | `mondsessel` | 1.1 × 1.17 × 0.8 | 1160 |
@@ -143,7 +147,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Orchideentopf | `orchideentopf` | 0.4 × 0.67 × 0.24 | 3688 |
 | Hängepflanze | `haengepflanze` | 0.33 × 0.92 × 0.28 | 1792 |
 | Kuckucksuhr | `kuckucksuhr` | 0.47 × 1.09 × 0.47 | 376 |
-| Wandteppich | `wandteppich` | 1.07 × 1.41 × 0.07 | 492 |
+| Wandteppich | `wandteppich` | 0.8 × 1.01 × 0.03 | 196 |
 | Sternenteppich | `sternenteppich` | 1.8 × 0.03 × 1.8 | 504 |
 | Buddelschiff | `buddelschiff` | 0.6 × 0.33 × 0.26 | 164 |
 | Schiffsglocke | `schiffsglocke` | 0.3 × 0.65 × 0.26 | 332 |
@@ -169,14 +173,21 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Krug (gelb) | `topf_krug_gelb` | 0.32 × 0.43 × 0.29 | 700 |
 | Terrarium | `terrarium` | 0.84 × 1.13 × 0.66 | 504 |
 | Webstuhl | `webstuhl` | 1.7 × 1.3 × 0.9 | 396 |
+| Gewebter Musterteppich | `musterteppich` | 1.07 × 1.41 × 0.07 | 492 |
 | Plüschbär | `pluesch_baer` | 0.48 × 0.65 × 0.39 | 2316 |
 | Plüschhase | `pluesch_hase` | 0.38 × 0.78 × 0.33 | 2112 |
 | Plüschente | `pluesch_ente` | 0.44 × 0.54 × 0.55 | 1168 |
 | Plüschdrache | `pluesch_drache` | 0.57 × 0.67 × 0.66 | 1036 |
 | Riesenteddy | `riesenteddy` | 0.96 × 1.22 × 0.75 | 2892 |
 | Piratentruhe | `piratentruhe` | 0.72 × 0.73 × 0.49 | 416 |
-| Steuerrad | `steuerrad` | 0.87 × 0.87 × 0.08 | 2056 |
+| Honigvitrine | `honigvitrine` | 0.8 × 1.2 × 0.36 | 608 |
 | Bandposter | `bandposter` | 0.62 × 0.8 × 0.05 | 492 |
+| Bambuslampe | `bambuslampe` | 0.4 × 1.12 × 0.4 | 208 |
+| Blitzlampe | `blitzlampe` | 0.38 × 0.67 × 0.4 | 552 |
+| Tee-Set | `teeschale` | 0.7 × 0.33 × 0.5 | 240 |
+| Gymnastikmatte | `gymnastikmatte` | 0.7 × 0.18 × 1.7 | 84 |
+| Neujahrsglocke | `neujahrsglocke` | 0.76 × 1.04 × 0.4 | 508 |
+| Froschkönig-Figur | `froschkoenig` | 0.36 × 0.56 × 0.36 | 1260 |
 | Wollteppich (rot) | `wollteppich_rot` | 1.9 × 0.05 × 1.62 | 784 |
 | Strickkissen (rot) | `strickkissen_rot` | 0.62 × 0.21 × 0.62 | 588 |
 | Wollteppich (rosa) | `wollteppich_rosa` | 1.9 × 0.05 × 1.62 | 784 |

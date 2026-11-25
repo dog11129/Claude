@@ -377,6 +377,8 @@ const PLACE_MOODS = {
   attic: { tempo: [74, 82], modes: ['major', 'lydian'], lead: ['keys', 'flute'], comp: 'arp', drums: 0, dens: 0.38 },
   cellar: { tempo: [66, 72], modes: ['dorian'], lead: ['pluck', 'bell'], comp: 'pad', drums: 1, dens: 0.34 },
   tree: { tempo: [88, 96], modes: ['lydian', 'major'], lead: ['flute', 'mallet'], comp: 'arp', drums: 1, dens: 0.45 },
+  moor: { tempo: [72, 80], modes: ['lydian', 'dorian'], lead: ['flute', 'bell'], comp: 'arp', drums: 0, dens: 0.36 },
+  bambus: { tempo: [62, 70], modes: ['dorian', 'major'], lead: ['pluck', 'flute'], comp: 'pad', drums: 0, dens: 0.3 },
 };
 const MODES = { major: [0, 2, 4, 5, 7, 9, 11], lydian: [0, 2, 4, 6, 7, 9, 11], mixo: [0, 2, 4, 5, 7, 9, 10], dorian: [0, 2, 3, 5, 7, 9, 10] };
 const PROGS = [[0, 5, 3, 4], [0, 3, 4, 0], [0, 4, 5, 3], [5, 3, 0, 4], [0, 2, 3, 4], [3, 4, 2, 5], [0, 3, 1, 4], [0, 5, 1, 4], [3, 0, 3, 4]];

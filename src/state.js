@@ -14,6 +14,7 @@ import * as Z from './extras3.js';
 import * as W4 from './extras4.js';
 import * as V from './extras5.js';
 import * as E6 from './extras6.js';
+import * as E7 from './extras7.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -140,7 +141,7 @@ export const npcAwake = s => { const h = 6 + s.dayTime * 18, [a, b] = awakeHours
 // Aufgaben für neue Gebiete nur, wenn das Gebiet schon offen ist
 const DAILY_NEEDS = { mush: ['wald'], ore: ['hoehle'], honey: ['wiese'], berry: ['wald', 'wiese'] };
 function newDailies(s) {
-  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s)) && (!V.DAILY_OK_V[DAILY[i][1]] || V.DAILY_OK_V[DAILY[i][1]](s)) && (!E6.DAILY_OK_6[DAILY[i][1]] || E6.DAILY_OK_6[DAILY[i][1]](s));
+  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s)) && (!V.DAILY_OK_V[DAILY[i][1]] || V.DAILY_OK_V[DAILY[i][1]](s)) && (!E6.DAILY_OK_6[DAILY[i][1]] || E6.DAILY_OK_6[DAILY[i][1]](s)) && (!E7.DAILY_OK_7[DAILY[i][1]] || E7.DAILY_OK_7[DAILY[i][1]](s));
   const pool = DAILY.map((d, i) => i).filter(ok).sort(() => Math.random() - 0.5).slice(0, 3);
   s.daily = pool.map(i => ({ i, p: 0 }));
 }
@@ -416,6 +417,7 @@ function actRoom(s, a, out) {
 export const swimmable = (x, z) => isSea(x, z) && !onPier(x, z) && coast(x, z) < 7.5 && Math.abs(x) < ISLAND + 6 && Math.abs(z) < ISLAND + 6;
 export function blocked(s, x, z, swim) {
   if (x > HOME_X / 2) return homeBlocked(s, x, z);
+  if (z < -750) return E7.blocked7(s, x, z); // Seerosenmoor, Bambushain
   if (z < -450) return E6.blocked6(s, x, z); // Jahrmarkt
   if (z < -150) { // Bummelgasse (nach Süden geht's durchs Tor zurück)
     const lx = x - STREET.x, lz = z - STREET.z;
@@ -1025,7 +1027,7 @@ const ACTIONS = {
   bug(s, a, out) {
     const sea = seasonOf(s.day), h = hourOf(s), night = h >= 20 || h < 6;
     const garden = night ? [] : Z.gardenBugs(s, a.x, a.z); // am Schmetterlingshaus: seltene Falter bei ihren Lieblingsblumen
-    const pool = [...BUGS.filter(b => b[5] !== 'tropic' && b[5] !== 'garden' && b[4].includes(sea) && X.wxOk(s, b[7], night) && (b[5] === 'any' || (b[5] === 'night') === night)), ...garden];
+    const pool = [...BUGS.filter(b => b[5] !== 'tropic' && b[5] !== 'garden' && b[5] !== 'moor' && b[4].includes(sea) && X.wxOk(s, b[7], night) && (b[5] === 'any' || (b[5] === 'night') === night)), ...garden];
     if (!pool.length) { out.msg = 'Gerade sind keine Insekten unterwegs.'; return false; }
     const saph = s.inv.saphirkescher > 0; // Saphirkescher: seltene Krabbeltiere öfter
     const [id, , icon] = weighted(pool, b => b[6] * (saph && b[3] >= 1000 ? 1.8 : 1) * (b[7] ? 2 : 1) * (b[5] === 'garden' ? 3 : 1));
@@ -1761,7 +1763,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1870,9 +1872,10 @@ export function resolveBuild(s, b, x, z) {
 
 export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
-  const r6 = me.sw ? null : E6.resolve6(s, me, sel, at); // Schatzkarte, Wildtiere, Konzert, Veredeln
+  const r6 = me.sw ? null : E6.resolve6(s, me, sel, at) || E7.resolve7(s, me, sel, at); // Schatzkarte, Wildtiere, Konzert, Veredeln, Moor-/Bambusweg, Kartons, Wetter, Feste
   if (r6) return r6;
   if (me.x < -150) return resolveArea(s, me, sel, at);
+  if (me.z < -750) return E7.resolveZone7(s, me, sel, at);
   if (me.z < -450) return E6.resolveFair6(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
   if (me.z > 3600) return V.resolveV(s, me, sel, at);
@@ -1951,7 +1954,7 @@ export function resolve(s, me, sel, at) {
     const p = PLACE[o.k];
     if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { label: '🚩 Bauplatz (im 🔨 Baumodus abbauen)', tiles: one };
     if (o.k === 'seilbahn') return { ui: 'cable', label: '🚡 Seilbahn fahren', tiles: one };
-    const o6 = E6.resolveObj6(s, o, k, x, z);
+    const o6 = E6.resolveObj6(s, o, k, x, z) || E7.resolveObj7(s, o, k, x, z);
     if (o6) return o6;
     if (V.OBJ_GO5[o.k]) return { go: V.OBJ_GO5[o.k][0], label: V.OBJ_GO5[o.k][1], tiles: one };
     if (V.OBJ_UI5[o.k]) return { ui: V.OBJ_UI5[o.k][0], label: V.OBJ_UI5[o.k][1], tiles: one };

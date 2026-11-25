@@ -116,7 +116,7 @@ export const PRESETS = {
   high:  { scale: 1.0, shadows: 2048, bloom: true, grass: 9, lights: true, view: 1.2, fps: 0 },
   ultra: { scale: 1.25, shadows: 4096, bloom: true, grass: 12, lights: true, view: 1.5, fps: 0 },
 };
-export const SETTING_DEFAULTS = { camSpeed: 1, mouseSens: 1, zoomSpeed: 1, invert: false, camAngle: 0.74, camSmooth: 1, uiScale: 1, anim: true };
+export const SETTING_DEFAULTS = { camSpeed: 1, mouseSens: 1, zoomSpeed: 1, invert: false, camAngle: 0.74, camSmooth: 1, uiScale: 1, anim: true, textScale: 1, cbMode: false, lefty: false, contrast: false };
 export function settingsHtml(st, touch, tab = 'all') {
   const seg = (k, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-set="${k}" data-v="${v}" class="${String(st[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   const tog = k => `<button class="toggle ${st[k] ? 'on' : ''}" data-tog="${k}" aria-label="${k}"><i></i></button>`;
@@ -147,6 +147,12 @@ export function settingsHtml(st, touch, tab = 'all') {
     ${row('🏷️ Namen anzeigen', tog('names'))}
     ${touch ? row('📱 Querformat', tog('landscape')) : ''}
     ${row('🕰️ Echte Uhrzeit', tog('realtime'), 'Tag & Nacht wie draußen (gilt für die Insel des Hosts)')}
+    <h3 class="sethead">♿ Barrierefreiheit</h3>
+    ${row('Textgröße', seg('textScale', [[1, 'Normal'], [1.15, 'Groß'], [1.3, 'Sehr groß']]), 'Fenster, Gespräche und Hinweise')}
+    ${row('Farbenblind-Hilfe', tog('cbMode'), 'Zeichen ✔ ✖ statt nur Rot/Grün, kräftigere Farben')}
+    ${row('Hoher Kontrast', tog('contrast'), 'Dunklere Schrift, deutlichere Ränder')}
+    ${touch ? row('Linkshänder', tog('lefty'), 'Steuerkreuz rechts, Aktionsknopf links') : ''}
+    ${row('🎮 Controller', '<small style="color:var(--soft)">einfach anschließen</small>', 'Linker Stick laufen · rechter Stick drehen · A Aktion · B zurück · X Tasche · Y Handy · LB/RB Werkzeug · Start Menü')}
     ${row('⛶ Vollbild', touch ? tog('fullscreen') : '<button class="btn small white" data-ui="fullscreen">Umschalten</button>')}
     <h3 class="sethead">🎵 Klang</h3>
     ${row('Musik', vol('music'))}

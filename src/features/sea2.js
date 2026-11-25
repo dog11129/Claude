@@ -42,7 +42,7 @@ export function deepsea(s, a, out) {
 
 // ---------- Leuchtturm: nachts Schiffe lotsen, gerettete Händler kommen am nächsten Tag ----------
 export const lighthouseNight = s => hour(s) >= 20 || hour(s) < 5;
-const RARE = () => [...Object.keys(FURNITURE).filter(k => FURNITURE[k].rare && !['nroom', 'xroom', 'pottery', 'depths', 'wool', 'tmap', 'bees', 'band'].includes(FURNITURE[k].rare)), ...['kristallfels', 'pilzlaterne', 'sternlampe'].filter(k => PLACE[k])];
+const RARE = () => [...Object.keys(FURNITURE).filter(k => FURNITURE[k].rare && !['nroom', 'xroom', 'pottery', 'depths', 'wool', 'tmap', 'bees', 'band', 'bamboo', 'gym', 'fest', 'moor'].includes(FURNITURE[k].rare)), ...['kristallfels', 'pilzlaterne', 'sternlampe'].filter(k => PLACE[k])];
 export function lighthouse(s, a, out) {
   const L = s.lighthouse;
   if (!Object.values(s.obj || {}).some(o => o?.k === 'leuchtturm')) return false;

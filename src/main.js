@@ -27,6 +27,9 @@ import { initFun3, uiV, travelV, exitV, contextV, executeV, updateV, trainContex
 import { APP_PANELS_V } from './ui-extra2.js';
 import { initFun4, uiE, travel6, contextE, executeE, updateE, busy6 } from './client/fun4.js';
 import { APP_PANELS_6 } from './ui-extra3.js';
+import { initFun5, uiF, travel7, context7, execute7, updateF, busy7 } from './client/fun5.js';
+import { APP_PANELS_7 } from './ui-extra4.js';
+import { initPad, pollPad } from './client/pad.js';
 import * as E6 from './extras6.js';
 import * as V from './extras5.js';
 import { initFun, autoQuality, startRide, updateRide, photoEntry, drawStars, setBike, startKite, kitePull, updateKite, endKite } from './client/fun.js';
@@ -73,6 +76,7 @@ initFun({
 initFun2({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
 initFun3({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q), emote: e => sendEmote(e), listPhotos: () => photos.list(isleKey(), 'photo') });
 initFun4({ get G() { return G; }, world, profile, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
+initFun5({ get G() { return G; }, world, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), listPhotos: async () => [...await photos.list(isleKey(), 'photo'), ...await photos.list(isleKey(), 'moment')] });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
   world.setQuality({ scale: settings.scale, shadows: settings.shadows, bloom: settings.bloom, grass: settings.grass, lights: settings.lights, view: settings.view });
@@ -81,6 +85,11 @@ function applyView() {
   world.animations = settings.anim;
   document.body.classList.toggle('calm', !settings.anim);
   document.documentElement.style.setProperty('--ui', settings.uiScale);
+  document.documentElement.style.setProperty('--txt', settings.textScale || 1); // Barrierefreiheit
+  world.cbMode = !!settings.cbMode;
+  document.body.classList.toggle('cb', !!settings.cbMode);
+  document.body.classList.toggle('hc', !!settings.contrast);
+  document.body.classList.toggle('lefty', !!settings.lefty);
 }
 applyView();
 addEventListener('resize', () => world.resize());
@@ -208,6 +217,7 @@ function hostData(id, d) {
     p.tn = d.tn === true; // Bimmelbahn
     p.fh = Number.isFinite(d.fh) ? Math.max(0, Math.min(8, d.fh)) : 0; // Riesenrad & Karussell
     p.td = d.td === true; p.tp = d.tp === true; // Tandem: vorne / hinten
+    p.rf = d.rf === true; // Floß im Seerosenmoor
     p.kh = Number.isFinite(d.kh) ? Math.max(0, Math.min(120, d.kh)) : 0; // Drachen-Höhe
     p.rh = Number.isFinite(d.rh) ? Math.max(0, Math.min(12, d.rh)) : 0; // Ballonfahrt
   }
@@ -794,7 +804,7 @@ function netTick() {
   } else {
     const me = G.players[G.me];
     if (!me || G.reconnecting || G.ended) return;
-    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, sl: !!me.sled, po: !!me.pony, tn: !!me.tn, fh: me.fh ? r3(me.fh) : 0, td: !!me.td, tp: !!me.tp, kh: me.kh || 0, rh: me.rh || 0 };
+    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, sl: !!me.sled, po: !!me.pony, tn: !!me.tn, fh: me.fh ? r3(me.fh) : 0, td: !!me.td, tp: !!me.tp, kh: me.kh || 0, rh: me.rh || 0, rf: !!me.rf };
     const sig = JSON.stringify(msg);
     if (sig !== G.lastMove || now - (G.lastMoveT || 0) > 1000) { G.conn?.send(msg); G.lastMove = sig; G.lastMoveT = now; }
     if (now - G.lastHost > 9000) lostConnection();
@@ -1078,7 +1088,7 @@ function applySettings(k, redraw) {
   setVolumes();
   if (k === 'music') setMusic(settings.music);
   if (k === 'quality') Object.assign(settings, PRESETS[settings.quality]);
-  if (['quality', 'scale', 'shadows', 'bloom', 'grass', 'lights', 'view', 'camSmooth', 'camAngle', 'anim', 'uiScale'].includes(k)) { store.set('kh.settings', settings); applyView(); }
+  if (['quality', 'scale', 'shadows', 'bloom', 'grass', 'lights', 'view', 'camSmooth', 'camAngle', 'anim', 'uiScale', 'textScale', 'cbMode', 'contrast', 'lefty'].includes(k)) { store.set('kh.settings', settings); applyView(); }
   if (k === 'landscape') applyLandscape();
   if (k === 'fullscreen' && settings.fullscreen !== isFs()) toggleFullscreen();
   if (redraw && menuScreen === 'settings' && !$('menu').classList.contains('hidden')) $('msettings').innerHTML = settingsHtml(settings, touch);
@@ -1145,6 +1155,7 @@ const panels = new Panels({
     if (kind.startsWith('w:')) { uiW(kind.slice(2), d); return; } // Inselleben 4 (client/fun2.js)
     if (kind.startsWith('v:')) { uiV(kind.slice(2), d); return; } // Inselleben 5 (client/fun3.js)
     if (kind.startsWith('e:')) { uiE(kind.slice(2), d); return; } // Inselleben 6 (client/fun4.js)
+    if (kind.startsWith('f:')) { uiF(kind.slice(2), d); return; } // Inselleben 7 (client/fun5.js)
     if (kind === 'app') openApp(d.app);
     if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
     if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
@@ -1275,7 +1286,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W, ...APP_PANELS_V, ...APP_PANELS_6 }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W, ...APP_PANELS_V, ...APP_PANELS_6, ...APP_PANELS_7 }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -1475,6 +1486,7 @@ actbtn.addEventListener('pointerdown', e => { e.preventDefault(); unlock(); pres
 for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) actbtn.addEventListener(ev, () => { actHeld = false; });
 
 $('hotbar').onclick = e => { const b = e.target.closest('.slot'); if (b) { select(b.dataset.id); play('click'); } };
+initPad({ get G() { return G; }, world, joy, keys, settings, get panels() { return panels; }, toast: t => toast(t), cycle: d => { const h = G?.hot || [], i = h.indexOf(G.sel); if (h.length) select(h[(i + d + h.length) % h.length]); } });
 function select(id, quiet) {
   if (id === 'pave' && G.sel === 'pave' && !quiet) { panels.show('designer'); play('click'); }
   if (id === 'pave' && !G.pathType) G.pathType = 'erde';
@@ -1667,6 +1679,7 @@ function context(me, at) {
   }
   if (!at && G.sel === 'kite' && !S.inside(me)) return { kite: true, label: '🪁 Drachen steigen lassen', tiles: [] };
   if (G.train) return trainContext();
+  if (!at) { const p7 = context7(me); if (p7) return p7; } // Floß, Laternenumzug
   if (!at) { const pe = contextE(me); if (pe) return pe; } // Tandem
   if (!at) { const pv = contextV(me); if (pv) return pv; } // Pony
   if (!at && G.sel === 'bike') return { bike: true, label: me.bike ? '🚲 Absteigen' : '🚲 Aufs Fahrrad', tiles: [] };
@@ -1687,7 +1700,7 @@ function pressAction() {
   if (G?.build) { if (G.build.pend) confirmBuild(); else pickBuild(G.hover ? world.pick(G.hover.cx, G.hover.cy) || buildFront() : buildFront()); return; }
   if (G?.kite) { kitePull(); return; }
   if (G?.train) { endTrain(); return; }
-  if (G?.fride) return;
+  if (G?.fride || busy7()) return;
   if (busy()) return;
   actHeld = true;
   nextAct = performance.now() + 380;
@@ -1705,6 +1718,7 @@ function execute(r, fresh) {
   if (executeW(r, fresh)) return;
   if (executeV(r, fresh)) return;
   if (executeE(r, fresh)) return;
+  if (execute7(r, fresh)) return;
   const me = G.players[G.me];
   if (r.npc === 'hoppel') { if (fresh) { interrupt(); panels.show('turnip'); world.npcSay('hoppel', 'happy'); world.npcBubble('hoppel', 'Rüben! Frische Rüben!'); play('chat'); } return; }
   if (r.npc) { if (fresh) openTalk(r.npc); return; }
@@ -1812,7 +1826,7 @@ function standUp(me) {
 function tapAt(cx, cy) {
   if (G?.build) { buildTap(cx, cy); return; }
   if (G?.kite) { kitePull(); return; }
-  if (busy() || G.train || busy6()) return;
+  if (busy() || G.train || busy6() || busy7()) return;
   const me = G.players[G.me];
   if (G.fishing) { reelIn(); return; }
   const t = aimAt(cx, cy);
@@ -1833,7 +1847,7 @@ function tapAt(cx, cy) {
 }
 
 // Was zeigen Maus oder Finger an – und kann die Figur es von hier aus benutzen?
-const usable = r => !!r && !!(r.bigfish || r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
+const usable = r => !!r && !!(r.raft || r.paradeEnd || r.bigfish || r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
 const reachOf = r => r.npc ? 1.9 : r.hug ? 1.5 : r.ui || r.go || r.enter || r.exit || r.visit ? 2.2 : r.fish ? 1.8 : r.net ? 2 : 1.6;
 function aimAt(cx, cy) {
   const me = G.players[G.me];
@@ -1895,7 +1909,7 @@ function travel(where) {
   interrupt();
   panels.close();
   fade();
-  const to = travel6(where) || travelV(where) || travelW(where) || (where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
+  const to = travel7(where) || travel6(where) || travelV(where) || travelW(where) || (where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
@@ -2397,7 +2411,7 @@ function gameFrame(dt, now) {
   if (spin && !editor.isOpen && !G.talk) { world.rotate(spin * dt * 2.2 * settings.camSpeed * (settings.invert ? -1 : 1)); world.yaw = world.yawT; }
   // Laufen (Tastatur/Joystick relativ zur Kamera, sonst zum Tipp-Ziel)
   let vx = 0, vz = 0;
-  if (!busy() && !G.train && !busy6()) {
+  if (!busy() && !G.train && !busy6() && !busy7()) {
     if (keys.has('a') || keys.has('arrowleft')) vx--;
     if (keys.has('d') || keys.has('arrowright')) vx++;
     if (keys.has('w') || keys.has('arrowup')) vz--;
@@ -2477,6 +2491,7 @@ function gameFrame(dt, now) {
   updateW(dt);
   updateV(dt);
   updateE(dt);
+  updateF(dt);
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)
@@ -2582,6 +2597,7 @@ function frame(now) {
   if (settings.fps && now - last < 1000 / settings.fps - 2) return; // Bilder pro Sekunde begrenzen
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  pollPad(dt); // Controller (client/pad.js)
   if (G?.ready) gameFrame(dt, now);
   else {
     demo.time += dt;

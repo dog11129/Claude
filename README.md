@@ -37,7 +37,23 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🎡 Neu: Inselleben 6
+### 🪷 Neu: Inselleben 7
+- **🪷 Seerosenmoor:** Am Nordrand der Blütenwiese baut ihr gemeinsam an drei Tagen einen Steg (je 10 Holz und 5 Steine, Bruno und Kalle helfen). Dahinter: Frösche auf Seerosenblättern und Libellen über dem Wasser (Kescher, darunter der seltene Goldfrosch), Seerosen zum Pflücken, Schilf (Axt), Glühwürmchen in der Nacht und ein Floß, das einmal rund um den Teich fährt.
+- **🎋 Bambushain:** Am Nordrand des Kiefernwalds öffnet ihr das Bambustor (30.000 Taler + 20 Holz). Bambus (Axt), Bambussprossen (Schaufel, jeden Tag woanders), Steinlaternen, ein Wasserspiel, das „Klack!“ macht, und das Teehaus mit Wanda: Teezeremonie in drei Schritten (Wasser auf 80 °C, schaumig schlagen, ruhig servieren). Drei vollkommene Zeremonien = Tee-Set. Neue Baupläne: Bambuszaun, Bambuslampe; neues Gericht: Sprossenpfanne.
+- **🌈 Wetter-Abenteuer:** Am Morgen nach Regen endet der Regenbogen irgendwo auf der Insel – dort mit der Schaufel nach dem Goldtopf graben (bis 13 Uhr). Nach Gewittern liegen Blitzsteine herum (Blitzlampe), an Nebelmorgen schweben Irrlichter über die Insel (Kescher, drei werden zur Irrlicht-Laterne).
+- **🏮 Laternenumzug** (Herbst, Freitag, ab 18 Uhr): Laterne basteln oder von Mira holen, auf der Westseite des Dorfplatzes losgehen – alle Nachbarn laufen singend hinterher, auch bei den Mitspielern.
+- **🎆 Silvesternacht** (letzter Tag des Jahres, ab 22 Uhr): Im Handy ➜ Feuerwerk bis zu drei eigene Raketen gestalten (Farbe, Form: Kugel, Herz, Stern, Ring, Trauerweide, Höhe). Auf der Ostseite des Dorfplatzes den Countdown starten – 10 … 1 – und alle Raketen aller Mitspieler steigen auf. Dazu eine Neujahrsglocke.
+- **🤸 Morgengymnastik:** Jeden Morgen 6–8:30 Uhr vor dem Dorfbaum – Mira turnt vor, die Nachbarn stehen in Reihen, ihr macht die acht Bewegungen im Takt nach. Ein Stempel pro Morgen, zehn Stempel = Gymnastikmatte.
+- **🐦 Nistkästen** (Krämerladen): in die Nähe von Bäumen stellen – Kohlmeisen, Blaumeisen, Spatzen oder Rotkehlchen ziehen ein, brüten, die Küken schlüpfen und werden flügge (eine Feder bleibt).
+- **🏡 Neue Nachbarn:** Handy ➜ Wohnen zeigt jede Woche drei Bewerbungsbriefe. Einem sagt ihr zu, stellt das Grundstück auf – und am Einzugstag stehen Umzugskartons vor dem Häuschen, die ihr hineintragt (alle Mitspieler sehen, wer gerade einen trägt).
+- **🧺 Bauernmarkt:** Marktstand (Krämerladen) aufstellen und samstags 8–15 Uhr bis zu sechs Sorten auslegen. Die Nachbarn kaufen über den Vormittag; was sie sich wünschen, geht schneller weg und bringt doppelt so viel. Der Rest kommt zurück in die Tasche.
+- **📅 Insel-Kalender:** Handy ➜ Kalender listet Feste, Geburtstage, Jahrmarkt, Märkte und Konzerte der nächsten drei Wochen. Mit „🕰️ Echte Uhrzeit“ lassen sich die Termine als .ics-Datei in den Handy-Kalender übernehmen.
+- **📽️ Jahresrückblick:** Am Ende jedes Inseljahres (28 Tage) gibt es eine Diashow mit euren Fotos, Tagebuch-Erinnerungen, Zahlen (Fische, Insekten, Ernte, Taler …) und den besten Freunden.
+- **🎮 Controller am PC:** Linker Stick laufen, rechter Stick Kamera, A Aktion, B zurück, X Tasche, Y Handy, LB/RB Werkzeug (im Baumodus drehen), RT rennen, LT Karte, Back Baumodus, Start Menü. In Fenstern springt man mit dem Steuerkreuz von Knopf zu Knopf.
+- **♿ Barrierefreiheit** (⚙️ → Optionen): Textgröße, Farbenblind-Hilfe (✔/✖-Zeichen und kräftigere Farben im Baumodus), hoher Kontrast und ein Linkshänder-Layout (Steuerkreuz rechts, Aktionsknopf links).
+- **🔧 Repariert:** Der Steuerkreis auf dem Handy erscheint genau unter dem Finger.
+
+### 🎡 Inselleben 6
 - **🎡 Jahrmarkt:** Einmal pro Jahreszeit (Frühling & Winter am Montag, Sommer & Herbst am Mittwoch, 10–22 Uhr) hinter der Bummelgasse – am Ostende der Gasse geht es hinein. Riesenrad (die Kamera fährt mit nach oben), Karussell, Losbude mit Plüschtieren und Riesenteddy, Entenangeln (Haken über eine Ente bringen, die Zahlen darunter zählen) und Zuckerwatte.
 - **🍽️ Inselrestaurant** (Rathaus-Projekt): 90 Sekunden Schicht – Bestellungen der Nachbarn ansehen, an der Station kochen, an den richtigen Tisch bringen, bevor die Geduld aufgebraucht ist. Sterne und Trinkgeld.
 - **🐠 Aquarium & 🦗 Terrarium** (Krämerladen): bis zu vier gefangene Fische, Meerestiere oder Insekten pro Becken – sie schwimmen und krabbeln darin herum. Beim Abbauen kommen sie zurück in die Tasche.
@@ -245,6 +261,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/extras4.js`, `src/client/fun2.js`, `src/ui-extra.js`, `src/world-extra.js` | Inselleben 4: Logik, Minispiele & Fahrten im Browser, Fenster, 3D (Grotte, Vulkan, Tümpel, Stempel) |
 | `src/extras5.js` + `src/features/*.js`, `src/client/fun3.js`, `src/ui-extra2.js`, `src/world-extra2.js`, `src/npc-walk.js` | Inselleben 5: Logik (aufgeteilt nach Themen), Minispiele & Fahrten, Fenster, 3D (Pony, Bahn, Hochsee-Boot, Lack); Wegsuche der Nachbarn |
 | `src/extras6.js` + `src/features/*.js`, `src/client/fun4.js`, `src/ui-extra3.js`, `src/world-extra3.js` | Inselleben 6: Logik, Minispiele (Entenangeln, Restaurant, Bandprobe), Fahrten, Einstieg, Fenster, 3D (Jahrmarkt, Becken, Wildtiere, Tandem) |
+| `src/extras7.js` + `src/features/{moor,bamboo,weather2,fests2,nests,housing,market,calendar}.js`, `src/client/fun5.js`, `src/client/pad.js`, `src/ui-extra4.js`, `src/world-extra4.js` | Inselleben 7: Logik, Minispiele (Teezeremonie, Gymnastik), Floß, Laternenumzug, Feuerwerk, Diashow, Kalender-Export, Controller, Fenster, 3D (Moor, Bambushain, Irrlichter, Kartons) |
 | `src/client/fun.js`, `src/guide.js` | Ballonfahrt, Fotowettbewerb-Knopf, Sternbild-Editor, Fahrrad, Drachen · Inselführer |
 | `src/models-extra.js` | Modelle der neuen Deko und Möbel |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |

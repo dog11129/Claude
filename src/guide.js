@@ -84,6 +84,16 @@ export const GUIDE = [
   ['Garten', '✂️', 'Obstbäume veredeln', 'Veredelungsmesser (Krämerladen): eine zweite Sorte aufpfropfen, manche Paare bringen neue Früchte.', s => Object.keys(s.graft || {}).length > 0 || Object.keys(s.hybrids || {}).length > 0],
   ['Feste & Spiele', '🧺', 'Picknick & Tandem', 'Picknickdecke aufstellen und ein Gericht auslegen; auf dem Tandem kann ein Freund hinten aufsitzen.', s => !!s.picnic || anyInv(s, 'tandem')],
   ['Feste & Spiele', '🎸', 'Inselband', 'Handy ➜ Band: tagsüber ein Instrument üben, abends ab 19 Uhr auf dem Dorfplatz das Konzert.', s => (s.bandBest || 0) > 0],
+  ['Unterwegs', '🪷', 'Seerosenmoor', 'Am Nordrand der Blütenwiese an drei Tagen gemeinsam einen Steg bauen (je 10 Holz, 5 Steine). Dahinter: Frösche & Libellen, Seerosen, Schilf und ein Floß.', s => !!s.moor?.open],
+  ['Unterwegs', '🎋', 'Bambushain', 'Am Nordrand des Kiefernwalds das Bambustor öffnen: Bambus, Sprossen, Steinlaternen und Teezeremonien im Teehaus.', s => !!s.bambus?.open],
+  ['Insel', '🌈', 'Wetter-Abenteuer', 'Am Ende des Regenbogens mit der Schaufel nach Gold graben, nach Gewittern Blitzsteine sammeln, an Nebelmorgen Irrlichter mit dem Kescher fangen.', s => album(s, ['blitzstein', 'irrlicht']) || anyInv(s, 'irrlicht') || anyInv(s, 'blitzstein')],
+  ['Feste & Spiele', '🏮', 'Laternenumzug', 'Im Herbst (Freitag der Herbstwoche) abends auf dem Dorfplatz: mit Laterne losziehen, alle Nachbarn singen hinterher.', s => !!s.parade?.done],
+  ['Feste & Spiele', '🎆', 'Silvesternacht', 'Handy ➜ Feuerwerk: eigene Raketen gestalten. Am letzten Tag des Jahres ab 22 Uhr auf dem Dorfplatz den Countdown starten.', s => !!s.newyear || Object.keys(s.rockets || {}).length > 0],
+  ['Insel', '🤸', 'Morgengymnastik', 'Jeden Morgen 6–8:30 Uhr vor dem Dorfbaum im Takt mitturnen – zehn Stempel bringen eine Gymnastikmatte.', s => Object.keys(s.gym || {}).length > 0],
+  ['Garten', '🐦', 'Nistkästen', 'Nistkasten (Krämerladen) in die Nähe von Bäumen stellen: Vögel ziehen ein, brüten, und die Küken werden flügge.', s => (s.stats?.fledged || 0) > 0 || has(s, 'nistkasten')],
+  ['Insel', '🏡', 'Neue Nachbarn', 'Handy ➜ Wohnen: jede Woche drei Bewerbungen – einem zusagen, am Einzugstag die Umzugskartons tragen.', s => !!s.housing?.week || !!s.moving],
+  ['Garten', '🧺', 'Bauernmarkt', 'Marktstand (Krämerladen) aufstellen: samstags 8–15 Uhr Ernte auslegen, die Nachbarn kaufen – Wünsche bringen doppelt.', s => !!s.market],
+  ['Insel', '📅', 'Insel-Kalender & Rückblick', 'Handy ➜ Kalender zeigt alle Termine (mit Echtzeit auch als Datei für den Handy-Kalender), Handy ➜ Rückblick eine Diashow des Jahres.', s => !!s.lastYear],
 ];
 export function guideList(s) {
   return GUIDE.map(([area, icon, name, how, test]) => { let done = false; try { done = !!test(s); } catch { /* fehlt im Spielstand */ } return { area, icon, name, how, done }; });

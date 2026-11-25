@@ -32,6 +32,7 @@ import { makeNpc, NPCS, chatLine } from './npc.js';
 import { updateIslandW, syncSled } from './world-extra.js';
 import { syncPony, syncTrain, tintFurniture, updateIslandV } from './world-extra2.js';
 import { syncTandem, decorFurniture, updateIsland6, npcOverride6 } from './world-extra3.js';
+import { updateIsland7, npcOverride7, npcUp7, syncCarry7, burstShape } from './world-extra4.js';
 import { npcStep } from './npc-walk.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
@@ -666,6 +667,7 @@ export class World {
     this.parts.push({ x, y: 0.5, z, vx: (Math.random() - 0.5) * 0.6, vy: h * 0.95, vz: (Math.random() - 0.5) * 0.6, g: h * 0.45, size: 0.16, life: 1.05, age: 0, c: C(0xfff3c4), fw: 1, boom: [a, b] });
   }
   burstFw(p) {
+    if (p.shape && p.shape !== 'kugel') return burstShape(this, p); // eigene Silvester-Raketen (world-extra4.js)
     const [a, b] = p.boom, ring = Math.random() < 0.3;
     for (let i = 0; i < 120 && this.parts.length < 1300; i++) {
       const u = ring ? (Math.random() - 0.5) * 0.15 : Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, r = Math.sqrt(1 - u * u), sp = 5.5 + Math.random() * 1.2;
@@ -901,7 +903,8 @@ export class World {
     if (g.kind === 'house' && !this.ghostAsset) this.ghost.position.set(g.fx, 0.02, g.fz); // einfaches Ersatzmodell liegt anders
     else this.ghost.position.set(g.x, (g.y || 0) + 0.02 + Math.sin(this.time * 5) * 0.02, g.z);
     this.ghost.rotation.y = (g.r || 0) * Math.PI / 2;
-    this.ghostMat.color.set(g.ok ? 0xffffff : 0xff6b6b);
+    this.ghostMat.color.set(g.ok ? (this.cbMode ? 0x8fc8ff : 0xffffff) : this.cbMode ? 0xffa53a : 0xff6b6b);
+    if (this.cbMode) this.tag('cbghost', g.ok ? '✔' : '✖', g.x, (g.y || 0) + 1.5, g.z, 'bubble'); // Farbenblind-Hilfe: Zeichen statt nur Farbe
     this.ghostMat.opacity = (g.ok ? 0.62 : 0.4) + (g.hold ? 0.15 : -0.12); // festgehaltene Vorschau kräftiger
   }
 
@@ -1380,7 +1383,7 @@ export class World {
     const visit = (id, t) => ({ x: 2.6 + Math.sin(t * 0.07) * 0.6, z: 4.3 + Math.sin(t * 0.05) * 0.25, walking: Math.abs(Math.cos(t * 0.07)) > 0.6 });
     const party = grillParty(s), gp = party ? party.split(',').map(Number) : null;
     const partyPos = (id, t) => { const a = NPC_IDS.indexOf(id) / NPC_IDS.length * Math.PI * 2 + 0.3, r = 2 + Math.sin(t * 0.2 + a) * 0.15; return { x: gp[0] + Math.cos(a) * r, z: gp[1] + Math.sin(a) * r, walking: false }; };
-    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : gp ? partyPos(id, t) : npcOverride6(this, s, id, t) || npcPos(id, t, d); // Picknick, Band, Einstieg
+    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : gp ? partyPos(id, t) : npcOverride6(this, s, id, t) || npcOverride7(this, s, id) || npcPos(id, t, d); // Picknick, Band, Einstieg, Gymnastik, Laternenumzug
     if (gp && this.time > (this.singT || 0)) {
       this.singT = this.time + 4 + Math.random() * 4;
       const id = NPC_IDS[Math.floor(Math.random() * NPC_IDS.length)];
@@ -1414,7 +1417,7 @@ export class World {
         this.scene.add(e.m);
         this.npcM.set(id, e);
       }
-      e.m.visible = e.awake = id === 'hoppel' ? hoppel : awake;
+      e.m.visible = e.awake = id === 'hoppel' ? hoppel : awake || npcUp7(this, s); // früh zur Gymnastik, spät beim Laternenumzug
       if (!e.awake) continue;
       const talk = this.npcTalk?.id === id;
       if (talk) {
@@ -1693,6 +1696,7 @@ export class World {
       syncPony(this, e, po);
       syncTrain(this, e, tn);
       syncTandem(this, e, td, dt);
+      syncCarry7(this, e, !!p.hb && !p.sw, !!p.rf);
       this.syncKite(e, p.kh || 0, dt);
       this.syncRide(e, p.rh || 0);
 
@@ -2065,6 +2069,7 @@ export class World {
     updateIslandW(this, s, this.time); // Gezeiten-Tümpel, Stempelpfosten, Zeitkapseln
     updateIslandV(this, s, [...this.players.values()].some(e => e.ponyM?.visible)); // Pony am Stall
     updateIsland6(this, s, this.time, this.dt || 0.016); // Wildtiere, Bienen, veredelte Bäume, Schatz-Zeichen
+    updateIsland7(this, s, this.time); // Goldtopf, Irrlichter, Nistkästen, Kartons, Markt, Feste, Wege in Moor & Bambushain
     this.syncConsts(s, info.night || 0, !!opt.sky);
     this.syncSkyGifts(opt.skyGifts);
     if (this.animations !== false) tickAssets(dt);
@@ -2087,7 +2092,8 @@ export class World {
     }
     this.hl.instanceMatrix.needsUpdate = true;
     this.hl.material.opacity = opt.hlOn ? 0.75 + Math.sin(this.time * 6) * 0.2 : 0.35;
-    this.hl.material.color.set(opt.hlBad ? 0xff8a8a : 0xffffff);
+    this.hl.material.color.set(opt.hlBad ? (this.cbMode ? 0xffa53a : 0xff8a8a) : 0xffffff);
+    if (this.cbMode && opt.hlBad && tiles[0]) this.tag('cbhl', '✖', tiles[0][0], 0.7, tiles[0][1], 'bubble');
     if (opt.prompt) this.tag('prompt', opt.prompt.html, opt.prompt.x, opt.prompt.y ?? 1.1, opt.prompt.z, 'prompt' + (opt.prompt.cls ? ' ' + opt.prompt.cls : ''));
     if (opt.info) this.tag('info', opt.info.html, opt.info.x, 0.9, opt.info.z, 'info');
 

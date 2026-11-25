@@ -152,6 +152,17 @@ input[type=text]:focus { border-color: var(--pink); }
 .rng output { min-width: 56px; text-align: right; font-weight: 600; color: var(--soft); font-size: 14px; }
 /* Größe der Knöpfe (Einstellungen → Anzeige) */
 #stats, #topbtns, #actwrap, #hotbar, #panel > .card, #tourbar, #hint { zoom: var(--ui, 1); }
+/* Barrierefreiheit (Einstellungen → ♿): Textgröße, hoher Kontrast, Linkshänder */
+#pbody, #ptitle, #ptabs, #dialog > *, #toasts div, #p7card, #introcard { zoom: var(--txt, 1); }
+.tag.name { font-size: calc(13px * var(--txt, 1)) !important; } .tag.chat { font-size: calc(14px * var(--txt, 1)); max-width: calc(230px * var(--txt, 1)); }
+.tag.prompt { font-size: calc(14px * var(--txt, 1)); } .tag.prompt small { font-size: calc(12px * var(--txt, 1)); }
+body.hc { --soft: #4a3a2e; }
+body.hc .tag.name { background: rgba(40,30,24,.88); } body.hc .tag.name.npc { background: #fff; color: #2a1e14; box-shadow: 0 0 0 2px #5a4636; }
+body.hc :is(.tag.prompt, .tag.bubble, .tag.chat, #toasts div, .btn.white, .row) { box-shadow: 0 0 0 2px #5a4636; }
+body.hc .note, body.hc small { color: #3a2e24; }
+body.lefty #joy { left: auto; right: 0; }
+body.lefty #actwrap { right: auto; left: max(14px, var(--safe-l)); }
+#joy #joybase, #joy #joyknob { position: fixed; } /* Kreis erscheint genau unter dem Finger (auch im Linkshänder-Layout) */
 .set:last-child { border-bottom: 0; }
 .err { color: #d64545; font-weight: 600; min-height: 1em; }
 .note { color: var(--soft); font-size: 14px; margin: 4px 2px 10px; line-height: 1.35; }

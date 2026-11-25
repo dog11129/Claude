@@ -28,7 +28,7 @@ export const DAILY_OK_6 = { fair: s => fairDay(s.day), resto: s => obj(s, 'resta
 export const OBJ_UI6 = { restaurant: ['resto', '🍽️ Inselrestaurant'], picknickdecke: ['picnic', '🧺 Picknick'] };
 // Im Haus: Becken & Webstuhl
 export const FURN_UI6 = { aquarium: ['tank', '🐠 Aquarium'], terrarium: ['tank', '🦗 Terrarium'], webstuhl: ['loom', '🧶 Webstuhl'] };
-export const zone6 = z => (z < -450 ? 'fair' : null);
+export const zone6 = z => (z < -450 && z >= -750 ? 'fair' : null);
 export { fairBlocked as blocked6, resolveFair as resolveFair6 };
 
 // Vor-Prüfung für alle Orte draußen: Zeichen der Schatzkarte, Wildtiere, Konzert, Veredeln
