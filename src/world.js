@@ -1583,7 +1583,7 @@ export class World {
     this.rainbow.position.x = this.target.x;
     this.rainbow.position.z = this.target.z - 110;
     // Sternschnuppen in Sternschnuppen-Nächten (nur zum Anschauen und Wünschen, jedes Gerät sieht eigene)
-    const night = s.starNight && hour >= 19 && !rain && this.target.x < HOME_X / 2;
+    const night = s.starNight && hour >= 19 && !rain && this.target.x < HOME_X / 2 && this.target.z < 1900;
     if (night && this.shootT < 0 && Math.random() < this.dt / 4) {
       const a = Math.random() * 0.6 - 0.3, fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw), dist = 40 + Math.random() * 15, side = (Math.random() - 0.5) * 2 * dist * Math.tan(this.camera.fov / 360 * Math.PI) * this.camera.aspect * 0.6;
       const x = this.target.x + fx * dist - fz * side, z = this.target.z + fz * dist + fx * side;
@@ -1664,7 +1664,7 @@ export class World {
       if (e.held !== p.held) { e.held = p.held; e.m.userData.setHeld(p.held || null); }
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
-      const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000;
+      const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000 && e.z < 1900;
       e.m.position.set(e.x, -0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
@@ -1705,9 +1705,9 @@ export class World {
   }
 
   light(s) {
-    const hour = 6 + s.dayTime * 18;
-    const day = smooth(4.8, 6.8, hour) * (1 - smooth(17.5, 21, hour));
-    const dusk = Math.max(1 - smooth(6, 8, hour), smooth(16.5, 18.5, hour) * (1 - smooth(19.5, 21.5, hour)));
+    const hour = 6 + s.dayTime * 18, cave = this.target.z > 1900; // Höhlen-Tiefen: immer Nacht, nur die Laterne leuchtet
+    const day = cave ? 0 : smooth(4.8, 6.8, hour) * (1 - smooth(17.5, 21, hour));
+    const dusk = cave ? 0 : Math.max(1 - smooth(6, 8, hour), smooth(16.5, 18.5, hour) * (1 - smooth(19.5, 21.5, hour)));
     const night = 1 - day;
     const rain = s.weather === 'rain' || s.weather === 'snow' || s.weather === 'storm', fog = s.weather === 'fog', storm = s.weather === 'storm';
     const top = this.skyU.top.value, hor = this.skyU.hor.value;
@@ -1739,7 +1739,18 @@ export class World {
     if (fwk > 0) { this.hemi.intensity += fwk * 0.9 * night; this.hemi.color.lerp(this.fwFlash.c, fwk * 0.6 * night); }
     const lk = this.bolt ? Math.max(0, 1 - (this.time - this.bolt) / 0.35) * (Math.sin((this.time - this.bolt) * 60) > -0.3 ? 1 : 0.3) : 0; // Blitz
     if (lk > 0) { this.hemi.intensity += lk * 2.2; this.hemi.color.lerp(this.boltCol, lk * 0.7); top.lerp(this.boltCol, lk * 0.5); hor.lerp(this.boltCol, lk * 0.4); }
-    if (this.target.z > 1000) { // Korallenriff: türkises Dämmerlicht, kurze Sicht, kein Himmel
+    if (cave) { // Höhlen-Tiefen: dunkel-violett, kurze Sicht; die Laterne (lamp) folgt der Figur
+      top.setRGB(0.02, 0.015, 0.04); hor.setRGB(0.05, 0.035, 0.08);
+      this.scene.fog.color.copy(hor);
+      this.scene.fog.near = 12; this.scene.fog.far = 34;
+      this.stars.material.opacity = 0;
+      this.sun.intensity = 0.25;
+      this.hemi.color.setRGB(0.6, 0.55, 0.85);
+      this.hemi.groundColor.setRGB(0.24, 0.2, 0.32);
+      this.hemi.intensity = 0.55;
+      this.lamp.intensity = 22;
+      for (const k of ['skysun', 'skymoon']) if (this[k]) this[k].visible = false;
+    } else if (this.target.z > 1000) { // Korallenriff: türkises Dämmerlicht, kurze Sicht, kein Himmel
       top.setRGB(0.04, 0.26, 0.4).lerp(this.fogCol.setRGB(0.02, 0.05, 0.13), night * 0.8);
       hor.setRGB(0.1, 0.52, 0.64).lerp(this.fogCol.setRGB(0.03, 0.09, 0.2), night * 0.8);
       this.scene.fog.color.copy(hor);

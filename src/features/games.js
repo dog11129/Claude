@@ -83,7 +83,7 @@ export function memAi(s, g, out) {
 export function game(s, a, out) {
   const g = s.game;
   if (a.op === 'start') {
-    if (g && !g.win && g.p.some(p => !p.npc && p.who !== who(s)) && s.time - g.t < 600) { out.msg = 'Am Spieltisch läuft gerade noch eine Runde.'; return false; }
+    if (g && g.win == null && g.p.some(p => !p.npc && p.who !== who(s)) && s.time - g.t < 600) { out.msg = 'Am Spieltisch läuft gerade noch eine Runde.'; return false; }
     if (!['c4', 'mem'].includes(a.k)) return false;
     const me = { who: who(s), name: String(a.name || 'Gast').slice(0, 16) };
     let you;
@@ -100,11 +100,11 @@ export function game(s, a, out) {
   }
   if (!g) return false;
   if (a.op === 'quit') {
-    if (!g.p.some(p => p.who === who(s)) && who(s) !== 'host' && !g.win) return false;
+    if (!g.p.some(p => p.who === who(s)) && who(s) !== 'host' && g.win == null) return false;
     s.game = null;
     return true;
   }
-  if (g.win) return false;
+  if (g.win != null) return false; // vorbei (auch wenn Spieler 0 gewonnen hat)
   const cur = gamePlayer(s, g);
   if (a.op === 'ai') {
     if (!cur.npc) return false;

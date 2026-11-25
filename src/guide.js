@@ -22,6 +22,7 @@ export const GUIDE = [
   ['Unterwegs', '🛍️', 'Bummelgasse', 'Durchs Tor im Norden: Schneiderei, Gärtnerei und Mondschein-Club.', s => Object.keys(s.songs || {}).length > 0 || Object.keys(s.wardrobe || {}).length > 0],
   ['Unterwegs', '🏝️', 'Tropeninsel', 'Am Steg bringt euch Käpt’n Flossi für 1.000 Taler hinüber.', s => (s.medals || 0) > 0 || Object.keys(s.tropic?.picked || {}).length > 0],
   ['Unterwegs', '⛵', 'Ausflüge ins Blaue', 'Am Steg: jeden Tag eine andere Zufallsinsel.', s => (s.stats?.isleTrips || 0) > 0 || !!s.trip?.seed],
+  ['Unterwegs', '🏮', 'Höhlen-Tiefen', 'An der Werkbank eine Grubenlaterne bauen (Kristall, Eisen, Holz), dann hinten in der Kristallhöhle die Treppe hinab. Kristalle, eine singende Tür und ganz unten der Kristallsee.', s => s.depth?.lv >= 1],
   ['Unterwegs', '🪸', 'Korallenriff', 'Mit Neoprenanzug zur rot-weißen Boje schwimmen und abtauchen.', s => !!s.reef?.found],
   ['Unterwegs', '⚓', 'Schiffswrack', 'Zur gelben Boje im Westen schwimmen und abtauchen. Die Bullaugen verraten den Code der Kajüte.', s => !!s.wreck?.found],
   ['Unterwegs', '🚡', 'Seilbahn', 'Rathaus-Projekt: schwebt zu Wald, Wiese und Höhle.', s => has(s, 'seilbahn')],

@@ -12,7 +12,7 @@ import { cropModel } from './nature.js';
 import { crop } from './plants.js';
 import { TRIP, TRIP_KINDS, tripLayout, tripUses, nodeThing } from './trips.js';
 import { REEF, REEF_SLOTS, REEF_SPOTS, reefScore } from './extras2.js';
-import { WRECK, WRECK_CHESTS, WRECK_PORTS, WRECK_DOOR } from './extras3.js';
+import { WRECK, WRECK_CHESTS, WRECK_PORTS, WRECK_DOOR, DEPTH, DEPTH_LV, DEPTH_UP, DEPTH_DOOR, DEPTH_VEINS, DEPTH_RING, ECHO_STONES, DEPTH_LAKE, DEPTH_STAIRS, depthAt } from './extras3.js';
 import { itemModel } from './itemmodels.js';
 
 function canvasTex(w, h, paint, rep) {
@@ -187,12 +187,21 @@ function buildArea(id) {
     // Tropfsteine und Leuchtpilze auf dem Boden
     for (let i = 0; i < 26; i++) {
       const x = (rnd() * 2 - 1) * (W - 0.5), z = (rnd() * 2 - 1) * (D - 0.5);
-      if (Math.abs(x) < 1.6 || NODES[id].some(n => Math.abs(n.x - x) < 1.4 && Math.abs(n.z - z) < 1.4)) continue;
+      if (Math.abs(x) < 1.6 || NODES[id].some(n => Math.abs(n.x - x) < 1.4 && Math.abs(n.z - z) < 1.4) || Math.hypot(X + x - DEPTH_STAIRS[0], Z + z - DEPTH_STAIRS[1]) < 2) continue;
       if (i % 3) parts.push(M.cone(0.18 + rnd() * 0.12, 0.5 + rnd() * 0.8, 0x8e84a0, x, 0.3, z, 6));
       else { glow.push(M.ball(0.12, 0x9ff0ff, x, 0.18, z, 1, 0.5, 1, 8)); parts.push(M.cyl(0.03, 0.04, 0.14, 0xe8e0f0, x, 0.07, z, 5)); }
     }
     // Laternen am Weg
     for (const [lx, lz] of [[-1.5, D - 1], [1.5, D - 1], [-1.5, 1], [1.5, 1]]) { parts.push(M.cyl(0.05, 0.06, 1.2, 0x45332f, lx, 0.6, lz, 6)); glow.push(M.box(0.18, 0.22, 0.18, 0xffd27a, lx, 1.3, lz)); }
+    // Treppe hinab in die Höhlen-Tiefen: dunkles Loch mit Stufen, Felsbogen und einer Laterne
+    if (id === 'hoehle') {
+      const sx = DEPTH_STAIRS[0] - X, sz = DEPTH_STAIRS[1] - Z;
+      parts.push(M.box(1.7, 0.04, 1.5, 0x15101e, sx, 0.0, sz));
+      for (let k = 0; k < 4; k++) parts.push(M.box(1.5, 0.08, 0.3, 0x6a6080, sx, -0.02 - k * 0.001, sz + 0.55 - k * 0.32));
+      parts.push(M.ball(0.6, 0x5a5070, sx - 1.1, 0.5, sz - 0.3, 1, 1.6, 1, 7), M.ball(0.6, 0x5a5070, sx + 1.1, 0.5, sz - 0.3, 1, 1.6, 1, 7), M.ball(0.55, 0x5a5070, sx, 1.4, sz - 0.6, 2.2, 0.7, 1, 7));
+      parts.push(M.cyl(0.04, 0.05, 1.1, 0x45332f, sx + 1.1, 0.55, sz + 0.7, 6));
+      glow.push(M.box(0.16, 0.2, 0.16, 0xffb04a, sx + 1.1, 1.2, sz + 0.7));
+    }
     g.add(glowModel(parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
     const lake = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), new THREE.MeshLambertMaterial({ color: 0x4f8fd8, transparent: true, opacity: 0.85 }));
     lake.rotation.x = -Math.PI / 2; lake.position.set(X - W + 2.2, 0.02, Z - D + 2); g.add(lake);
@@ -221,6 +230,75 @@ function buildArea(id) {
   }
   g.userData.dyn = dyn;
   g.userData.lights = A.cave ? NODES[id].filter((n, i) => i % 3 === 0).map(n => [X + n.x, Z + n.z]) : [];
+  return g;
+}
+
+// ---------- Höhlen-Tiefen (drei Höhlen nebeneinander bei z = 2000) ----------
+const ECHO_COLS = [0x4a7aff, 0x4ad87a, 0xffd23f, 0xb07aff];
+function buildDepths() {
+  const g = new THREE.Group(), R = DEPTH.r, Z0 = DEPTH.z, U = { ring: [], doors: [], heart: null, lights: [] };
+  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(4242);
+  const stoneT = tex('floor_stein', 9, 9);
+  DEPTH_LV.forEach((L, lv) => {
+    const X0 = L.x, parts = [], glow = [];
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(R + 4, 40), new THREE.MeshLambertMaterial({ color: [0x5a5068, 0x4a5670, 0x4a4a6a][lv], map: stoneT }));
+    floor.rotation.x = -Math.PI / 2; floor.position.set(X0, -0.02, Z0); floor.receiveShadow = true; g.add(floor);
+    // Felswand rundherum; im Süden die Treppe, im Norden die Tür
+    for (let i = 0; i < 60; i++) {
+      const a = i / 60 * Math.PI * 2, rx = Math.sin(a) * (R + 0.9), rz = Math.cos(a) * (R + 0.9);
+      if (Math.abs(rx) < 1.7) continue;
+      const low = rz > 1; // zur Kamera hin (Süden) nur niedrige Felsen, damit man hineinsieht
+      parts.push(M.ball(low ? 0.8 + rnd() * 0.4 : 1.2 + rnd() * 0.8, rnd() < 0.5 ? 0x4e4660 : 0x5c5272, rx, low ? 0.15 : 0.8 + rnd() * 1.6, rz, 1, low ? 0.55 : 1.6 + rnd() * 0.8, 1, 7));
+    }
+    for (const sgn of [-1, 1]) parts.push(M.ball(1.3, 0x4e4660, sgn * 2.4, 1.6, -(R + 0.9), 1, 2, 1, 7));
+    // Tropfsteine
+    for (let i = 0; i < 16; i++) {
+      const a = rnd() * Math.PI * 2, r = 5.4 + rnd() * 2.4, x = Math.sin(a) * r, z = Math.cos(a) * r;
+      if (Math.abs(x) < 1.9 || DEPTH_VEINS.some(([vx, vz]) => Math.hypot(vx - x, vz - z) < 1.5) || ECHO_STONES.some(([ex, ez]) => Math.hypot(ex - x, ez - z) < 1.2)) continue;
+      parts.push(M.cone(0.16 + rnd() * 0.12, 0.5 + rnd() * 0.9, 0x6a6080, x, 0.3, z, 6));
+    }
+    // Leuchten an den Wänden: Glühwürmchen (1), blaue Kristalle (2), bunte Kristalle (3)
+    for (let i = 0; i < 44; i++) {
+      const a = rnd() * Math.PI * 2, r = R + 0.1 - rnd() * 0.5, y = 0.5 + rnd() * 2.6;
+      if (lv === 0) glow.push(M.ball(0.035 + rnd() * 0.03, rnd() < 0.7 ? 0xd8ff7a : 0x8affc8, Math.sin(a) * r, y, Math.cos(a) * r, 1, 1, 1, 5));
+      else glow.push(M.cone(0.08, 0.3 + rnd() * 0.4, lv === 1 ? [0x7ac4ff, 0x9ad8ff, 0xc9a8ff][i % 3] : [0xff7a9a, 0xffd96a, 0x7affc8, 0x7ac4ff, 0xc9a8ff][i % 5], Math.sin(a) * r, y * 0.45, Math.cos(a) * r, 5, (rnd() - 0.5) * 0.8, 0, (rnd() - 0.5) * 0.8));
+    }
+    // Treppe nach oben (Süden) mit zwei Laternen
+    const [ux, uz] = DEPTH_UP;
+    for (let k = 0; k < 4; k++) parts.push(M.box(1.5, 0.08 + k * 0.1, 0.38, 0x5c5272, ux, (0.08 + k * 0.1) / 2, uz + 0.3 + k * 0.38));
+    for (const sx of [-1.2, 1.2]) { parts.push(M.cyl(0.04, 0.05, 1.1, 0x45332f, ux + sx, 0.55, uz + 0.1, 6)); glow.push(M.box(0.16, 0.2, 0.16, 0xffd27a, ux + sx, 1.2, uz + 0.1)); }
+    // Tür nach unten (Norden): Steinbogen mit leuchtendem Zeichen; der Türflügel wird beim Öffnen ausgeblendet
+    const [dx, dz] = DEPTH_DOOR;
+    if (lv < 2) {
+      parts.push(M.box(0.55, 2.7, 0.7, 0x5c5272, dx - 1.3, 1.35, dz - 0.5), M.box(0.55, 2.7, 0.7, 0x5c5272, dx + 1.3, 1.35, dz - 0.5), M.box(3.2, 0.55, 0.7, 0x5c5272, dx, 2.9, dz - 0.5));
+      glow.push(M.ball(0.14, lv ? 0x9ad8ff : 0xd8ff7a, dx, 2.9, dz - 0.12));
+      const door = M.model([M.box(2.05, 2.5, 0.22, lv ? 0x5a6a8a : 0x6a5a8a, 0, 1.25, 0), M.box(0.5, 0.5, 0.05, lv ? 0x9ad8ff : 0xd8ff7a, 0, 1.5, 0.12)]);
+      U.doors[lv] = put(g, door, X0 + dx, Z0 + dz - 0.5);
+    }
+    // Edelsteinadern
+    DEPTH_VEINS.forEach(([x, z], i) => put(g, oreRock(i + lv * 5 + 3), X0 + x, Z0 + z, i * 1.3));
+    // Ebene 1: Kristallring – jeder Kristall dunkel oder leuchtend
+    if (lv === 0) parts.push(M.cyl(3.75, 3.75, 0.03, 0x6a6080, 0, 0.0, 0.6, 40), M.cyl(2.7, 2.7, 0.04, 0x4a4256, 0, 0.01, 0.6, 40)); // Steinkreis
+    if (lv === 0) DEPTH_RING.forEach(([x, z]) => {
+      const off = M.model([M.cyl(0.2, 0.24, 0.1, 0x4e4660, 0, 0.05, 0, 8), M.cone(0.2, 0.9, 0x9a8ab8, 0, 0.55, 0, 6), M.cone(0.08, 0.4, 0x8a7aa8, 0.16, 0.3, 0.05, 5, 0, 0, -0.5)]);
+      const on = glowModel([M.cyl(0.2, 0.24, 0.1, 0x4e4660, 0, 0.05, 0, 8)], [M.cone(0.2, 0.9, 0xd8ff7a, 0, 0.55, 0, 6), M.cone(0.08, 0.4, 0x8affc8, 0.16, 0.3, 0.05, 5, 0, 0, -0.5)]);
+      U.ring.push({ off: put(g, off, X0 + x, Z0 + z), on: put(g, on, X0 + x, Z0 + z) });
+    });
+    // Ebene 2: vier Klangsteine vor der singenden Tür (links tief, rechts hoch)
+    if (lv === 1) ECHO_STONES.forEach(([x, z], i) => { parts.push(M.cyl(0.32, 0.38, 0.12, 0x4e4660, x, 0.06, z, 10)); glow.push(M.ball(0.3, ECHO_COLS[i], x, 0.3 + i * 0.05, z, 1, 0.75 + i * 0.12, 1, 10)); });
+    // Ebene 3: Kristallsee mit dem Herzkristall auf einer kleinen Insel
+    if (lv === 2) {
+      const lake = new THREE.Mesh(new THREE.CircleGeometry(DEPTH_LAKE, 40), new THREE.MeshLambertMaterial({ color: 0x2a4a9a, transparent: true, opacity: 0.88 }));
+      lake.rotation.x = -Math.PI / 2; lake.position.set(X0, 0.03, Z0); g.add(lake);
+      parts.push(M.cyl(0.95, 1.15, 0.28, 0x5c5272, 0, 0.1, 0, 14));
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; glow.push(M.cone(0.06, 0.3, [0xff7a9a, 0xffd96a, 0x7affc8, 0x7ac4ff][i % 4], Math.cos(a) * (DEPTH_LAKE + 0.25), 0.15, Math.sin(a) * (DEPTH_LAKE + 0.25), 5)); }
+      U.heart = glowModel([M.cyl(0.18, 0.24, 0.12, 0x6a6080, 0, 0.3, 0, 8)], [M.cone(0.22, 1.0, 0xff8fc8, 0, 0.85, 0, 6), M.cone(0.13, 0.6, 0xc9a8ff, 0.24, 0.62, 0.05, 6, 0, 0, -0.45), M.cone(0.13, 0.55, 0x8fd4ff, -0.23, 0.6, -0.06, 6, 0, 0, 0.45), M.cone(0.1, 0.45, 0xffd96a, 0.02, 0.56, 0.24, 6, 0.5, 0, 0)]);
+      put(g, U.heart, X0, Z0);
+    }
+    g.add(glowModel(parts.map(q => (q.g.translate(X0, 0, Z0), q)), glow.map(q => (q.g.translate(X0, 0, Z0), q))));
+    U.lights.push([X0 - 4.5, Z0 - 1], [X0 + 4.5, Z0 - 1], [X0, Z0 + R - 1.5], [X0, Z0 - 3]);
+  });
+  g.userData = U;
   return g;
 }
 
@@ -474,12 +552,14 @@ export class Zones {
   update(world, s, t, night, target) {
     this.tropic.userData.u.t.value = t;
     this.tropic.userData.u.night.value = night;
-    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 1350 ? 'wreck' : target.z > 1000 ? 'reef' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
+    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 1900 ? 'depths' : target.z > 1350 ? 'wreck' : target.z > 1000 ? 'reef' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
     this.street.visible = where === 'street';
     this.tropic.visible = where === 'tropic';
     if (this.trip) this.trip.visible = where === 'trip';
     if (this.reef) this.reef.visible = where === 'reef';
     if (this.wreck) this.wreck.visible = where === 'wreck';
+    if (this.depths) this.depths.visible = where === 'depths';
+    if (where === 'depths') { this.updateDepths(world, s, t); return; }
     if (where === 'wreck') { this.updateWreck(world, s, t); return; }
     if (where === 'trip') { this.updateTrip(world, s, t); return; }
     if (where === 'reef') { this.updateReef(world, s, t); return; }
@@ -593,6 +673,19 @@ export class Zones {
     while (U.fish.length < 6) { const f = reefFish(U.fish.length + 3); g.add(f); U.fish.push(f); }
     for (const f of U.fish) { const u = f.userData, a = u.p + t * u.w * 0.8; f.position.set(X + Math.cos(a) * (u.r + 2), u.y + 0.8, Z + Math.sin(a) * (u.r + 2)); f.rotation.y = -a + (u.w > 0 ? -Math.PI / 2 : Math.PI / 2); }
   }
+  updateDepths(world, s, t) {
+    if (!this.depths) { this.depths = buildDepths(); this.scene.add(this.depths); }
+    const U = this.depths.userData, D = s.depth || {}, lv = Math.max(0, depthAt(world.target)), L = DEPTH_LV[lv], X0 = L.x, Z0 = DEPTH.z;
+    U.ring.forEach((c, i) => { const on = !!(D.open?.[0] || D.ring?.[i]); c.on.visible = on; c.off.visible = !on; });
+    U.doors.forEach((d, i) => { if (d) d.visible = !D.open?.[i]; });
+    if (U.heart) { U.heart.rotation.y = t * 0.5; U.heart.position.y = 0.12 + Math.sin(t * 1.5) * 0.08; }
+    world.tag('dtitle', `${L.icon} ${L.name}`, X0, 3.8, Z0 - 2.5, 'name npc');
+    world.tag('dup', lv ? '⬆️ Hinauf' : '⬆️ Zur Kristallhöhle', X0 + DEPTH_UP[0], 2.6, Z0 + DEPTH_UP[1] + 0.6, 'name npc');
+    if (lv < 2) world.tag('ddoor', D.open?.[lv] ? `⬇️ ${DEPTH_LV[lv + 1].icon} ${DEPTH_LV[lv + 1].name}` : lv ? '🎵 Singende Tür' : '🔒 Kristalltür', X0 + DEPTH_DOOR[0], 3.6, Z0 + DEPTH_DOOR[1], 'name npc');
+    DEPTH_VEINS.forEach(([x, z], i) => { if (D.got?.[lv + ':' + i] !== s.day) world.tag('dvein' + i, '✨', X0 + x, 1.5 + Math.sin(t * 2 + i) * 0.1, Z0 + z, 'bubble'); });
+    if (lv === 2 && !D.heart) world.tag('dheart', '💗', X0, 2.4, Z0, 'bubble');
+    if (Math.random() < 0.3) world.burst(X0 + (Math.random() - 0.5) * 15, Z0 + (Math.random() - 0.5) * 15, 'sparkle', 0.4 + Math.random() * 2.2);
+  }
   updateArea(world, s, id, t) {
     const g = this.area(id), A = AREAS[id];
     world.tag('areaexit', '🏝️ Zur Insel', A.x, 2.2, A.z + A.d + 0.6, 'name npc');
@@ -613,6 +706,6 @@ export class Zones {
   }
   lights(target) {
     if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
-    return target.z < -150 ? this.street.userData.lights : target.z > 1350 ? this.wreck?.userData.lights || null : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
+    return target.z < -150 ? this.street.userData.lights : target.z > 1900 ? this.depths?.userData.lights || null : target.z > 1350 ? this.wreck?.userData.lights || null : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
   }
 }

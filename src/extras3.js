@@ -1,5 +1,5 @@
 // Inselleben 3: Heißluftballon, Schmetterlingsgarten, Schiffswrack, Spieleabend, Fotowettbewerb, Grillabend,
-// Sternbilder und Nachbarzimmer. Die Teile liegen in src/features/ – hier werden Aktionen, Tagesaufgaben
+// Sternbilder, Nachbarzimmer und Höhlen-Tiefen. Die Teile liegen in src/features/ – hier werden Aktionen, Tagesaufgaben
 // und die neuen Felder für alte Spielstände zusammengesteckt. Läuft beim Host in der Spiellogik.
 import { NPC_IDS } from './data.js';
 import { shuffle } from './features/util.js';
@@ -10,6 +10,7 @@ import { photoNew, photoJudge, photoentry } from './features/photocontest.js';
 import { grill } from './features/grill.js';
 import { CONST_MAX, constellation } from './features/stars.js';
 import { nwish } from './features/nrooms.js';
+import { depth, migrateDepth } from './features/depths.js';
 export * from './features/balloon.js';
 export * from './features/butterflies.js';
 export * from './features/wreck.js';
@@ -18,6 +19,7 @@ export * from './features/photocontest.js';
 export * from './features/grill.js';
 export * from './features/stars.js';
 export * from './features/nrooms.js';
+export * from './features/depths.js';
 
 // Tagesaufgaben zu den Erweiterungen erst, wenn es das Nötige auf der Insel gibt
 const hasObj = (s, ...k) => Object.values(s.obj || {}).some(o => k.includes(o?.k));
@@ -29,6 +31,7 @@ export const DAILY_OK = {
   chest: s => !!s.wreck?.found,
   dive: s => anyInv(s, 'neopren'),
   kite: s => anyInv(s, 'drache'),
+  deepgem: s => s.depth?.lv >= 1,
 };
 export const dailyOk = (s, ev) => !DAILY_OK[ev] || DAILY_OK[ev](s);
 
@@ -46,11 +49,13 @@ export function migrateZ(s) {
     h.w = Number.isInteger(h.w) ? Math.max(0, Math.min(3, h.w)) : 0;
   }
   if (s.game && (!s.game.p || !Array.isArray(s.game.b))) s.game = null;
+  migrateDepth(s);
 }
 export function morningZ(s) {
   photoJudge(s);
-  if (s.game?.win) s.game = null;
+  if (s.game && s.game.win != null) s.game = null; // win kann 0 sein (erster Spieler)
+  if (s.depth) s.depth.got = {}; // Edelsteinadern sind morgens wieder voll
 }
 export function tickZ(s) { return false; }
 
-export const Z_ACTIONS = { ride, skygift, rideshot, wreck, game, photoentry, grill, sternbild: constellation, nwish };
+export const Z_ACTIONS = { ride, skygift, rideshot, wreck, game, photoentry, grill, sternbild: constellation, nwish, depth };

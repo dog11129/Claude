@@ -22,6 +22,7 @@ import * as PAT from './patterns.js';
 import { TRIP, TRIP_PRICE } from './trips.js';
 import { REEF, REEF_BUOY, cableBuilt, cableStop, taleState, beachOpen, beachKind } from './extras2.js';
 import { initFun, autoQuality, startRide, updateRide, photoEntry, drawStars, setBike, startKite, kitePull, updateKite, endKite } from './client/fun.js';
+import { DEPTH, DEPTH_LV, DEPTH_UP, DEPTH_DOOR, DEPTH_STAIRS, ECHO_NOTES } from './extras3.js';
 import { WRECK, WRECK_BUOY, RIDE_SECS, ridePos, skyGiftTimes, wishNow, BRIGHT, STAR_SECTORS, PHOTO_THEMES, photoTheme } from './extras3.js';
 
 const $ = id => document.getElementById(id);
@@ -1194,6 +1195,10 @@ const panels = new Panels({
     if (kind === 'sailhome') travel('pier');
     if (kind === 'lockadd' && WRECK_SYMS_UI.includes(d.sym)) { G.lock = [...(G.lock || []), d.sym].slice(-4); play('click'); panels.sig = null; }
     if (kind === 'lockreset') { G.lock = []; panels.sig = null; }
+    if (kind === 'echoadd' && ECHO_NOTES[+d.i]) { G.echo = [...(G.echo || []), +d.i].slice(-4); pianoNote(ECHO_NOTES[+d.i], 0.6, 0.5); panels.sig = null; }
+    if (kind === 'echoreset') { G.echo = []; panels.sig = null; }
+    if (kind === 'echoplay') (G.s.depth?.song || []).forEach((n, i) => setTimeout(() => pianoNote(ECHO_NOTES[n], 0.7, 0.5), i * 450));
+    if (kind === 'echoopen' && G.echo?.length === 4) { send({ t: 'depth', op: 'song', notes: G.echo }); G.echo = []; panels.sig = null; }
     if (kind === 'lockopen' && G.lock?.length === 4) { send({ t: 'wreck', op: 'open', code: G.lock }); G.lock = []; panels.sig = null; }
     if (kind === 'gamestart') send({ t: 'game', op: 'start', k: d.k, vs: d.vs, vsName: d.vsName, name: profile.name });
     if (kind === 'cstsec') { G.cst = { sec: ((G.cst?.sec || 0) + (+d.dir) + STAR_SECTORS) % STAR_SECTORS, lines: [], sel: null }; panels.sig = null; }
@@ -1769,6 +1774,19 @@ function nroomTravel(id) {
   const z0 = S.nroomZ(id), w = wishNow(G.s, id);
   return [S.HOME_X, z0 + S.NROOM_SIZE[1] / 2 - 0.7, Math.PI, `🏠 ${NPCS[id].icon} ${NPCS[id].name}: „Komm rein!“${w ? ' – sprich mich an, ich hab einen Einrichtungswunsch.' : ''}`, 'door'];
 }
+// Höhlen-Tiefen: hinab (depth:N) oder hinauf (depthup:N)
+function depthTravel(where) {
+  const [k, n] = where.split(':'), lv = +n;
+  if (!DEPTH_LV[lv]) return null;
+  if (k === 'depth') {
+    const L = DEPTH_LV[lv], first = !(G.s.depth?.lv > lv);
+    if (first) send({ t: 'depth', op: 'enter', lv });
+    return [L.x + DEPTH_UP[0], DEPTH.z + DEPTH_UP[1] - 1.8, Math.PI, first ? '' : `${L.icon} ${L.name}`, 'door'];
+  }
+  if (lv === 0) return [DEPTH_STAIRS[0], DEPTH_STAIRS[1] + 1.5, 0, '💎 Zurück in der Kristallhöhle.', 'door'];
+  const L = DEPTH_LV[lv - 1];
+  return [L.x + DEPTH_DOOR[0], DEPTH.z + DEPTH_DOOR[1] + 1.8, 0, `${L.icon} ${L.name}`, 'door'];
+}
 // Seilbahn: Talstation auf der Insel oder Haltestelle im Gebiet
 function cableTravel(id) {
   const st = cableBuilt(G.s);
@@ -1795,7 +1813,7 @@ function travel(where) {
   interrupt();
   panels.close();
   fade();
-  const to = where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
+  const to = where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
@@ -2337,7 +2355,7 @@ function gameFrame(dt, now) {
   } else me.run = false;
   const wasSw = me.sw;
   me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit' && !G.ride;
-  if (me.bike && (me.sw || S.inside(me) || zoneOf(me) === 'reef' || me.pose || !(s.inv.fahrrad > 0))) setBike(false, true);
+  if (me.bike && (me.sw || S.inside(me) || ['reef', 'wreck', 'depths'].includes(zoneOf(me)) || me.pose || !(s.inv.fahrrad > 0))) setBike(false, true);
   if (me.sw && !wasSw) { world.burst(me.x, me.z, 'splash', -0.2); play('splash'); if (!G.swimTip) { G.swimTip = 1; toast('🤿 Du schwimmst! Bei Luftblasen 🫧 Aktion drücken zum Tauchen.'); } }
   me.held = heldItem();
 
@@ -2410,7 +2428,7 @@ function gameFrame(dt, now) {
   if (panels.open === 'stars') drawStars();
   if (s.balloon && G.balloonSeen !== s.balloon.id) { G.balloonSeen = s.balloon.id; toast('🎈 Ein Geschenkballon schwebt über die Insel! Schnapp dir die Schleuder.'); play('chat'); }
   const zone = zoneOf(me), fireD = zone === 'island' ? Math.min(...Object.entries(s.obj || {}).filter(([, o]) => o?.k === 'strandgrill' || o?.k === 'lagerfeuer').map(([k]) => { const [x, z] = k.split(',').map(Number); return Math.hypot(x - me.x, z - me.z); }), 99) : 99;
-  ambience({ day: info.day, night: info.night, rain: XS.isRainy(s) && !S.inside(me), storm: s.weather === 'storm', fog: s.weather === 'fog', walking: me.m && !me.rh, area: me.x < -150 ? S.areaOf(me) : null, underwater: zone === 'reef' || zone === 'wreck', fire: fireD < 6 ? 1 - fireD / 6 : 0 });
+  ambience({ day: info.day, night: info.night, rain: XS.isRainy(s) && !S.inside(me), storm: s.weather === 'storm', fog: s.weather === 'fog', walking: me.m && !me.rh, area: me.x < -150 ? S.areaOf(me) : zone === 'depths' ? 'hoehle' : null, underwater: zone === 'reef' || zone === 'wreck', fire: fireD < 6 ? 1 - fireD / 6 : 0 });
   musicTick(6 + s.dayTime * 18, XS.isRainy(s));
   // Gewitter: Blitze und Donner (nur draußen auf der Insel)
   if (s.weather === 'storm' && !S.inside(me) && Math.abs(me.z) < 150 && me.x < 150 && Math.random() < dt / 11) {

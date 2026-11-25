@@ -95,6 +95,7 @@ export const FURNITURE = {
   kapitaenstruhe: { name: 'Kapitänstruhe',   icon: '🧳', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'wreck' },
   // Dank der Nachbarn fürs Einrichten
   traumlampe:     { name: 'Traumlampe',      icon: '🌙', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'nroom' },
+  kristallleuchte: { name: 'Kristall-Leuchte', icon: '💗', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'depths' },
   musterbild:     { name: 'Musterrahmen',    icon: '🖼️', buy: 400, lvl: 1, cat: 'wand',   w: 1, d: 1, solid: false, wall: true, pattern: true },
 };
 

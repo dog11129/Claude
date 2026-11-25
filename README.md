@@ -37,11 +37,18 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🧭 Neu: Inselführer, Feinschliff & schnellere Verbindung
+### 🏮 Neu: Höhlen-Tiefen
+- **Hinab unter die Kristallhöhle:** An der Werkbank eine **Grubenlaterne** bauen (Kristall, 2 Eisen, 2 Holz), dann hinten in der Kristallhöhle die Treppe hinab. Unten ist es dunkel – nur die Laterne leuchtet.
+- **✨ Glühwurmgrotte:** Fünf Kristalle im Steinkreis – jeder schaltet beim Antippen auch seine beiden Nachbarn um. Leuchten alle fünf, gleitet die Kristalltür zur Seite.
+- **🎵 Echohalle:** Die singende Tür summt vier Töne (▶️ Anhören). Auf den vier Klangsteinen nachspielen – links der tiefste, rechts der höchste Ton.
+- **💎 Kristallsee:** Ganz unten ein leuchtender See mit dem Herzkristall: einmalig 8.000 Taler, ein Regenbogenkristall und eine Kristall-Leuchte fürs Zuhause.
+- **Edelsteinadern** in jeder Ebene, jeden Morgen wieder voll (Schaufel): vier neue Edelsteine fürs Museum – Mondstein, Topas, Smaragd und der seltene Regenbogenkristall. Dazu zwei Kapitel der Insel-Geschichte und eine Tagesaufgabe.
+
+### 🧭 Inselführer, Feinschliff & schnellere Verbindung
 - **📘 Inselführer** (Handy ➜ Inselführer): alles, was es auf der Insel gibt – nach Bereichen, mit kurzer Anleitung, wie man anfängt, und einem Häkchen für alles, was ihr schon entdeckt habt.
 - **Neue Kapitel & Tagesaufgaben:** 8 weitere Kapitel der Insel-Geschichte (Sandkünstler, Spieleabend, Grillmeister, Unter Wasser, Das Geheimnis der gelben Boje, Sternenhimmel, Gute Nachbarn, Inselfotograf) und 7 neue Tagesaufgaben für Hof, Grill, Spieltisch, Wrack, Tauchen und Drachen – die erscheinen nur, wenn ihr das Nötige schon habt.
 - **Eigene Geräusche** für Ballonbrenner, Lagerfeuer-Knistern, Blubbern beim Tauchen, Schlösser, Memory-Karten und die Gondel; unter Wasser und am Grill klingt die Umgebung anders.
-- **Ausgewogener:** Ballonfahrt 1000 Taler, gegrillte Sachen etwas günstiger, Siege gegen Nachbarn bringen höchstens dreimal am Tag Taler.
+- **Ausgewogener:** Ballonfahrt 1000 Taler, gegrillte Sachen etwas günstiger, Siege gegen Nachbarn bringen höchstens dreimal am Tag Taler. Behoben: Nach einem Sieg des ersten Spielers ging „Vier gewinnt“ weiter.
 - **Handy:** Sprechblasen bleiben ganz im Bild, das Tagebuch passt in schmale Bildschirme, die Quest-Anzeige kürzt mit „…“.
 - **Schneller im Mehrspieler:** Der Host schickt nur noch die Teile der Insel, die sich geändert haben (alle 15 s einmal alles). Fenster zeichnen sich seltener neu, die Grafikstufe passt sich automatisch an.
 
@@ -175,7 +182,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/extras.js` | Inselleben-Update: Zeitung, Fotobuch, Jahrestage, Katalog, Wochenziele, Wetter, Gärtnerei-Technik, Schatzkarte, Kochwettbewerb, Nachtmarkt, Tauschstand, Ausflüge, Campingplatz, Muster, Melodie |
 | `src/trips.js`, `src/patterns.js`, `src/photos.js` | Zufallsinseln, Pixel-Muster, Fotoalbum & Postkarten (IndexedDB) |
 | `src/cloud.js`, `cloud/worker.js`, `cloud/dev-server.mjs` | Cloud-Spielstand & Verbindungsserver (Browser-Seite, Cloudflare Worker, lokaler Nachbau für Tests) |
-| `src/extras2.js`, `src/extras3.js`, `src/features/*.js` | Neuere Inhalte, je Thema eine Datei (Geschichten, Hof, Riff, Strand, Seilbahn, Ballon, Schmetterlinge, Wrack, Spiele, Fotowettbewerb, Grill, Sterne, Nachbarzimmer) |
+| `src/extras2.js`, `src/extras3.js`, `src/features/*.js` | Neuere Inhalte, je Thema eine Datei (Geschichten, Hof, Riff, Strand, Seilbahn, Ballon, Schmetterlinge, Wrack, Spiele, Fotowettbewerb, Grill, Sterne, Nachbarzimmer, Höhlen-Tiefen) |
 | `src/client/fun.js`, `src/guide.js` | Ballonfahrt, Fotowettbewerb-Knopf, Sternbild-Editor, Fahrrad, Drachen · Inselführer |
 | `src/models-extra.js` | Modelle der neuen Deko und Möbel |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |

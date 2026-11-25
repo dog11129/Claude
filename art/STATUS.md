@@ -5,10 +5,10 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
 | place | 105 | 49 | 56 |
-| furniture | 88 | 41 | 47 |
-| items | 137 | 0 | 137 |
+| furniture | 89 | 41 | 48 |
+| items | 142 | 0 | 142 |
 | crops | 102 | 42 | 60 |
-| Icons | 387 | 0 eigene Bilder | 387 gerendert |
+| Icons | 393 | 0 eigene Bilder | 393 gerendert |
 
 ## place – noch Platzhalter (56)
 
@@ -71,7 +71,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Seilbahn | `seilbahn` | 1.8 × 6.23 × 6.23 | 572 |
 | Ballonplatz | `ballonplatz` | 2.49 × 5.34 × 2.49 | 1376 |
 
-## furniture – noch Platzhalter (47)
+## furniture – noch Platzhalter (48)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -121,9 +121,10 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Schiffsglocke | `schiffsglocke` | 0.3 × 0.65 × 0.26 | 332 |
 | Kapitänstruhe | `kapitaenstruhe` | 0.7 × 0.7 × 0.48 | 116 |
 | Traumlampe | `traumlampe` | 0.4 × 0.92 × 0.36 | 444 |
+| Kristall-Leuchte | `kristallleuchte` | 0.46 × 0.66 × 0.48 | 178 |
 | Musterrahmen | `musterbild` | 0.74 × 0.74 × 0.06 | 180 |
 
-## items – noch Platzhalter (137)
+## items – noch Platzhalter (142)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -240,11 +241,16 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Amethyst | `item_amethyst` | 0.47 × 0.7 × 0.2 | 108 |
 | Rubin | `item_rubin` | 0.36 × 0.33 × 0.36 | 80 |
 | Saphir | `item_saphir` | 0.28 × 0.33 × 0.32 | 60 |
+| Mondstein | `item_mondstein` | 0.39 × 0.29 × 0.35 | 576 |
+| Topas | `item_topas` | 0.3 × 0.34 × 0.3 | 80 |
+| Smaragd | `item_smaragd` | 0.18 × 0.35 × 0.18 | 48 |
+| Regenbogenkristall | `item_regenbogenkristall` | 0.32 × 0.48 × 0.32 | 92 |
 | Opal | `item_opal` | 0.43 × 0.29 × 0.36 | 516 |
 | Pilzpfanne | `item_pilzpfanne` | 0.81 × 0.13 × 0.52 | 1044 |
 | Beerenkuchen | `item_beerenkuchen` | 0.59 × 0.19 × 0.6 | 1680 |
 | Honigbrot | `item_honigbrot` | 0.61 × 0.26 × 0.43 | 492 |
 | Waldtee | `item_waldtee` | 0.4 × 0.26 × 0.36 | 712 |
+| Grubenlaterne | `item_grubenlaterne` | 0.25 × 0.64 × 0.26 | 540 |
 | Drachen | `item_drache` | 0.6 × 0.85 × 0.6 | 68 |
 | Fahrrad | `item_fahrrad` | 1.01 × 0.5 × 0.26 | 824 |
 | Baumschaufel | `item_baumschaufel` | 0.51 × 0.75 × 0.12 | 652 |

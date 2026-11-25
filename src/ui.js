@@ -9,7 +9,7 @@ import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
 import { TRIP_KINDS, TRIP_PRICE, tripLayout } from './trips.js';
 import { guideList } from './guide.js';
-import { RIDE_PRICE, SKY_GIFTS, GARDEN_BUGS, GRILL_OF, grillParty, C4_W, C4_H, PHOTO_THEMES, photoTheme, BRIGHT, NWISH } from './extras3.js';
+import { RIDE_PRICE, SKY_GIFTS, GARDEN_BUGS, GRILL_OF, grillParty, C4_W, C4_H, PHOTO_THEMES, photoTheme, BRIGHT, NWISH, ECHO_SYMS } from './extras3.js';
 import { REEF_DECO, reefScore, castleScore, CASTLE_MAX, SHELL_IDS, beachKind, beachOpen, cableBuilt, TALES } from './extras2.js';
 import { VISITORS, vhearts, MEL_NOTES, MEL_DEFAULT, WEATHER, WEEK_GOALS, catalogPrice, annivToday, cookDay, cookOpen, nightOpen, STALL_MAX } from './extras.js';
 import {
@@ -34,7 +34,7 @@ export const TABS = {
   news: [['paper', '📰 Zeitung'], ['week', '🤝 Wochenziele']],
   book: [['pages', '📸 Momente'], ['photos', '🖼️ Fotos'], ['contest', '🏆 Wettbewerb'], ['anniv', '🎂 Jahrestage']],
 };
-const TITLES = { guide: '📘 Inselführer', balloon: '🎈 Ballonplatz', grill: '🔥 Strandgrill', butterfly: '🦋 Schmetterlingshaus', wrecklock: '🔒 Kapitänskajüte', games: '🎲 Spieleabend', stars: '✨ Sternbilder', cable: '🚡 Seilbahn', reef: '🪸 Korallenriff', castle: '🏰 Sandburg', visitor: '💬 Besuch', piano: '🎹 Klavier & Inselmelodie', patterns: '🎨 Muster-Editor', night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
+const TITLES = { depthdoor: '🎵 Die singende Tür', guide: '📘 Inselführer', balloon: '🎈 Ballonplatz', grill: '🔥 Strandgrill', butterfly: '🦋 Schmetterlingshaus', wrecklock: '🔒 Kapitänskajüte', games: '🎲 Spieleabend', stars: '✨ Sternbilder', cable: '🚡 Seilbahn', reef: '🪸 Korallenriff', castle: '🏰 Sandburg', visitor: '💬 Besuch', piano: '🎹 Klavier & Inselmelodie', patterns: '🎨 Muster-Editor', night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -197,7 +197,7 @@ const PANELS = {
       const where = { river: '🏞️ Fluss', sea: '🌊 Meer', pond: '🪷 Teich' };
       const info = { ...Object.fromEntries(FISH.map(f => [f[0], `${where[f[6]]} ${(f[5] || []).map(x => SEASONS[x][1]).join('') || ''}`])), ...Object.fromEntries(SHELLS.map(f => [f[0], '🏖️ Strand'])), ...Object.fromEntries(SEA.map(f => [f[0], '🤿 Tauchen'])),
         ...Object.fromEntries(BUGS.map(b => [b[0], b[5] === 'tropic' ? '🏝️ Tropeninsel' : b[4].map(x => SEASONS[x][1]).join('') + (b[5] === 'night' ? ' 🌙' : b[5] === 'day' ? ' ☀️' : '')])),
-        ...Object.fromEntries(FOSSILS.map(f => [f[0], 'Ausgraben'])), ...Object.fromEntries(ALBUM.gem.map(k => [k, k === 'goldnugget' ? 'Felsen & Höhle' : '💎 Kristallhöhle'])), ...Object.fromEntries(ALBUM.mush.map(k => [k, '🌲 Kiefernwald'])) };
+        ...Object.fromEntries(FOSSILS.map(f => [f[0], 'Ausgraben'])), ...Object.fromEntries(ALBUM.gem.map(k => [k, k === 'goldnugget' ? 'Felsen & Höhle' : ['mondstein', 'topas', 'smaragd', 'regenbogenkristall'].includes(k) ? '🏮 Höhlen-Tiefen' : '💎 Kristallhöhle'])), ...Object.fromEntries(ALBUM.mush.map(k => [k, '🌲 Kiefernwald'])) };
       const sec = (t, ids) => `<h3>${t}</h3><div class="album">${ids.map(id => s.album[id]
         ? `<div class="got" title="${ITEMS[id].name}"><span>${itemIcon(id)}</span><small>${ITEMS[id].name}</small><i>${s.album[id]}×</i></div>`
         : `<div title="${info[id] || ''}"><span>❔</span><small>${info[id] || '???'}</small></div>`).join('')}</div>`;
@@ -442,6 +442,15 @@ const PANELS = {
   butterfly(s) {
     let h = '<div class="note">🦋 Seltene Falter kommen nur ans Schmetterlingshaus – und nur, wenn rundherum (bis 5 Felder) mindestens zwei ihrer Lieblingsblumen blühen. Dann mit dem Kescher in der Nähe auf Fang gehen!</div>';
     for (const b of GARDEN_BUGS) h += row(itemIcon(b[0]), `${b[1]}${s.album?.[b[0]] ? ' <span class="lv">✓ gefangen</span>' : ''}`, `Liebt ${CROPS[b[8]]?.icon || ''} ${CROPS[b[8]]?.name || b[8]} · ${b[4].map(x => SEASONS[x][1]).join('')}`, '');
+    return h;
+  },
+  depthdoor(s, g) {
+    const seq = g.echo || [];
+    if (s.depth?.open?.[1]) return '<div class="note">🚪 Die singende Tür steht offen – dahinter geht es hinab zum 💎 Kristallsee.</div>';
+    let h = hero('🎵 Die singende Tür', 'Vier Töne öffnen sie', 'Hör genau hin: Die Tür summt ihre Melodie. Spielt sie auf den vier Klangsteinen nach – links der tiefste, rechts der höchste Ton.');
+    h += `<div class="lockcode">${[0, 1, 2, 3].map(i => `<span>${seq[i] != null ? ECHO_SYMS[seq[i]] : '·'}</span>`).join('')}</div>`;
+    h += `<div class="pattools">${ECHO_SYMS.map((sym, i) => btn(sym, { ui: 'echoadd', i }, 'white')).join('')}</div>`;
+    h += `<div class="pattools">${btn('▶️ Anhören', { ui: 'echoplay' }, 'white')}${btn('↩️ Neu', { ui: 'echoreset' }, 'white')}${btn('🎶 Vorspielen', { ui: 'echoopen' }, 'pink', seq.length !== 4)}</div>`;
     return h;
   },
   wrecklock(s, g) {
@@ -835,7 +844,7 @@ export class Panels {
     const now = performance.now(); // höchstens 5× pro Sekunde prüfen (sig = null erzwingt sofort)
     if (this.sig && now - (this.checked || 0) < 200) return;
     this.checked = now;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;

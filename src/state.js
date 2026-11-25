@@ -365,6 +365,7 @@ export function blocked(s, x, z, swim) {
     const lx = x - STREET.x, lz = z - STREET.z;
     return !(streetWalk(lx, lz) || (Math.abs(lx) <= 1.1 && lz > 0 && lz <= STREET.d + 0.9));
   }
+  if (z > 1900) return Z.depthBlocked(s, x, z); // Höhlen-Tiefen (unter der Kristallhöhle)
   if (z > 1350) return Z.wreckBlocked(s, x, z); // Schiffswrack (unter Wasser)
   if (z > 1000) return Y.reefBlocked(s, x, z); // Korallenriff (unter Wasser)
   if (z > 450) return X.tripBlocked(s, x, z); // Ausflugsinsel
@@ -1789,6 +1790,7 @@ export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
   if (me.x < -150) return resolveArea(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
+  if (me.z > 1900) return Z.resolveDepth(s, me, sel, at);
   if (me.z > 1350) return Z.resolveWreck(s, me, sel, at);
   if (me.z > 1000) return Y.resolveReef(s, me, sel, at);
   if (me.z > 450) return X.resolveTrip(s, me, sel, at);
@@ -1906,6 +1908,9 @@ function resolveArea(s, me, sel, at) {
   const lx = Math.round(px - A.x), lz = Math.round(pz - A.z), tiles = [[lx + A.x, lz + A.z]];
   if (areaExit(id, px - A.x, pz - A.z) || (lz >= A.d && Math.abs(lx) <= 1)) return { go: 'island', label: '🏝️ Zurück zur Insel', tiles };
   if (Y.cableBuilt(s)) { const [cx, cz] = Y.cableStop(id); if (Math.hypot(px - cx, pz - cz) < 1.2) return { ui: 'cable', label: '🚡 Seilbahn', tiles }; }
+  if (id === 'hoehle' && Math.hypot(px - Z.DEPTH_STAIRS[0], pz - Z.DEPTH_STAIRS[1]) < 1.3) { // Treppe in die Höhlen-Tiefen
+    return s.inv.grubenlaterne > 0 ? { go: 'depth:0', label: '🏮 In die Höhlen-Tiefen hinabsteigen', tiles } : { label: '🌑 Eine Treppe ins Dunkle … ohne Grubenlaterne (Werkbank) geht es nicht hinab', tiles };
+  }
   const n = nodeAt(id, lx, lz);
   if (!n) return { label: '', tiles: [] };
   const today = nodeToday(id, n, s.day), st = s.anode[id + ':' + n.i], used = st?.d === s.day ? st : null, a = how => ({ t: 'aact', area: id, i: n.i, how, x: lx, z: lz });

@@ -135,7 +135,7 @@ export function drawStars() {
 // ---------- Fahrrad ----------
 export function setBike(on, quiet) {
   const me = C.G.players[C.G.me];
-  if (on && (!(C.G.s.inv.fahrrad > 0) || me.sw || S.inside(me) || zoneOf(me) === 'reef')) { if (!quiet) C.toast('🚲 Hier geht Radfahren nicht.'); return; }
+  if (on && (!(C.G.s.inv.fahrrad > 0) || me.sw || S.inside(me) || ['reef', 'wreck', 'depths'].includes(zoneOf(me)))) { if (!quiet) C.toast('🚲 Hier geht Radfahren nicht.'); return; }
   if (!!me.bike === on) return;
   me.bike = me.bk = on;
   if (on && me.pose) me.pose = null;
@@ -151,7 +151,7 @@ const kiteZone = k => ({ c: 0.5 + Math.sin(k.t * 0.55) * 0.28 + Math.sin(k.t * 1
 export function startKite() {
   const me = C.G.players[C.G.me];
   if (C.G.kite || !(C.G.s.inv.drache > 0)) return;
-  if (S.inside(me) || me.sw || zoneOf(me) === 'reef') { C.toast('🪁 Hier weht kein Wind – raus an den Strand!'); return; }
+  if (S.inside(me) || me.sw || ['reef', 'wreck', 'depths'].includes(zoneOf(me)) || me.x < -150) { C.toast('🪁 Hier weht kein Wind – raus an den Strand!'); return; }
   C.interrupt();
   if (me.bike) setBike(false, true);
   me.pose = null;

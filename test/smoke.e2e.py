@@ -1,6 +1,6 @@
 # Browser-Smoke-Test: startet das Spiel wirklich im Browser und klappert alles einmal ab.
 #   npm run smoke            (braucht: pip install playwright  und Chrome – /usr/bin/google-chrome oder `playwright install chromium`)
-# Prüft: neue Insel, Möbel im Haus, alle Orte (Gasse, Tropeninsel, Gebiete, Riff, Wrack, Nachbarzimmer, Haus),
+# Prüft: neue Insel, Möbel im Haus, alle Orte (Gasse, Tropeninsel, Gebiete, Höhlen-Tiefen, Riff, Wrack, Nachbarzimmer, Haus),
 # alle Fenster, Handy-Ansicht (nichts ragt aus dem Fenster) und einen alten Spielstand. Jeder JS-Fehler lässt den Test scheitern.
 import asyncio, json, os, sys, threading, functools, http.server, socketserver
 from playwright.async_api import async_playwright
@@ -26,10 +26,10 @@ def serve():
 INIT = ("localStorage.setItem('kh.settings', JSON.stringify({quality:'low',sound:0,music:0,fullscreen:false}));"
         "localStorage.setItem('kh.profile', JSON.stringify({name:'Test'}));localStorage.setItem('ki.tutorial','true');localStorage.setItem('ki.buildTip','true')")
 # Fenster, die nur mit Zusammenhang (Gesprächspartner, Ort …) sinnvoll sind, werden über ihren echten Weg getestet
-PANELS = ['guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
+PANELS = ['depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
           'chest', 'mayor', 'boat', 'tailor', 'garden', 'club', 'hut', 'phone', 'map', 'turnip', 'designer', 'recipes', 'shop', 'sell', 'orders', 'museum',
           'friends', 'emotes', 'settings', 'craft', 'cook', 'together', 'mail', 'contest', 'diary', 'fests']
-PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'nroom:mira']
+PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'nroom:mira']
 
 def chrome():
     for p in (os.environ.get('CHROME'), '/usr/bin/google-chrome', '/usr/bin/chromium'):

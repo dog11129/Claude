@@ -214,6 +214,12 @@ export const ITEMS = {
   rubin:     { name: 'Rubin',        icon: '♦️', sell: 3200, cat: 'misc', xp: 8 },
   saphir:    { name: 'Saphir',       icon: '🔷', sell: 3200, cat: 'misc', xp: 8 },
   opal:      { name: 'Opal',         icon: '🫧', sell: 6500, cat: 'misc', xp: 12 },
+  // Höhlen-Tiefen (unter der Kristallhöhle)
+  mondstein: { name: 'Mondstein',    icon: '🌙', sell: 2400, cat: 'misc', xp: 8 },
+  topas:     { name: 'Topas',        icon: '🔶', sell: 2800, cat: 'misc', xp: 8 },
+  smaragd:   { name: 'Smaragd',      icon: '💚', sell: 3600, cat: 'misc', xp: 9 },
+  regenbogenkristall: { name: 'Regenbogenkristall', icon: '🌈', sell: 12000, cat: 'misc', xp: 16 },
+  grubenlaterne: { name: 'Grubenlaterne', icon: '🏮', cat: 'misc', desc: 'Leuchtet in den Höhlen-Tiefen – die Treppe liegt hinten in der Kristallhöhle' },
   mehl:      { name: 'Mehl',         icon: '🥡', buy: 40 },
   zucker:    { name: 'Zucker',       icon: '🧂', buy: 40 },
   milch:     { name: 'Milch',        icon: '🥛', buy: 60 },
@@ -518,7 +524,7 @@ for (const [id, name, icon, sell] of BUGS) ITEMS[id] = { name, icon, sell, cat: 
 for (const [id, name, icon, sell] of FOSSILS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 200) };
 for (const [id, name, icon, sell] of SHELLS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: 1 };
 for (const [id, name, icon, sell] of SEA) ITEMS[id] = { name, icon, sell, cat: 'fish', xp: Math.ceil(sell / 200) };
-export const ALBUM = { fish: FISH.filter(f => !NOT_MUSEUM.includes(f[0])).map(f => f[0]), sea: SEA.map(s => s[0]), bug: BUGS.map(b => b[0]), fossil: FOSSILS.map(f => f[0]), shell: SHELLS.map(s => s[0]), gem: ['goldnugget', 'amethyst', 'rubin', 'saphir', 'opal'], mush: ['steinpilz', 'pfifferling', 'morchel', 'fliegenpilz'] };
+export const ALBUM = { fish: FISH.filter(f => !NOT_MUSEUM.includes(f[0])).map(f => f[0]), sea: SEA.map(s => s[0]), bug: BUGS.map(b => b[0]), fossil: FOSSILS.map(f => f[0]), shell: SHELLS.map(s => s[0]), gem: ['goldnugget', 'amethyst', 'rubin', 'saphir', 'opal', 'mondstein', 'topas', 'smaragd', 'regenbogenkristall'], mush: ['steinpilz', 'pfifferling', 'morchel', 'fliegenpilz'] };
 // Was ins Museum darf
 export const MUSEUM = { fish: ALBUM.fish, sea: ALBUM.sea, bug: ALBUM.bug, fossil: ALBUM.fossil, gem: ALBUM.gem };
 export const MUSEUM_ALL = [...MUSEUM.fish, ...MUSEUM.sea, ...MUSEUM.bug, ...MUSEUM.fossil, ...MUSEUM.gem];
@@ -609,6 +615,7 @@ export const RECIPES = {
   t_rubinschaufel: { st: 'craft', out: 'rubinschaufel', n: 1, in: { rubin: 1, eisen: 3, holz: 2 }, gem: 1 },
   t_saphirkescher: { st: 'craft', out: 'saphirkescher', n: 1, in: { saphir: 1, holz: 3, ast: 4 }, gem: 1 },
   t_opalkanne: { st: 'craft', out: 'opalkanne', n: 1, in: { opal: 1, eisen: 3 }, gem: 1 },
+  t_grubenlaterne: { st: 'craft', out: 'grubenlaterne', n: 1, in: { kristall: 1, eisen: 2, holz: 2 }, gem: 1 },
   // Siegerrezepte vom Kochwettbewerb (excl: nur nach einem Sieg)
   x_sternentorte: { st: 'cook', out: 'sternentorte', n: 1, in: { mehl: 2, ei: 2, zucker: 2, sternfrucht: 1 }, excl: 1 },
   x_inselcurry: { st: 'cook', out: 'inselcurry', n: 1, in: { kokosnuss: 1, kartoffel: 2, karotte: 2, mango: 1 }, excl: 1 },
@@ -671,6 +678,8 @@ export const STORY = [
   { title: 'Sternenhimmel', desc: 'Zeichnet im Handy unter ✨ Sternbilder ein eigenes Sternbild.', ev: 'star', n: 1, money: 1000 },
   { title: 'Gute Nachbarn', desc: 'Besucht einen Nachbarn (ab 3 Herzen) und erfüllt einen Einrichtungswunsch.', ev: 'nwish', n: 1, money: 2500 },
   { title: 'Inselfotograf', desc: 'Reicht im Fotomodus (🏆) ein Foto beim Fotowettbewerb ein.', ev: 'photo', n: 1, money: 1000 },
+  { title: 'Licht in der Tiefe', desc: 'Baut an der Werkbank eine Grubenlaterne und steigt hinten in der Kristallhöhle die Treppe hinab.', ev: 'depth', n: 1, money: 2500 },
+  { title: 'Das Herz der Höhle', desc: 'Öffnet die Kristalltür und die singende Tür und erreicht den Kristallsee ganz unten.', ev: 'depth3', n: 1, money: 5000 },
 ];
 export const DAILY = [
   ['Gießt 8 Blumen', 'water', 8, 300], ['Erntet 6 Blumen oder Gemüse', 'harvest', 6, 400], ['Pflückt 6 Obst', 'fruit', 6, 400],
@@ -683,6 +692,7 @@ export const DAILY = [
   // Erweiterungen (erscheinen erst, wenn es das Nötige gibt)
   ['Füttert und erntet 3-mal auf dem Hof', 'farm', 3, 400], ['Baut eine Sandburg', 'castle', 1, 300], ['Taucht 3-mal nach Meerestieren', 'dive', 3, 500],
   ['Grillt 3 Leckereien', 'grill', 3, 400], ['Gewinnt ein Spiel am Spieltisch', 'gamewin', 1, 500], ['Öffnet eine Truhe im Schiffswrack', 'chest', 1, 500], ['Lasst den Drachen steigen', 'kite', 1, 300],
+  ['Baut 2 Edelsteine in den Höhlen-Tiefen ab', 'deepgem', 2, 600],
 ];
 
 // ---------- Wochentage, Rübenbörse ----------
