@@ -1165,7 +1165,7 @@ export class World {
       if (f.pattern) { // Musterrahmen: eigenes Bild
         const pic = patMesh(new THREE.PlaneGeometry(0.56, 0.56), px || '0'.repeat(256), { bg: px ? '#ffffff' : '#f4ece0' });
         pic.position.set(0, 1.45, -0.425);
-        if (o.k === 'wandteppich') { pic.scale.set(1.6, 2.1, 1); pic.position.set(0, 1.25, -0.43); } // großer gewebter Wandteppich
+        if (o.k === 'musterteppich') { pic.scale.set(1.6, 2.1, 1); pic.position.set(0, 1.25, -0.43); } // großer gewebter Wandteppich
         m.add(pic);
       }
       tintFurniture(m, o.c); // lackiert (Farbpinsel)

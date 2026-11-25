@@ -21,7 +21,8 @@ test('Alte Spielstände bekommen Inselleben 6, neue Inseln den Einstieg', () => 
   assert.equal(s.intro, null, 'alte Insel: keine Führung');
   assert.ok(migrate(newFarm('N')).intro?.on, 'neue Insel: Führung');
   for (const k of ['schafweide', 'bienenkasten', 'picknickdecke', 'restaurant']) assert.ok(PLACE[k] && PLACE_X[k], k);
-  for (const k of ['aquarium', 'terrarium', 'webstuhl', 'wandteppich', 'pluesch_baer', 'riesenteddy', 'piratentruhe', 'steuerrad', 'honigregal', 'bandposter', 'wollteppich_rot', 'strickkissen_blau']) assert.ok(FURNITURE[k] && FURN_X[k], k);
+  for (const k of ['terrarium', 'webstuhl', 'musterteppich', 'pluesch_baer', 'riesenteddy', 'piratentruhe', 'honigvitrine', 'bandposter', 'wollteppich_rot', 'strickkissen_blau']) assert.ok(FURNITURE[k] && FURN_X[k], k);
+  assert.equal(FURNITURE.aquarium.tank, 'fish');
   assert.ok(STORY.length >= 49);
 });
 
@@ -75,7 +76,7 @@ test('Aquarium & Terrarium: einsetzen, herausnehmen, beim Abbauen zurück', () =
   assert.equal(s.home.items['0,0'].a.length, 1);
   assert.ok(act(s, { t: 'tank', op: 'take', x: 0, z: 0, i: 0 }).ok);
   assert.ok(!s.home.items['0,0'].a);
-  assert.ok(act(s, { t: 'tank', op: 'add', x: 1, z: 0, id: any }).ok, 'zweite Kachel des Beckens');
+  assert.ok(act(s, { t: 'tank', op: 'add', x: 0, z: 0, id: any }).ok);
   const n = s.inv[any] || 0;
   assert.ok(act(s, { t: 'hpick', x: 0, z: 0 }).ok);
   assert.equal(s.inv[any] || 0, n + 1, 'Fisch zurück');
@@ -111,7 +112,7 @@ test('Schafe, Webstuhl & Strickmützen', () => {
   assert.ok(act(s, { t: 'loom', op: 'weave', what: 'teppich', color: 'rot' }).ok);
   assert.equal(s.inv.wollteppich_rot, 1);
   assert.ok(!act(s, { t: 'loom', op: 'weave', what: 'kissen', color: 'gelb' }).ok, 'keine gelbe Blume');
-  assert.ok(act(s, { t: 'loom', op: 'tapestry' }).ok && s.inv.wandteppich === 1);
+  assert.ok(act(s, { t: 'loom', op: 'tapestry' }).ok && s.inv.musterteppich === 1);
   assert.ok(act(s, { t: 'loom', op: 'hat', id: 'bommel' }).ok && s.wardrobe.bommel);
   assert.ok(!act(s, { t: 'wear', id: 'zipfel' }).ok, 'Strickmützen gibt es nicht zu kaufen');
 });
@@ -127,7 +128,7 @@ test('Imkerei: Honig nach den Blumen ringsum, alle Sorten = Regal', () => {
   for (const h of E.HONEYS) s.honeys[h] = 1;
   s.day++; s.honeyAll = 0; delete s.honeys.rosenhonig;
   assert.ok(act(s, { t: 'bees', x: 30, z: 30 }).ok);
-  assert.ok(s.mail.some(m => m.item === 'honigregal'));
+  assert.ok(s.mail.some(m => m.item === 'honigvitrine'));
 });
 
 test('Wildtiere: füttern, zahm, Geschenke', () => {
@@ -182,4 +183,11 @@ test('Einstieg: überspringen', () => {
   assert.ok(s.intro);
   assert.ok(act(s, { t: 'intro', op: 'skip' }).ok);
   assert.equal(s.intro, null);
+});
+
+test('Bestehende Möbel, Deko und Sachen bleiben, wie sie waren (Spielstände!)', () => {
+  const snap = JSON.parse(readFileSync(new URL('./fixtures/catalog-snapshot.json', import.meta.url), 'utf8'));
+  for (const [k, v] of Object.entries(snap.F)) { const f = FURNITURE[k]; assert.ok(f, k); assert.deepEqual([f.w, f.d, !!f.wall, !!f.rug, !!f.solid], v, `Möbel ${k}`); }
+  for (const [k, v] of Object.entries(snap.P)) { const p = PLACE[k]; assert.ok(p, k); assert.deepEqual([p.kind || '', !!p.solid], v, `Deko ${k}`); }
+  for (const [k, v] of Object.entries(snap.I)) { const it = ITEMS[k]; assert.ok(it, k); assert.deepEqual([it.cat || '', it.furn ? 1 : 0, it.place || ''], v, `Sache ${k}`); }
 });

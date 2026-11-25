@@ -369,7 +369,6 @@ export const BUGS = [
   ['rosenschwaermer', 'Rosenschwärmer', '🦋', 2200, ['summer', 'autumn'], 'garden', 12, null, 'rose'],
   ['dahlienpfau', 'Dahlienpfau', '🦋', 2600, ['summer', 'autumn'], 'garden', 10, null, 'dahlie'],
   ['eisfalter', 'Eisfalter', '🦋', 3000, ['winter'], 'garden', 10, null, 'christrose'],
-  ['gluehwuermchen', 'Glühwürmchen', '✨', 450, ['summer'], 'night', 30], // Inselleben 5: im Sommer nachts
 ];
 for (const b of BUGS) b[4] ||= ['spring', 'summer', 'autumn', 'winter'];
 

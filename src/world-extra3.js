@@ -32,12 +32,11 @@ export function syncTandem(world, e, on, dt) {
 
 // ---------- Aquarium & Terrarium: Glas und Bewohner ----------
 const GLASS = new THREE.MeshLambertMaterial({ color: 0xbfe6ff, transparent: true, opacity: 0.32, depthWrite: false });
-const WATER = new THREE.MeshLambertMaterial({ color: 0x5ab8e8, transparent: true, opacity: 0.38, depthWrite: false });
 export function decorFurniture(m, o, f) {
   if (!f?.tank) return null;
-  const fish = f.tank === 'fish', W = fish ? 1.72 : 0.74, H = fish ? 0.66 : 0.6, D = 0.54, y0 = fish ? 0.56 : 0.44;
-  const box = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), fish ? WATER : GLASS);
-  box.position.y = y0 + H / 2; box.renderOrder = 2; m.add(box);
+  // Aquarium (1×1, Wasser ist Teil des Modells): Fische schwimmen vor der Scheibe; Terrarium: Glaskasten drumherum
+  const fish = f.tank === 'fish', W = fish ? 0.76 : 0.74, H = 0.6, y0 = fish ? 0.6 : 0.44;
+  if (!fish) { const box = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.54), GLASS); box.position.y = y0 + H / 2; box.renderOrder = 2; m.add(box); }
   const list = (o.a || []).map((id, i) => {
     const c = hashC(id), g = new THREE.Group();
     if (fish) { const tail = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.08, 4), new THREE.MeshLambertMaterial({ color: c.clone().multiplyScalar(0.8) })); tail.position.set(-0.12, 0, 0); tail.rotation.set(0, 0, Math.PI / 2); g.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6).scale(1.5, 0.9, 0.6), new THREE.MeshLambertMaterial({ color: c })), tail); }
@@ -49,7 +48,7 @@ export function decorFurniture(m, o, f) {
   return t => {
     for (const L of list) {
       const a = t * (fish ? 0.6 : 0.9) + L.ph;
-      if (fish) { L.g.position.set(Math.sin(a) * (W / 2 - 0.15), y0 + 0.18 + (L.i % 3) * 0.14 + Math.sin(a * 2.3) * 0.03, Math.cos(a * 1.3) * 0.12); L.g.rotation.y = Math.cos(a) > 0 ? 0 : Math.PI; }
+      if (fish) { L.g.position.set(Math.sin(a) * (W / 2 - 0.12), y0 + 0.06 + (L.i % 3) * 0.1 + Math.sin(a * 2.3) * 0.02, 0.1); L.g.scale.setScalar(0.7); L.g.rotation.y = Math.cos(a) > 0 ? 0 : Math.PI; }
       else { const fly = Math.sin(a * 0.7) > 0.3; L.g.position.set(Math.sin(a) * 0.25, y0 + 0.1 + (fly ? 0.2 + Math.sin(a * 3) * 0.05 : 0), Math.cos(a * 1.7) * 0.18); L.g.children.slice(1).forEach(w => { w.rotation.x = w.userData.s * (0.5 + Math.sin(t * (fly ? 30 : 4)) * 0.5); }); }
     }
   };

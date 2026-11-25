@@ -110,21 +110,20 @@ export const POT_GLAZES = [['rosa', 'rosa', 0xff9ab8], ['blau', 'blau', 0x6aa8e8
 for (const [f, fn, fi] of POT_FORMS) for (const [g, gn] of POT_GLAZES) FURNITURE[`topf_${f}_${g}`] = { name: `${fn} (${gn})`, icon: fi, buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'pottery' };
 // Inselleben 6: Aquarium & Terrarium, Webstuhl und Gewebtes, Jahrmarkt-Preise, Schatz & Honig
 Object.assign(FURNITURE, {
-  aquarium:       { name: 'Aquarium',        icon: '🐠', buy: 3500, lvl: 2, cat: 'deko', w: 2, d: 1, solid: true, tank: 'fish' },
   terrarium:      { name: 'Terrarium',       icon: '🦗', buy: 2800, lvl: 2, cat: 'deko', w: 1, d: 1, solid: true, tank: 'bug' },
   webstuhl:       { name: 'Webstuhl',        icon: '🧶', buy: 4500, lvl: 2, cat: 'deko', w: 2, d: 1, solid: true },
-  wandteppich:    { name: 'Wandteppich',     icon: '🧶', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, pattern: true, rare: 'wool' },
+  musterteppich:  { name: 'Gewebter Musterteppich', icon: '🧶', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, pattern: true, rare: 'wool' },
   pluesch_baer:   { name: 'Plüschbär',       icon: '🧸', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'fair' },
   pluesch_hase:   { name: 'Plüschhase',      icon: '🐰', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'fair' },
   pluesch_ente:   { name: 'Plüschente',      icon: '🦆', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'fair' },
   pluesch_drache: { name: 'Plüschdrache',    icon: '🐲', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'fair' },
   riesenteddy:    { name: 'Riesenteddy',     icon: '🧸', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'fair' },
   piratentruhe:   { name: 'Piratentruhe',    icon: '🏴‍☠️', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, store: true, rare: 'tmap' },
-  steuerrad:      { name: 'Steuerrad',       icon: '☸️', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'tmap' },
-  honigregal:     { name: 'Honigregal',      icon: '🍯', buy: 0, lvl: 1, cat: 'kueche', w: 1, d: 1, solid: true, rare: 'bees' },
+  honigvitrine:   { name: 'Honigvitrine',    icon: '🍯', buy: 0, lvl: 1, cat: 'kueche', w: 1, d: 1, solid: true, rare: 'bees' },
   bandposter:     { name: 'Bandposter',      icon: '🎸', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'band' },
 });
 export const WOOL_COLORS = [['rot', 'rot', 0xe8505a], ['rosa', 'rosa', 0xff9ab8], ['gelb', 'gelb', 0xf2cf4a], ['orange', 'orange', 0xff9a3a], ['lila', 'lila', 0xa98bff], ['blau', 'blau', 0x5a9ae8], ['weiss', 'weiß', 0xf4f0e6]];
+FURNITURE.aquarium.tank = 'fish'; // das bekannte Aquarium bekommt Bewohner (Größe bleibt, alte Spielstände unverändert)
 for (const [c, cn] of WOOL_COLORS) {
   FURNITURE[`wollteppich_${c}`] = { name: `Wollteppich (${cn})`, icon: '🟫', buy: 0, lvl: 1, cat: 'teppiche', w: 2, d: 2, solid: false, rug: true, rare: 'wool' };
   FURNITURE[`strickkissen_${c}`] = { name: `Strickkissen (${cn})`, icon: '🟣', buy: 0, lvl: 1, cat: 'sitzen', w: 1, d: 1, solid: false, sit: true, rare: 'wool' };

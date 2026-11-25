@@ -43,6 +43,6 @@ export function bees(s, a, out) {
   s.honeys[id] = s.honeys[id] || s.day;
   s.stats.honey = (s.stats.honey || 0) + 1;
   S.questEventX(s, 'honey', 1, out);
-  if (!s.honeyAll && HONEYS.every(h => s.honeys[h])) { s.honeyAll = s.day; note(s, '🍯 Alle sieben Honigsorten!', 'Was für eine Sammlung! Für eure Gläser gibt es ein eigenes Honigregal.', 'honigregal', 1); }
+  if (!s.honeyAll && HONEYS.every(h => s.honeys[h])) { s.honeyAll = s.day; note(s, '🍯 Alle sieben Honigsorten!', 'Was für eine Sammlung! Für eure Gläser gibt es eine eigene Honigvitrine.', 'honigvitrine', 1); }
   return true;
 }

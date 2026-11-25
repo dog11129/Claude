@@ -370,6 +370,7 @@ test('Flaschenpost & Baupläne', async () => {
   assert.ok(DIY_IDS.includes(out.learned));
   const { RECIPES } = await import('../src/data.js');
   for (const id of Object.keys(RECIPES.f_kamin.in)) s.inv[id] = 99; // alle Zutaten da – es zählt nur, ob der Bauplan bekannt ist
+  s.level = 20; // Kamin gibt es erst ab Level 6
   assert.equal(act(s, { t: 'craft', id: 'f_kamin' }).ok, !!s.recipes.f_kamin);
 });
 

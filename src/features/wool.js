@@ -30,8 +30,8 @@ export function loom(s, a, out) {
   if (a.op === 'tapestry') {
     if (!need(TAPESTRY_WOOL)) return false;
     S.takeInvX(s, 'wolle', TAPESTRY_WOOL);
-    S.addInvX(s, 'wandteppich', 1);
-    out.msg = '🧶 Ein Wandteppich! Im Haus aufhängen und antippen – er zeigt eure Muster aus dem Muster-Editor.';
+    S.addInvX(s, 'musterteppich', 1);
+    out.msg = '🧶 Ein gewebter Musterteppich! Im Haus aufhängen und antippen – er zeigt eure Muster aus dem Muster-Editor.';
     out.snd = 'love';
     S.questEventX(s, 'weave', 1, out);
     return true;

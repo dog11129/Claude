@@ -14,9 +14,7 @@ const me = () => C.G.players[C.G.me];
 export function initFun4(ctx) {
   C = ctx;
   const st = document.createElement('style');
-  st.textContent = `body.intro #photobtn, body.intro [data-open="emotes"], body.intro #skybtn, body.intro #buildbtn, body.intro #chatbtn, body.intro #chatbtn2, body.intro [data-open="friends"], body.intro #invite { display: none !important; }
-body.intro.i0 .phonebtn, body.intro.i1 .phonebtn, body.intro.i2 .phonebtn, body.intro.i0 [data-open="sell"] { display: none !important; }
-#introcard { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 112px); transform: translateX(-50%); z-index: 30; background: #fffdf9; border: 3px solid #ffb7c8; border-radius: 18px; padding: 8px 14px 9px;
+  st.textContent = `#introcard { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 112px); transform: translateX(-50%); z-index: 30; background: #fffdf9; border: 3px solid #ffb7c8; border-radius: 18px; padding: 8px 14px 9px;
   box-shadow: 0 6px 18px rgba(90,60,50,.18); font: 600 15px Fredoka, system-ui, sans-serif; color: #5a4636; max-width: min(420px, 92vw); text-align: center; pointer-events: auto; }
 #introcard small { display: block; font-weight: 500; font-size: 12.5px; color: #8a7666; margin-top: 2px; }
 #introcard button { margin-top: 5px; font: inherit; font-size: 12px; border: 0; background: none; color: #b08a7a; text-decoration: underline; cursor: pointer; }

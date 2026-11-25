@@ -63,10 +63,10 @@ export function pirate(s, a, out) {
     if (P.stage >= PIRATE.length) {
       Object.assign(P, { on: 0, done: s.day, at: null });
       s.money += 10000; s.stats.earned += 10000;
-      S.addInvX(s, 'piratentruhe', 1); S.addInvX(s, 'steuerrad', 1);
+      S.addInvX(s, 'piratentruhe', 1); S.addInvX(s, 'steuerrad', 1); // Steuerrad: Garten-Deko wie aus dem Wrack
       const hat = !s.wardrobe.pirate;
       if (hat) s.wardrobe.pirate = s.day;
-      note(s, '🏴‍☠️ Der Schatz der Seekarte', `Ihr habt alle fünf Zeichen gefunden! In der Truhe: ${fmt(10000)} Taler, ein Steuerrad${hat ? ' und ein echter Piratenhut (⚙️ ➜ Aussehen ➜ Extras)' : ''}.`, null, 1, 'post');
+      note(s, '🏴‍☠️ Der Schatz der Seekarte', `Ihr habt alle fünf Zeichen gefunden! In der Truhe: ${fmt(10000)} Taler, ein altes Steuerrad für den Garten${hat ? ' und ein echter Piratenhut (⚙️ ➜ Aussehen ➜ Extras)' : ''}.`, null, 1, 'post');
       out.msg = `🏴‍☠️ DIE PIRATENTRUHE! +${fmt(10000)} Taler, Piratentruhe & Steuerrad!`;
       out.snd = 'fanfare';
       S.questEventX(s, 'pirate', 1, out);
