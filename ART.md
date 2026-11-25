@@ -53,6 +53,16 @@ Für neue Dinge, die erst einmal nur als Platzhalter im Code stehen, gibt es ein
 3. Die vier Dateien nach `assets/models/` und in `packs.json` eintragen (stehen schon drin).
 4. Icons: `PACKDIR` (Ordner mit allen `.glb`) und `ICONDIR` setzen, `blender/icons2.py` ausführen, dann `python3 tools/import-icons.py --rand ordner`.
 
+## Welt-Stücke (Orte, Fahrgeschäfte, Tiere) in Blender
+
+Feste Teile der Orte (Höhle, Tiefen, Riff, Wrack, Grotte, Vulkan, Hochsee, Jahrmarkt, Moor, Bambushain, Tore), Fahrgeschäfte und Reittiere (Pony, Tandem, Bimmelbahn, Schlitten, Floß), Wildtiere, Erzfelsen, Pilze, Beerensträucher u. a. werden im Code über `bm('name', teile)` (`src/blend.js`) gebaut: Gibt es ein Blender-Modell mit dem Namen, wird es genommen, sonst die Grundformen.
+
+1. `python3 tools/capture-world.py` – startet das Spiel im Bauplan-Modus, besucht alle Orte, öffnet die Tore und schreibt `art/remaster/world.json`.
+2. In Blender `kit.py`, `PLAN = r"…\world.json"`, `PACKS = ['world']`, dann `blender/remaster.py` ➜ `world2.glb` (Segmente bleiben wie im Spiel, dazu runde Kanten und weiche Schatten).
+3. `world2.glb` nach `assets/models/` (steht in `packs.json`).
+
+Neue Figuren (Besucher, Hüte …): `node tools/dump-shapes.mjs`, dann in Blender `shapes_data.py` + `shapes.py` ➜ `characters.glb`.
+
 ## Ein Icon ersetzen
 
 1. In der Galerie **Alle Icons als ZIP** laden – darin `<id>.png` für jedes Ding.

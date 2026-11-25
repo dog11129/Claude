@@ -25,6 +25,7 @@ const FINISH = {
     }`,
 };
 import * as M from './models.js';
+import { bm } from './blend.js';
 import * as N from './nature.js';
 import { bridgeParts } from './bridges.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
@@ -221,7 +222,7 @@ export class World {
     this.snow.frustumCulled = false;
     s.add(this.snow);
 
-    this.bobber = M.model([M.ball(0.1, 0xff4d4d, 0, 0.05, 0), M.ball(0.1, 0xffffff, 0, -0.03, 0, 1, 0.5, 1)], [], false);
+    this.bobber = bm('fish_bobber', [M.ball(0.1, 0xff4d4d, 0, 0.05, 0), M.ball(0.1, 0xffffff, 0, -0.03, 0, 1, 0.5, 1)], [], false);
     this.bobber.visible = false;
     s.add(this.bobber);
 

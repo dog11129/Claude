@@ -2,10 +2,11 @@
 // Beide liegen weit weg von der Insel (wie das Zuhause), die Kamera springt beim Ortswechsel mit.
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
+import { bm, bmv } from './blend.js';
 import * as N from './nature.js';
 import { building } from './buildings.js';
 import { placeable } from './nature.js';
-import { tex, model, GLOW_VC } from './assets.js';
+import { tex, model } from './assets.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT, TROPIC_TREES, TOURS, TOUR_ICON, shopOpen, concertNow } from './newleaf.js';
 import { AREAS, NODES, nodeToday, nodeUses } from './areas.js';
 import { cropModel } from './nature.js';
@@ -138,12 +139,11 @@ function buildTropic() {
 
 // ---------- Insel-Erweiterungen ----------
 // Leuchtteile mit eigener Farbe (Kristalle), nachts heller
-const glowModel = (p, g) => { const m = M.model(p, g); if (m.children[1]) m.children[1].material = GLOW_VC; return m; };
 function hive() {
   const p = [M.box(0.7, 0.12, 0.7, 0x9a6b44, 0, 0.06, 0)];
   for (let i = 0; i < 4; i++) p.push(M.box(0.62 - i * 0.02, 0.18, 0.62 - i * 0.02, i % 2 ? 0xffd23f : 0xf2b632, 0, 0.21 + i * 0.18, 0));
   p.push(M.cone(0.5, 0.32, 0xc99260, 0, 1.02, 0, 4, 0, Math.PI / 4), M.box(0.16, 0.06, 0.04, 0x4a3a2a, 0, 0.3, 0.32));
-  return M.model(p);
+  return bm('zone_hive', p);
 }
 function oreRock(seed) {
   const p = [M.ball(0.6, 0x8a8094, 0, 0.34, 0, 1.25, 0.8, 1.05, 8), M.ball(0.38, 0x9a90a4, 0.36, 0.24, 0.24, 1, 0.8, 1, 7), M.ball(0.3, 0x7a7084, -0.4, 0.2, -0.2, 1, 0.8, 1, 7)], g = [];
@@ -154,17 +154,17 @@ function oreRock(seed) {
     g.push(M.cyl(0.08, 0.08, h, c, x, 0.6 + h / 2 - 0.1, z, 6, Math.sin(a) * tilt, 0, -Math.cos(a) * tilt));
     g.push(M.cone(0.08, 0.16, c, x + Math.cos(a) * Math.sin(tilt) * h * 0.55, 0.62 + h - 0.06, z + Math.sin(a) * Math.sin(tilt) * h * 0.45, 6, Math.sin(a) * tilt, 0, -Math.cos(a) * tilt));
   }
-  return glowModel(p, g);
+  return bmv('zone_ore_' + seed, p, g);
 }
 function berryBush(col) {
   const p = [M.ball(0.42, 0x4f9f44, 0, 0.36, 0, 1.1, 0.85, 1, 9), M.ball(0.3, 0x5fb84a, 0.22, 0.48, 0.1, 1, 0.9, 1, 8)];
-  return [M.model(p), M.model(Array.from({ length: 9 }, (_, i) => M.ball(0.06, col, Math.cos(i * 2.4) * 0.38, 0.36 + Math.sin(i * 1.3) * 0.22, Math.sin(i * 2.4) * 0.3 + 0.12, 1, 1, 1, 6)), [], false)];
+  return [bm('zone_berrybush', p), bm('zone_berries_' + col.toString(16), Array.from({ length: 9 }, (_, i) => M.ball(0.06, col, Math.cos(i * 2.4) * 0.38, 0.36 + Math.sin(i * 1.3) * 0.22, Math.sin(i * 2.4) * 0.3 + 0.12, 1, 1, 1, 6)), [], false)];
 }
 function mushroom(kind) {
   const c = { steinpilz: [0x9a5a2a, 0xfff2dc], pfifferling: [0xffb02a, 0xffd27a], morchel: [0x8a6a4a, 0xe8d8b8], fliegenpilz: [0xe8302a, 0xfff6ee] }[kind] || [0x9a5a2a, 0xfff2dc];
   const p = [M.cyl(0.07, 0.09, 0.22, c[1], 0, 0.11, 0, 8), M.ball(0.2, c[0], 0, 0.26, 0, 1, 0.6, 1, 10)];
   if (kind === 'fliegenpilz') for (let i = 0; i < 5; i++) p.push(M.ball(0.035, 0xffffff, Math.cos(i * 1.3) * 0.12, 0.34, Math.sin(i * 1.3) * 0.12));
-  return M.model(p, [], false);
+  return bm('zone_mushroom_' + kind, p, [], false);
 }
 function buildArea(id) {
   const A = AREAS[id], g = new THREE.Group(), X = A.x, Z = A.z, W = A.w, D = A.d;
@@ -203,7 +203,7 @@ function buildArea(id) {
       parts.push(M.cyl(0.04, 0.05, 1.1, 0x45332f, sx + 1.1, 0.55, sz + 0.7, 6));
       glow.push(M.box(0.16, 0.2, 0.16, 0xffb04a, sx + 1.1, 1.2, sz + 0.7));
     }
-    g.add(glowModel(parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
+    g.add(bmv('zone_cave_' + id, parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
     const lake = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), new THREE.MeshLambertMaterial({ color: 0x4f8fd8, transparent: true, opacity: 0.85 }));
     lake.rotation.x = -Math.PI / 2; lake.position.set(X - W + 2.2, 0.02, Z - D + 2); g.add(lake);
   } else {
@@ -273,7 +273,7 @@ function buildDepths() {
     if (lv < 2) {
       parts.push(M.box(0.55, 2.7, 0.7, 0x5c5272, dx - 1.3, 1.35, dz - 0.5), M.box(0.55, 2.7, 0.7, 0x5c5272, dx + 1.3, 1.35, dz - 0.5), M.box(3.2, 0.55, 0.7, 0x5c5272, dx, 2.9, dz - 0.5));
       glow.push(M.ball(0.14, lv ? 0x9ad8ff : 0xd8ff7a, dx, 2.9, dz - 0.12));
-      const door = M.model([M.box(2.05, 2.5, 0.22, lv ? 0x5a6a8a : 0x6a5a8a, 0, 1.25, 0), M.box(0.5, 0.5, 0.05, lv ? 0x9ad8ff : 0xd8ff7a, 0, 1.5, 0.12)]);
+      const door = bm('zone_depthdoor_' + lv, [M.box(2.05, 2.5, 0.22, lv ? 0x5a6a8a : 0x6a5a8a, 0, 1.25, 0), M.box(0.5, 0.5, 0.05, lv ? 0x9ad8ff : 0xd8ff7a, 0, 1.5, 0.12)]);
       U.doors[lv] = put(g, door, X0 + dx, Z0 + dz - 0.5);
     }
     // Edelsteinadern
@@ -281,8 +281,8 @@ function buildDepths() {
     // Ebene 1: Kristallring – jeder Kristall dunkel oder leuchtend
     if (lv === 0) parts.push(M.cyl(3.75, 3.75, 0.03, 0x6a6080, 0, 0.0, 0.6, 40), M.cyl(2.7, 2.7, 0.04, 0x4a4256, 0, 0.01, 0.6, 40)); // Steinkreis
     if (lv === 0) DEPTH_RING.forEach(([x, z]) => {
-      const off = M.model([M.cyl(0.2, 0.24, 0.1, 0x4e4660, 0, 0.05, 0, 8), M.cone(0.2, 0.9, 0x9a8ab8, 0, 0.55, 0, 6), M.cone(0.08, 0.4, 0x8a7aa8, 0.16, 0.3, 0.05, 5, 0, 0, -0.5)]);
-      const on = glowModel([M.cyl(0.2, 0.24, 0.1, 0x4e4660, 0, 0.05, 0, 8)], [M.cone(0.2, 0.9, 0xd8ff7a, 0, 0.55, 0, 6), M.cone(0.08, 0.4, 0x8affc8, 0.16, 0.3, 0.05, 5, 0, 0, -0.5)]);
+      const off = bm('zone_ring_off', [M.cyl(0.2, 0.24, 0.1, 0x4e4660, 0, 0.05, 0, 8), M.cone(0.2, 0.9, 0x9a8ab8, 0, 0.55, 0, 6), M.cone(0.08, 0.4, 0x8a7aa8, 0.16, 0.3, 0.05, 5, 0, 0, -0.5)]);
+      const on = bmv('zone_ring_on', [M.cyl(0.2, 0.24, 0.1, 0x4e4660, 0, 0.05, 0, 8)], [M.cone(0.2, 0.9, 0xd8ff7a, 0, 0.55, 0, 6), M.cone(0.08, 0.4, 0x8affc8, 0.16, 0.3, 0.05, 5, 0, 0, -0.5)]);
       U.ring.push({ off: put(g, off, X0 + x, Z0 + z), on: put(g, on, X0 + x, Z0 + z) });
     });
     // Ebene 2: vier Klangsteine vor der singenden Tür (links tief, rechts hoch)
@@ -293,10 +293,10 @@ function buildDepths() {
       lake.rotation.x = -Math.PI / 2; lake.position.set(X0, 0.03, Z0); g.add(lake);
       parts.push(M.cyl(0.95, 1.15, 0.28, 0x5c5272, 0, 0.1, 0, 14));
       for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; glow.push(M.cone(0.06, 0.3, [0xff7a9a, 0xffd96a, 0x7affc8, 0x7ac4ff][i % 4], Math.cos(a) * (DEPTH_LAKE + 0.25), 0.15, Math.sin(a) * (DEPTH_LAKE + 0.25), 5)); }
-      U.heart = glowModel([M.cyl(0.18, 0.24, 0.12, 0x6a6080, 0, 0.3, 0, 8)], [M.cone(0.22, 1.0, 0xff8fc8, 0, 0.85, 0, 6), M.cone(0.13, 0.6, 0xc9a8ff, 0.24, 0.62, 0.05, 6, 0, 0, -0.45), M.cone(0.13, 0.55, 0x8fd4ff, -0.23, 0.6, -0.06, 6, 0, 0, 0.45), M.cone(0.1, 0.45, 0xffd96a, 0.02, 0.56, 0.24, 6, 0.5, 0, 0)]);
+      U.heart = bmv('zone_heart', [M.cyl(0.18, 0.24, 0.12, 0x6a6080, 0, 0.3, 0, 8)], [M.cone(0.22, 1.0, 0xff8fc8, 0, 0.85, 0, 6), M.cone(0.13, 0.6, 0xc9a8ff, 0.24, 0.62, 0.05, 6, 0, 0, -0.45), M.cone(0.13, 0.55, 0x8fd4ff, -0.23, 0.6, -0.06, 6, 0, 0, 0.45), M.cone(0.1, 0.45, 0xffd96a, 0.02, 0.56, 0.24, 6, 0.5, 0, 0)]);
       put(g, U.heart, X0, Z0);
     }
-    g.add(glowModel(parts.map(q => (q.g.translate(X0, 0, Z0), q)), glow.map(q => (q.g.translate(X0, 0, Z0), q))));
+    g.add(bmv('zone_depth_' + lv, parts.map(q => (q.g.translate(X0, 0, Z0), q)), glow.map(q => (q.g.translate(X0, 0, Z0), q))));
     U.lights.push([X0 - 4.5, Z0 - 1], [X0 + 4.5, Z0 - 1], [X0, Z0 + R - 1.5], [X0, Z0 - 3]);
   });
   g.userData = U;
@@ -421,7 +421,7 @@ function buildReef() {
   // Seil zum Auftauchen mit Boje oben
   P.push(M.cyl(0.035, 0.035, 2.4, 0xe8d6a8, 0, 1.2, R - 1.2, 6), M.cyl(0.35, 0.35, 0.12, 0x9a90a4, 0, 0.06, R - 1.2, 10), M.ball(0.16, 0xff6b6b, 0, 2.45, R - 1.2), M.cyl(0.165, 0.165, 0.06, 0xffffff, 0, 2.45, R - 1.2, 12));
   G.push(M.ball(0.08, 0, 0, 2.62, R - 1.2));
-  g.add(put(new THREE.Group(), M.model(P, G), X, Z));
+  g.add(put(new THREE.Group(), bm('zone_reef', P, G), X, Z));
   // Seegras, das sich in der Strömung wiegt
   const weed = [];
   for (let i = 0; i < 22; i++) {
@@ -429,7 +429,7 @@ function buildReef() {
     if (REEF_SLOTS.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 1) || REEF_SPOTS.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 1.2) || (z > R - 3 && Math.abs(x) < 1.8)) continue;
     const h = 0.9 + rnd() * 1.2, S = [];
     for (let j = 0; j < 3; j++) S.push(M.cone(0.07, h, [0x4fa156, 0x6cc06a, 0x3f8f6a][j], (j - 1) * 0.1, h / 2, (j % 2) * 0.08, 5, 0, 0, (j - 1) * 0.15));
-    const m = M.model(S);
+    const m = bm('zone_reefweed_' + i, S);
     m.position.set(X + x, 0, Z + z);
     g.add(m); weed.push(m);
   }
@@ -478,9 +478,9 @@ function buildWreck() {
   // Seil zum Auftauchen
   P.push(M.cyl(0.035, 0.035, 2.4, 0xe8d6a8, 0, 1.2, R - 1.2, 6), M.cyl(0.35, 0.35, 0.12, 0x6a6478, 0, 0.06, R - 1.2, 10), M.ball(0.16, 0xffd23f, 0, 2.45, R - 1.2));
   G.push(M.ball(0.08, 0, 0, 2.62, R - 1.2), M.box(0.5, 0.35, 0.02, 0, WRECK_DOOR[0] - 0.4, 2.9, WRECK_DOOR[1] + 1.52));
-  g.add(put(new THREE.Group(), M.model(P, G), X, Z));
+  g.add(put(new THREE.Group(), bm('zone_wreck', P, G), X, Z));
   // das Schiff: eigenes Modell zone_wreck_ship (Ursprung = Wrack-Mitte), sonst der Platzhalter
-  g.add(put(new THREE.Group(), model('zone_wreck_ship') || M.model(H), X, Z));
+  g.add(put(new THREE.Group(), bm('zone_wreck_ship', H), X, Z));
   // Seegras
   const weed = [];
   for (let i = 0; i < 18; i++) {
@@ -488,7 +488,7 @@ function buildWreck() {
     if ((x > -8.5 && x < 8 && z > -5.5 && z < 0.5) || WRECK_CHESTS.some(([cx, cz]) => Math.hypot(cx - x, cz - z) < 1.2) || (z > R - 3 && Math.abs(x) < 1.8)) continue;
     const h = 0.8 + rnd() * 1.4, Sx = [];
     for (let j = 0; j < 3; j++) Sx.push(M.cone(0.07, h, [0x3f7a4a, 0x4f8f5a, 0x2f6a5a][j], (j - 1) * 0.1, h / 2, (j % 2) * 0.08, 5, 0, 0, (j - 1) * 0.15));
-    const m = M.model(Sx);
+    const m = bm('zone_wreckweed_' + i, Sx);
     m.position.set(X + x, 0, Z + z);
     g.add(m); weed.push(m);
   }
@@ -500,8 +500,8 @@ function buildWreck() {
 const FISH_COL = [[0xff8a3a, 0xffffff], [0xffd23f, 0x6cb4ff], [0x6cb4ff, 0xffe066], [0xff6b8a, 0xffd0dc], [0x8ad45a, 0xffe066], [0xc9a8ff, 0xffffff]];
 function reefFish(i) {
   const [a, b] = FISH_COL[i % FISH_COL.length], s = 0.7 + (i % 3) * 0.2;
-  const m = M.model([M.ball(0.16 * s, a, 0, 0, 0, 1.5, 1, 0.55), M.ball(0.08 * s, b, 0.05 * s, 0, 0, 0.3, 1.05, 0.6), M.cone(0.1 * s, 0.16 * s, a, -0.3 * s, 0, 0, 4, 0, 0, Math.PI / 2), M.ball(0.025, 0x2b2222, 0.16 * s, 0.03, 0.06 * s)], [], false);
-  m.userData = { r: 3 + (i * 1.7) % 6, y: 0.8 + (i * 0.37) % 2.4, w: (0.25 + (i % 5) * 0.06) * (i % 2 ? 1 : -1), p: i * 1.3 };
+  const m = bm('zone_reeffish_' + (i % 6), [M.ball(0.16 * s, a, 0, 0, 0, 1.5, 1, 0.55), M.ball(0.08 * s, b, 0.05 * s, 0, 0, 0.3, 1.05, 0.6), M.cone(0.1 * s, 0.16 * s, a, -0.3 * s, 0, 0, 4, 0, 0, Math.PI / 2), M.ball(0.025, 0x2b2222, 0.16 * s, 0.03, 0.06 * s)], [], false);
+  Object.assign(m.userData, { r: 3 + (i * 1.7) % 6, y: 0.8 + (i * 0.37) % 2.4, w: (0.25 + (i % 5) * 0.06) * (i % 2 ? 1 : -1), p: i * 1.3 });
   return m;
 }
 
@@ -542,7 +542,7 @@ export class Zones {
         P.push(M.box(1.6, 0.14, 0.08, 0xff8a8a, x, 0.75, z + 0.55), M.box(1.6, 0.14, 0.08, 0xffffff, x, 0.5, z + 0.55));
         for (const sx of [-0.8, 0.8]) P.push(M.cyl(0.05, 0.05, 0.9, 0x8f603c, x + sx, 0.45, z + 0.55, 6));
       }
-      g.add(M.model(P, G));
+      g.add(bm('gate_' + id + (open ? '_open' : ''), P, G));
     }
     g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     this.scene.add(g);
@@ -711,4 +711,9 @@ export class Zones {
     if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
     return target.z < -150 ? this.street?.userData.lights || null : target.z > 1900 ? this.depths?.userData.lights || null : target.z > 1350 ? this.wreck?.userData.lights || null : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic?.userData.lights || null : null;
   }
+}
+
+// Für den Blender-Bauplan (tools/capture-world.py): alle Pilzsorten
+export function __capture() {
+  for (const k of ['steinpilz', 'pfifferling', 'morchel', 'fliegenpilz']) mushroom(k);
 }

@@ -2,15 +2,14 @@
 // veredelte Obstbäume, Schatz-Zeichen, Tandem, Picknick- und Band-Plätze der Nachbarn.
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
+import { bm, bmv } from './blend.js';
 import { makeNpc } from './npc.js';
-import { GLOW_VC } from './assets.js';
 import * as E from './extras6.js';
 import { ITEMS, NPC_IDS } from './data.js';
 import { FURNITURE } from './furni-data.js';
 import { spots, fruitOf, zoneOf } from './state.js';
 
 const put = (g, m, x, z, ry = 0) => { m.position.set(x, 0, z); m.rotation.y = ry; g.add(m); return m; };
-const glowModel = (p, g) => { const m = M.model(p, g); if (m.children[1]) m.children[1].material = GLOW_VC; return m; };
 const hashC = id => { let h = 7; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return new THREE.Color().setHSL((h % 360) / 360, 0.7, 0.6); };
 
 // ---------- Tandem unter der Figur ----------
@@ -18,10 +17,10 @@ export function syncTandem(world, e, on, dt) {
   if (!on) { if (e.tandemM) e.tandemM.visible = false; return; }
   if (!e.tandemM) {
     const F = 0xff8fab, D = 0x4a4a54, g = new THREE.Group();
-    g.add(M.model([M.box(0.08, 0.08, 1.5, F, 0, 0.44, 0), M.box(0.08, 0.34, 0.08, F, 0, 0.3, 0.38), M.box(0.08, 0.34, 0.08, F, 0, 0.3, -0.38), M.box(0.06, 0.06, 0.5, F, 0, 0.22, 0),
+    g.add(bm('ride_tandem', [M.box(0.08, 0.08, 1.5, F, 0, 0.44, 0), M.box(0.08, 0.34, 0.08, F, 0, 0.3, 0.38), M.box(0.08, 0.34, 0.08, F, 0, 0.3, -0.38), M.box(0.06, 0.06, 0.5, F, 0, 0.22, 0),
       M.box(0.2, 0.07, 0.28, 0x8a5a36, 0, 0.52, 0.35), M.box(0.2, 0.07, 0.28, 0x8a5a36, 0, 0.52, -0.42), M.box(0.56, 0.05, 0.05, 0xd8dce2, 0, 0.8, 0.74), M.cyl(0.025, 0.025, 0.34, 0xd8dce2, 0, 0.62, 0.72, 6),
       M.box(0.34, 0.2, 0.24, 0xc99260, 0, 0.62, 0.95), M.box(0.36, 0.04, 0.26, 0xa87449, 0, 0.73, 0.95)]));
-    e.tandemW = [0.72, -0.72].map(z => { const w = new THREE.Group(); w.add(M.model([M.cyl(0.3, 0.3, 0.07, D, 0, 0, 0, 16, 0, 0, Math.PI / 2), M.cyl(0.2, 0.2, 0.08, 0xffffff, 0, 0, 0, 12, 0, 0, Math.PI / 2), M.cyl(0.06, 0.06, 0.09, F, 0, 0, 0, 8, 0, 0, Math.PI / 2)])); w.position.set(0, 0.3, z); g.add(w); return w; });
+    e.tandemW = [0.72, -0.72].map(z => { const w = new THREE.Group(); w.add(bm('ride_tandem_wheel', [M.cyl(0.3, 0.3, 0.07, D, 0, 0, 0, 16, 0, 0, Math.PI / 2), M.cyl(0.2, 0.2, 0.08, 0xffffff, 0, 0, 0, 12, 0, 0, Math.PI / 2), M.cyl(0.06, 0.06, 0.09, F, 0, 0, 0, 8, 0, 0, Math.PI / 2)])); w.position.set(0, 0.3, z); g.add(w); return w; });
     e.tandemM = g; world.scene.add(g);
   }
   e.tandemM.visible = true;
@@ -56,11 +55,11 @@ export function decorFurniture(m, o, f) {
 
 // ---------- Wildtiere ----------
 function wildModel(id) {
-  if (id === 'igel') return M.model([M.ball(0.22, 0x8a6a4a, 0, 0.16, 0, 1, 0.75, 1.2, 10), ...Array.from({ length: 16 }, (_, i) => { const a = i * 2.4, r = i / 16; return M.cone(0.04, 0.14, 0x5a4030, Math.sin(a) * 0.15 * (1 - r * 0.4), 0.26, -0.05 + Math.cos(a) * 0.12 - r * 0.1, 4, -0.6 - r * 0.6); }),
+  if (id === 'igel') return bm('wild_igel', [M.ball(0.22, 0x8a6a4a, 0, 0.16, 0, 1, 0.75, 1.2, 10), ...Array.from({ length: 16 }, (_, i) => { const a = i * 2.4, r = i / 16; return M.cone(0.04, 0.14, 0x5a4030, Math.sin(a) * 0.15 * (1 - r * 0.4), 0.26, -0.05 + Math.cos(a) * 0.12 - r * 0.1, 4, -0.6 - r * 0.6); }),
     M.ball(0.09, 0xd8b890, 0, 0.13, 0.22, 1, 0.9, 1.3), M.ball(0.025, 0x2a1a14, 0, 0.14, 0.33), ...[-1, 1].map(s => M.ball(0.018, 0x2a1a14, s * 0.05, 0.18, 0.27))]);
-  if (id === 'eichhoernchen') return M.model([M.ball(0.12, 0xd86a2a, 0, 0.18, 0, 1, 1.2, 0.9), M.ball(0.09, 0xd86a2a, 0, 0.36, 0.06), M.ball(0.05, 0xfff0e0, 0, 0.17, 0.08, 1, 1.2, 0.6),
+  if (id === 'eichhoernchen') return bm('wild_eichhoernchen', [M.ball(0.12, 0xd86a2a, 0, 0.18, 0, 1, 1.2, 0.9), M.ball(0.09, 0xd86a2a, 0, 0.36, 0.06), M.ball(0.05, 0xfff0e0, 0, 0.17, 0.08, 1, 1.2, 0.6),
     ...[-1, 1].flatMap(s => [M.cone(0.025, 0.07, 0xd86a2a, s * 0.05, 0.46, 0.04, 4), M.ball(0.015, 0x2a1a14, s * 0.04, 0.38, 0.13)]), M.ball(0.12, 0xe07a3a, 0, 0.3, -0.17, 0.7, 1.6, 0.6), M.ball(0.08, 0xe07a3a, 0, 0.48, -0.12, 0.7, 1, 0.6)]);
-  return M.model([M.ball(0.14, 0xf4f0e6, 0, 0.1, 0, 1, 0.7, 1.3), M.ball(0.08, 0x3a8a4a, 0, 0.26, 0.13), M.cone(0.035, 0.08, 0xffa83a, 0, 0.24, 0.23, 6, Math.PI / 2), ...[-1, 1].map(s => M.ball(0.015, 0x1a1a1a, s * 0.04, 0.28, 0.18)), M.ball(0.05, 0xf4f0e6, 0, 0.14, -0.17, 1, 0.8, 1)]);
+  return bm('wild_' + id, [M.ball(0.14, 0xf4f0e6, 0, 0.1, 0, 1, 0.7, 1.3), M.ball(0.08, 0x3a8a4a, 0, 0.26, 0.13), M.cone(0.035, 0.08, 0xffa83a, 0, 0.24, 0.23, 6, Math.PI / 2), ...[-1, 1].map(s => M.ball(0.015, 0x1a1a1a, s * 0.04, 0.28, 0.18)), M.ball(0.05, 0xf4f0e6, 0, 0.14, -0.17, 1, 0.8, 1)]);
 }
 function updateWild(world, s, t) {
   const U = world.wild6 ||= new Map(), tg = world.target, here = zoneOf(tg) === 'island' && tg.x < 150;
@@ -113,7 +112,7 @@ export function updateIsland6(world, s, t, dt) {
     const [x, z] = k.split(',').map(Number), grown = E.graftGrown(s, k), ripe = grown && !(s.fruit?.[k] > s.day);
     const col = { apfel: 0xe8383c, kirsche: 0xc8102e, orange: 0xff9a1a, pfirsich: 0xffa880, birne: 0xc8d850 }[g.f] || 0xffd23f;
     const parts = ripe ? [0, 1, 2].map(i => M.ball(0.1, col, Math.sin(i * 2.1 + 1) * 0.75, 1.7 + (i % 2) * 0.35, Math.cos(i * 2.1 + 1) * 0.75)) : [M.ball(0.05, 0x8fd694, 0.5, 1.4, 0.4), M.box(0.18, 0.04, 0.04, 0xe8dcc6, 0.5, 1.35, 0.4)];
-    const m = M.model(parts); m.position.set(x, 0, z); world.scene.add(m);
+    const m = bm(ripe ? 'graft_fruit_' + g.f : 'graft_bud', parts); m.position.set(x, 0, z); world.scene.add(m);
     G.set(k, { sig, m });
   }
   for (const [k, e] of G) if (!s.graft?.[k]) { world.scene.remove(e.m); G.delete(k); }
@@ -126,7 +125,7 @@ export function updateIsland6(world, s, t, dt) {
   const X = world.pirate6 ||= { m: null };
   const ready = E.pirateReady(s), at = ready && s.pirate.at, st = ready && E.PIRATE[s.pirate.stage];
   const show = at && Math.hypot(at[0] - tg.x, at[1] - tg.z) < 9;
-  if (show && st.dig && !X.m) { X.m = M.model([M.box(0.9, 0.02, 0.12, 0x8a4a2a, 0, 0.012, 0, Math.PI / 4), M.box(0.9, 0.02, 0.12, 0x8a4a2a, 0, 0.013, 0, -Math.PI / 4)], [], false); world.scene.add(X.m); }
+  if (show && st.dig && !X.m) { X.m = bm('zone_digmark', [M.box(0.9, 0.02, 0.12, 0x8a4a2a, 0, 0.012, 0, Math.PI / 4), M.box(0.9, 0.02, 0.12, 0x8a4a2a, 0, 0.013, 0, -Math.PI / 4)], [], false); world.scene.add(X.m); }
   if (X.m) { X.m.visible = !!(show && st.dig); if (show) X.m.position.set(at[0], 0, at[1]); }
   if (show) world.tag('pirate6', st.dig ? '❌' : '✨', at[0], 0.6 + Math.sin(t * 3) * 0.1, at[1], 'bubble');
 }
@@ -171,19 +170,19 @@ function buildFair() {
   // Lichterketten
   for (let i = 0; i < 22; i++) { const x = -E.FAIR.w + i * (E.FAIR.w * 2 / 21); glow.push(M.ball(0.07, [0xffd23f, 0xff8fab, 0x8fd4ff][i % 3], x, 2.4 + Math.sin(i * 0.9) * 0.15, -E.FAIR.d + 0.2), M.ball(0.07, [0xffd23f, 0xff8fab, 0x8fd4ff][i % 3], x, 2.4 + Math.cos(i * 0.9) * 0.15, E.FAIR.d - 0.3)); }
   for (const x of [-E.FAIR.w, E.FAIR.w]) parts.push(M.cyl(0.05, 0.05, 2.5, 0xffffff, x, 1.25, -E.FAIR.d + 0.2, 6), M.cyl(0.05, 0.05, 2.5, 0xffffff, x, 1.25, E.FAIR.d - 0.3, 6));
-  g.add(glowModel(parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
+  g.add(bmv('zone_fair', parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
   // drehende Teile
   const wheel = new THREE.Group();
-  wheel.add(M.model([M.cyl(0.25, 0.25, 0.7, 0xffd23f, 0, 0, 0, 12, Math.PI / 2), ...Array.from({ length: 8 }, (_, i) => M.box(0.07, E.WHEEL.r * 2, 0.07, 0xffffff, 0, 0, 0, 0, 0, i * Math.PI / 8)),
+  wheel.add(bm('fair_wheel', [M.cyl(0.25, 0.25, 0.7, 0xffd23f, 0, 0, 0, 12, Math.PI / 2), ...Array.from({ length: 8 }, (_, i) => M.box(0.07, E.WHEEL.r * 2, 0.07, 0xffffff, 0, 0, 0, 0, 0, i * Math.PI / 8)),
     ...[-0.25, 0.25].flatMap(z => Array.from({ length: 24 }, (_, i) => { const a = i / 24 * Math.PI * 2, b = (i + 1) / 24 * Math.PI * 2, mx = (Math.sin(a) + Math.sin(b)) / 2 * E.WHEEL.r, my = (Math.cos(a) + Math.cos(b)) / 2 * E.WHEEL.r; return M.box(E.WHEEL.r * 0.27, 0.08, 0.08, i % 2 ? 0xff8fab : 0x8fd4ff, mx, my, z, 0, 0, -(a + b) / 2); }))]));
   wheel.position.set(X + R.x, E.WHEEL.hub, Z + R.z);
   g.add(wheel);
-  const gondolas = Array.from({ length: E.WHEEL.n }, (_, i) => { const m = M.model([M.box(0.7, 0.45, 0.55, [0xff8fab, 0x8fd4ff, 0xffd23f, 0xb08cff][i % 4], 0, 0.12, 0), M.box(0.74, 0.06, 0.6, 0xffffff, 0, 0.62, 0), M.cyl(0.02, 0.02, 0.5, 0xffffff, 0, 0.4, 0, 4)]); g.add(m); return m; });
+  const gondolas = Array.from({ length: E.WHEEL.n }, (_, i) => { const m = bm('fair_gondola_' + (i % 4), [M.box(0.7, 0.45, 0.55, [0xff8fab, 0x8fd4ff, 0xffd23f, 0xb08cff][i % 4], 0, 0.12, 0), M.box(0.74, 0.06, 0.6, 0xffffff, 0, 0.62, 0), M.cyl(0.02, 0.02, 0.5, 0xffffff, 0, 0.4, 0, 4)]); g.add(m); return m; });
   const carousel = new THREE.Group();
-  carousel.add(M.model([put0(M.cone(2.1, 0.9, 0xff8fab, 0, 2.65, 0, 16)), M.cyl(2.1, 2.1, 0.25, 0xffffff, 0, 2.15, 0, 16), ...Array.from({ length: 16 }, (_, i) => M.ball(0.06, 0xffd23f, Math.sin(i / 16 * Math.PI * 2) * 2.05, 2.05, Math.cos(i / 16 * Math.PI * 2) * 2.05))]));
+  carousel.add(bm('fair_carousel', [put0(M.cone(2.1, 0.9, 0xff8fab, 0, 2.65, 0, 16)), M.cyl(2.1, 2.1, 0.25, 0xffffff, 0, 2.15, 0, 16), ...Array.from({ length: 16 }, (_, i) => M.ball(0.06, 0xffd23f, Math.sin(i / 16 * Math.PI * 2) * 2.05, 2.05, Math.cos(i / 16 * Math.PI * 2) * 2.05))]));
   carousel.position.set(X + K.x, 0, Z + K.z);
   g.add(carousel);
-  const horses = Array.from({ length: E.CAROUSEL.n }, (_, i) => { const c = [0xffffff, 0xffd8e8, 0xd8ecff][i % 3]; const m = M.model([M.ball(0.18, c, 0, 0, 0, 0.8, 0.7, 1.5), M.ball(0.1, c, 0, 0.18, 0.26, 0.8, 1, 1.3), M.box(0.06, 0.22, 0.16, 0xff8fab, 0, 0.18, 0.12), M.cyl(0.025, 0.025, 1.9, 0xffd23f, 0, 0.75, 0, 6), ...[-0.12, 0.12].flatMap(x => [0.18, -0.18].map(z => M.cyl(0.03, 0.03, 0.25, c, x, -0.18, z, 5)))]); g.add(m); return m; });
+  const horses = Array.from({ length: E.CAROUSEL.n }, (_, i) => { const c = [0xffffff, 0xffd8e8, 0xd8ecff][i % 3]; const m = bm('fair_horse_' + (i % 3), [M.ball(0.18, c, 0, 0, 0, 0.8, 0.7, 1.5), M.ball(0.1, c, 0, 0.18, 0.26, 0.8, 1, 1.3), M.box(0.06, 0.22, 0.16, 0xff8fab, 0, 0.18, 0.12), M.cyl(0.025, 0.025, 1.9, 0xffd23f, 0, 0.75, 0, 6), ...[-0.12, 0.12].flatMap(x => [0.18, -0.18].map(z => M.cyl(0.03, 0.03, 0.25, c, x, -0.18, z, 5)))]); g.add(m); return m; });
   const npcs = NPC_IDS.slice(0, 3).map((id, i) => { const m = makeNpc(NPC_IDS[(i * 2 + 1) % NPC_IDS.length]); m.position.set(X + [-3, 3.5, -1][i], 0, Z + [2.5, 0.5, 5][i]); m.rotation.y = [0.6, -0.8, 3][i]; g.add(m); return m; });
   g.userData = { wheel, gondolas, carousel, horses, npcs, lights: [[X, Z + 4], [X + R.x, Z + R.z + 2], [X + K.x, Z + K.z], [X + 6, Z]] };
   return g;
@@ -205,3 +204,9 @@ export function zones6(zones, world, s, t, target) {
   return true;
 }
 export const lights6 = (zones, target) => (target.z < -450 && Math.abs(target.x) < 150 ? zones.fair6?.userData.lights || null : undefined);
+
+// Für den Blender-Bauplan (tools/capture-world.py)
+export function __capture() {
+  for (const id of E.WILD_IDS) wildModel(id);
+  syncTandem({ scene: { add() {} } }, { x: 0, z: 0, ry: 0, speed: 0 }, true, 0);
+}

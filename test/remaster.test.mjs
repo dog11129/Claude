@@ -67,3 +67,19 @@ test('eigene Icons: jede Datei gehört zu einem Gegenstand und ist eingetragen',
   }
   for (const id of ['pfingstrosensofa', 'pfingstrose_koralle', 's_pfingstrose_weiss', 'marktstand', 'nistkasten', 'laubfrosch', 'kleehonig', 'holz']) assert.ok(ids.includes(id), id);
 });
+
+test('Welt-Stücke aus Blender (world2.glb) passen zu den Namen im Code', () => {
+  const names = new Set(roots(glb('world2')));
+  for (const n of ['zone_fair', 'fair_wheel', 'fair_carousel', 'zone_moor', 'zone_bambus', 'zone_reef', 'zone_wreck', 'zone_grotto', 'zone_volcano', 'zone_cave_hoehle',
+    'zone_depth_0', 'gate_wald', 'gate_wald_open', 'ride_pony', 'ride_tandem', 'ride_sled', 'wild_igel', 'zone_hive', 'eiernest_nest', 'bambus_clump_0_cut']) assert.ok(names.has(n), n);
+  const pre = ['zone_', 'fair_', 'gate_', 'ride_', 'wild_', 'moor_', 'bambus_', 'graft_', 'move_box', 'fish_bobber', 'eiernest_nest'];
+  for (const n of names) assert.ok(pre.some(p => n.startsWith(p)), n);
+});
+
+test('Figuren: alle Nachbarn, Besucher und Hüte haben Blender-Teile', async () => {
+  const N = await import('../src/npc.js'), A = await import('../src/avatar.js');
+  const names = new Set(roots(glb('characters')));
+  for (const id of Object.keys(N.NPCS)) assert.ok(names.has(`npc_${id}_body`), id);
+  for (const h of A.LOOKS.hat.map(o => (Array.isArray(o) ? o[0] : o)).filter(h => h !== 'none')) assert.ok(names.has('av_hat_' + h), h);
+});
+

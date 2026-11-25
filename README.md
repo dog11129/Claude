@@ -42,6 +42,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 - **Dinge, die bisher nur ein Emoji hatten,** haben jetzt ein 3D-Modell: Frösche, Libellen, Feuerfalter, Glutkäfer, neue Fische (Thunfisch, Schwertfisch, Mondfisch, Segelfisch …), Meerestiere, Honigsorten, Marmeladen, Getränke, Riesengemüse, neue Obstsorten, Fernglas, Schlitten, Kanu, Tandem, Papierlaterne, Irrlicht und vieles mehr.
 - **3D-Icons aus Blender** für über 700 Gegenstände im Inventar, im Laden und überall sonst – einzeln gerendert, mit weichem Licht und Umriss, gut lesbar auf dem Handy.
 - Die Böden „Rosa Dielen“ und „Pfingstrosen-Parkett“ und die Tapete „Pfingstrosen“ kommen als Texturen aus Blender.
+- **Auch die Orte aus Blender:** Höhle und Höhlen-Tiefen, Riff, Schiffswrack, Grotte, Vulkaninsel, Hochsee, Jahrmarkt mit Riesenrad und Karussell, Seerosenmoor, Bambushain mit Teehaus, die Tore, Erzfelsen, Pilze und Beerensträucher, dazu Pony, Tandem, Bimmelbahn, Schlitten, Floß, Igel, Eichhörnchen und Enten. Die sechs Besucher (Flocke, Pingo, Olli, Krümel, Koko, Pia) und die Bommel- und Zipfelmütze sind jetzt ebenfalls Blender-Figuren.
 
 ### 🩷 Neu: Pfingstrosen
 - **Pfingstrosen in 14 Farben:** Weiß, Zartrosa, Rot, Gelb und Creme gibt es als Samen in der Gärtnerei Knolle, Rosa wächst auf der Blütenwiese. Zweifarbig, Koralle, Pfirsich, Magenta, Weinrot, Lila, Blau und Regenbogen entstehen nur, wenn man passende Sorten nebeneinander pflanzt und gießt (z. B. Gelb + Rot = Koralle, Weiß + Kornblume = Blau, Blau + Gelb = Regenbogen).
@@ -306,6 +307,7 @@ Alle Modelle und Texturen werden in Blender gebaut (Skripte in `blender/`) und l
 | `appicon.py` | `appicon.png` ➜ `python3 tools/icons.py appicon.png` baut `icon-192/512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` |
 | `remaster.py` | `place2.glb`, `furniture2.glb`, `items2.glb`, `crops2.glb`: alle neueren Dinge (Deko, Möbel-Serien, Pfingstrosen-Einrichtung, Gegenstände, Samentüten, Beete) aus dem Bauplan `art/remaster/plan.json` in Blender nachgebaut – runde Kanten, feinere Rundungen, weiche Schatten in den Farben |
 | `icons2.py` | Gegenstands-Icons: jedes Ding einzeln in Blender gerendert ➜ `python3 tools/import-icons.py --rand ordner` (Umriss, 256 × 256 WebP nach `assets/icons/`) |
+| `remaster.py` + `tools/capture-world.py` | `world2.glb`: feste Teile aller Orte (Höhle, Tiefen, Riff, Wrack, Grotte, Vulkan, Hochsee, Jahrmarkt, Moor, Bambushain, Tore), Fahrgeschäfte, Reittiere, Wildtiere, Erzfelsen, Pilze |
 | `textures2.py` | `assets/tex`: Böden „Rosa Dielen“ und „Pfingstrosen-Parkett“, Tapete „Pfingstrosen“ |
 
 `node tools/dump-shapes.mjs` schreibt `blender/shapes_data.py` neu, wenn sich die Formen der Figuren in `src/` ändern. `node tools/dump-models.mjs` schreibt den Bauplan `art/remaster/plan.json` für alle Dinge, die noch kein Blender-Modell haben (Grundformen mit Maßen, Lage und Farbe) und welches Modell welches Icon zeigt; danach `remaster.py` und `icons2.py` in Blender laufen lassen. Ein Skript läuft in Blenders Python-Konsole nach `kit.py`; die Ergebnisse landen im Ordner `kuschel3d` und werden nach `assets/` kopiert.

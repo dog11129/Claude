@@ -4,17 +4,16 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
-| place | 133 | 132 | 1 |
+| place | 133 | 133 | 0 |
 | furniture | 275 | 275 | 0 |
 | items | 216 | 216 | 0 |
 | crops | 141 | 141 | 0 |
 | Icons | 692 | 684 eigene Bilder | 8 gerendert |
 
-## place – noch Platzhalter (1)
+## place – noch Platzhalter (0)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
-| Eiernest | `eiernest` | 0.5 × 0.5 × 0.5 | 12 |
 
 ## furniture – noch Platzhalter (0)
 

@@ -2,6 +2,7 @@
 // Wird von world.js (pro Bild), world-extra.js (ferne Orte) aufgerufen.
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
+import { bm } from './blend.js';
 import * as V from './extras5.js';
 
 const put = (g, m, x, z, ry = 0) => { m.position.set(x, 0, z); m.rotation.y = ry; g.add(m); return m; };
@@ -10,7 +11,7 @@ const objPos = (s, k) => { const e = Object.entries(s.obj || {}).find(([, o]) =>
 // ---------- Pony ----------
 export function ponyModel(c = 0xc89a6a, mane = 0x7a4a2a) {
   const legs = [[-0.13, -0.3], [0.13, -0.3], [-0.13, 0.3], [0.13, 0.3]];
-  return M.model([
+  return bm(c === 0xc89a6a && mane === 0x7a4a2a ? 'ride_pony' : `ride_pony_${c.toString(16)}_${mane.toString(16)}`, [
     M.ball(0.3, c, 0, 0.62, 0, 0.9, 0.8, 1.45, 12),
     ...legs.map(([x, z]) => M.cyl(0.055, 0.05, 0.46, c, x, 0.27, z, 7)),
     ...legs.map(([x, z]) => M.cyl(0.06, 0.06, 0.06, 0x4a3a30, x, 0.03, z, 7)),
@@ -39,7 +40,7 @@ function trainCar(k) {
   const col = [0xff6b6b, 0x6cb4ff, 0xffd23f][k], P = [M.box(0.9, 0.42, 1.2, col, 0, 0.38, 0), M.box(0.96, 0.06, 1.26, 0xfff3e0, 0, 0.6, 0)];
   for (const [x, z] of [[-0.45, -0.4], [0.45, -0.4], [-0.45, 0.4], [0.45, 0.4]]) P.push(M.cyl(0.15, 0.15, 0.08, 0x3a3a44, x, 0.15, z, 12, 0, 0, Math.PI / 2));
   if (!k) P.push(M.cyl(0.09, 0.12, 0.42, 0x3a3a44, 0, 0.82, 0.38, 10), M.box(0.5, 0.3, 0.06, 0xfff3e0, 0, 0.7, 0.62));
-  return M.model(P);
+  return bm('ride_train_' + k, P);
 }
 export function syncTrain(world, e, on) {
   if (!on) { if (e.trainM) e.trainM.visible = false; return; }
@@ -99,7 +100,7 @@ function buildDeepsea() {
     M.box(1.6, 1.1, 1.2, 0xfff3e0, 0, 0.55, -3.3), M.box(1.75, 0.12, 1.35, 0x5a8aa8, 0, 1.15, -3.3), M.box(0.9, 0.35, 0.04, 0x9ad0f0, 0, 0.7, -2.68),
     M.box(0.5, 0.25, 0.5, 0x5a8aa8, -1.3, 0.13, 3.9), M.box(0.5, 0.25, 0.5, 0xc8705a, 1.3, 0.13, 1.6), M.cyl(0.18, 0.18, 0.5, 0xa87449, -1.3, 0.25, 1.4, 10),
   ];
-  g.add(M.model(P.map(q => (q.g.translate(X, 0, Z), q))));
+  g.add(bm('zone_deepsea', P.map(q => (q.g.translate(X, 0, Z), q))));
   const sail = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 3.0), new THREE.MeshLambertMaterial({ color: 0xfff3e0, side: THREE.DoubleSide }));
   sail.position.set(X, 2.6, Z + 0.28); g.add(sail);
   const waves = [];
@@ -127,3 +128,9 @@ export function zonesV(zones, world, s, t, target) {
   return true;
 }
 export const lightsV = (zones, target) => (target.z > 3600 ? zones.deepV?.userData.lights || null : undefined);
+
+// Für den Blender-Bauplan (tools/capture-world.py)
+export function __capture() {
+  ponyModel();
+  for (let k = 0; k < 3; k++) trainCar(k);
+}

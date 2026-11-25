@@ -25,7 +25,7 @@ const HAVE = new Set();
 const MODELS = join(ROOT, 'assets/models');
 for (const f of readdirSync(MODELS).filter(f => f.endsWith('.glb'))) for (const n of glbRoots(join(MODELS, f))) HAVE.add(n);
 const ICONS = new Set(existsSync(join(ROOT, 'assets/icons/index.json')) ? JSON.parse(readFileSync(join(ROOT, 'assets/icons/index.json'), 'utf8')) : []);
-const PLACE_ALIAS = { kuerbislaterne: 'lantern_pumpkin', schneemann: 'snowman', herzballon: 'heart_balloon', torte: 'cake', angelpokal: 'pokal', kaeferpokal: 'pokal', apfelbaum: 'ptree', orangenbaum: 'ptree', pfirsichbaum: 'ptree', kirschenbaum: 'ptree', birnbaum: 'ptree', mangobaum: 'ptree', bananenbaum: 'banana' };
+const PLACE_ALIAS = { kuerbislaterne: 'lantern_pumpkin', schneemann: 'snowman', herzballon: 'heart_balloon', torte: 'cake', angelpokal: 'pokal', kaeferpokal: 'pokal', apfelbaum: 'ptree', orangenbaum: 'ptree', pfirsichbaum: 'ptree', kirschenbaum: 'ptree', birnbaum: 'ptree', mangobaum: 'ptree', bananenbaum: 'banana', eiernest: 'eiernest_nest' };
 
 // ---------- kleiner GLB-Schreiber (Positionen, Normalen, Vertex-Farben; Leuchtteile heißen __glow) ----------
 function glb(models) {

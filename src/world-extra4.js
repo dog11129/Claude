@@ -2,14 +2,13 @@
 // Umzugskartons, Marktstand, Gymnastik, Laternenumzug, eigenes Silvester-Feuerwerk, Floß und getragene Kartons.
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
+import { bm, bmv } from './blend.js';
 import { makeNpc } from './npc.js';
-import { GLOW_VC } from './assets.js';
 import * as E from './extras7.js';
 import { ITEMS, NPC_IDS } from './data.js';
 import { AREAS } from './areas.js';
 import { zoneOf, seasonOf } from './state.js';
 
-const glowModel = (p, g) => { const m = M.model(p, g); if (m.children[1]) m.children[1].material = GLOW_VC; return m; };
 const at = (q, X, Z) => (q.g.translate(X, 0, Z), q);
 const hour = s => 6 + s.dayTime * 18;
 const night = s => hour(s) >= 19 || hour(s) < 6.5;
@@ -39,13 +38,13 @@ function buildMoor() {
   parts.push(...[-1.4, 1.4].map(x => M.cyl(0.1, 0.12, 2.2, 0x7a5432, x, 1.1, E.MOOR.d + 0.6, 6)), M.box(3.1, 0.4, 0.12, 0xa07448, 0, 2.15, E.MOOR.d + 0.6));
   // Laternen am Steg
   for (const z of [E.MOOR.d - 1.5, P.z + P.rz + 1.3, P.z - P.rz - 1.3]) for (const x of [-1.05, 1.05]) { parts.push(M.cyl(0.04, 0.04, 1.2, 0x5a4a3a, x, 0.6, z, 6), M.box(0.2, 0.05, 0.2, 0x3a2a1a, x, 1.42, z)); glow.push(M.box(0.15, 0.2, 0.15, 0xffd890, x, 1.3, z)); }
-  g.add(glowModel(parts.map(q => at(q, X, Z)), glow.map(q => at(q, X, Z))));
+  g.add(bmv('zone_moor', parts.map(q => at(q, X, Z)), glow.map(q => at(q, X, Z))));
   // bewegliche Teile
-  const pads = E.LILIES.map(([x, z], i) => { const m = M.model([M.cyl(0.42, 0.42, 0.03, 0x4f9a3c, 0, 0, 0, 14), M.box(0.3, 0.035, 0.06, 0x4f8f90, 0.22, 0, 0, i)], [], false); m.position.set(X + x, 0.05, Z + z); m.rotation.y = i * 1.3; g.add(m); return m; });
-  const blooms = E.LILIES.map(([x, z]) => { const m = M.model([...Array.from({ length: 8 }, (_, k) => M.ball(0.09, k % 2 ? 0xffb7d0 : 0xffd8e6, Math.cos(k / 8 * Math.PI * 2) * 0.1, 0.06, Math.sin(k / 8 * Math.PI * 2) * 0.1, 1, 0.5, 1.6)), M.ball(0.05, 0xffe27a, 0, 0.1, 0)], [], false); m.position.set(X + x + 0.12, 0.06, Z + z - 0.05); g.add(m); return m; });
-  const frogs = E.LILIES.map(() => { const m = M.model([M.ball(0.13, 0x6cc04a, 0, 0.1, 0, 1.1, 0.75, 1.2), M.ball(0.05, 0xffffff, -0.06, 0.2, 0.08), M.ball(0.05, 0xffffff, 0.06, 0.2, 0.08), M.ball(0.025, 0x222222, -0.06, 0.21, 0.12), M.ball(0.025, 0x222222, 0.06, 0.21, 0.12), M.box(0.26, 0.04, 0.08, 0x58a83a, 0, 0.03, -0.06)], [], false); g.add(m); return m; });
-  const flies = E.DRAGON.map(() => { const m = M.model([M.box(0.03, 0.03, 0.34, 0x3a8ad8, 0, 0, 0), M.box(0.36, 0.005, 0.07, 0xd8f0ff, 0, 0.01, 0.06), M.box(0.3, 0.005, 0.06, 0xd8f0ff, 0, 0.01, -0.02)], [], false); g.add(m); return m; });
-  const raft = M.model([...[-0.45, -0.15, 0.15, 0.45].map(x => M.cyl(0.14, 0.14, 1.5, 0x9c6b3f, x, 0.06, 0, 8, Math.PI / 2)), M.box(1.1, 0.05, 0.12, 0x7a4a2a, 0, 0.2, 0.5), M.box(1.1, 0.05, 0.12, 0x7a4a2a, 0, 0.2, -0.5)]);
+  const pads = E.LILIES.map(([x, z], i) => { const m = bm('moor_pad_' + i, [M.cyl(0.42, 0.42, 0.03, 0x4f9a3c, 0, 0, 0, 14), M.box(0.3, 0.035, 0.06, 0x4f8f90, 0.22, 0, 0, i)], [], false); m.position.set(X + x, 0.05, Z + z); m.rotation.y = i * 1.3; g.add(m); return m; });
+  const blooms = E.LILIES.map(([x, z]) => { const m = bm('moor_bloom', [...Array.from({ length: 8 }, (_, k) => M.ball(0.09, k % 2 ? 0xffb7d0 : 0xffd8e6, Math.cos(k / 8 * Math.PI * 2) * 0.1, 0.06, Math.sin(k / 8 * Math.PI * 2) * 0.1, 1, 0.5, 1.6)), M.ball(0.05, 0xffe27a, 0, 0.1, 0)], [], false); m.position.set(X + x + 0.12, 0.06, Z + z - 0.05); g.add(m); return m; });
+  const frogs = E.LILIES.map(() => { const m = bm('moor_frog', [M.ball(0.13, 0x6cc04a, 0, 0.1, 0, 1.1, 0.75, 1.2), M.ball(0.05, 0xffffff, -0.06, 0.2, 0.08), M.ball(0.05, 0xffffff, 0.06, 0.2, 0.08), M.ball(0.025, 0x222222, -0.06, 0.21, 0.12), M.ball(0.025, 0x222222, 0.06, 0.21, 0.12), M.box(0.26, 0.04, 0.08, 0x58a83a, 0, 0.03, -0.06)], [], false); g.add(m); return m; });
+  const flies = E.DRAGON.map(() => { const m = bm('moor_dragonfly', [M.box(0.03, 0.03, 0.34, 0x3a8ad8, 0, 0, 0), M.box(0.36, 0.005, 0.07, 0xd8f0ff, 0, 0.01, 0.06), M.box(0.3, 0.005, 0.06, 0xd8f0ff, 0, 0.01, -0.02)], [], false); g.add(m); return m; });
+  const raft = bm('moor_raft', [...[-0.45, -0.15, 0.15, 0.45].map(x => M.cyl(0.14, 0.14, 1.5, 0x9c6b3f, x, 0.06, 0, 8, Math.PI / 2)), M.box(1.1, 0.05, 0.12, 0x7a4a2a, 0, 0.2, 0.5), M.box(1.1, 0.05, 0.12, 0x7a4a2a, 0, 0.2, -0.5)]);
   g.add(raft);
   const fireflies = Array.from({ length: 14 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 4), new THREE.MeshBasicMaterial({ color: 0xeaff8a })); g.add(m); return m; });
   g.userData = { pads, blooms, frogs, flies, raft, fireflies, day: -1, lights: [[X, Z + E.MOOR.d - 1.5], [X, Z + P.z + P.rz + 1.3], [X, Z + P.z - P.rz - 1.3]] };
@@ -117,8 +116,8 @@ function buildBambus() {
   parts.push(M.box(E.BAMBUS.w * 2 + 1.6, 0.04, 0.04, 0x6a8a3a, 0, 0.7, E.BAMBUS.d + 0.8));
   parts.push(...[-1.3, 1.3].map(x => M.cyl(0.13, 0.15, 2.6, 0xc8503a, x, 1.3, E.BAMBUS.d + 0.8, 8)), M.box(3.6, 0.2, 0.26, 0x3a2a2a, 0, 2.7, E.BAMBUS.d + 0.8), M.box(3.0, 0.14, 0.18, 0xc8503a, 0, 2.3, E.BAMBUS.d + 0.8));
   for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; parts.push(...bambooClump(Math.cos(a) * (E.BAMBUS.w + 3), Math.sin(a) * (E.BAMBUS.d + 3), 5, i, false)); }
-  g.add(glowModel(parts.map(q => at(q, X, Z)), glow.map(q => at(q, X, Z))));
-  const pipe = M.model([M.cyl(0.06, 0.06, 1.0, 0x8fbf5a, 0, 0, 0, 7, 0, 0, Math.PI / 2), M.cyl(0.03, 0.03, 0.3, 0x6a4a2a, 0, -0.15, 0, 5)]);
+  g.add(bmv('zone_bambus', parts.map(q => at(q, X, Z)), glow.map(q => at(q, X, Z))));
+  const pipe = bm('bambus_pipe', [M.cyl(0.06, 0.06, 1.0, 0x8fbf5a, 0, 0, 0, 7, 0, 0, Math.PI / 2), M.cyl(0.03, 0.03, 0.3, 0x6a4a2a, 0, -0.15, 0, 5)]);
   pipe.position.set(X + fx - 0.2, 0.62, Z + fz - 0.4); g.add(pipe);
   const host = makeNpc('wanda'); host.position.set(X + T.x + 1.2, 0, Z + T.z + T.d + 0.9); host.rotation.y = 0.3; g.add(host);
   g.userData = { pipe, host, clumps: null, csig: '', shoots: null, ssig: '', lights: [[X, Z + 3.8], [X, Z - 3.6], [X + T.x, Z + T.z + T.d + 1]] };
@@ -127,9 +126,9 @@ function buildBambus() {
 function updateBambus(zones, world, s, t) {
   const g = zones.bambus7, U = g.userData, X = E.BAMBUS.x, Z = E.BAMBUS.z, B = s.bambus || {};
   const csig = E.CLUMPS.map((_, i) => (B.cut?.[i] === s.day ? 1 : 0)).join('');
-  if (U.csig !== csig) { if (U.clumps) g.remove(U.clumps); U.clumps = M.model(E.CLUMPS.flatMap(([x, z], i) => bambooClump(x, z, 4.2, i * 3.1, B.cut?.[i] === s.day)).map(q => at(q, X, Z))); g.add(U.clumps); U.csig = csig; }
+  if (U.csig !== csig) { if (U.clumps) g.remove(U.clumps); U.clumps = new THREE.Group(); E.CLUMPS.forEach(([x, z], i) => { const cut = B.cut?.[i] === s.day; U.clumps.add(bm(`bambus_clump_${i}${cut ? '_cut' : ''}`, bambooClump(x, z, 4.2, i * 3.1, cut).map(q => at(q, X, Z)))); }); g.add(U.clumps); U.csig = csig; }
   const sh = E.shootsToday(s.day).filter(i => B.dug?.[i] !== s.day), ssig = s.day + ':' + sh.join();
-  if (U.ssig !== ssig) { if (U.shoots) g.remove(U.shoots); U.shoots = sh.length ? M.model(sh.flatMap(i => { const [x, z] = E.SHOOT_SPOTS[i]; return [M.cone(0.09, 0.32, 0xb8c86a, x, 0.12, z, 6), M.cone(0.07, 0.2, 0x8a9a4a, x + 0.06, 0.08, z + 0.04, 5)]; }).map(q => at(q, X, Z)), [], false) : null; if (U.shoots) g.add(U.shoots); U.ssig = ssig; }
+  if (U.ssig !== ssig) { if (U.shoots) g.remove(U.shoots); U.shoots = sh.length ? new THREE.Group() : null; for (const i of sh) { const [x, z] = E.SHOOT_SPOTS[i], m = bm('bambus_shoot', [M.cone(0.09, 0.32, 0xb8c86a, 0, 0.12, 0, 6), M.cone(0.07, 0.2, 0x8a9a4a, 0.06, 0.08, 0.04, 5)], [], false); m.position.set(X + x, 0, Z + z); U.shoots.add(m); } if (U.shoots) g.add(U.shoots); U.ssig = ssig; }
   // Wasserspiel: füllt sich langsam, kippt – klack!
   const ph = (t % 6) / 6, tip = ph > 0.9 ? Math.sin((ph - 0.9) / 0.1 * Math.PI) : 0;
   U.pipe.rotation.z = -0.25 + ph * 0.1 + tip * 0.75;
@@ -154,7 +153,7 @@ export const lights7 = (zones, target) => (target.z < -1050 ? zones.bambus7?.use
 
 // ---------- Auf der Insel ----------
 const WISP = new THREE.MeshBasicMaterial({ color: 0xa8e8ff, transparent: true, opacity: 0.85 });
-const BOX = () => M.model([M.box(0.5, 0.4, 0.45, 0xc99a62, 0, 0.2, 0), M.box(0.52, 0.03, 0.08, 0xe8d8b0, 0, 0.41, 0), M.box(0.18, 0.12, 0.01, 0xffffff, 0.08, 0.25, 0.23)]);
+const BOX = () => bm('move_box', [M.box(0.5, 0.4, 0.45, 0xc99a62, 0, 0.2, 0), M.box(0.52, 0.03, 0.08, 0xe8d8b0, 0, 0.41, 0), M.box(0.18, 0.12, 0.01, 0xffffff, 0.08, 0.25, 0.23)]);
 export function updateIsland7(world, s, t) {
   const tg = world.target, z = zoneOf(tg), onIsle = z === 'island';
   // Regenbogen: Goldtopf glitzert am Ende
@@ -210,7 +209,7 @@ function gateSigns(world, s, t, tg, z) {
         const parts = [M.cyl(0.07, 0.08, 1.4, 0x7a5432, -1.2, 0.7, -0.4, 6), M.box(0.9, 0.42, 0.06, 0xf2e6c9, -1.2, 1.3, -0.36)];
         if (k === 'moor') { const n = open ? 6 : (s.moor?.steg || 0) * 2; for (let i = 0; i < n; i++) parts.push(M.box(1.4, 0.07, 0.4, i % 2 ? 0xb08458 : 0xa07448, 0, 0.06, -0.3 - i * 0.45)); }
         else parts.push(...[-1.1, 1.1].map(xx => M.cyl(0.1, 0.12, 2.2, 0xc8503a, xx, 1.1, -0.5, 8)), M.box(2.9, 0.16, 0.22, 0x3a2a2a, 0, 2.25, -0.5), ...(open ? [] : [M.box(2.1, 1.2, 0.06, 0x8fbf5a, 0, 0.6, -0.5)]));
-        m = M.model(parts); m.position.set(x, 0, zz); world.scene.add(m);
+        m = bm(k === 'moor' ? 'gate_moor_' + (open ? 6 : (s.moor?.steg || 0) * 2) : 'gate_bambus' + (open ? '_open' : ''), parts); m.position.set(x, 0, zz); world.scene.add(m);
       }
       G[k] = { m, sig };
     }
@@ -232,7 +231,7 @@ export function npcOverride7(world, s, id) {
 export function syncCarry7(world, e, box, raft) {
   if (box && !e.box7) { e.box7 = BOX(); e.box7.scale.setScalar(0.8); world.scene.add(e.box7); }
   if (e.box7) { e.box7.visible = box; if (box) { e.box7.position.set(e.x + Math.sin(e.ry) * 0.25, e.m.position.y + 1.05, e.z + Math.cos(e.ry) * 0.25); e.box7.rotation.y = e.ry; } }
-  if (raft && !e.raft7) { e.raft7 = M.model([...[-0.45, -0.15, 0.15, 0.45].map(x => M.cyl(0.14, 0.14, 1.5, 0x9c6b3f, x, 0.06, 0, 8, Math.PI / 2)), M.box(1.1, 0.05, 0.12, 0x7a4a2a, 0, 0.2, 0.5)]); world.scene.add(e.raft7); }
+  if (raft && !e.raft7) { e.raft7 = bm('ride_raft', [...[-0.45, -0.15, 0.15, 0.45].map(x => M.cyl(0.14, 0.14, 1.5, 0x9c6b3f, x, 0.06, 0, 8, Math.PI / 2)), M.box(1.1, 0.05, 0.12, 0x7a4a2a, 0, 0.2, 0.5)]); world.scene.add(e.raft7); }
   if (e.raft7) { e.raft7.visible = raft; if (raft) { e.raft7.position.set(e.x, 0.04, e.z); e.raft7.rotation.y = e.ry; if (Math.random() < 0.2) world.burst(e.x - Math.sin(e.ry) * 0.7, e.z - Math.cos(e.ry) * 0.7, 'ripple', 0.05); } }
 }
 
@@ -255,4 +254,18 @@ export function burstShape(world, p) {
   }
   world.fwFlash = { t: world.time, c: new THREE.Color(a) };
   world.onBoom?.(p.x, p.y, p.z);
+}
+
+// Für den Blender-Bauplan (tools/capture-world.py): Kartons, Floß, Tor-Zustände, geschnittener Bambus
+export function __capture() {
+  const W = { scene: { add() {}, remove() {} }, tag() {}, burst() {} };
+  BOX();
+  syncCarry7(W, { x: 0, z: 0, ry: 0, m: { position: { y: 0 } } }, false, true);
+  for (const open of [false, true]) for (let steg = 0; steg <= E.STEG_DAYS; steg++) {
+    const s = { moor: { open, steg }, bambus: { open } };
+    W.gates7 = {};
+    for (const area of ['wiese', 'wald']) { const A = AREAS[area]; gateSigns(W, s, 0, { x: A.x, z: A.z - A.d }, area); }
+  }
+  const X = E.BAMBUS.x, Z = E.BAMBUS.z;
+  E.CLUMPS.forEach(([x, z], i) => { for (const cut of [false, true]) bm(`bambus_clump_${i}${cut ? '_cut' : ''}`, bambooClump(x, z, 4.2, i * 3.1, cut).map(q => at(q, X, Z))); });
 }

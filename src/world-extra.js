@@ -2,14 +2,13 @@
 // und die Vulkaninsel. Wird von world.js (pro Bild) und zones.js (ferne Orte) aufgerufen.
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
+import { bm, bmv } from './blend.js';
 import { makeNpc } from './npc.js';
-import { GLOW_VC } from './assets.js';
 import * as W from './extras4.js';
 import { zonesV, lightsV } from './world-extra2.js';
 import { zones6, lights6 } from './world-extra3.js';
 import { zones7, lights7 } from './world-extra4.js';
 
-const glowModel = (p, g) => { const m = M.model(p, g); if (m.children[1]) m.children[1].material = GLOW_VC; return m; };
 const put = (g, m, x, z, ry = 0) => { m.position.set(x, 0, z); m.rotation.y = ry; g.add(m); return m; };
 
 // ---------- auf der Insel (einmal gebaut) ----------
@@ -18,7 +17,7 @@ export function buildIslandW(world) {
   for (const [x, z] of W.TIDE_POOLS) {
     const rocks = [];
     for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; rocks.push(M.ball(0.18 + (i % 3) * 0.05, i % 2 ? 0x9a9290 : 0x857d7a, Math.cos(a) * 0.62, 0.06, Math.sin(a) * 0.55, 1.2, 0.6, 1, 7)); }
-    put(g, M.model(rocks), x, z, x * 0.7);
+    put(g, bm('zone_tiderocks', rocks), x, z, x * 0.7);
     const water = new THREE.Mesh(new THREE.CircleGeometry(0.55, 20), new THREE.MeshLambertMaterial({ color: 0x5ab8d8, transparent: true, opacity: 0.85 }));
     water.rotation.x = -Math.PI / 2;
     water.position.set(x, 0.09, z);
@@ -26,7 +25,7 @@ export function buildIslandW(world) {
     pools.push(water);
   }
   for (const P of W.STAMPS) {
-    const post = M.model([M.cyl(0.05, 0.06, 0.95, 0xa87449, 0, 0.47, 0, 7), M.box(0.42, 0.32, 0.12, 0xff8fab, 0, 1.05, 0), M.box(0.34, 0.24, 0.13, 0xfff3e0, 0, 1.05, 0), M.cone(0.27, 0.16, 0xc8705a, 0, 1.3, 0, 4, 0, Math.PI / 4)]);
+    const post = bm('zone_stamppost', [M.cyl(0.05, 0.06, 0.95, 0xa87449, 0, 0.47, 0, 7), M.box(0.42, 0.32, 0.12, 0xff8fab, 0, 1.05, 0), M.box(0.34, 0.24, 0.13, 0xfff3e0, 0, 1.05, 0), M.cone(0.27, 0.16, 0xc8705a, 0, 1.3, 0, 4, 0, Math.PI / 4)]);
     put(g, post, P[3], P[4]);
   }
   world.scene.add(g);
@@ -47,7 +46,7 @@ export function updateIslandW(world, s, t) {
     if (c.opened) continue;
     seen.add(c.k);
     const [x, z] = c.k.split(',').map(Number);
-    if (!U.caps.has(c.k)) U.caps.set(c.k, put(U.g, M.model([M.ball(0.36, 0x8a6a48, 0, 0, 0, 1, 0.35, 1, 10), M.cyl(0.012, 0.012, 0.5, 0xffffff, 0.12, 0.25, 0, 5), M.box(0.18, 0.12, 0.01, 0xb08cff, 0.21, 0.44, 0)]), x, z));
+    if (!U.caps.has(c.k)) U.caps.set(c.k, put(U.g, bm('zone_capsule', [M.ball(0.36, 0x8a6a48, 0, 0, 0, 1, 0.35, 1, 10), M.cyl(0.012, 0.012, 0.5, 0xffffff, 0.12, 0.25, 0, 5), M.box(0.18, 0.12, 0.01, 0xb08cff, 0.21, 0.44, 0)]), x, z));
     if (s.day >= c.open && Math.hypot(x - tg.x, z - tg.z) < 9) world.tag('cap' + c.k, '⏳✨', x, 0.8, z, 'bubble');
   }
   for (const [k, m] of U.caps) if (!seen.has(k)) { U.g.remove(m); U.caps.delete(k); }
@@ -57,7 +56,7 @@ export function updateIslandW(world, s, t) {
 export function syncSled(world, e, on) {
   if (!on) { if (e.sledM) e.sledM.visible = false; return; }
   if (!e.sledM) {
-    e.sledM = M.model([M.box(0.5, 0.05, 0.9, 0xd8503a, 0, 0.18, 0), ...[-0.22, 0.22].flatMap(x => [M.box(0.04, 0.04, 1.0, 0x8a8e98, x, 0.04, 0.02), M.box(0.04, 0.14, 0.04, 0x8a8e98, x, 0.11, -0.3), M.box(0.04, 0.14, 0.04, 0x8a8e98, x, 0.11, 0.3), M.box(0.04, 0.04, 0.16, 0x8a8e98, x, 0.1, 0.52, 0, 0.9)])]);
+    e.sledM = bm('ride_sled', [M.box(0.5, 0.05, 0.9, 0xd8503a, 0, 0.18, 0), ...[-0.22, 0.22].flatMap(x => [M.box(0.04, 0.04, 1.0, 0x8a8e98, x, 0.04, 0.02), M.box(0.04, 0.14, 0.04, 0x8a8e98, x, 0.11, -0.3), M.box(0.04, 0.14, 0.04, 0x8a8e98, x, 0.11, 0.3), M.box(0.04, 0.04, 0.16, 0x8a8e98, x, 0.1, 0.52, 0, 0.9)])]);
     world.scene.add(e.sledM);
   }
   e.sledM.visible = true;
@@ -77,7 +76,7 @@ function buildGrotto() {
   // Truhe & Ausgang (Wasservorhang)
   const [cx, cz] = W.GROTTO_CHEST;
   parts.push(M.box(0.8, 0.45, 0.55, 0x8a5a36, cx, 0.24, cz), M.box(0.84, 0.08, 0.59, 0xe0b862, cx, 0.47, cz));
-  g.add(glowModel(parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
+  g.add(bmv('zone_grotto', parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
   const pool = new THREE.Mesh(new THREE.CircleGeometry(W.GROTTO.pool, 32), new THREE.MeshBasicMaterial({ color: 0x3ad8e8, transparent: true, opacity: 0.85 }));
   pool.rotation.x = -Math.PI / 2; pool.position.set(X, 0.04, Z); g.add(pool);
   g.userData = { pool, lights: [[X, Z], [X + 4, Z + 3], [X - 4, Z + 3]] };
@@ -107,7 +106,7 @@ function buildVolcano() {
   // Palmen & Steg
   for (let i = 0; i < 7; i++) { const a = rnd() * 6.28, r = R - 1.5 - rnd() * 2; const x = Math.sin(a) * r, z = Math.cos(a) * r; if (z > 6 && Math.abs(x) < 3) continue; parts.push(M.cyl(0.08, 0.12, 2.2, 0x8a6a48, x, 1.1, z, 6, 0.1), ...[0, 1, 2, 3, 4].map(k => M.ball(0.5, 0x3a8a3a, x + Math.cos(k * 1.26) * 0.45, 2.2, z + Math.sin(k * 1.26) * 0.45, 1.4, 0.25, 0.6, 7))); }
   for (let z = R - 1; z < R + 4; z += 0.45) parts.push(M.box(1.4, 0.07, 0.4, z % 0.9 > 0.45 ? 0xc9945e : 0xe3b47c, 0, 0.03, z));
-  g.add(glowModel(parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
+  g.add(bmv('zone_volcano', parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
   const springs = W.VOLC_SPRINGS.map(([sx, sz, r]) => { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 24), new THREE.MeshLambertMaterial({ color: 0x7ad8d0, transparent: true, opacity: 0.85 })); m.rotation.x = -Math.PI / 2; m.position.set(X + sx, 0.06, Z + sz); g.add(m); return m; });
   g.userData = { springs, bathers: [], lights: [[X + vx, Z + vz + 3], [X, Z + R - 1]] };
   return g;
@@ -146,3 +145,8 @@ export function zonesW(zones, world, s, t, target) {
   return true;
 }
 export const lightsW = (zones, target) => (target.z < -750 && Math.abs(target.x) < 150 ? lights7(zones, target) : target.z < -450 && Math.abs(target.x) < 150 ? lights6(zones, target) : target.z > 3600 ? lightsV(zones, target) : target.z > 3000 ? zones.volcanoW?.userData.lights : target.z > 2600 ? zones.grottoW?.userData.lights : undefined);
+
+// Für den Blender-Bauplan (tools/capture-world.py): Dinge, die nur unter Bedingungen auftauchen
+export function __capture() {
+  syncSled({ scene: { add() {} } }, { x: 0, z: 0, ry: 0 }, true);
+}

@@ -157,7 +157,7 @@ try:
                 l[cl] = c if c is not None else vcols.get(l.vert.index, (1, 1, 1, 1))
 
     stats = {'tris': 0, 'models': 0}
-    def build_part(m, p):
+    def build_part(m, p, keep=False):  # keep: Segmente wie im Spiel lassen (große Welt-Stücke)
         glow = bool(p.get('g')); t = p['t']
         if t == 'raw':
             v = p['v']; n = len(v) // 3
@@ -184,12 +184,12 @@ try:
         elif t in ('sphere', 'soft'):
             if t == 'soft':
                 e, ws0, hs0 = a
-                ws = 16 if smax > 0.6 else 12; hs = ws * 2 // 3
+                ws = ws0 if keep else 16 if smax > 0.6 else 12; hs = hs0 if keep else ws * 2 // 3
                 add(m, *sphere(1.0, ws, hs, 0, TAU, 0, PI, soft=e), p['c'], T, flip, glow)
             else:
                 r, ws0, hs0, p0, pl, t0, tl = a
                 R = r * smax
-                if ws0 <= 6: ws, hs = ws0, hs0  # bewusst eckig
+                if ws0 <= 6 or keep: ws, hs = ws0, hs0  # bewusst eckig bzw. wie im Spiel
                 else:
                     W, Hh = (8, 5) if R < 0.02 else (8, 6) if R < 0.04 else (10, 6) if R < 0.08 else (12, 8) if R < 0.15 else (16, 10) if R < 0.3 else (20, 12)
                     ws = max(3, round(W * pl / TAU)); hs = max(2, round(Hh * tl / PI))
@@ -198,15 +198,15 @@ try:
             rt, rb, h, seg0, open_, t0, tl = a
             R = max(rt, rb) * max(s[0], s[2])
             qc = 8 if R < 0.03 else 12 if R < 0.08 else 16 if R < 0.2 else 20 if R < 0.4 else 28
-            seg = seg0 if seg0 <= 6 else max(3, round(qc * tl / TAU))
+            seg = seg0 if seg0 <= 6 or keep else max(3, round(qc * tl / TAU))
             sh = h * s[1]; rr = min(rt if rt > 0 else rb, rb if rb > 0 else rt) * max(s[0], s[2])
             ch = 0 if seg0 <= 6 or sh < 0.01 or rr < 0.02 else min(0.18 * min(rr, sh), 0.02)
             add(m, *cyl(rt, rb, h, seg, open_, t0, tl, chamfer=ch / max(s[0], s[2]) if ch else 0), p['c'], T, flip, glow)
         elif t == 'torus':
             R0, tb, rs0, ts0, arc = a
-            rs = rs0 if rs0 <= 4 else 8
+            rs = rs0 if rs0 <= 4 or keep else 8
             Rt = R0 * smax; qt = 12 if Rt < 0.05 else 18 if Rt < 0.15 else 24 if Rt < 0.3 else 32
-            ts = max(4, round(qt * arc / TAU))
+            ts = ts0 if keep else max(4, round(qt * arc / TAU))
             add(m, *torus(R0, tb, rs, ts, arc), p['c'], T, flip, glow)
         elif t == 'circle':
             r, seg0, t0, tl = a
@@ -225,17 +225,35 @@ try:
     for i, M in enumerate(todo):
         m = Model(M['name'])
         for p in M['parts']:
-            try: build_part(m, p)
+            try: build_part(m, p, bool(M.get('keep')))
             except Exception as e: print('Teil übersprungen', M['name'], p.get('t'), e)
         root = m.build()
+        if M.get('keep'):  # wie im Spiel: erst ab 55° kantig (7-eckige Felsen bleiben rund, 6-eckige Stäbe kantig)
+            for o in [root] + list(root.children_recursive):
+                if o.type != 'MESH': continue
+                try: o.data.set_sharp_from_angle(angle=math.radians(55), keep_sharp_edges=False)
+                except TypeError: o.data.set_sharp_from_angle(angle=math.radians(55))
+                except Exception: pass
         if root.name != M['name']:  # nur Leuchtteile: leere Wurzel mit dem richtigen Namen
             e = bpy.data.objects.new(M['name'], None); collection('Kuschel').objects.link(e); root.parent = e; root = e
-        root.location = ((i % 25) * 4.0, -(i // 25) * 4.0, 0)
         built.setdefault(M['pack'], []).append(root)
         stats['models'] += 1
 
     wrong = [M['name'] for M in todo if bpy.data.objects.get(M['name']) is None]
     if wrong: raise RuntimeError('Modell-Namen nicht frei: ' + ', '.join(wrong[:10]))
+
+    # ---------- auslegen: jedes Modell mit Abstand nebeneinander (sonst beschatten sie sich beim Backen) ----------
+    LAYOUT = {}
+    cur, cy, rowh, ROW = 0.0, 0.0, 0.0, 160.0
+    for objs in built.values():
+        for r in objs:
+            pts = [Vector(c) for o in [r] + list(r.children_recursive) if o.type == 'MESH' for c in o.bound_box]
+            if not pts: pts = [Vector((0, 0, 0))]
+            x0, x1 = min(q.x for q in pts), max(q.x for q in pts); y0, y1 = min(q.y for q in pts), max(q.y for q in pts)
+            if cur > 0 and cur + (x1 - x0) > ROW: cy -= rowh + 3; cur = 0.0; rowh = 0.0
+            LAYOUT[r.name] = (cur - x0, cy - y1, 0.0); r.location = LAYOUT[r.name]
+            cur += (x1 - x0) + 3; rowh = max(rowh, y1 - y0)
+    EXT = (ROW, -cy + rowh)
 
     # ---------- sehr dichte Modelle sanft ausdünnen (Handys!) ----------
     CAP = {'furniture': 4000, 'place': 5500, 'items': 1200, 'crops': 1200}
@@ -246,7 +264,7 @@ try:
             for o in [r] + list(r.children_recursive):
                 if o.type != 'MESH' or '__glow' in o.name: continue
                 n = ntris(o.data)
-                if n <= CAP[pack]: continue
+                if not CAP.get(pack) or n <= CAP[pack]: continue
                 mod = o.modifiers.new('dec', 'DECIMATE'); mod.ratio = CAP[pack] / n
                 ev = o.evaluated_get(bpy.context.evaluated_depsgraph_get())
                 me = bpy.data.meshes.new_from_object(ev); old = o.data
@@ -265,9 +283,10 @@ try:
     eng = sc.render.engine
     gnd = bpy.data.objects.get('K_AOGround')
     if not gnd:
-        me = bpy.data.meshes.new('K_AOGround'); bmg = bmesh.new(); bmesh.ops.create_grid(bmg, x_segments=1, y_segments=1, size=400); bmg.to_mesh(me); bmg.free()
+        me = bpy.data.meshes.new('K_AOGround'); bmg = bmesh.new(); bmesh.ops.create_grid(bmg, x_segments=1, y_segments=1, size=1); bmg.to_mesh(me); bmg.free()
         gnd = bpy.data.objects.new('K_AOGround', me); collection('KStage').objects.link(gnd)
-    gnd.location = (48, -48, 0)
+    gnd.location = (EXT[0] / 2, -EXT[1] / 2, 0); gnd.scale = (EXT[0] + 60, EXT[1] + 60, 1)
+    gnd.hide_render = False; gnd.hide_set(False)
     baked = False
     try:
         sc.render.engine = 'CYCLES'
@@ -321,7 +340,7 @@ try:
             for o in [r] + list(r.children_recursive):
                 if o.type == 'MESH': stats['tris'] += sum(len(p.vertices) - 2 for p in o.data.polygons)
         if not globals().get('NO_EXPORT'): files[pack] = export_small(objs, pack + '2')
-        for i, r in enumerate(objs): r.location = ((i % 25) * 4.0, -(i // 25) * 4.0, 0)
+        for r in objs: r.location = LAYOUT[r.name]
     stats['baked'] = baked
     result = {'ok': True, 'files': files, 'stats': stats}
     log(result)
