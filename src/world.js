@@ -1092,7 +1092,7 @@ export class World {
     this.furnM ||= new Map();
     const seen = new Set();
     for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r'], [h.walls || {}, 'w']]) for (const [k, o] of Object.entries(map)) {
-      const px = FURNITURE[o.k]?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px;
+      const f = FURNITURE[o.k], px = f?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px;
       if (!f) continue;
       seen.add(id);
       if (this.furnM.has(id)) continue;
