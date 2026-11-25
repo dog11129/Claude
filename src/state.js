@@ -11,6 +11,7 @@ import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import * as X from './extras.js';
 import * as Y from './extras2.js';
 import * as Z from './extras3.js';
+import * as W4 from './extras4.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -136,7 +137,7 @@ export const npcAwake = s => { const h = 6 + s.dayTime * 18, [a, b] = awakeHours
 // Aufgaben für neue Gebiete nur, wenn das Gebiet schon offen ist
 const DAILY_NEEDS = { mush: ['wald'], ore: ['hoehle'], honey: ['wiese'], berry: ['wald', 'wiese'] };
 function newDailies(s) {
-  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]);
+  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s));
   const pool = DAILY.map((d, i) => i).filter(ok).sort(() => Math.random() - 0.5).slice(0, 3);
   s.daily = pool.map(i => ({ i, p: 0 }));
 }
@@ -319,7 +320,7 @@ export const inPond = pondAt;
 export const boxCap = s => Object.values(s.home?.items || {}).filter(o => o?.k === 'kiste').length * 40;
 export function canPlace(s, x, z) {
   const k = key(x, z);
-  return grass(x, z) && !gateAt(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !resAt(s, k) && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k];
+  return grass(x, z) && !gateAt(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !resAt(s, k) && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k] && !s.capsules?.some(c => c.k === k && !c.opened);
 }
 
 // ---------- Zuhause (Innenraum liegt weit weg bei x = HOME_X, damit es eine eigene Welt ist) ----------
@@ -413,6 +414,7 @@ export function blocked(s, x, z, swim) {
     const lx = x - STREET.x, lz = z - STREET.z;
     return !(streetWalk(lx, lz) || (Math.abs(lx) <= 1.1 && lz > 0 && lz <= STREET.d + 0.9));
   }
+  if (z > 2600) return W4.blockedW(s, x, z); // Grotte hinter dem Wasserfall, Vulkaninsel
   if (z > 1900) return Z.depthBlocked(s, x, z); // Höhlen-Tiefen (unter der Kristallhöhle)
   if (z > 1350) return Z.wreckBlocked(s, x, z); // Schiffswrack (unter Wasser)
   if (z > 1000) return Y.reefBlocked(s, x, z); // Korallenriff (unter Wasser)
@@ -433,6 +435,7 @@ export function blocked(s, x, z, swim) {
   }
   if (gateAt(Math.round(x), Math.round(z))) return true;
   if (bridgeRail(x, z)) return true; // Brückengeländer
+  if (pondAt(x, z) && W4.isWinter(s)) return false; // im Winter ist der Teich zugefroren: Eislaufen!
   if (swim && swimmable(x, z)) return Math.abs(x - PIER.x) < PIER.w + 0.3 && z > PIER.z0 && z < PIER.z1; // unter dem Steg durch geht nicht
   if (!walkable(x, z)) return true;
   const tx = Math.round(x), tz = Math.round(z);
@@ -868,6 +871,7 @@ const ACTIONS = {
   harvest(s, a, out) {
     const t = s.tiles[key(a.x, a.z)];
     if (!t || !t.c || stage(t.c) < 3) return false;
+    if (W4.giantHarvest(s, t, a, out)) return true; // Riesengemüse
     const c = CROPS[t.c.k], n = c.yield || 1;
     addInv(s, t.c.k, n);
     s.stats.harvested += n;
@@ -1746,7 +1750,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1798,6 +1802,7 @@ function resolveHome(s, me, sel, at) {
     if (f.pattern) return { ...base, a: { t: 'hpat', x: h.x, z: h.z }, label: '🎨 Anderes Muster zeigen', tiles };
     if (h.o.k === 'klavier') return { ...base, ui: 'piano', label: '🎹 Klavier spielen', tiles };
     if (h.o.k === 'spieltisch') return { ...base, ui: 'games', label: '🎲 Spieleabend', tiles };
+    if (W4.FURN_UI[h.o.k]) return { ...base, ui: W4.FURN_UI[h.o.k][0], label: W4.FURN_UI[h.o.k][1], tiles };
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
   }
   if (ITEMS[sel]?.furn) return { ...base, label: '🔨 Einrichten geht im Baumodus', tiles: one };
@@ -1854,6 +1859,7 @@ export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
   if (me.x < -150) return resolveArea(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
+  if (me.z > 2600) return W4.resolveW(s, me, sel, at);
   if (me.z > 1900) return Z.resolveDepth(s, me, sel, at);
   if (me.z > 1350) return Z.resolveWreck(s, me, sel, at);
   if (me.z > 1000) return Y.resolveReef(s, me, sel, at);
@@ -1914,6 +1920,8 @@ export function resolve(s, me, sel, at) {
     if (b && Math.hypot(b.x - me.x, b.z - me.z) < 5) return { a: { t: 'pop', id: s.balloon.id }, label: '🎯 Schießen!', tiles: [] };
     return { label: s.balloon ? '🎈 Lauf unter den Ballon!' : '🎈 Kein Ballon in Sicht', tiles: [] };
   }
+  const wr = W4.resolveIslandW(s, me, sel, at, x, z);
+  if (wr) return wr;
   if (sel.startsWith('pave:')) {
     const type = sel.slice(5);
     if (s.paths[k] === type) return { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one };
@@ -1926,6 +1934,7 @@ export function resolve(s, me, sel, at) {
     const p = PLACE[o.k];
     if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { label: '🚩 Bauplatz (im 🔨 Baumodus abbauen)', tiles: one };
     if (o.k === 'seilbahn') return { ui: 'cable', label: '🚡 Seilbahn fahren', tiles: one };
+    if (W4.OBJ_UI[o.k]) return { ui: W4.OBJ_UI[o.k][0], label: W4.OBJ_UI[o.k][1], tiles: one };
     if (o.k === 'ballonplatz') return { ui: 'balloon', label: '🎈 Ballonfahrt', tiles: one };
     if (o.k === 'strandgrill') return { ui: 'grill', grill: k, label: '🔥 Grillen', tiles: one };
     if (o.k === 'schmetterlingshaus') return { ui: 'butterfly', label: '🦋 Schmetterlingshaus', tiles: one };

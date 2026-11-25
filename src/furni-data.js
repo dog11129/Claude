@@ -71,6 +71,7 @@ export const FURNITURE = {
   // Zeigt ein eigenes Pixel-Muster (🎨 Muster-Editor)
   // Neue Möbel
   spieltisch:     { name: 'Spieltisch',      icon: '🎲', buy: 2400, lvl: 2, cat: 'tische',   w: 1, d: 1, solid: true },
+  inselradio:     { name: 'Inselradio',      icon: '📻', buy: 1800, lvl: 1, cat: 'deko',     w: 1, d: 1, solid: true },
   ohrensessel:    { name: 'Ohrensessel',     icon: '🛋️', buy: 1300, lvl: 2, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
   schaukelstuhl:  { name: 'Schaukelstuhl',   icon: '🪑', buy: 1100, lvl: 2, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
   bodenkissen:    { name: 'Bodenkissen',     icon: '🟣', buy: 300,  lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: false, sit: true },

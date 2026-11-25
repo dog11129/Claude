@@ -192,6 +192,32 @@ export const ITEMS = {
   seekarte:      { name: 'Alte Seekarte',  icon: '🗺️', cat: 'misc', desc: 'Aus dem Schiffswrack – sie verrät, wie die Kapitänskajüte aufgeht' },
   dublone:       { name: 'Golddublone',    icon: '🪙', sell: 1500, cat: 'misc', xp: 4 },
   drache:        { name: 'Drachen',        icon: '🪁', buy: 1800, lvl: 1, gear: true, desc: 'Steigen lassen: Böen abpassen und Höhe gewinnen' },
+  // Inselleben 4 (src/extras4.js)
+  fernglas:      { name: 'Fernglas',       icon: '🔭', buy: 2400, lvl: 1, gear: true, desc: 'Vögel beobachten: in der Leiste wählen und Ausschau halten' },
+  schlitten:     { name: 'Schlitten',      icon: '🛷', buy: 2200, lvl: 1, gear: true, desc: 'Im Winter über den Schnee sausen' },
+  kanu:          { name: 'Kanu',           icon: '🛶', buy: 6800, lvl: 3, gear: true, desc: 'An der Flussmündung einsteigen und flussaufwärts paddeln' },
+  duenger:       { name: 'Riesendünger',   icon: '🧪', buy: 400, lvl: 2, cat: 'mat', desc: 'Reife Kürbisse, Melonen und Kartoffeln wachsen damit weiter – einmal am Tag, vorher gießen' },
+  einsiedlerkrebs: { name: 'Einsiedlerkrebs', icon: '🐚', sell: 600, cat: 'misc', xp: 3 },
+  strandkrabbe:  { name: 'Strandkrabbe',   icon: '🦀', sell: 400, cat: 'misc', xp: 2 },
+  napfschnecke:  { name: 'Napfschnecke',   icon: '🐌', sell: 300, cat: 'misc', xp: 2 },
+  seepocke:      { name: 'Seepocke',       icon: '🪨', sell: 250, cat: 'misc', xp: 1 },
+  schlangenstern: { name: 'Schlangenstern', icon: '✴️', sell: 900, cat: 'misc', xp: 4 },
+  glasgarnele:   { name: 'Glasgarnele',    icon: '🦐', sell: 700, cat: 'misc', xp: 3 },
+  grottenforelle: { name: 'Grottenforelle', icon: '🐟', sell: 1400, cat: 'fish', xp: 5 },
+  kristallgrundel: { name: 'Kristallgrundel', icon: '🐠', sell: 2200, cat: 'fish', xp: 7 },
+  leuchtsalmler: { name: 'Leuchtsalmler',  icon: '✨', sell: 3000, cat: 'fish', xp: 9 },
+  obsidian:      { name: 'Obsidian',       icon: '⬛', sell: 1800, cat: 'misc', xp: 6 },
+  lavastein:     { name: 'Lavastein',      icon: '🌋', sell: 500, cat: 'mat', xp: 2 },
+  feuerfalter:   { name: 'Feuerfalter',    icon: '🦋', sell: 2600, cat: 'bug', xp: 8 },
+  glutkaefer:    { name: 'Glutkäfer',      icon: '🪲', sell: 1900, cat: 'bug', xp: 6 },
+  kakao:         { name: 'Kakao',          icon: '☕', sell: 220, cat: 'dish', xp: 1 },
+  milchkaffee:   { name: 'Milchkaffee',    icon: '☕', sell: 260, cat: 'dish', xp: 1 },
+  kraeutertee:   { name: 'Kräutertee',     icon: '🍵', sell: 200, cat: 'dish', xp: 1 },
+  beerenschorle: { name: 'Beerenschorle',  icon: '🧃', sell: 240, cat: 'dish', xp: 1 },
+  inselmelange:  { name: 'Insel-Melange',  icon: '☕', sell: 800, cat: 'dish', xp: 3, desc: 'Mit Herz im Milchschaum – nur bei perfekter Zubereitung' },
+  riesenkuerbis: { name: 'Riesenkürbis',   icon: '🎃', sell: 4000, cat: 'misc', xp: 10 },
+  riesenmelone:  { name: 'Riesenmelone',   icon: '🍉', sell: 4500, cat: 'misc', xp: 10 },
+  riesenkartoffel: { name: 'Riesenkartoffel', icon: '🥔', sell: 3500, cat: 'misc', xp: 10 },
   fahrrad:       { name: 'Fahrrad',        icon: '🚲', buy: 4500, lvl: 2, gear: true, desc: 'Viel schneller über die Insel flitzen' },
   // Siegerrezepte vom Kochwettbewerb
   sternentorte:  { name: 'Sternentorte',   icon: '🎂', sell: 3200, cat: 'dish', xp: 12 },
@@ -438,6 +464,13 @@ export const PLACE = {
   telefonzelle: { name: 'Telefonzelle',  icon: '☎️', buy: 3200, lvl: 3, kind: 'deco', solid: 1, glow: 1 },
   eiswagen:   { name: 'Eiswagen',        icon: '🍦', buy: 3600, lvl: 3, kind: 'deco', solid: 1 },
   musikbox:   { name: 'Musikbox',        icon: '📻', buy: 2600, lvl: 3, kind: 'deco', solid: 1, glow: 1 },
+  gaestebuch: { name: 'Gästebuch',       icon: '📖', buy: 900, lvl: 1, kind: 'deco', solid: 1, desc: 'Besucher und Mitspieler hinterlassen hier Grüße' },
+  gartenpokal: { name: 'Garten-Pokal',    icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gewonnen beim Gartenwettbewerb' },
+  gemuesepokal: { name: 'Riesengemüse-Pokal', icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Schwerstes Gemüse beim Kürbisfest' },
+  modepokal:  { name: 'Mode-Pokal',      icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Fünf Sterne bei der Modenschau' },
+  rallyepokal: { name: 'Rallye-Pokal',   icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Den Stempelpass vollgemacht' },
+  golfpokal:  { name: 'Minigolf-Pokal',  icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Platzrekord auf dem Minigolfplatz' },
+  tanzpokal:  { name: 'Tanz-Pokal',      icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Ein Gold-Tanz im Mondschein-Club' },
   strandpokal: { name: 'Sandburgen-Pokal', icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gewonnen beim Sandburgen-Wettbewerb' },
   windpokal:  { name: 'Drachen-Pokal',  icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gewonnen beim Drachenfest' },
   grundstueck: { name: 'Grundstück',    icon: '🪧', lvl: 1, kind: 'deco', solid: 1, desc: 'Hier zieht am nächsten Morgen euer neuer Nachbar ein' },
@@ -459,6 +492,9 @@ export const PROJECTS = {
   campingplatz:  { name: 'Campingplatz',        icon: '🏕️', cost: 22000, lvl: 2 },
   seilbahn:      { name: 'Seilbahn',            icon: '🚡', cost: 48000, lvl: 4 },
   ballonplatz:   { name: 'Ballonplatz',         icon: '🎈', cost: 36000, lvl: 3 },
+  minigolf:      { name: 'Minigolfplatz',       icon: '⛳', cost: 40000, lvl: 3 },
+  inselcafe:     { name: 'Inselcafé',           icon: '☕', cost: 42000, lvl: 3 },
+  bibliothek:    { name: 'Bibliothek',          icon: '📚', cost: 52000, lvl: 4 },
 };
 for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
 for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
@@ -680,6 +716,9 @@ export const STORY = [
   { title: 'Inselfotograf', desc: 'Reicht im Fotomodus (🏆) ein Foto beim Fotowettbewerb ein.', ev: 'photo', n: 1, money: 1000 },
   { title: 'Licht in der Tiefe', desc: 'Baut an der Werkbank eine Grubenlaterne und steigt hinten in der Kristallhöhle die Treppe hinab.', ev: 'depth', n: 1, money: 2500 },
   { title: 'Das Herz der Höhle', desc: 'Öffnet die Kristalltür und die singende Tür und erreicht den Kristallsee ganz unten.', ev: 'depth3', n: 1, money: 5000 },
+  { title: 'Vogelfreunde', desc: 'Kauft ein Fernglas im Krämerladen und entdeckt 5 verschiedene Vögel.', ev: 'bird', n: 5, money: 2000 },
+  { title: 'Ebbe und Flut', desc: 'Sammelt bei Ebbe 3 Tiere aus den Gezeiten-Tümpeln am Strand.', ev: 'tide', n: 3, money: 1500 },
+  { title: 'Stempeljäger', desc: 'Sammelt 5 Stempel für euren Stempelpass (Handy ➜ Stempel).', ev: 'stamp', n: 5, money: 2500 },
 ];
 export const DAILY = [
   ['Gießt 8 Blumen', 'water', 8, 300], ['Erntet 6 Blumen oder Gemüse', 'harvest', 6, 400], ['Pflückt 6 Obst', 'fruit', 6, 400],
@@ -693,6 +732,9 @@ export const DAILY = [
   ['Füttert und erntet 3-mal auf dem Hof', 'farm', 3, 400], ['Baut eine Sandburg', 'castle', 1, 300], ['Taucht 3-mal nach Meerestieren', 'dive', 3, 500],
   ['Grillt 3 Leckereien', 'grill', 3, 400], ['Gewinnt ein Spiel am Spieltisch', 'gamewin', 1, 500], ['Öffnet eine Truhe im Schiffswrack', 'chest', 1, 500], ['Lasst den Drachen steigen', 'kite', 1, 300],
   ['Baut 2 Edelsteine in den Höhlen-Tiefen ab', 'deepgem', 2, 600],
+  ['Beobachtet 2 Vögel mit dem Fernglas', 'bird', 2, 400], ['Sammelt 2 Tiere aus den Gezeiten-Tümpeln', 'tide', 2, 400], ['Spielt eine Runde Minigolf', 'golf', 1, 500],
+  ['Kocht im Inselcafé ein Getränk', 'cafe', 1, 300], ['Holt euch 2 Stempel für den Stempelpass', 'stamp', 2, 400], ['Trefft 3-mal mit Schneebällen', 'snowball', 3, 400],
+  ['Tanzt im Mondschein-Club', 'dance', 1, 400], ['Lest in der Bibliothek ein Rätselbuch', 'book', 1, 400],
 ];
 
 // ---------- Wochentage, Rübenbörse ----------

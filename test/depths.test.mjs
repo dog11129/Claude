@@ -26,7 +26,7 @@ test('Orte: Tiefen liegen bei z = 2000 und sind eine eigene Zone', () => {
     assert.equal(zoneOf(p), 'depths');
     assert.equal(Z.depthAt(p), lv);
   }
-  assert.deepEqual(clampPos(70, 9000, 40), [52, 2012]);
+  assert.deepEqual(clampPos(70, 2300, 40), [52, 2012]);
   const [sx, sz] = Z.DEPTH_STAIRS, A = AREAS.hoehle;
   assert.ok(Math.abs(sx - A.x) <= A.w && Math.abs(sz - A.z) <= A.d, 'Treppe liegt in der Kristallhöhle');
 });
