@@ -203,6 +203,6 @@ test('Radio im Haus und Projekte öffnen ihr Fenster', () => {
   assert.equal(resolve(s, { x: HOME_X + 1, z: 1, ry: Math.PI }, 'hand').ui, 'radio');
   s.obj['30,30'] = { k: 'minigolf', r: 0 };
   assert.equal(resolve(s, { x: 30, z: 31.2, ry: Math.PI }, 'hand').ui, 'golf');
-  assert.ok(STORY.at(-1).ev === 'stamp');
+  assert.ok(STORY.some(q => q.ev === 'stamp'));
   void PROJECTS; void inPond;
 });

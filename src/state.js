@@ -12,6 +12,7 @@ import * as X from './extras.js';
 import * as Y from './extras2.js';
 import * as Z from './extras3.js';
 import * as W4 from './extras4.js';
+import * as V from './extras5.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -137,7 +138,7 @@ export const npcAwake = s => { const h = 6 + s.dayTime * 18, [a, b] = awakeHours
 // Aufgaben für neue Gebiete nur, wenn das Gebiet schon offen ist
 const DAILY_NEEDS = { mush: ['wald'], ore: ['hoehle'], honey: ['wiese'], berry: ['wald', 'wiese'] };
 function newDailies(s) {
-  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s));
+  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s)) && (!V.DAILY_OK_V[DAILY[i][1]] || V.DAILY_OK_V[DAILY[i][1]](s));
   const pool = DAILY.map((d, i) => i).filter(ok).sort(() => Math.random() - 0.5).slice(0, 3);
   s.daily = pool.map(i => ({ i, p: 0 }));
 }
@@ -331,12 +332,13 @@ export const inside = p => p.x > HOME_X / 2;
 // Zimmer der Nachbarn liegen hinter dem eigenen Haus (gleiche x, weiter südlich): je Nachbar eins
 export const NROOM_Z0 = 60, NROOM_DZ = 40, NROOM_SIZE = [7, 5];
 export const nroomZ = id => NROOM_Z0 + NPC_IDS.indexOf(id) * NROOM_DZ;
-export const roomIdAt = z => (z < NROOM_Z0 - NROOM_DZ / 2 ? null : NPC_IDS[Math.round((z - NROOM_Z0) / NROOM_DZ)] || null);
+export const roomIdAt = z => (z < -30 ? V.xroomAt(z) : z < NROOM_Z0 - NROOM_DZ / 2 ? null : NPC_IDS[Math.round((z - NROOM_Z0) / NROOM_DZ)] || null);
 const NROOM_STYLE = { mira: ['rosa', 'dielen'], bruno: ['holz', 'dunkel'], pippa: ['karo', 'fliesen'], lio: ['bluemchen', 'parkett'], kalle: ['mint', 'moos'], wanda: ['sterne', 'stein'] };
 export const nroomBlank = id => ({ wall: NROOM_STYLE[id]?.[0] || 'vanille', floor: NROOM_STYLE[id]?.[1] || 'dielen', items: { '-2,-1': { k: 'einzelbett', r: 0 } }, rugs: {}, walls: {}, w: 0 });
 const blankRooms = {};
 // Ein Zimmer: eigenes Haus (id = null) oder das Zimmer eines Nachbarn
 export function roomOf(s, id) {
+  if (V.XROOMS[id]) return V.xroomOf(s, id); // Dachboden, Keller, Baumhaus
   if (!id) return { id: null, z0: 0, size: roomSize(s), items: s.home.items, rugs: s.home.rugs, walls: s.home.walls || {}, wall: s.home.wall, floor: s.home.floor };
   const h = s.nhome?.[id] || (blankRooms[id] ||= nroomBlank(id));
   return { id, z0: nroomZ(id), size: NROOM_SIZE, items: h.items, rugs: h.rugs, walls: h.walls, wall: h.wall, floor: h.floor };
@@ -398,6 +400,7 @@ function homeBlocked(s, x, z) {
 // Zimmer für eine Möbel-Aktion: eigenes Haus oder (a.room) das Zimmer eines Nachbarn ab 3 Herzen
 function actRoom(s, a, out) {
   if (a.room === undefined || a.room === null) return roomOf(s);
+  if (V.XROOMS[a.room]) return V.xroomOpen(s, a.room) ? roomOf(s, a.room) : null;
   if (!NPC_IDS.includes(a.room)) return null;
   if (hearts(s, a.room) < 3) { if (out) out.msg = 'Erst ab 3 Herzen darfst du hier einrichten.'; return null; }
   s.nhome ||= {};
@@ -414,6 +417,7 @@ export function blocked(s, x, z, swim) {
     const lx = x - STREET.x, lz = z - STREET.z;
     return !(streetWalk(lx, lz) || (Math.abs(lx) <= 1.1 && lz > 0 && lz <= STREET.d + 0.9));
   }
+  if (z > 3600) return V.blockedV(s, x, z); // Hochsee-Boot
   if (z > 2600) return W4.blockedW(s, x, z); // Grotte hinter dem Wasserfall, Vulkaninsel
   if (z > 1900) return Z.depthBlocked(s, x, z); // Höhlen-Tiefen (unter der Kristallhöhle)
   if (z > 1350) return Z.wreckBlocked(s, x, z); // Schiffswrack (unter Wasser)
@@ -1000,7 +1004,7 @@ const ACTIONS = {
     const l = s.up.rod - 1, sea = seasonOf(s.day), where = waterKind(a.x, a.z);
     let pool = FISH.filter(f => (!f[5] || f[5].includes(sea)) && X.wxOk(s, f[8]) && (f[6] === where || (where === 'pond' && f[6] === 'river' && f[0] === 'barsch')));
     if (Number.isInteger(a.size)) { const sized = pool.filter(f => f[7] === a.size && (f[4][l] || 0) > 0); if (sized.length) pool = sized; } // Schattengröße verrät den Fisch
-    const gold = s.inv.goldangel > 0; // Goldangel: seltene Fische beißen öfter
+    const gold = s.inv.goldangel > 0 || (s.inv.regenwurm > 0 && takeInv(s, 'regenwurm', 1)); // Goldangel oder Regenwurm: seltene Fische beißen öfter
     const f = weighted(pool, f => (f[4][l] || 0) * (gold && f[3] >= 1000 ? 1.8 : 1) * (f[8] ? 2 : 1)), id = f[0];
     addInv(s, id, 1);
     collect(s, id, out);
@@ -1750,7 +1754,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1802,6 +1806,7 @@ function resolveHome(s, me, sel, at) {
     if (f.pattern) return { ...base, a: { t: 'hpat', x: h.x, z: h.z }, label: '🎨 Anderes Muster zeigen', tiles };
     if (h.o.k === 'klavier') return { ...base, ui: 'piano', label: '🎹 Klavier spielen', tiles };
     if (h.o.k === 'spieltisch') return { ...base, ui: 'games', label: '🎲 Spieleabend', tiles };
+    if (V.FURN_GO5[h.o.k] && !R.id) return { ...base, go: V.FURN_GO5[h.o.k][0], label: V.FURN_GO5[h.o.k][1], tiles };
     if (W4.FURN_UI[h.o.k]) return { ...base, ui: W4.FURN_UI[h.o.k][0], label: W4.FURN_UI[h.o.k][1], tiles };
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
   }
@@ -1859,6 +1864,7 @@ export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
   if (me.x < -150) return resolveArea(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
+  if (me.z > 3600) return V.resolveV(s, me, sel, at);
   if (me.z > 2600) return W4.resolveW(s, me, sel, at);
   if (me.z > 1900) return Z.resolveDepth(s, me, sel, at);
   if (me.z > 1350) return Z.resolveWreck(s, me, sel, at);
@@ -1920,7 +1926,7 @@ export function resolve(s, me, sel, at) {
     if (b && Math.hypot(b.x - me.x, b.z - me.z) < 5) return { a: { t: 'pop', id: s.balloon.id }, label: '🎯 Schießen!', tiles: [] };
     return { label: s.balloon ? '🎈 Lauf unter den Ballon!' : '🎈 Kein Ballon in Sicht', tiles: [] };
   }
-  const wr = W4.resolveIslandW(s, me, sel, at, x, z);
+  const wr = V.resolveIslandV(s, me, sel, at, x, z) || W4.resolveIslandW(s, me, sel, at, x, z);
   if (wr) return wr;
   if (sel.startsWith('pave:')) {
     const type = sel.slice(5);
@@ -1934,6 +1940,8 @@ export function resolve(s, me, sel, at) {
     const p = PLACE[o.k];
     if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { label: '🚩 Bauplatz (im 🔨 Baumodus abbauen)', tiles: one };
     if (o.k === 'seilbahn') return { ui: 'cable', label: '🚡 Seilbahn fahren', tiles: one };
+    if (V.OBJ_GO5[o.k]) return { go: V.OBJ_GO5[o.k][0], label: V.OBJ_GO5[o.k][1], tiles: one };
+    if (V.OBJ_UI5[o.k]) return { ui: V.OBJ_UI5[o.k][0], label: V.OBJ_UI5[o.k][1], tiles: one };
     if (W4.OBJ_UI[o.k]) return { ui: W4.OBJ_UI[o.k][0], label: W4.OBJ_UI[o.k][1], tiles: one };
     if (o.k === 'ballonplatz') return { ui: 'balloon', label: '🎈 Ballonfahrt', tiles: one };
     if (o.k === 'strandgrill') return { ui: 'grill', grill: k, label: '🔥 Grillen', tiles: one };

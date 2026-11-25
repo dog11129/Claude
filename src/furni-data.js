@@ -71,6 +71,9 @@ export const FURNITURE = {
   // Zeigt ein eigenes Pixel-Muster (🎨 Muster-Editor)
   // Neue Möbel
   spieltisch:     { name: 'Spieltisch',      icon: '🎲', buy: 2400, lvl: 2, cat: 'tische',   w: 1, d: 1, solid: true },
+  treppe_hoch:    { name: 'Treppe zum Dachboden', icon: '🪜', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'xroom' },
+  treppe_runter:  { name: 'Treppe in den Keller', icon: '🪜', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'xroom' },
+  vorratsregal:   { name: 'Vorratsregal',    icon: '🫙', buy: 1600, lvl: 1, cat: 'kueche', w: 1, d: 1, solid: true },
   inselradio:     { name: 'Inselradio',      icon: '📻', buy: 1800, lvl: 1, cat: 'deko',     w: 1, d: 1, solid: true },
   ohrensessel:    { name: 'Ohrensessel',     icon: '🛋️', buy: 1300, lvl: 2, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
   schaukelstuhl:  { name: 'Schaukelstuhl',   icon: '🪑', buy: 1100, lvl: 2, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
@@ -101,6 +104,10 @@ export const FURNITURE = {
 };
 
 // [id, Name, Grundfarbe, Muster, Akzentfarbe] – Grundfarbe taugt auch als Farbfeld in der Oberfläche.
+// Töpferware aus der Töpferscheibe: 4 Formen × 4 Glasuren
+export const POT_FORMS = [['vase', 'Vase', '🏺'], ['schale', 'Schale', '🥣'], ['tasse', 'Tasse', '☕'], ['krug', 'Krug', '🫖']];
+export const POT_GLAZES = [['rosa', 'rosa', 0xff9ab8], ['blau', 'blau', 0x6aa8e8], ['gruen', 'grün', 0x7ac88a], ['gelb', 'gelb', 0xf2c84a]];
+for (const [f, fn, fi] of POT_FORMS) for (const [g, gn] of POT_GLAZES) FURNITURE[`topf_${f}_${g}`] = { name: `${fn} (${gn})`, icon: fi, buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'pottery' };
 export const WALLS = [
   ['vanille',   'Vanille',         '#fff1dc', 'plain'],
   ['rosa',      'Rosa Streifen',   '#ffe6ea', 'stripes', '#ffc9d4'],

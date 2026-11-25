@@ -210,6 +210,22 @@ export const ITEMS = {
   lavastein:     { name: 'Lavastein',      icon: '🌋', sell: 500, cat: 'mat', xp: 2 },
   feuerfalter:   { name: 'Feuerfalter',    icon: '🦋', sell: 2600, cat: 'bug', xp: 8 },
   glutkaefer:    { name: 'Glutkäfer',      icon: '🪲', sell: 1900, cat: 'bug', xp: 6 },
+  // Inselleben 5 (src/extras5.js)
+  farbpinsel:    { name: 'Farbpinsel',     icon: '🖌️', buy: 600, lvl: 1, gear: true, desc: 'Im Baumodus (🎨 Lackieren) Möbel umfärben' },
+  kompost:       { name: 'Kompost',        icon: '🟫', sell: 60, cat: 'mat', desc: 'In der Leiste wählen und auf ein wachsendes Beet: halber Weg zur Blüte' },
+  regenwurm:     { name: 'Regenwurm',      icon: '🪱', sell: 30, cat: 'mat', desc: 'Köder: beim Angeln beißen seltene Fische öfter (wird verbraucht)' },
+  erdbeermarmelade: { name: 'Erdbeermarmelade', icon: '🍓', sell: 520, cat: 'dish', xp: 3, jar: 1 },
+  apfelmus:      { name: 'Apfelmus',       icon: '🍎', sell: 380, cat: 'dish', xp: 2, jar: 1 },
+  traubensaft:   { name: 'Traubensaft',    icon: '🍇', sell: 460, cat: 'dish', xp: 2, jar: 1 },
+  kirschkompott: { name: 'Kirschkompott',  icon: '🍒', sell: 420, cat: 'dish', xp: 2, jar: 1 },
+  moehrenglas:   { name: 'Eingelegte Möhren', icon: '🥕', sell: 300, cat: 'dish', xp: 2, jar: 1 },
+  popcorn:       { name: 'Popcorn',        icon: '🍿', sell: 80, cat: 'dish', xp: 1 },
+  thunfisch:     { name: 'Thunfisch',      icon: '🐟', sell: 4200, cat: 'fish', xp: 10 },
+  schwertfisch:  { name: 'Schwertfisch',   icon: '🗡️', sell: 6000, cat: 'fish', xp: 12 },
+  mondfisch:     { name: 'Mondfisch',      icon: '🌕', sell: 5200, cat: 'fish', xp: 11 },
+  segelfisch:    { name: 'Segelfisch',     icon: '⛵', sell: 7500, cat: 'fish', xp: 14 },
+  goldmakrele:   { name: 'Goldmakrele',    icon: '✨', sell: 3000, cat: 'fish', xp: 8 },
+  partydeko:     { name: 'Partydeko',      icon: '🎊', buy: 1500, lvl: 1, cat: 'mat', desc: 'Für eine Geburtstagsüberraschung (Handy ➜ Party)' },
   kakao:         { name: 'Kakao',          icon: '☕', sell: 220, cat: 'dish', xp: 1 },
   milchkaffee:   { name: 'Milchkaffee',    icon: '☕', sell: 260, cat: 'dish', xp: 1 },
   kraeutertee:   { name: 'Kräutertee',     icon: '🍵', sell: 200, cat: 'dish', xp: 1 },
@@ -334,6 +350,7 @@ export const BUGS = [
   ['rosenschwaermer', 'Rosenschwärmer', '🦋', 2200, ['summer', 'autumn'], 'garden', 12, null, 'rose'],
   ['dahlienpfau', 'Dahlienpfau', '🦋', 2600, ['summer', 'autumn'], 'garden', 10, null, 'dahlie'],
   ['eisfalter', 'Eisfalter', '🦋', 3000, ['winter'], 'garden', 10, null, 'christrose'],
+  ['gluehwuermchen', 'Glühwürmchen', '✨', 450, ['summer'], 'night', 30], // Inselleben 5: im Sommer nachts
 ];
 for (const b of BUGS) b[4] ||= ['spring', 'summer', 'autumn', 'winter'];
 
@@ -375,6 +392,12 @@ export const PLACE = {
   heu:        { name: 'Strohballen',   icon: '🟨', buy: 150,  lvl: 2, kind: 'deco', solid: 1 },
   pilz:       { name: 'Fliegenpilz',   icon: '🍄', buy: 200,  lvl: 1, kind: 'deco' },
   laterne:    { name: 'Laterne',       icon: '🏮', buy: 400,  lvl: 2, kind: 'deco', solid: 1, glow: 1 },
+  komposter:  { name: 'Komposter',     icon: '🟫', buy: 1500, lvl: 1, kind: 'deco', solid: 1, desc: 'Unkraut & Reste hinein – morgens Kompost und Regenwürmer' },
+  toepferscheibe: { name: 'Töpferscheibe', icon: '🏺', buy: 2800, lvl: 2, kind: 'deco', solid: 1, desc: 'Aus Lehm Vasen, Schalen, Tassen und Krüge – über Nacht im Ofen' },
+  ponystall:  { name: 'Ponystall',     icon: '🐴', buy: 12000, lvl: 3, kind: 'deco', solid: 1, desc: 'Ein Pony zum Füttern, Striegeln und Ausreiten' },
+  gluehlaterne: { name: 'Glühwürmchen-Laterne', icon: '✨', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Aus drei Glühwürmchen gebastelt' },
+  olympiapokal: { name: 'Olympia-Pokal', icon: '🏅', lvl: 1, kind: 'deco', solid: 1, desc: 'Drei Goldmedaillen bei der Inselolympiade' },
+  theaterpokal: { name: 'Theater-Pokal', icon: '🎭', lvl: 1, kind: 'deco', solid: 1, desc: 'Eine Aufführung mit fünf Sternen' },
   zwerg:      { name: 'Gartenzwerg',   icon: '🧙', buy: 600,  lvl: 2, kind: 'deco', solid: 1 },
   bank:       { name: 'Parkbank',      icon: '🪑', buy: 800,  lvl: 2, kind: 'deco', solid: 1 },
   vogelhaus:  { name: 'Vogelhäuschen', icon: '🐦', buy: 700,  lvl: 3, kind: 'deco', solid: 1 },
@@ -495,6 +518,10 @@ export const PROJECTS = {
   minigolf:      { name: 'Minigolfplatz',       icon: '⛳', cost: 40000, lvl: 3 },
   inselcafe:     { name: 'Inselcafé',           icon: '☕', cost: 42000, lvl: 3 },
   bibliothek:    { name: 'Bibliothek',          icon: '📚', cost: 52000, lvl: 4 },
+  baumhaus:      { name: 'Baumhaus',            icon: '🌳', cost: 38000, lvl: 3 },
+  freiluftkino:  { name: 'Freiluftkino',        icon: '🎬', cost: 34000, lvl: 3 },
+  buehne:        { name: 'Inselbühne',          icon: '🎭', cost: 44000, lvl: 4 },
+  bahnhof:       { name: 'Bimmelbahn',          icon: '🚂', cost: 56000, lvl: 4 },
 };
 for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
 for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
@@ -653,6 +680,12 @@ export const RECIPES = {
   t_opalkanne: { st: 'craft', out: 'opalkanne', n: 1, in: { opal: 1, eisen: 3 }, gem: 1 },
   t_grubenlaterne: { st: 'craft', out: 'grubenlaterne', n: 1, in: { kristall: 1, eisen: 2, holz: 2 }, gem: 1 },
   // Siegerrezepte vom Kochwettbewerb (excl: nur nach einem Sieg)
+  t_gluehlaterne: { st: 'craft', out: 'gluehlaterne', n: 1, in: { gluehwuermchen: 3, eisen: 1, holz: 1 }, gem: 1 },
+  erdbeermarmelade: { st: 'cook', out: 'erdbeermarmelade', n: 1, in: { erdbeere: 3, zucker: 1 } },
+  apfelmus: { st: 'cook', out: 'apfelmus', n: 1, in: { apfel: 3, zucker: 1 } },
+  traubensaft: { st: 'cook', out: 'traubensaft', n: 1, in: { traube: 3 } },
+  kirschkompott: { st: 'cook', out: 'kirschkompott', n: 1, in: { kirsche: 3, zucker: 1 } },
+  moehrenglas: { st: 'cook', out: 'moehrenglas', n: 1, in: { karotte: 3 } },
   x_sternentorte: { st: 'cook', out: 'sternentorte', n: 1, in: { mehl: 2, ei: 2, zucker: 2, sternfrucht: 1 }, excl: 1 },
   x_inselcurry: { st: 'cook', out: 'inselcurry', n: 1, in: { kokosnuss: 1, kartoffel: 2, karotte: 2, mango: 1 }, excl: 1 },
   x_mondpudding: { st: 'cook', out: 'mondpudding', n: 1, in: { milch: 2, zucker: 1, ei: 1, honig: 1 }, excl: 1 },
@@ -662,12 +695,12 @@ export const DIG_SPOTS_PER_DAY = 5;
 
 // Nachbarn: Vorlieben (Geschenke), Lieblingsort (sie spazieren dort herum), Dankesgeschenk im Brief
 export const NPC_DATA = {
-  mira: { name: 'Mira', icon: '🦔', likes: ['apfel', 'kirsche', 'tulpe', 'weizen'], loves: ['kirschtorte', 'apfelkuchen'], dislikes: ['kugelfisch', 'krebs'], spot: [-12, 4, 2.6, 1.6], gift: ['apfelkuchen', 1] },
-  bruno: { name: 'Bruno', icon: '🐻', likes: ['holz', 'apfel', 'brot', 'forelle'], loves: ['lachs', 'eintopf'], dislikes: ['stein', 'unkraut'], spot: [12.6, 4.6, 1.8, 1.3], gift: ['holz', 15] },
-  pippa: { name: 'Pippa', icon: '🦆', likes: ['barsch', 'makrele', 'herzmuschel', 'weizen'], loves: ['kugelfisch', 'fischsuppe'], dislikes: ['ei', 'unkraut'], spot: [-6, 9.5, 2.6, 1.4], gift: ['makrele', 3] },
-  lio: { name: 'Lio', icon: '🦊', likes: ['rose', 'koralle', 'pfirsich', 'saft'], loves: ['sonnenblume', 'bernstein'], dislikes: ['kartoffel', 'stein'], spot: [12.8, 2.3, 1.9, 0.9], gift: ['kirschbaum', 1] },
-  kalle: { name: 'Kalle', icon: '🫖', likes: ['orange', 'saft', 'tulpe', 'karotte'], loves: ['sorbet', 'kokosmilch'], dislikes: ['hai', 'krebs'], spot: [-12.3, -4, 0.4, 1.0], gift: ['orangenbaum', 1] },
-  wanda: { name: 'Wanda', icon: '🔬', likes: ['frosch', 'karpfen', 'seeanemone', 'kristall'], loves: ['goldfisch', 'perle'], dislikes: ['unkraut', 'kartoffel'], spot: [-15, -1.5, 0.8, 0.3], gift: ['neopren', 1] },
+  mira: { name: 'Mira', icon: '🦔', likes: ['erdbeermarmelade', 'apfel', 'kirsche', 'tulpe', 'weizen'], loves: ['kirschtorte', 'apfelkuchen'], dislikes: ['kugelfisch', 'krebs'], spot: [-12, 4, 2.6, 1.6], gift: ['apfelkuchen', 1] },
+  bruno: { name: 'Bruno', icon: '🐻', likes: ['apfelmus', 'holz', 'apfel', 'brot', 'forelle'], loves: ['lachs', 'eintopf'], dislikes: ['stein', 'unkraut'], spot: [12.6, 4.6, 1.8, 1.3], gift: ['holz', 15] },
+  pippa: { name: 'Pippa', icon: '🦆', likes: ['kirschkompott', 'barsch', 'makrele', 'herzmuschel', 'weizen'], loves: ['kugelfisch', 'fischsuppe'], dislikes: ['ei', 'unkraut'], spot: [-6, 9.5, 2.6, 1.4], gift: ['makrele', 3] },
+  lio: { name: 'Lio', icon: '🦊', likes: ['moehrenglas', 'rose', 'koralle', 'pfirsich', 'saft'], loves: ['sonnenblume', 'bernstein'], dislikes: ['kartoffel', 'stein'], spot: [12.8, 2.3, 1.9, 0.9], gift: ['kirschbaum', 1] },
+  kalle: { name: 'Kalle', icon: '🫖', likes: ['traubensaft', 'orange', 'saft', 'tulpe', 'karotte'], loves: ['sorbet', 'kokosmilch'], dislikes: ['hai', 'krebs'], spot: [-12.3, -4, 0.4, 1.0], gift: ['orangenbaum', 1] },
+  wanda: { name: 'Wanda', icon: '🔬', likes: ['erdbeermarmelade', 'frosch', 'karpfen', 'seeanemone', 'kristall'], loves: ['goldfisch', 'perle'], dislikes: ['unkraut', 'kartoffel'], spot: [-15, -1.5, 0.8, 0.3], gift: ['neopren', 1] },
 };
 export const NPC_IDS = Object.keys(NPC_DATA);
 
@@ -719,6 +752,9 @@ export const STORY = [
   { title: 'Vogelfreunde', desc: 'Kauft ein Fernglas im Krämerladen und entdeckt 5 verschiedene Vögel.', ev: 'bird', n: 5, money: 2000 },
   { title: 'Ebbe und Flut', desc: 'Sammelt bei Ebbe 3 Tiere aus den Gezeiten-Tümpeln am Strand.', ev: 'tide', n: 3, money: 1500 },
   { title: 'Stempeljäger', desc: 'Sammelt 5 Stempel für euren Stempelpass (Handy ➜ Stempel).', ev: 'stamp', n: 5, money: 2500 },
+  { title: 'Kleine Gärtner', desc: 'Stellt einen Komposter auf und holt euch Kompost.', ev: 'compost', n: 1, money: 1500 },
+  { title: 'Gläser für den Winter', desc: 'Kocht in der Gartenküche 3 Gläser ein (Marmelade, Saft, Kompott …).', ev: 'jar', n: 3, money: 2000 },
+  { title: 'Blumengrüße', desc: 'Liefert 2 Sträuße aus dem Blumenladen (Handy ➜ Blumen).', ev: 'bouquet', n: 2, money: 2500 },
 ];
 export const DAILY = [
   ['Gießt 8 Blumen', 'water', 8, 300], ['Erntet 6 Blumen oder Gemüse', 'harvest', 6, 400], ['Pflückt 6 Obst', 'fruit', 6, 400],
@@ -735,6 +771,8 @@ export const DAILY = [
   ['Beobachtet 2 Vögel mit dem Fernglas', 'bird', 2, 400], ['Sammelt 2 Tiere aus den Gezeiten-Tümpeln', 'tide', 2, 400], ['Spielt eine Runde Minigolf', 'golf', 1, 500],
   ['Kocht im Inselcafé ein Getränk', 'cafe', 1, 300], ['Holt euch 2 Stempel für den Stempelpass', 'stamp', 2, 400], ['Trefft 3-mal mit Schneebällen', 'snowball', 3, 400],
   ['Tanzt im Mondschein-Club', 'dance', 1, 400], ['Lest in der Bibliothek ein Rätselbuch', 'book', 1, 400],
+  ['Liefert einen Blumenstrauß', 'bouquet', 1, 500], ['Reitet mit dem Pony aus', 'ride_pony', 1, 400], ['Fangt einen Hochseefisch', 'bigfish', 1, 600],
+  ['Holt eine Medaille bei der Olympiade', 'medal', 1, 400], ['Lotst ein Schiff mit dem Leuchtturm', 'ship', 1, 500],
 ];
 
 // ---------- Wochentage, Rübenbörse ----------

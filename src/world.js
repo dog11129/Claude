@@ -30,6 +30,7 @@ import { bridgeParts } from './bridges.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS, chatLine } from './npc.js';
 import { updateIslandW, syncSled } from './world-extra.js';
+import { npcStep } from './npc-walk.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
 import { placeable } from './nature.js';
@@ -1412,10 +1413,9 @@ export class World {
         e.speed += (0 - e.speed) * Math.min(1, dt * 8);
       } else {
         const p = posOf(id, s.time, s.dayTime), q = posOf(id, s.time + 0.3, s.dayTime + 0.0008), k = Math.min(1, dt * 5);
-        e.x += (p.x - e.x) * k;
-        e.z += (p.z - e.z) * k;
-        if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
-        e.speed += ((p.walking ? 0.7 : 0) - e.speed) * Math.min(1, dt * 6);
+        const way = npcStep(s, e, p.x, p.z, dt, k, this.time); // um Gebäude & Dinge herum (npc-walk.js)
+        if (way != null) e.ry = way; else if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
+        e.speed += ((p.walking || way != null ? 0.7 : 0) - e.speed) * Math.min(1, dt * 6);
         if (e.face != null) { e.ry = e.face; e.speed *= 0.5; }
         if (gp && Math.hypot(e.x - gp[0], e.z - gp[1]) < 2.6) e.ry = Math.atan2(gp[0] - e.x, gp[1] - e.z); // zum Grill schauen
       }
