@@ -8,7 +8,7 @@ export { PROJECTS };
 // ---------- Orte außerhalb der Insel (wie das Zuhause bei x = 300 liegen sie weit weg) ----------
 export const STREET = { x: 0, z: -300, w: 13.3, d: 3.3 };   // Bummelgasse: begehbar |lx| ≤ w, |lz| ≤ d
 export const TROPIC = { x: 0, z: 300, r: 9.3 };             // Tropeninsel: runde Insel mit Steg nach Süden
-export const zoneOf = p => (p.x > 150 ? 'home' : p.x < -150 ? areaOf(p) : p.z < -150 ? 'street' : p.z > 3600 ? 'deepsea' : p.z > 3000 ? 'volcano' : p.z > 2600 ? 'grotto' : p.z > 1900 ? 'depths' : p.z > 1350 ? 'wreck' : p.z > 1000 ? 'reef' : p.z > 450 ? 'trip' : p.z > 150 ? 'tropic' : 'island');
+export const zoneOf = p => (p.x > 150 ? 'home' : p.x < -150 ? areaOf(p) : p.z < -450 ? 'fair' : p.z < -150 ? 'street' : p.z > 3600 ? 'deepsea' : p.z > 3000 ? 'volcano' : p.z > 2600 ? 'grotto' : p.z > 1900 ? 'depths' : p.z > 1350 ? 'wreck' : p.z > 1000 ? 'reef' : p.z > 450 ? 'trip' : p.z > 150 ? 'tropic' : 'island');
 
 // Läden in der Bummelgasse (lokale Kacheln, Norden = Ladenreihe)
 export const STREET_SHOPS = {
@@ -38,6 +38,7 @@ export function clampPos(x, z, isl) {
   const zone = zoneOf({ x, z });
   if (zone === 'home') return [c(x, 292, 308), c(z, -150, 300)]; // mit Dachboden, Keller, Baumhaus (nördlich) // eigenes Haus und die Zimmer der Nachbarn (weiter südlich)
   if (zone === 'street') return [c(x, STREET.x - 16, STREET.x + 16), c(z, STREET.z - 8, STREET.z + 8)];
+  if (zone === 'fair') return [c(x, -14, 14), c(z, -600 - 10, -600 + 10)];
   if (zone === 'tropic') return [c(x, TROPIC.x - 16, TROPIC.x + 16), c(z, TROPIC.z - 16, TROPIC.z + 16)];
   if (zone === 'deepsea') return [c(x, -3, 3), c(z, 3700 - 6, 3700 + 6)];
   if (zone === 'volcano') return [c(x, -17, 17), c(z, 3200 - 17, 3200 + 17)];
@@ -84,6 +85,8 @@ export const WARDROBE = {
   pirate: { name: 'Piratenhut', icon: '🏴‍☠️', price: 4200 },
   tiara:  { name: 'Diadem', icon: '👸', price: 6800 },
   sunhat: { name: 'Tropen-Sonnenhut', icon: '👒', medals: 6 },
+  bommel: { name: 'Bommelmütze', icon: '🧶', knit: 1 }, // gestrickt am Webstuhl
+  zipfel: { name: 'Zipfelmütze', icon: '🧶', knit: 1 },
 };
 export const isPremiumHat = id => !!WARDROBE[id];
 

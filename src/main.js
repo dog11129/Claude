@@ -25,6 +25,9 @@ import { initFun2, uiW, travelW, contextW, executeW, updateW, iceMove, gameOn, s
 import { APP_PANELS_W } from './ui-extra.js';
 import { initFun3, uiV, travelV, exitV, contextV, executeV, updateV, trainContext, endTrain } from './client/fun3.js';
 import { APP_PANELS_V } from './ui-extra2.js';
+import { initFun4, uiE, travel6, contextE, executeE, updateE, busy6 } from './client/fun4.js';
+import { APP_PANELS_6 } from './ui-extra3.js';
+import * as E6 from './extras6.js';
 import * as V from './extras5.js';
 import { initFun, autoQuality, startRide, updateRide, photoEntry, drawStars, setBike, startKite, kitePull, updateKite, endKite } from './client/fun.js';
 import { DEPTH, DEPTH_LV, DEPTH_UP, DEPTH_DOOR, DEPTH_STAIRS, ECHO_NOTES } from './extras3.js';
@@ -46,7 +49,8 @@ const profile = { uid: /^[a-z0-9]{8,16}$/.test(oldProfile?.uid || '') ? oldProfi
 const saveProfile = () => store.set('kh.profile', profile);
 if (oldProfile && oldProfile.uid !== profile.uid) saveProfile(); // feste Spieler-ID einmal merken
 
-const settings = { quality: touch ? 'mid' : 'high', sound: 0.8, music: 0.5, landscape: false, names: true, fullscreen: touch, ...store.get('kh.settings', {}) };
+const weakDevice = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 3; // schwächere Handys starten mit „Niedrig“
+const settings = { quality: weakDevice ? 'low' : touch ? 'mid' : 'high', sound: 0.8, music: 0.5, landscape: false, names: true, fullscreen: touch, ...store.get('kh.settings', {}) };
 if (typeof settings.sound !== 'number') settings.sound = settings.sound === false ? 0 : 0.8;
 if (typeof settings.music !== 'number') settings.music = settings.music === false ? 0 : 0.5;
 if (!PRESETS[settings.quality]) settings.quality = 'mid';
@@ -68,6 +72,7 @@ initFun({
 });
 initFun2({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
 initFun3({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q), emote: e => sendEmote(e), listPhotos: () => photos.list(isleKey(), 'photo') });
+initFun4({ get G() { return G; }, world, profile, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
   world.setQuality({ scale: settings.scale, shadows: settings.shadows, bloom: settings.bloom, grass: settings.grass, lights: settings.lights, view: settings.view });
@@ -201,6 +206,8 @@ function hostData(id, d) {
     p.sl = d.sl === true; // Schlitten
     p.po = d.po === true; // Pony
     p.tn = d.tn === true; // Bimmelbahn
+    p.fh = Number.isFinite(d.fh) ? Math.max(0, Math.min(8, d.fh)) : 0; // Riesenrad & Karussell
+    p.td = d.td === true; p.tp = d.tp === true; // Tandem: vorne / hinten
     p.kh = Number.isFinite(d.kh) ? Math.max(0, Math.min(120, d.kh)) : 0; // Drachen-Höhe
     p.rh = Number.isFinite(d.rh) ? Math.max(0, Math.min(12, d.rh)) : 0; // Ballonfahrt
   }
@@ -787,7 +794,7 @@ function netTick() {
   } else {
     const me = G.players[G.me];
     if (!me || G.reconnecting || G.ended) return;
-    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, sl: !!me.sled, po: !!me.pony, tn: !!me.tn, kh: me.kh || 0, rh: me.rh || 0 };
+    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, sl: !!me.sled, po: !!me.pony, tn: !!me.tn, fh: me.fh ? r3(me.fh) : 0, td: !!me.td, tp: !!me.tp, kh: me.kh || 0, rh: me.rh || 0 };
     const sig = JSON.stringify(msg);
     if (sig !== G.lastMove || now - (G.lastMoveT || 0) > 1000) { G.conn?.send(msg); G.lastMove = sig; G.lastMoveT = now; }
     if (now - G.lastHost > 9000) lostConnection();
@@ -1137,6 +1144,7 @@ const panels = new Panels({
   async ui(kind, d) {
     if (kind.startsWith('w:')) { uiW(kind.slice(2), d); return; } // Inselleben 4 (client/fun2.js)
     if (kind.startsWith('v:')) { uiV(kind.slice(2), d); return; } // Inselleben 5 (client/fun3.js)
+    if (kind.startsWith('e:')) { uiE(kind.slice(2), d); return; } // Inselleben 6 (client/fun4.js)
     if (kind === 'app') openApp(d.app);
     if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
     if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
@@ -1267,7 +1275,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W, ...APP_PANELS_V }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W, ...APP_PANELS_V, ...APP_PANELS_6 }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -1659,6 +1667,7 @@ function context(me, at) {
   }
   if (!at && G.sel === 'kite' && !S.inside(me)) return { kite: true, label: '🪁 Drachen steigen lassen', tiles: [] };
   if (G.train) return trainContext();
+  if (!at) { const pe = contextE(me); if (pe) return pe; } // Tandem
   if (!at) { const pv = contextV(me); if (pv) return pv; } // Pony
   if (!at && G.sel === 'bike') return { bike: true, label: me.bike ? '🚲 Absteigen' : '🚲 Aufs Fahrrad', tiles: [] };
   if (!at && (G.sel === 'bino' || G.sel === 'sled')) { const c = contextW(me, null); if (c) return c; }
@@ -1678,6 +1687,7 @@ function pressAction() {
   if (G?.build) { if (G.build.pend) confirmBuild(); else pickBuild(G.hover ? world.pick(G.hover.cx, G.hover.cy) || buildFront() : buildFront()); return; }
   if (G?.kite) { kitePull(); return; }
   if (G?.train) { endTrain(); return; }
+  if (G?.fride) return;
   if (busy()) return;
   actHeld = true;
   nextAct = performance.now() + 380;
@@ -1694,6 +1704,7 @@ function execute(r, fresh) {
   if (!r) return;
   if (executeW(r, fresh)) return;
   if (executeV(r, fresh)) return;
+  if (executeE(r, fresh)) return;
   const me = G.players[G.me];
   if (r.npc === 'hoppel') { if (fresh) { interrupt(); panels.show('turnip'); world.npcSay('hoppel', 'happy'); world.npcBubble('hoppel', 'Rüben! Frische Rüben!'); play('chat'); } return; }
   if (r.npc) { if (fresh) openTalk(r.npc); return; }
@@ -1753,6 +1764,7 @@ function execute(r, fresh) {
     interrupt();
     if (r.slot !== undefined) G.reefSlot = r.slot;
     if (r.castle) G.castleK = r.castle;
+    G.uiAt = r.uid || null; // welches Becken, welcher Stand …
     if (r.visitor) { G.visitor = r.visitor; G.vline = null; send({ t: 'vtalk', id: r.visitor }); for (let i = 0; i < 4; i++) setTimeout(() => speak('aeiou'[i], NPCS[r.visitor].voice || {}), i * 90); }
     if (r.ui === 'farm') panels.show('shop', 'farm');
     else panels.show(r.ui);
@@ -1800,7 +1812,7 @@ function standUp(me) {
 function tapAt(cx, cy) {
   if (G?.build) { buildTap(cx, cy); return; }
   if (G?.kite) { kitePull(); return; }
-  if (busy() || G.train) return;
+  if (busy() || G.train || busy6()) return;
   const me = G.players[G.me];
   if (G.fishing) { reelIn(); return; }
   const t = aimAt(cx, cy);
@@ -1883,7 +1895,7 @@ function travel(where) {
   interrupt();
   panels.close();
   fade();
-  const to = travelV(where) || travelW(where) || (where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
+  const to = travel6(where) || travelV(where) || travelW(where) || (where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
@@ -2340,6 +2352,7 @@ function drawMap() {
     g.fillText(p.name, X(p.x), X(p.z) - r - sc * 0.9);
   }
   if (s.balloon) { const b = S.balloonPos(s.balloon, s.time); g.font = `${sc * 2.2}px sans-serif`; g.fillText('🎈', X(b.x), X(b.z)); }
+  if (E6.pirateReady(s) && E6.PIRATE[s.pirate.stage]?.dig) { const [tx, tz] = s.pirate.at; g.strokeStyle = '#7a3ad6'; g.lineWidth = 4; g.beginPath(); g.moveTo(X(tx - 0.8), X(tz - 0.8)); g.lineTo(X(tx + 0.8), X(tz + 0.8)); g.moveTo(X(tx + 0.8), X(tz - 0.8)); g.lineTo(X(tx - 0.8), X(tz + 0.8)); g.stroke(); }
   if (s.tmap?.spot) { const [tx, tz] = s.tmap.spot.split(',').map(Number); g.strokeStyle = '#d6303a'; g.lineWidth = 4; g.beginPath(); g.moveTo(X(tx - 0.8), X(tz - 0.8)); g.lineTo(X(tx + 0.8), X(tz + 0.8)); g.moveTo(X(tx + 0.8), X(tz - 0.8)); g.lineTo(X(tx - 0.8), X(tz + 0.8)); g.stroke(); }
   if (G.goal && G.goal.x !== undefined) { g.strokeStyle = '#ff5d7a'; g.lineWidth = 3; g.beginPath(); g.arc(X(G.goal.x), X(G.goal.z), sc * 0.8, 0, 7); g.stroke(); }
 }
@@ -2384,7 +2397,7 @@ function gameFrame(dt, now) {
   if (spin && !editor.isOpen && !G.talk) { world.rotate(spin * dt * 2.2 * settings.camSpeed * (settings.invert ? -1 : 1)); world.yaw = world.yawT; }
   // Laufen (Tastatur/Joystick relativ zur Kamera, sonst zum Tipp-Ziel)
   let vx = 0, vz = 0;
-  if (!busy() && !G.train) {
+  if (!busy() && !G.train && !busy6()) {
     if (keys.has('a') || keys.has('arrowleft')) vx--;
     if (keys.has('d') || keys.has('arrowright')) vx++;
     if (keys.has('w') || keys.has('arrowup')) vz--;
@@ -2412,7 +2425,7 @@ function gameFrame(dt, now) {
     if (me.pose) standUp(me);
     const swim = (s.inv.neopren || 0) > 0 && !S.inside(me);
     me.run = !me.sw && (keys.has('shift') || Math.hypot(joy.x, joy.y) > 0.92);
-    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike ? 1.75 : me.pony ? 1.7 : me.sled ? 1.55 : me.run ? 1.6 : 1);
+    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike || me.td ? 1.75 : me.pony ? 1.7 : me.sled ? 1.55 : me.run ? 1.6 : 1);
     const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b, swim));
     const stuck = !free(me.x, me.z);
     if (!iceMove(me, wx * sp, wz * sp, free)) { // auf dem Eis rutscht man (client/fun2.js)
@@ -2423,6 +2436,7 @@ function gameFrame(dt, now) {
     if (G.fishing) stopFishing();
     if (S.inside(me)) { const R = S.roomOf(s, S.roomIdAt(me.z)); if (me.z - R.z0 > R.size[1] / 2 + 0.25) execute({ exit: true, room: R.id }, true); } // durch die Tür hinaus
     if (zoneOf(me) === 'street' && me.z - STREET.z > STREET.d + 0.5) travel('island'); // durchs Tor zurück
+    if (zoneOf(me) === 'fair' && me.z - E6.FAIR.z > E6.FAIR.d + 0.5) travel('fairback'); // Jahrmarkt: durchs Tor zurück
     if (me.x < -150) { const A = S.AREAS[S.areaOf(me)]; if (me.z - A.z > A.d + 0.7) travel('island'); }
   } else me.run = false;
   const wasSw = me.sw;
@@ -2462,6 +2476,7 @@ function gameFrame(dt, now) {
   updateKite(dt);
   updateW(dt);
   updateV(dt);
+  updateE(dt);
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)
@@ -2498,12 +2513,12 @@ function gameFrame(dt, now) {
     skyGifts: G.ride?.gifts || null,
     preview: editor.isOpen ? previewCam(me.x, me.z) : null, sky: G.skyView,
   });
-  if (panels.open === 'map') drawMap();
+  if (panels.open === 'map' || panels.open === 'pirate') drawMap();
   if (panels.open === 'stars') drawStars();
   if (s.balloon && G.balloonSeen !== s.balloon.id) { G.balloonSeen = s.balloon.id; toast('🎈 Ein Geschenkballon schwebt über die Insel! Schnapp dir die Schleuder.'); play('chat'); }
   const zone = zoneOf(me), fireD = zone === 'island' ? Math.min(...Object.entries(s.obj || {}).filter(([, o]) => o?.k === 'strandgrill' || o?.k === 'lagerfeuer').map(([k]) => { const [x, z] = k.split(',').map(Number); return Math.hypot(x - me.x, z - me.z); }), 99) : 99;
   ambience({ day: info.day, night: info.night, rain: XS.isRainy(s) && !S.inside(me), storm: s.weather === 'storm', fog: s.weather === 'fog', walking: me.m && !me.rh, area: me.x < -150 ? S.areaOf(me) : zone === 'depths' ? 'hoehle' : null, underwater: zone === 'reef' || zone === 'wreck', fire: fireD < 6 ? 1 - fireD / 6 : 0 });
-  musicTick(6 + s.dayTime * 18, XS.isRainy(s));
+  musicTick(6 + s.dayTime * 18, XS.isRainy(s), zone === 'home' ? (V.XROOMS[S.roomIdAt(me.z)] ? S.roomIdAt(me.z) : null) : zone); // Musik je Ort
   // Gewitter: Blitze und Donner (nur draußen auf der Insel)
   if (s.weather === 'storm' && !S.inside(me) && Math.abs(me.z) < 150 && me.x < 150 && Math.random() < dt / 11) {
     world.lightning();

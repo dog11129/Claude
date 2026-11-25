@@ -37,7 +37,22 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🐴 Neu: Inselleben 5
+### 🎡 Neu: Inselleben 6
+- **🎡 Jahrmarkt:** Einmal pro Jahreszeit (Frühling & Winter am Montag, Sommer & Herbst am Mittwoch, 10–22 Uhr) hinter der Bummelgasse – am Ostende der Gasse geht es hinein. Riesenrad (die Kamera fährt mit nach oben), Karussell, Losbude mit Plüschtieren und Riesenteddy, Entenangeln (Haken über eine Ente bringen, die Zahlen darunter zählen) und Zuckerwatte.
+- **🍽️ Inselrestaurant** (Rathaus-Projekt): 90 Sekunden Schicht – Bestellungen der Nachbarn ansehen, an der Station kochen, an den richtigen Tisch bringen, bevor die Geduld aufgebraucht ist. Sterne und Trinkgeld.
+- **🐠 Aquarium & 🦗 Terrarium** (Krämerladen): bis zu vier gefangene Fische, Meerestiere oder Insekten pro Becken – sie schwimmen und krabbeln darin herum. Beim Abbauen kommen sie zurück in die Tasche.
+- **🏴‍☠️ Die alte Seekarte:** Käpt'n Flossi gibt sie euch (ab Level 3). Fünf Spuren an fünf Tagen: ein Kreuz auf der Insel, ein Zeichen im Korallenriff, eines auf der Tropeninsel, eines im Wrack und zuletzt die Truhe am Strand – mit 10.000 Talern, Steuerrad, Piratentruhe und Piratenhut.
+- **🐑 Schafe & 🧶 Webstuhl:** Schafweide (füttern & scheren), Wolle mit einer Blume färben und weben: Wollteppiche und Strickkissen in sieben Farben, ein Wandteppich, der eure eigenen Muster zeigt, und zwei Strickmützen.
+- **🐝 Imkerei:** Bienenkästen neben blühende Blumen stellen – die häufigste Blütenfarbe ringsum bestimmt die Sorte (Rosen-, Blüten-, Sonnen-, Bernstein-, Lavendel-, Himmels- und Kleehonig). Alle sieben = Honigregal.
+- **🦔 Wildtiere:** Igel (abends unter einem Obstbaum), Eichhörnchen (tagsüber) und Enten am Teich. Jeden Tag füttern – nach fünf Tagen sind sie zahm, kommen in den Garten und lassen morgens kleine Geschenke da.
+- **✂️ Obstbäume veredeln:** Mit dem Veredelungsmesser eine zweite Sorte aufpfropfen; nach zwei Tagen trägt der Baum beide – und manche Paare bringen ganz neue Früchte (Birnapfel, Kirschpfirsich, Sonnenpfirsich, Rubinapfel, Goldbirne).
+- **🧺 Picknick & 🚲 Tandem:** Auf der Picknickdecke ein Gericht auslegen, drei Nachbarn setzen sich dazu. Auf dem Tandem kann ein Freund hinten aufsitzen.
+- **🎸 Inselband:** Handy ➜ Band – Gitarre, Trommel, Flöte oder Glockenspiel im Takt üben; abends ab 19 Uhr steht die Band auf dem Dorfplatz, und ihr gebt das Konzert. Mehr verschiedene Instrumente = mehr Punkte.
+- **👣 Einstieg für Neue:** Auf neuen Inseln führt Mira durch die ersten Schritte (laufen, Bäume schütteln, Obst sammeln, pflanzen, Nachbarn begrüßen). Bis dahin sind nur die wichtigsten Knöpfe zu sehen; überspringen geht jederzeit. Alte Spielstände bleiben, wie sie sind.
+- **🎶 Musik je Ort:** Hochsee, Vulkan, Grotte, Höhlen-Tiefen, Riff, Wrack, Tropeninsel, Bummelgasse, Jahrmarkt, Dachboden, Keller und Baumhaus haben eine eigene Stimmung.
+- **📱 Schneller auf dem Handy:** Bummelgasse und Tropeninsel werden erst gebaut, wenn man hinkommt; Nachbarn und Tiere außer Sicht werden nicht animiert; schwächere Geräte starten mit der Grafikstufe „Niedrig“.
+
+### 🐴 Inselleben 5
 - **🚶 Nachbarn laufen nicht mehr durch Häuser und Deko:** Sie suchen sich ihren Weg außen herum (Wegsuche auf dem Kachelraster), auch um neu aufgestellte Sachen.
 - **🪜 Dachboden & Keller:** Ab Haus-Ausbaustufe 3 im Handy ➜ Zimmer (je 60.000 Taler). Die Treppe kommt in die Tasche – im Haus aufstellen, dann geht es hinauf bzw. hinunter. Beide Zimmer lassen sich wie das Haus einrichten.
 - **🖌️ Möbel lackieren:** Farbpinsel aus dem Krämerladen, dann im Baumodus ➜ 🖌️ Lackieren. Jedes Antippen gibt die nächste von 8 Farben.
@@ -229,6 +244,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/extras2.js`, `src/extras3.js`, `src/features/*.js` | Neuere Inhalte, je Thema eine Datei (Geschichten, Hof, Riff, Strand, Seilbahn, Ballon, Schmetterlinge, Wrack, Spiele, Fotowettbewerb, Grill, Sterne, Nachbarzimmer, Höhlen-Tiefen) |
 | `src/extras4.js`, `src/client/fun2.js`, `src/ui-extra.js`, `src/world-extra.js` | Inselleben 4: Logik, Minispiele & Fahrten im Browser, Fenster, 3D (Grotte, Vulkan, Tümpel, Stempel) |
 | `src/extras5.js` + `src/features/*.js`, `src/client/fun3.js`, `src/ui-extra2.js`, `src/world-extra2.js`, `src/npc-walk.js` | Inselleben 5: Logik (aufgeteilt nach Themen), Minispiele & Fahrten, Fenster, 3D (Pony, Bahn, Hochsee-Boot, Lack); Wegsuche der Nachbarn |
+| `src/extras6.js` + `src/features/*.js`, `src/client/fun4.js`, `src/ui-extra3.js`, `src/world-extra3.js` | Inselleben 6: Logik, Minispiele (Entenangeln, Restaurant, Bandprobe), Fahrten, Einstieg, Fenster, 3D (Jahrmarkt, Becken, Wildtiere, Tandem) |
 | `src/client/fun.js`, `src/guide.js` | Ballonfahrt, Fotowettbewerb-Knopf, Sternbild-Editor, Fahrrad, Drachen · Inselführer |
 | `src/models-extra.js` | Modelle der neuen Deko und Möbel |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |

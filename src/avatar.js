@@ -15,7 +15,7 @@ export const LOOKS = {
   bottomColor: ['#4a6fa5', '#2f3e5c', '#8a5a3a', '#c9b48a', '#3b3b4a', '#ff8fab', '#8fd694', '#b39cff'],
   shoes: ['#6b4a32', '#3b3b4a', '#f5f5f5', '#ff6b6b', '#ffd23f', '#6cc4ff'],
   hat: [['none', 'Ohne'], ['straw', 'Strohhut'], ['cap', 'Mütze'], ['flowers', 'Blumenkranz'], ['bunny', 'Hasenohren'], ['crown', 'Krone'], ['beanie', 'Strickmütze'], ['cat', 'Katzenohren'], ['bow', 'Schleife'], ['cowboy', 'Cowboyhut'], ['wizard', 'Zauberhut'],
-    ['beret', 'Baskenmütze'], ['tophat', 'Zylinder'], ['pirate', 'Piratenhut'], ['tiara', 'Diadem'], ['sunhat', 'Sonnenhut']],
+    ['beret', 'Baskenmütze'], ['tophat', 'Zylinder'], ['pirate', 'Piratenhut'], ['tiara', 'Diadem'], ['sunhat', 'Sonnenhut'], ['bommel', 'Bommelmütze'], ['zipfel', 'Zipfelmütze']],
   glasses: [['none', 'Ohne'], ['round', 'Rund'], ['sun', 'Sonnenbrille'], ['heart', 'Herzbrille']],
   pet: [['none', 'Kein Haustier'], ['cat', 'Katze'], ['dog', 'Hund'], ['bunny', 'Hase'], ['chick', 'Küken'], ['fox', 'Fuchs'], ['pig', 'Schwein']],
   petColor: ['#e8a35c', '#f5f0e6', '#8a8a92', '#6b4a32', '#3b3b40', '#ffd966'],
@@ -27,7 +27,7 @@ export function defaultLook() {
   return { skin: '#ffd8b8', hairStyle: 'short', hairColor: '#6b4428', eyes: 'round', top: 'overalls', topColor: '#ff8fab', bottomColor: '#4a6fa5', shoes: '#6b4a32', hat: 'straw', glasses: 'none', pet: 'none', petColor: '#e8a35c' };
 }
 // Diese Hüte gibt es nur in der Schneiderei bzw. der Tauschhütte
-export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat'];
+export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat', 'bommel', 'zipfel'];
 export function randomLook() {
   const l = {};
   for (const k of KEYS) { const a = ids(k).filter(v => k !== 'hat' || !PREMIUM_HATS.includes(v)); l[k] = a[Math.floor(Math.random() * a.length)]; }
@@ -169,6 +169,16 @@ function hatParts(l) {
       const C = 0xfff0c9;
       return tf([cyl(0.56, 0.56, 0.03, C, 0, 0.23, 0, 16), dome(0.27, C, 0, 0.24, 0, 1, 0.75, 1), cyl(0.272, 0.272, 0.06, 0x6cc4ff, 0, 0.28, 0, 14),
         ball(0.06, 0xff6b8a, 0.24, 0.3, 0.1, 1, 1, 1, 6), ball(0.05, 0xffd23f, 0.27, 0.29, 0.0, 1, 1, 1, 6), ell(0.06, 0x76c955, 0.27, 0.27, 0.15, 1.4, 0.4, 0.8)], 0, 0, 0, -0.2);
+    }
+    case 'bommel': { // gestrickt: Rippenbund, Streifen, dicker Bommel
+      const C = T, D = shade(T, 0.75);
+      return tf([dome(0.345, C, 0, 0.13, -0.01, 1.05, 1.05, 1.05), cyl(0.358, 0.36, 0.1, D, 0, 0.15, -0.01, 14), cyl(0.33, 0.3, 0.04, WHITE, 0, 0.3, -0.01, 14),
+        ball(0.11, WHITE, 0, 0.56, -0.01, 1, 1, 1, 9)], 0, 0, 0, -0.3);
+    }
+    case 'zipfel': { // lange Zipfelmütze, die nach hinten fällt
+      const C = B;
+      return tf([cyl(0.355, 0.358, 0.09, shade(C, 0.8), 0, 0.15, -0.01, 14), cyl(0.12, 0.34, 0.3, C, 0, 0.33, -0.03, 12), cone(0.12, 0.42, C, 0, 0.55, -0.24, 10, -1.2),
+        ball(0.06, WHITE, 0, 0.47, -0.45, 1, 1, 1, 7)], 0, 0, 0, -0.3);
     }
     case 'wizard': {
       const C = 0x7b5cd6;

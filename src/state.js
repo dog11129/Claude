@@ -13,6 +13,7 @@ import * as Y from './extras2.js';
 import * as Z from './extras3.js';
 import * as W4 from './extras4.js';
 import * as V from './extras5.js';
+import * as E6 from './extras6.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -73,6 +74,7 @@ export function newFarm(name = 'Kuschelinsel') {
     quest: { i: 0, p: 0 }, daily: [], met: {},
     mayor: { ord: 'none', free: 1, plan: null, built: 0 }, loan: 0, wardrobe: {}, songs: {}, concert: 0, medals: 0, tropic: { picked: {} }, tour: null, hha: { best: 0 }, stars: 1,
     stats: { harvested: 0, earned: 0, fish: 0, orders: 0, treasure: 0, bugs: 0, dug: 0, cooked: 0, crafted: 0, wood: 0, fruit: 0, shells: 0, weeds: 0, planted: 0, balloons: 0, wishes: 0, turnipProfit: 0, turnipSpent: 0, dives: 0, donated: 0, tours: 0, trips: 0, repaid: 0, mush: 0, honey: 0, ore: 0, berry: 0 },
+    intro: { on: 1 }, // geführter Einstieg (nur neue Inseln)
   };
   bindInv(s);
   for (const [k, u] of Object.entries(UPGRADES)) s.up[k] = u.start;
@@ -138,7 +140,7 @@ export const npcAwake = s => { const h = 6 + s.dayTime * 18, [a, b] = awakeHours
 // Aufgaben für neue Gebiete nur, wenn das Gebiet schon offen ist
 const DAILY_NEEDS = { mush: ['wald'], ore: ['hoehle'], honey: ['wiese'], berry: ['wald', 'wiese'] };
 function newDailies(s) {
-  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s)) && (!V.DAILY_OK_V[DAILY[i][1]] || V.DAILY_OK_V[DAILY[i][1]](s));
+  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s)) && (!V.DAILY_OK_V[DAILY[i][1]] || V.DAILY_OK_V[DAILY[i][1]](s)) && (!E6.DAILY_OK_6[DAILY[i][1]] || E6.DAILY_OK_6[DAILY[i][1]](s));
   const pool = DAILY.map((d, i) => i).filter(ok).sort(() => Math.random() - 0.5).slice(0, 3);
   s.daily = pool.map(i => ({ i, p: 0 }));
 }
@@ -245,6 +247,7 @@ export function migrate(s) {
   if (!s.box || typeof s.box !== 'object') s.box = {};
   if (s.recipes && typeof s.recipes === 'object') s.recipes.f_kiste ||= 1; // Lagerkiste kann jede Insel bauen
   bindInv(s, s._who || 'host');
+  if (s.intro === undefined) s.intro = null; // geführter Einstieg nur für neue Inseln, nie für alte Spielstände
   for (const k of Object.keys(base)) if (s[k] === undefined) s[k] = base[k];
   for (const k of Object.keys(UPGRADES)) if (s.up[k] === undefined) s.up[k] = UPGRADES[k].start;
   for (const k of Object.keys(base.stats)) if (s.stats[k] === undefined) s.stats[k] = 0;
@@ -413,6 +416,7 @@ function actRoom(s, a, out) {
 export const swimmable = (x, z) => isSea(x, z) && !onPier(x, z) && coast(x, z) < 7.5 && Math.abs(x) < ISLAND + 6 && Math.abs(z) < ISLAND + 6;
 export function blocked(s, x, z, swim) {
   if (x > HOME_X / 2) return homeBlocked(s, x, z);
+  if (z < -450) return E6.blocked6(s, x, z); // Jahrmarkt
   if (z < -150) { // Bummelgasse (nach Süden geht's durchs Tor zurück)
     const lx = x - STREET.x, lz = z - STREET.z;
     return !(streetWalk(lx, lz) || (Math.abs(lx) <= 1.1 && lz > 0 && lz <= STREET.d + 0.9));
@@ -1058,7 +1062,7 @@ const ACTIONS = {
     s.trees ||= { rm: {}, add: {} };
     if (s.trees.add[k]) delete s.trees.add[k];
     if (RES_SPOTS[k]) s.trees.rm[k] = 1;
-    delete s.res[k]; delete s.shook[k]; if (s.fruit) delete s.fruit[k];
+    delete s.res[k]; delete s.shook[k]; if (s.fruit) delete s.fruit[k]; if (s.graft) delete s.graft[k];
     addInv(s, id, 1);
     s.stats.uprooted = (s.stats.uprooted || 0) + 1;
     out.msg = `🪏 ${ITEMS[id].name.replace(' (Ballen)', '')} eingepackt – in der Leiste wählen und woanders einpflanzen.`;
@@ -1112,6 +1116,7 @@ const ACTIONS = {
       const id = fruitOf(s, k), n = id === 'kokosnuss' ? 2 : 3;
       s.fruit[k] = s.day + FRUIT_REGROW;
       for (let i = 0; i < n; i++) drop(s, a.x, a.z, { id, n: 1 }, out, me);
+      E6.graftShake(s, k, out, it => drop(s, a.x, a.z, it, out, me)); // veredelt: zweite Sorte
       fx(out, a.x, a.z, '', 'fruit');
       out.snd = 'harvest';
       return true;
@@ -1354,6 +1359,7 @@ const ACTIONS = {
     if (!h) return false;
     if (R.id && h.key === '-2,-1' && h.o.k === 'einzelbett' && !h.o.by) { out.msg = 'Das ist das Bett von ' + NPC_DATA[R.id].name + ' – das bleibt hier.'; return false; }
     delete layer(s, FURNITURE[h.o.k], R)[h.key];
+    if (h.o.a) E6.tankEmpty(s, h.o); // Aquarium/Terrarium: Bewohner zurück in die Tasche
     addInv(s, h.o.k, 1);
     out.snd = 'place';
     return true;
@@ -1653,7 +1659,7 @@ Object.assign(ACTIONS, {
   },
   wear(s, a, out) { // Schneiderei / Tauschhütte: besondere Hüte freischalten
     const W = WARDROBE[a.id];
-    if (!W || ownsHat(s, a.id)) return false;
+    if (!W || W.knit || ownsHat(s, a.id)) return false;
     if (W.medals) {
       if ((s.medals || 0) < W.medals) { out.msg = 'Nicht genug Medaillen.'; return false; }
       s.medals -= W.medals;
@@ -1755,7 +1761,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1799,7 +1805,7 @@ function resolveHome(s, me, sel, at) {
   if (h) {
     const f = FURNITURE[h.o.k], tiles = footprint(h.o.k, h.x, h.z, h.o.r).map(W);
     const cx = h.x + ((h.o.r % 2 ? f.d : f.w) - 1) / 2 + HOME_X, cz = h.z + ((h.o.r % 2 ? f.w : f.d) - 1) / 2 + R.z0;
-    if (R.id) return f.sit ? { ...base, sit: { x: cx, z: cz, r: h.o.r }, label: '🪑 Hinsetzen', tiles } : { ...base, label: `${f.icon} ${f.name}`, tiles };
+    if (R.id && !R.x) return f.sit ? { ...base, sit: { x: cx, z: cz, r: h.o.r }, label: '🪑 Hinsetzen', tiles } : { ...base, label: `${f.icon} ${f.name}`, tiles };
     if (f.sit) return { ...base, sit: { x: cx, z: cz, r: h.o.r }, label: '🪑 Hinsetzen', tiles };
     if (f.bed) return { ...base, sleep: { x: cx, z: cz, r: h.o.r, wide: f.w > 1 }, label: '😴 Schlafen gehen', tiles };
     if (h.o.k === 'herd') return { ...base, ui: 'cook', label: '🍳 Kochen', tiles };
@@ -1807,6 +1813,7 @@ function resolveHome(s, me, sel, at) {
     if (f.pattern) return { ...base, a: { t: 'hpat', x: h.x, z: h.z }, label: '🎨 Anderes Muster zeigen', tiles };
     if (h.o.k === 'klavier') return { ...base, ui: 'piano', label: '🎹 Klavier spielen', tiles };
     if (h.o.k === 'spieltisch') return { ...base, ui: 'games', label: '🎲 Spieleabend', tiles };
+    if (E6.FURN_UI6[h.o.k]) return { ...base, ui: E6.FURN_UI6[h.o.k][0], uid: { x: h.x, z: h.z, room: R.id || null }, label: E6.FURN_UI6[h.o.k][1], tiles };
     if (V.FURN_GO5[h.o.k] && !R.id) return { ...base, go: V.FURN_GO5[h.o.k][0], label: V.FURN_GO5[h.o.k][1], tiles };
     if (W4.FURN_UI[h.o.k]) return { ...base, ui: W4.FURN_UI[h.o.k][0], label: W4.FURN_UI[h.o.k][1], tiles };
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
@@ -1863,7 +1870,10 @@ export function resolveBuild(s, b, x, z) {
 
 export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
+  const r6 = me.sw ? null : E6.resolve6(s, me, sel, at); // Schatzkarte, Wildtiere, Konzert, Veredeln
+  if (r6) return r6;
   if (me.x < -150) return resolveArea(s, me, sel, at);
+  if (me.z < -450) return E6.resolveFair6(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
   if (me.z > 3600) return V.resolveV(s, me, sel, at);
   if (me.z > 2600) return W4.resolveW(s, me, sel, at);
@@ -1941,6 +1951,8 @@ export function resolve(s, me, sel, at) {
     const p = PLACE[o.k];
     if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { label: '🚩 Bauplatz (im 🔨 Baumodus abbauen)', tiles: one };
     if (o.k === 'seilbahn') return { ui: 'cable', label: '🚡 Seilbahn fahren', tiles: one };
+    const o6 = E6.resolveObj6(s, o, k, x, z);
+    if (o6) return o6;
     if (V.OBJ_GO5[o.k]) return { go: V.OBJ_GO5[o.k][0], label: V.OBJ_GO5[o.k][1], tiles: one };
     if (V.OBJ_UI5[o.k]) return { ui: V.OBJ_UI5[o.k][0], label: V.OBJ_UI5[o.k][1], tiles: one };
     if (W4.OBJ_UI[o.k]) return { ui: W4.OBJ_UI[o.k][0], label: W4.OBJ_UI[o.k][1], tiles: one };
@@ -2013,6 +2025,7 @@ function resolveStreet(s, me, sel, at) {
   const b = streetShopAt(lx, lz);
   if (b) { const B = STREET_SHOPS[b]; return { ui: B.use, label: `${B.who.split(' ')[0]} ${B.name}`, tiles }; }
   if (lz >= 4 && Math.abs(lx) <= 1) return { go: 'island', label: '🏝️ Zurück zur Insel', tiles };
+  if (lx >= STREET.w - 0.6) return E6.fairOpen(s) ? { go: 'fair', label: '🎡 Zum Jahrmarkt!', tiles } : { label: `🎡 Jahrmarkt: ${E6.nextFair(s) === s.day ? 'heute ab 10 Uhr' : `in ${E6.nextFair(s) - s.day} Tag${E6.nextFair(s) - s.day > 1 ? 'en' : ''}`}`, tiles };
   return { label: '', tiles: [] };
 }
 // Tropeninsel: Tauschhütte, Obstbäume, Tour-Ziele, Kescher, Boot zurück

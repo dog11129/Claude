@@ -25,7 +25,7 @@ export * from './features/depths.js';
 const hasObj = (s, ...k) => Object.values(s.obj || {}).some(o => k.includes(o?.k));
 const anyInv = (s, id) => Object.values(s.pinv || {}).some(v => v?.[id] > 0);
 export const DAILY_OK = {
-  farm: s => hasObj(s, 'huehnerstall', 'kuhweide'),
+  farm: s => hasObj(s, 'huehnerstall', 'kuhweide', 'schafweide'),
   grill: s => hasObj(s, 'strandgrill'),
   gamewin: s => Object.values(s.home?.items || {}).some(o => o?.k === 'spieltisch'),
   chest: s => !!s.wreck?.found,

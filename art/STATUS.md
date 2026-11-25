@@ -4,16 +4,19 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
-| place | 125 | 49 | 76 |
-| furniture | 109 | 41 | 68 |
+| place | 129 | 49 | 80 |
+| furniture | 133 | 41 | 92 |
 | items | 142 | 0 | 142 |
 | crops | 102 | 42 | 60 |
-| Icons | 473 | 0 eigene Bilder | 473 gerendert |
+| Icons | 518 | 0 eigene Bilder | 518 gerendert |
 
-## place – noch Platzhalter (76)
+## place – noch Platzhalter (80)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
+| Schafweide | `schafweide` | 1.37 × 1.17 × 1.82 | 136 |
+| Bienenkasten | `bienenkasten` | 0.65 × 1.13 × 0.65 | 544 |
+| Picknickdecke | `picknickdecke` | 1.6 × 0.4 × 1.6 | 600 |
 | Komposter | `komposter` | 0.92 × 0.64 × 0.72 | 444 |
 | Töpferscheibe | `toepferscheibe` | 0.92 × 0.69 × 0.64 | 256 |
 | Ponystall | `ponystall` | 1.8 × 1.75 × 1.83 | 92 |
@@ -90,8 +93,9 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Freiluftkino | `freiluftkino` | 2.7 × 2.26 × 1.62 | 164 |
 | Inselbühne | `buehne` | 2.42 × 2.13 × 2.07 | 132 |
 | Bimmelbahn | `bahnhof` | 2.6 × 1.76 × 1.63 | 148 |
+| Inselrestaurant | `restaurant` | 2.47 × 2.02 × 2.47 | 472 |
 
-## furniture – noch Platzhalter (68)
+## furniture – noch Platzhalter (92)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -100,7 +104,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Pilzlampe | `pilzlampe` | 0.6 × 0.79 × 0.6 | 1560 |
 | Edelsteinvitrine | `edelsteinvitrine` | 0.7 × 1.04 × 0.5 | 620 |
 | Zapfenkranz | `zapfenkranz` | 0.64 × 0.64 × 0.16 | 2328 |
-| Honigregal | `honigregal` | 0.8 × 1 × 0.36 | 672 |
+| Honigregal | `honigregal` | 0.8 × 1.2 × 0.36 | 608 |
 | Baumstumpf-Tisch | `baumstumpftisch` | 0.89 × 0.53 × 0.84 | 1224 |
 | Sternenglobus | `sternglobus` | 0.56 × 1.06 × 0.67 | 976 |
 | Mondsessel | `mondsessel` | 1.1 × 1.17 × 0.8 | 1160 |
@@ -139,7 +143,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Orchideentopf | `orchideentopf` | 0.4 × 0.67 × 0.24 | 3688 |
 | Hängepflanze | `haengepflanze` | 0.33 × 0.92 × 0.28 | 1792 |
 | Kuckucksuhr | `kuckucksuhr` | 0.47 × 1.09 × 0.47 | 376 |
-| Wandteppich | `wandteppich` | 0.8 × 1.01 × 0.03 | 196 |
+| Wandteppich | `wandteppich` | 1.07 × 1.41 × 0.07 | 492 |
 | Sternenteppich | `sternenteppich` | 1.8 × 0.03 × 1.8 | 504 |
 | Buddelschiff | `buddelschiff` | 0.6 × 0.33 × 0.26 | 164 |
 | Schiffsglocke | `schiffsglocke` | 0.3 × 0.65 × 0.26 | 332 |
@@ -163,6 +167,30 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Krug (blau) | `topf_krug_blau` | 0.32 × 0.43 × 0.29 | 700 |
 | Krug (grün) | `topf_krug_gruen` | 0.32 × 0.43 × 0.29 | 700 |
 | Krug (gelb) | `topf_krug_gelb` | 0.32 × 0.43 × 0.29 | 700 |
+| Terrarium | `terrarium` | 0.84 × 1.13 × 0.66 | 504 |
+| Webstuhl | `webstuhl` | 1.7 × 1.3 × 0.9 | 396 |
+| Plüschbär | `pluesch_baer` | 0.48 × 0.65 × 0.39 | 2316 |
+| Plüschhase | `pluesch_hase` | 0.38 × 0.78 × 0.33 | 2112 |
+| Plüschente | `pluesch_ente` | 0.44 × 0.54 × 0.55 | 1168 |
+| Plüschdrache | `pluesch_drache` | 0.57 × 0.67 × 0.66 | 1036 |
+| Riesenteddy | `riesenteddy` | 0.96 × 1.22 × 0.75 | 2892 |
+| Piratentruhe | `piratentruhe` | 0.72 × 0.73 × 0.49 | 416 |
+| Steuerrad | `steuerrad` | 0.87 × 0.87 × 0.08 | 2056 |
+| Bandposter | `bandposter` | 0.62 × 0.8 × 0.05 | 492 |
+| Wollteppich (rot) | `wollteppich_rot` | 1.9 × 0.05 × 1.62 | 784 |
+| Strickkissen (rot) | `strickkissen_rot` | 0.62 × 0.21 × 0.62 | 588 |
+| Wollteppich (rosa) | `wollteppich_rosa` | 1.9 × 0.05 × 1.62 | 784 |
+| Strickkissen (rosa) | `strickkissen_rosa` | 0.62 × 0.21 × 0.62 | 588 |
+| Wollteppich (gelb) | `wollteppich_gelb` | 1.9 × 0.05 × 1.62 | 784 |
+| Strickkissen (gelb) | `strickkissen_gelb` | 0.62 × 0.21 × 0.62 | 588 |
+| Wollteppich (orange) | `wollteppich_orange` | 1.9 × 0.05 × 1.62 | 784 |
+| Strickkissen (orange) | `strickkissen_orange` | 0.62 × 0.21 × 0.62 | 588 |
+| Wollteppich (lila) | `wollteppich_lila` | 1.9 × 0.05 × 1.62 | 784 |
+| Strickkissen (lila) | `strickkissen_lila` | 0.62 × 0.21 × 0.62 | 588 |
+| Wollteppich (blau) | `wollteppich_blau` | 1.9 × 0.05 × 1.62 | 784 |
+| Strickkissen (blau) | `strickkissen_blau` | 0.62 × 0.21 × 0.62 | 588 |
+| Wollteppich (weiß) | `wollteppich_weiss` | 1.9 × 0.05 × 1.62 | 784 |
+| Strickkissen (weiß) | `strickkissen_weiss` | 0.62 × 0.21 × 0.62 | 588 |
 
 ## items – noch Platzhalter (142)
 

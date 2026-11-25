@@ -235,6 +235,25 @@ export const ITEMS = {
   riesenmelone:  { name: 'Riesenmelone',   icon: '🍉', sell: 4500, cat: 'misc', xp: 10 },
   riesenkartoffel: { name: 'Riesenkartoffel', icon: '🥔', sell: 3500, cat: 'misc', xp: 10 },
   fahrrad:       { name: 'Fahrrad',        icon: '🚲', buy: 4500, lvl: 2, gear: true, desc: 'Viel schneller über die Insel flitzen' },
+  // Inselleben 6 (src/extras6.js)
+  tandem:        { name: 'Tandem',         icon: '🚲', buy: 9000, lvl: 3, gear: true, desc: 'Fahrrad für zwei: Freunde können hinten aufsitzen' },
+  veredelmesser: { name: 'Veredelungsmesser', icon: '✂️', buy: 1200, lvl: 2, gear: true, desc: 'In der Leiste wählen und an einen Obstbaum: eine zweite Obstsorte aufpfropfen' },
+  wolle:         { name: 'Wolle',          icon: '🧶', sell: 180, cat: 'mat', xp: 1 },
+  rosenhonig:    { name: 'Rosenhonig',     icon: '🍯', sell: 700, cat: 'mat', xp: 3, honey: 'rot' },
+  bluetenhonig:  { name: 'Blütenhonig',    icon: '🍯', sell: 650, cat: 'mat', xp: 3, honey: 'rosa' },
+  sonnenhonig:   { name: 'Sonnenhonig',    icon: '🍯', sell: 600, cat: 'mat', xp: 3, honey: 'gelb' },
+  bernsteinhonig: { name: 'Bernsteinhonig', icon: '🍯', sell: 650, cat: 'mat', xp: 3, honey: 'orange' },
+  lavendelhonig: { name: 'Lavendelhonig',  icon: '🍯', sell: 750, cat: 'mat', xp: 3, honey: 'lila' },
+  himmelshonig:  { name: 'Himmelshonig',   icon: '🍯', sell: 750, cat: 'mat', xp: 3, honey: 'blau' },
+  kleehonig:     { name: 'Kleehonig',      icon: '🍯', sell: 600, cat: 'mat', xp: 3, honey: 'weiss' },
+  birnapfel:     { name: 'Birnapfel',      icon: '🍏', sell: 600, cat: 'fruit', xp: 4, hybrid: 1 },
+  kirschpfirsich: { name: 'Kirschpfirsich', icon: '🍑', sell: 650, cat: 'fruit', xp: 4, hybrid: 1 },
+  sonnenpfirsich: { name: 'Sonnenpfirsich', icon: '🍑', sell: 650, cat: 'fruit', xp: 4, hybrid: 1 },
+  rubinapfel:    { name: 'Rubinapfel',     icon: '🍎', sell: 700, cat: 'fruit', xp: 4, hybrid: 1 },
+  goldbirne:     { name: 'Goldbirne',      icon: '🍐', sell: 700, cat: 'fruit', xp: 4, hybrid: 1 },
+  zuckerwatte:   { name: 'Zuckerwatte',    icon: '🍭', sell: 60, cat: 'dish', xp: 1 },
+  kandisapfel:   { name: 'Kandisapfel',    icon: '🍎', sell: 90, cat: 'dish', xp: 1 },
+  lutscher:      { name: 'Lutscher',       icon: '🍭', sell: 30, cat: 'dish', xp: 1 },
   // Siegerrezepte vom Kochwettbewerb
   sternentorte:  { name: 'Sternentorte',   icon: '🎂', sell: 3200, cat: 'dish', xp: 12 },
   inselcurry:    { name: 'Insel-Curry',    icon: '🍛', sell: 2600, cat: 'dish', xp: 10 },
@@ -392,6 +411,9 @@ export const PLACE = {
   heu:        { name: 'Strohballen',   icon: '🟨', buy: 150,  lvl: 2, kind: 'deco', solid: 1 },
   pilz:       { name: 'Fliegenpilz',   icon: '🍄', buy: 200,  lvl: 1, kind: 'deco' },
   laterne:    { name: 'Laterne',       icon: '🏮', buy: 400,  lvl: 2, kind: 'deco', solid: 1, glow: 1 },
+  schafweide: { name: 'Schafweide',    icon: '🐑', buy: 6800, lvl: 2, kind: 'producer', farm: 1, solid: 1, item: 'wolle', n: 1, every: DAY, desc: 'Zwei Schafe geben jeden Tag Wolle – wenn sie gefüttert sind (🌾 Weizen, 🥕 Karotte, 🍎 Apfel)' },
+  bienenkasten: { name: 'Bienenkasten', icon: '🐝', buy: 3200, lvl: 1, kind: 'deco', solid: 1, desc: 'Neben blühende Blumen stellen – der Honig schmeckt nach den Blumen ringsum' },
+  picknickdecke: { name: 'Picknickdecke', icon: '🧺', buy: 1600, lvl: 1, kind: 'deco', desc: 'Ein Gericht auslegen – die Nachbarn kommen zum Picknick' },
   komposter:  { name: 'Komposter',     icon: '🟫', buy: 1500, lvl: 1, kind: 'deco', solid: 1, desc: 'Unkraut & Reste hinein – morgens Kompost und Regenwürmer' },
   toepferscheibe: { name: 'Töpferscheibe', icon: '🏺', buy: 2800, lvl: 2, kind: 'deco', solid: 1, desc: 'Aus Lehm Vasen, Schalen, Tassen und Krüge – über Nacht im Ofen' },
   ponystall:  { name: 'Ponystall',     icon: '🐴', buy: 12000, lvl: 3, kind: 'deco', solid: 1, desc: 'Ein Pony zum Füttern, Striegeln und Ausreiten' },
@@ -522,6 +544,7 @@ export const PROJECTS = {
   freiluftkino:  { name: 'Freiluftkino',        icon: '🎬', cost: 34000, lvl: 3 },
   buehne:        { name: 'Inselbühne',          icon: '🎭', cost: 44000, lvl: 4 },
   bahnhof:       { name: 'Bimmelbahn',          icon: '🚂', cost: 56000, lvl: 4 },
+  restaurant:    { name: 'Inselrestaurant',     icon: '🍽️', cost: 52000, lvl: 4 },
 };
 for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
 for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
@@ -755,6 +778,14 @@ export const STORY = [
   { title: 'Kleine Gärtner', desc: 'Stellt einen Komposter auf und holt euch Kompost.', ev: 'compost', n: 1, money: 1500 },
   { title: 'Gläser für den Winter', desc: 'Kocht in der Gartenküche 3 Gläser ein (Marmelade, Saft, Kompott …).', ev: 'jar', n: 3, money: 2000 },
   { title: 'Blumengrüße', desc: 'Liefert 2 Sträuße aus dem Blumenladen (Handy ➜ Blumen).', ev: 'bouquet', n: 2, money: 2500 },
+  { title: 'Kleine Waldfreunde', desc: 'Füttert Igel, Eichhörnchen oder die Enten am Teich – insgesamt 5-mal.', ev: 'wild', n: 5, money: 2000 },
+  { title: 'Rummelzeit', desc: 'Der Jahrmarkt kommt einmal pro Jahreszeit hinter die Bummelgasse: dreimal fahren, Lose ziehen oder Enten angeln.', ev: 'fair', n: 3, money: 2500 },
+  { title: 'Wollige Freunde', desc: 'Stellt eine Schafweide auf und webt am Webstuhl 2 Sachen aus Wolle.', ev: 'weave', n: 2, money: 2500 },
+  { title: 'Unterwasserwelt im Wohnzimmer', desc: 'Setzt 3 Tiere in ein Aquarium oder Terrarium.', ev: 'tank', n: 3, money: 2000 },
+  { title: 'Zwei Sorten, ein Baum', desc: 'Veredelt einen Obstbaum mit dem Veredelungsmesser.', ev: 'graft', n: 1, money: 1500 },
+  { title: 'Die Inselband', desc: 'Übt ein Instrument (Handy ➜ Band) und gebt abends auf dem Dorfplatz ein Konzert.', ev: 'band', n: 1, money: 3000 },
+  { title: 'Gäste, Gäste!', desc: 'Bewirtet im Inselrestaurant 20 Gäste.', ev: 'resto', n: 20, money: 4000 },
+  { title: 'Die alte Seekarte', desc: 'Holt euch bei Käpt\'n Flossi die alte Seekarte und folgt allen fünf Spuren bis zur Truhe.', ev: 'pirate', n: 5, money: 5000 },
 ];
 export const DAILY = [
   ['Gießt 8 Blumen', 'water', 8, 300], ['Erntet 6 Blumen oder Gemüse', 'harvest', 6, 400], ['Pflückt 6 Obst', 'fruit', 6, 400],
@@ -773,6 +804,7 @@ export const DAILY = [
   ['Tanzt im Mondschein-Club', 'dance', 1, 400], ['Lest in der Bibliothek ein Rätselbuch', 'book', 1, 400],
   ['Liefert einen Blumenstrauß', 'bouquet', 1, 500], ['Reitet mit dem Pony aus', 'ride_pony', 1, 400], ['Fangt einen Hochseefisch', 'bigfish', 1, 600],
   ['Holt eine Medaille bei der Olympiade', 'medal', 1, 400], ['Lotst ein Schiff mit dem Leuchtturm', 'ship', 1, 500],
+  ['Habt Spaß auf dem Jahrmarkt', 'fair', 2, 500], ['Bewirtet 8 Gäste im Inselrestaurant', 'resto', 8, 600], ['Füttert ein Wildtier', 'wild', 1, 300], ['Gebt ein Konzert mit der Inselband', 'band', 1, 500],
 ];
 
 // ---------- Wochentage, Rübenbörse ----------

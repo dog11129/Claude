@@ -26,10 +26,10 @@ def serve():
 INIT = ("localStorage.setItem('kh.settings', JSON.stringify({quality:'low',sound:0,music:0,fullscreen:false}));"
         "localStorage.setItem('kh.profile', JSON.stringify({name:'Test'}));localStorage.setItem('ki.tutorial','true');localStorage.setItem('ki.buildTip','true')")
 # Fenster, die nur mit Zusammenhang (Gesprächspartner, Ort …) sinnvoll sind, werden über ihren echten Weg getestet
-PANELS = ['xbuild', 'compost', 'pottery', 'florist', 'pony', 'petschool', 'olympia', 'hunt', 'cinema', 'theater', 'train', 'lighthouse', 'penpal', 'party', 'nature', 'stamps', 'capsule', 'golf', 'dancegame', 'cafe', 'library', 'radio', 'guestbook', 'fashion', 'gardenc', 'depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
+PANELS = ['fair', 'fairinfo', 'resto', 'tank', 'pirate', 'loom', 'picnic', 'band', 'nature6', 'xbuild', 'compost', 'pottery', 'florist', 'pony', 'petschool', 'olympia', 'hunt', 'cinema', 'theater', 'train', 'lighthouse', 'penpal', 'party', 'nature', 'stamps', 'capsule', 'golf', 'dancegame', 'cafe', 'library', 'radio', 'guestbook', 'fashion', 'gardenc', 'depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
           'chest', 'mayor', 'boat', 'tailor', 'garden', 'club', 'hut', 'phone', 'map', 'turnip', 'designer', 'recipes', 'shop', 'sell', 'orders', 'museum',
           'friends', 'emotes', 'settings', 'craft', 'cook', 'together', 'mail', 'contest', 'diary', 'fests']
-PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'volcano', 'pier', 'grotto', 'grottoup', 'nroom:mira', 'xroom:attic', 'xroom:tree', 'deepsea', 'pier']
+PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'volcano', 'pier', 'grotto', 'grottoup', 'nroom:mira', 'xroom:attic', 'xroom:tree', 'deepsea', 'pier', 'street', 'fair', 'fairback', 'island']
 
 def chrome():
     for p in (os.environ.get('CHROME'), '/usr/bin/google-chrome', '/usr/bin/chromium'):
@@ -92,7 +92,7 @@ async def main():
             ok(len(errs) == n0, f'Fenster {k}' + (f' ({len(tabs)} Reiter)' if tabs else ''))
         await pg.evaluate('window.__game.panels.close()')
         # 4b) Minispiele starten und wieder schließen (Minigolf, Tanzabend, Kaffee)
-        for btn, panel in (('w:golf', 'golf'), ('w:dance', 'dancegame'), ('w:brew', 'cafe'), ('v:olymp', 'olympia'), ('v:theater', 'theater')):
+        for btn, panel in (('w:golf', 'golf'), ('w:dance', 'dancegame'), ('w:brew', 'cafe'), ('v:olymp', 'olympia'), ('v:theater', 'theater'), ('e:band', 'band')):
             n0 = len(errs)
             await pg.evaluate(f"window.__game.panels.show('{panel}')")
             await frames(pg, 2)

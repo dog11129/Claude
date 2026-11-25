@@ -239,10 +239,17 @@ export function pianoNote(midi, vel = 0.5, dur = 0.6) {
   if (!ctx || ctx.state !== 'running' || !audio.sound) return;
   INST.keys(440 * 2 ** ((midi - 69) / 12), ctx.currentTime + 0.01, dur, 0.16 * vel + 0.04, sfxGain);
 }
+// Instrumente der Inselband (Gitarre, Trommel, Flöte, Glockenspiel)
+export function instNote(kind, midi, dur = 0.4, vel = 0.5) {
+  if (!ctx || ctx.state !== 'running' || !audio.sound) return;
+  const t = ctx.currentTime + 0.01, f = 440 * 2 ** ((midi - 69) / 12), v = 0.14 * vel + 0.03;
+  if (kind === 'trommel') { INST.thump(f, t, dur, v * 1.6, sfxGain); INST.brush(f, t, dur, v * 0.6, sfxGain); return; }
+  INST[{ gitarre: 'pluck', floete: 'flute', glocken: 'bell' }[kind] || 'keys'](f, t, dur, v, sfxGain);
+}
 
 // ---------- Eigene Musik: jede Stunde ein eigenes, im Browser komponiertes Stück ----------
 // Tonart, Tempo, Instrumente und Melodie werden aus der Stunde abgeleitet (immer gleich für dieselbe Stunde).
-let verb, musicBus, song = null, wantHour = -1, wantRain = false, sched = 0, step = 0;
+let verb, musicBus, song = null, wantHour = -1, wantRain = false, wantPlace = null, sched = 0, step = 0;
 function hall() {
   if (verb) return verb;
   const len = Math.floor(ctx.sampleRate * 2.2), b = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -356,12 +363,28 @@ const MOODS = [
   { from: 17, tempo: [82, 92], modes: ['mixo', 'major', 'dorian'], lead: ['keys', 'flute'], comp: 'block', drums: 1, dens: 0.42 },
   { from: 20, tempo: [68, 78], modes: ['dorian', 'major'], lead: ['bell', 'keys'], comp: 'pad', drums: 0, dens: 0.34 },
 ];
+// Eigene Stimmung je Ort (überschreibt die Tageszeit; Tonart & Melodie bleiben pro Stunde und Ort gleich)
+const PLACE_MOODS = {
+  deepsea: { tempo: [86, 94], modes: ['dorian', 'mixo'], lead: ['flute', 'pluck'], comp: 'arp', drums: 1, dens: 0.45 },
+  volcano: { tempo: [96, 104], modes: ['dorian'], lead: ['pluck', 'mallet'], comp: 'block', drums: 2, dens: 0.5 },
+  grotto: { tempo: [60, 68], modes: ['lydian', 'dorian'], lead: ['bell'], comp: 'pad', drums: 0, dens: 0.3 },
+  depths: { tempo: [58, 64], modes: ['dorian'], lead: ['bell', 'keys'], comp: 'pad', drums: 0, dens: 0.28 },
+  reef: { tempo: [64, 72], modes: ['lydian'], lead: ['bell', 'flute'], comp: 'pad', drums: 0, dens: 0.32 },
+  wreck: { tempo: [62, 70], modes: ['dorian'], lead: ['keys', 'bell'], comp: 'pad', drums: 0, dens: 0.3 },
+  tropic: { tempo: [100, 112], modes: ['lydian', 'major'], lead: ['mallet', 'pluck'], comp: 'arp', drums: 2, dens: 0.55 },
+  street: { tempo: [92, 102], modes: ['mixo', 'major'], lead: ['keys', 'pluck'], comp: 'block', drums: 1, dens: 0.48 },
+  fair: { tempo: [116, 126], modes: ['major'], lead: ['mallet', 'keys'], comp: 'block', drums: 2, dens: 0.6 },
+  attic: { tempo: [74, 82], modes: ['major', 'lydian'], lead: ['keys', 'flute'], comp: 'arp', drums: 0, dens: 0.38 },
+  cellar: { tempo: [66, 72], modes: ['dorian'], lead: ['pluck', 'bell'], comp: 'pad', drums: 1, dens: 0.34 },
+  tree: { tempo: [88, 96], modes: ['lydian', 'major'], lead: ['flute', 'mallet'], comp: 'arp', drums: 1, dens: 0.45 },
+};
 const MODES = { major: [0, 2, 4, 5, 7, 9, 11], lydian: [0, 2, 4, 6, 7, 9, 11], mixo: [0, 2, 4, 5, 7, 9, 10], dorian: [0, 2, 3, 5, 7, 9, 10] };
 const PROGS = [[0, 5, 3, 4], [0, 3, 4, 0], [0, 4, 5, 3], [5, 3, 0, 4], [0, 2, 3, 4], [3, 4, 2, 5], [0, 3, 1, 4], [0, 5, 1, 4], [3, 0, 3, 4]];
 function srng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-export function composeHour(hour, rain = false) {
-  const r = srng(hour * 7919 + (rain ? 101 : 0) + 4242), pick = a => a[Math.floor(r() * a.length)];
-  const mood = [...MOODS].reverse().find(m => hour >= m.from);
+export function composeHour(hour, rain = false, place = null) {
+  const ph = place ? [...place].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 9973 : 0;
+  const r = srng(hour * 7919 + (rain ? 101 : 0) + 4242 + ph * 13), pick = a => a[Math.floor(r() * a.length)];
+  const mood = PLACE_MOODS[place] || [...MOODS].reverse().find(m => hour >= m.from);
   const scale = MODES[pick(mood.modes)], root = 55 + Math.floor(r() * 9);
   const tempo = (mood.tempo[0] + r() * (mood.tempo[1] - mood.tempo[0])) * (rain ? 0.9 : 1);
   const lead = pick(mood.lead), progA = pick(PROGS), progB = pick(PROGS);
@@ -403,7 +426,7 @@ export function composeHour(hour, rain = false) {
   phrase(progA, [mA, mB], true);
   phrase(progB, [mC, mA], false);
   phrase(progA, [mA, mB], true);
-  return { hour, rain, slot: 30 / tempo, bars, root, lead };
+  return { hour, rain, place, slot: 30 / tempo, bars, root, lead };
 }
 // Glöckchen zur vollen Stunde
 function chime(root) {
@@ -413,13 +436,13 @@ function chime(root) {
 function pump() {
   if (!ctx || ctx.state !== 'running' || !audio.music || musicBuf.day || wantHour < 0) return;
   const out = bus();
-  if (!song) { song = composeHour(wantHour, wantRain); step = 0; sched = ctx.currentTime + 0.1; }
+  if (!song) { song = composeHour(wantHour, wantRain, wantPlace); step = 0; sched = ctx.currentTime + 0.1; }
   if (sched < ctx.currentTime - 0.5) sched = ctx.currentTime + 0.05; // nach Pause nicht alles nachholen
   while (sched < ctx.currentTime + 0.3) {
     const bar = step >> 3, s = step & 7;
-    if (s === 0 && (song.hour !== wantHour || song.rain !== wantRain)) {
-      const changedHour = song.hour !== wantHour;
-      song = composeHour(wantHour, wantRain);
+    if (s === 0 && (song.hour !== wantHour || song.rain !== wantRain || song.place !== wantPlace)) {
+      const changedHour = song.hour !== wantHour && song.place === wantPlace;
+      song = composeHour(wantHour, wantRain, wantPlace);
       step = 0;
       if (changedHour) { chime(song.root); sched += 1.4; }
       continue;
@@ -430,9 +453,10 @@ function pump() {
   }
 }
 // Wird jedes Bild aufgerufen: welche Stunde gerade läuft
-export function musicTick(hour, rain) {
+export function musicTick(hour, rain, place = null) {
   wantHour = Math.floor(hour) % 24;
   wantRain = !!rain;
+  wantPlace = PLACE_MOODS[place] ? place : null;
   if (musicBuf.day) { musicFor(hour >= 20 || hour < 5 ? 'night' : 'day'); return; }
 }
 export function setMusic(vol) {
@@ -446,4 +470,4 @@ export function setMusic(vol) {
   musicTimer = setInterval(pump, 60);
 }
 // Für Tests: läuft die Musik?
-export const musicState = () => ({ ctx: ctx?.state || null, hour: song?.hour ?? null, lead: song?.lead || null });
+export const musicState = () => ({ ctx: ctx?.state || null, hour: song?.hour ?? null, lead: song?.lead || null, place: song?.place || null });

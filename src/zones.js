@@ -508,9 +508,7 @@ function reefFish(i) {
 export class Zones {
   constructor(scene) {
     this.scene = scene;
-    this.street = buildStreet();
-    this.tropic = buildTropic();
-    scene.add(this.street, this.tropic);
+    this.street = this.tropic = null; // Bummelgasse & Tropeninsel erst bauen, wenn man hinkommt (schnellerer Start)
     this.trees = new Map();
     this.areas = Object.fromEntries(Object.keys(AREAS).map(id => [id, null]));
     this.gates = null;
@@ -551,12 +549,13 @@ export class Zones {
   }
   // Pro Bild: Wasser, Obstbäume, Tour-Ziele und Ladenschilder
   update(world, s, t, night, target) {
-    this.tropic.userData.u.t.value = t;
-    this.tropic.userData.u.night.value = night;
+    if (this.tropic) { this.tropic.userData.u.t.value = t; this.tropic.userData.u.night.value = night; }
     if (zonesW(this, world, s, t, target)) return; // Grotte & Vulkaninsel (world-extra.js)
     const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 1900 ? 'depths' : target.z > 1350 ? 'wreck' : target.z > 1000 ? 'reef' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
-    this.street.visible = where === 'street';
-    this.tropic.visible = where === 'tropic';
+    if (where === 'street' && !this.street) { this.street = buildStreet(); this.scene.add(this.street); }
+    if (where === 'tropic' && !this.tropic) { this.tropic = buildTropic(); this.scene.add(this.tropic); this.tropic.userData.u.t.value = t; this.tropic.userData.u.night.value = night; }
+    if (this.street) this.street.visible = where === 'street';
+    if (this.tropic) this.tropic.visible = where === 'tropic';
     if (this.trip) this.trip.visible = where === 'trip';
     if (this.reef) this.reef.visible = where === 'reef';
     if (this.wreck) this.wreck.visible = where === 'wreck';
@@ -710,6 +709,6 @@ export class Zones {
     const lw = lightsW(this, target);
     if (lw !== undefined) return lw || null;
     if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
-    return target.z < -150 ? this.street.userData.lights : target.z > 1900 ? this.depths?.userData.lights || null : target.z > 1350 ? this.wreck?.userData.lights || null : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
+    return target.z < -150 ? this.street?.userData.lights || null : target.z > 1900 ? this.depths?.userData.lights || null : target.z > 1350 ? this.wreck?.userData.lights || null : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic?.userData.lights || null : null;
   }
 }

@@ -74,6 +74,16 @@ export const GUIDE = [
   ['Insel', '🗼', 'Leuchtturm-Nächte', 'Nachts am Leuchtturm Schiffe lotsen – am nächsten Tag kommt ein dankbarer Händler mit seltenen Sachen.', s => (s.lighthouse?.saved || 0) > 0],
   ['Kreativ', '📮', 'Brieffreunde', 'Handy ➜ Post: Briefe mit Geschenk an andere Inseln schicken (per Insel-Code).', s => (s.penpal?.got || []).length > 0],
   ['Feste & Spiele', '🎉', 'Geburtstagsparty', 'Handy ➜ Party: Deko, Kuchen und Gäste für den nächsten Nachbarn-Geburtstag planen.', s => !!s.party?.done],
+  ['Feste & Spiele', '🎡', 'Jahrmarkt', 'Einmal pro Jahreszeit hinter der Bummelgasse (am Ostende): Riesenrad, Karussell, Losbude, Entenangeln, Zuckerwatte.', s => (s.fair?.rides || 0) > 0 || Object.keys(s.fair?.lose || {}).length > 0],
+  ['Feste & Spiele', '🍽️', 'Inselrestaurant', 'Rathaus-Projekt: Bestellungen der Nachbarn kochen und servieren – 90 Sekunden pro Schicht.', s => (s.resto?.served || 0) > 0],
+  ['Kreativ', '🐠', 'Aquarium & Terrarium', 'Möbel im Krämerladen: gefangene Fische, Meerestiere und Insekten zu Hause ausstellen.', s => [s.home, ...Object.values(s.xrooms || {})].some(h => Object.values(h?.items || {}).some(o => o?.a?.length))],
+  ['Unterwegs', '🏴‍☠️', 'Die alte Seekarte', 'Käpt\'n Flossi hat eine Seekarte (ab Level 3): fünf Spuren an fünf Tagen – Insel, Riff, Tropeninsel, Wrack, Strand.', s => !!s.pirate?.on || !!s.pirate?.done],
+  ['Garten', '🐑', 'Schafe & Webstuhl', 'Schafweide und Webstuhl (Krämerladen): Wolle mit Blumen färben, Teppiche, Kissen, Wandteppiche und Strickmützen.', s => has(s, 'schafweide') || anyInv(s, 'wolle')],
+  ['Garten', '🐝', 'Imkerei', 'Bienenkasten neben blühende Blumen stellen – sieben Honigsorten je nach Blütenfarbe.', s => Object.keys(s.honeys || {}).length > 0],
+  ['Insel', '🦔', 'Wildtiere', 'Igel (abends), Eichhörnchen (tagsüber unter Obstbäumen) und Enten am Teich füttern – nach fünf Tagen sind sie zahm.', s => Object.keys(s.wild || {}).length > 0],
+  ['Garten', '✂️', 'Obstbäume veredeln', 'Veredelungsmesser (Krämerladen): eine zweite Sorte aufpfropfen, manche Paare bringen neue Früchte.', s => Object.keys(s.graft || {}).length > 0 || Object.keys(s.hybrids || {}).length > 0],
+  ['Feste & Spiele', '🧺', 'Picknick & Tandem', 'Picknickdecke aufstellen und ein Gericht auslegen; auf dem Tandem kann ein Freund hinten aufsitzen.', s => !!s.picnic || anyInv(s, 'tandem')],
+  ['Feste & Spiele', '🎸', 'Inselband', 'Handy ➜ Band: tagsüber ein Instrument üben, abends ab 19 Uhr auf dem Dorfplatz das Konzert.', s => (s.bandBest || 0) > 0],
 ];
 export function guideList(s) {
   return GUIDE.map(([area, icon, name, how, test]) => { let done = false; try { done = !!test(s); } catch { /* fehlt im Spielstand */ } return { area, icon, name, how, done }; });

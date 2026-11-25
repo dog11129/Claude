@@ -9,6 +9,8 @@ import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
 import { PANELS_W, TITLES_W, TABS_W, APPS_W } from './ui-extra.js';
 import { PANELS_V, TITLES_V, APPS_V } from './ui-extra2.js';
+import { PANELS_6, TITLES_6, APPS_6 } from './ui-extra3.js';
+import { PIRATE_LVL } from './extras6.js';
 import { DEEPSEA_PRICE, DEEPSEA_LVL, ponyHappy } from './extras5.js';
 import { VOLCANO_PRICE, VOLCANO_LVL } from './extras4.js';
 import { TRIP_KINDS, TRIP_PRICE, tripLayout } from './trips.js';
@@ -270,7 +272,7 @@ const PANELS = {
       ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
       ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
       ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0],
-      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['stars', '✨', 'Sternbilder', '#8f9ee8'], ['guide', '📘', 'Inselführer', '#9fd8c8', guideList(s).filter(x => !x.done).length > 25 ? '!' : 0], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2'], ...APPS_W, ...APPS_V];
+      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['stars', '✨', 'Sternbilder', '#8f9ee8'], ['guide', '📘', 'Inselführer', '#9fd8c8', guideList(s).filter(x => !x.done).length > 25 ? '!' : 0], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2'], ...APPS_W, ...APPS_V, ...APPS_6];
     const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
     return `<div class="phone-top"><b>${s.real ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : `${hh}:${String(mm).padStart(2, '0')}`}</b><span>${WEEKDAYS[weekday(s.day)]} · ${esc(s.name)}</span></div>
       <div class="apps">${apps.map(([id, ic, l, c, dot]) => `<button data-ui="app" data-app="${id}"><span class="ai" style="background:${c}">${ic}${dot ? `<i>${dot}</i>` : ''}</span><small>${l}</small></button>`).join('')}</div>`;
@@ -640,8 +642,8 @@ const PANELS = {
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Insel wird gespeichert</small></span></button>`;
   },
 };
-Object.assign(PANELS, PANELS_W, PANELS_V); // Inselleben 4 & 5 (ui-extra.js, ui-extra2.js)
-Object.assign(TITLES, TITLES_W, TITLES_V);
+Object.assign(PANELS, PANELS_W, PANELS_V, PANELS_6); // Inselleben 4, 5 & 6 (ui-extra.js, ui-extra2.js, ui-extra3.js)
+Object.assign(TITLES, TITLES_W, TITLES_V, TITLES_6);
 Object.assign(TABS, TABS_W);
 
 // ---------- Bürgermeister-Update: Rathaus, Baustelle, Bummelgasse, Tropeninsel ----------
@@ -730,6 +732,7 @@ Object.assign(PANELS, {
       + `<div class="note" style="margin-top:10px">🎣 <b>Hochsee-Angeln:</b> Raus aufs offene Meer, wo Thunfisch, Schwertfisch und Segelfisch beißen.${s.level < DEEPSEA_LVL ? ` Ab Insel-Level ${DEEPSEA_LVL}.` : ''}</div>`
       + `<button class="big" data-act='${JSON.stringify({ ui: 'v:deepsea' })}'${s.money < DEEPSEA_PRICE || s.level < DEEPSEA_LVL ? ' disabled' : ''}><span class="i">🎣</span><span>Hochsee-Angeln<small>${fmt(DEEPSEA_PRICE)} Taler</small></span></button>`
       + `<div class="note" style="margin-top:10px">🌋 <b>Vulkaninsel:</b> heiße Quellen zum Baden mit den Nachbarn, schwarzer Obsidian und Feuerfalter.${s.level < VOLCANO_LVL ? ` Ab Insel-Level ${VOLCANO_LVL}.` : ''}</div>`
+      + (s.pirate?.on || s.pirate?.done ? '' : `<div class="note" style="margin-top:10px">🗺️ <b>Eine alte Seekarte:</b> „Die hab ich vor Jahren aus dem Meer gefischt – fünf Zeichen, fünf Orte. Wollt ihr sie?“${s.level < PIRATE_LVL ? ` Ab Insel-Level ${PIRATE_LVL}.` : ''}</div><button class="big" data-act='${JSON.stringify({ t: 'pirate', op: 'start' })}'${s.level < PIRATE_LVL ? ' disabled' : ''}><span class="i">🗺️</span><span>Seekarte nehmen<small>ein Abenteuer über fünf Tage</small></span></button>`)
       + `<button class="big" data-act='${JSON.stringify({ ui: 'w:volcano' })}'${s.money < VOLCANO_PRICE || s.level < VOLCANO_LVL ? ' disabled' : ''}><span class="i">🌋</span><span>Zur Vulkaninsel<small>${fmt(VOLCANO_PRICE)} Taler</small></span></button>`;
   },
   boatback(s) {
@@ -740,7 +743,7 @@ Object.assign(PANELS, {
     let h = hero(STREET_SHOPS.tailor.who, 'Schneiderei Wollknäuel', 'Määäh, willkommen! Hier gibt es Hüte, die man sonst nirgends bekommt. Einmal gekauft, kann sie jede/r auf eurer Insel tragen.');
     if (!shopOpen(s, 'tailor')) return h + closed(s, 'tailor');
     for (const [id, W] of Object.entries(WARDROBE)) {
-      if (W.medals) continue;
+      if (W.medals || W.knit) continue;
       const own = s.wardrobe?.[id], c = buyPrice(s, W.price);
       h += row(W.icon, W.name + (own ? ' <span class="lv">✓ gehört euch</span>' : ''), own ? 'Unter Aussehen ändern ➜ Extras' : 'Neuer Hut für alle auf der Insel', own ? '' : btn(`🪙 ${fmt(c)}`, { t: 'wear', id }, 'pink', s.money < c));
     }
@@ -856,7 +859,7 @@ export class Panels {
     const now = performance.now(); // höchstens 5× pro Sekunde prüfen (sig = null erzwingt sofort)
     if (this.sig && now - (this.checked || 0) < 200) return;
     this.checked = now;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.birds?.n, s.tidebook, s.stamps, s.capsules, g.capSel, s.golf, s.dance, s.cafe, s.library, s.radio, s.guestbook?.length, g.gbPx, g.gbSt, s.fashion, s.gardenc, s.giant, s.xrooms && Object.keys(s.xrooms), s.compost, s.kiln?.length, g.pot, s.florist, s.pony, s.petschool, s.olymp, s.hunts, g.huntItem, s.cinema, s.theater, s.lighthouse, s.penpal?.out?.length, g.ppItem, s.party, g.partyGuests, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.birds?.n, s.tidebook, s.stamps, s.capsules, g.capSel, s.golf, s.dance, s.cafe, s.library, s.radio, s.guestbook?.length, g.gbPx, g.gbSt, s.fashion, s.gardenc, s.giant, s.xrooms && Object.keys(s.xrooms), s.compost, s.kiln?.length, g.pot, s.florist, s.pony, s.petschool, s.olymp, s.hunts, g.huntItem, s.cinema, s.theater, s.lighthouse, s.penpal?.out?.length, g.ppItem, s.party, g.partyGuests, s.fair, s.resto, s.pirate, s.honeys, s.wild, s.hybrids, s.picnic, s.band, g.woolCol, g.uiAt, this.open === 'tank' ? [s.home.items, s.xrooms] : 0, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;
@@ -884,13 +887,15 @@ const TOOLS = {
   pave: [icon('pave'), 'Insel-Designer: Wege legen (nochmal antippen = Wegart wählen)'],
 };
 // Werkzeuge ohne eigenes Blender-Bild bekommen das gerenderte Item-Bild
-const TOOL_ITEM = { spade: ['baumschaufel', 'Baumschaufel: Bäume & Palmen ausgraben und woanders einpflanzen'], kite: ['drache', 'Drachen steigen lassen'], bike: ['fahrrad', 'Fahrrad: auf- und absteigen'], bino: ['fernglas', 'Fernglas: nach Vögeln Ausschau halten'], pony: ['ponystall', 'Pony: auf- und absteigen'], sled: ['schlitten', 'Schlitten: im Winter auf- und absteigen'] };
+const TOOL_ITEM = { spade: ['baumschaufel', 'Baumschaufel: Bäume & Palmen ausgraben und woanders einpflanzen'], kite: ['drache', 'Drachen steigen lassen'], bike: ['fahrrad', 'Fahrrad: auf- und absteigen'], bino: ['fernglas', 'Fernglas: nach Vögeln Ausschau halten'], pony: ['ponystall', 'Pony: auf- und absteigen'], graft: ['veredelmesser', 'Veredelungsmesser: eine zweite Obstsorte aufpfropfen'], tandem: ['tandem', 'Tandem: auf- und absteigen, Freunde sitzen hinten auf'], sled: ['schlitten', 'Schlitten: im Winter auf- und absteigen'] };
 export function hotbarItems(s) {
   // Aufstellen, Einrichten und Wege legen geht jetzt im 🔨 Baumodus
   const items = ['hand', 'net', 'shovel', 'axe', 'can', 'sling'];
   if (s.inv.baumschaufel > 0) items.push('spade');
   if (s.inv.drache > 0) items.push('kite');
   if (s.inv.fahrrad > 0) items.push('bike');
+  if (s.inv.tandem > 0) items.push('tandem');
+  if (s.inv.veredelmesser > 0) items.push('graft');
   if (s.inv.fernglas > 0) items.push('bino');
   if (s.inv.schlitten > 0) items.push('sled');
   if (s.inv.duenger > 0) items.push('duenger');
