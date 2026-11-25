@@ -6,6 +6,7 @@
     "export-models": "node tools/export-models.mjs",
     "smoke": "python3 test/smoke.e2e.py",
     "icons": "python3 tools/import-icons.py",
-    "together": "python3 test/together.e2e.py"
+    "together": "python3 test/together.e2e.py",
+    "serverwelt": "python3 test/serverwelt.e2e.py"
   }
 }

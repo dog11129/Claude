@@ -20,6 +20,9 @@ Die Home-Bildschirm-App auf dem iPhone hat einen eigenen Speicher – die Insel 
 Wer die Insel besiedelt hat, ist „Host“: dort läuft und speichert das Spiel. Gäste bekommen automatisch eine Sicherheitskopie
 und können die Insel später auch selbst hosten. Der Code bleibt pro Insel gleich, solange er frei ist.
 
+**Noch einfacher – die 🌍 Serverwelt:** Eine Insel liegt auf eurem Server, und ihr könnt beide jederzeit rein, ohne einander einzuladen.
+Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link an deinen Lieblingsmenschen schicken – danach reicht für beide ein Tipp auf **🌍 Serverwelt** im Hauptmenü.
+
 ### Steuerung
 
 | | PC | Handy |
@@ -36,6 +39,12 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | Fotomodus | P | 📷 |
 
 ## Was es gibt
+
+### 🌍 Neu: Serverwelt
+- **Eine Insel für euch beide, immer erreichbar:** Sie liegt auf dem eigenen Server. Wer zuerst kommt, öffnet sie; wer dazukommt, landet automatisch dort – kein Code, kein Einladen, keine Dateien hin und her.
+- **Nahtlos weiter:** Geht die/der eine (oder schaltet das Handy weg), übernimmt die/der andere die Insel sofort mit dem aktuellen Stand. Gespeichert wird laufend auf dem Server (und als Kopie auf jedem Gerät, mit Zwischenständen ⏪).
+- **Eigene Taschen:** Jede/r behält die eigene Tasche – auch auf einem zweiten Gerät (gleicher Name).
+- **Einrichten:** Meine Inseln → 🌍 Serverwelt → Insel wählen → „Zur Serverwelt machen“ → Link teilen. Der Link (…`#welt=SCHLÜSSEL`) ist der Zugang – nur dem Lieblingsmenschen geben. Ältere Kopien derselben Insel bleiben unter „Meine Inseln“ erhalten.
 
 ### 🧊 Neu: Alles aus Blender
 - **Alle neueren Dinge als Blender-Modelle:** die 120 Serien-Möbel, die Pfingstrosen-Einrichtung, die neue Deko, Gegenstände, Samentüten und alle Beete (über 680 Modelle) – mit runden Kanten, feineren Rundungen und weichen Schatten. Erzeuger wie Beerenstrauch und Bienenstock zeigen ihre Ernte als eigenes Modell.
@@ -260,6 +269,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 - Reine statische Webseite (`index.html`, `src/`, `vendor/`), kein Build-Schritt. Three.js für 3D.
 - Der Host ist gleichzeitig der Server. Verbunden wird über den eigenen Cloudflare-Worker (`cloud/worker.js`, WebSocket-Raum je Insel-Code); als Rückfall und für ältere Versionen meldet sich der Host zusätzlich bei PeerJS (WebRTC) an.
 - Cloud-Spielstand: derselbe Worker speichert Inseln (gzip) in einem Durable Object mit SQLite – je geheimem 20-stelligen Schlüssel, mit Vorversion. Adresse: `https://kuschelinsel.shawnschwanitz.workers.dev` (für Tests überschreibbar mit `?cloud=…`, `?relay=0` schaltet den eigenen Server ab).
+- Serverwelt (`src/serverwelt.js`): dieselbe Insel im Speicher des Workers unter einem geheimen Schlüssel; der Raum-Code wird aus dem Schlüssel abgeleitet. Wer den Raum als Gastgeber bekommt, hat die Insel offen und lädt alle 15 s hoch – nur solange die Leitung nachweislich steht (Lebenszeichen), damit ein spät aufwachendes Gerät nie einen älteren Stand über einen neueren schreibt. Verliert der Gastgeber den Raum an jemand anderen, kommt er automatisch als Gast dazu; im Hintergrund gibt er die Insel sofort frei.
 - Gespeichert wird im Browser (`localStorage`), dazu automatische Zwischenstände in IndexedDB (`src/backup.js`). Browserdaten löschen = Insel weg (die Kopie beim Partner bleibt) – darum ab und zu 💾 als Datei sichern.
 - `sw.js` (Service Worker) legt alles Geladene für offline ab; immer zuerst aus dem Netz, damit Updates sofort da sind.
 
@@ -277,6 +287,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/extras.js` | Inselleben-Update: Zeitung, Fotobuch, Jahrestage, Katalog, Wochenziele, Wetter, Gärtnerei-Technik, Schatzkarte, Kochwettbewerb, Nachtmarkt, Tauschstand, Ausflüge, Campingplatz, Muster, Melodie |
 | `src/trips.js`, `src/patterns.js`, `src/photos.js` | Zufallsinseln, Pixel-Muster, Fotoalbum & Postkarten (IndexedDB) |
 | `src/cloud.js`, `cloud/worker.js`, `cloud/dev-server.mjs` | Cloud-Spielstand & Verbindungsserver (Browser-Seite, Cloudflare Worker, lokaler Nachbau für Tests) |
+| `src/serverwelt.js` | 🌍 Serverwelt: Link & Schlüssel, Laden/Speichern auf dem Server, Taschen je Person |
 | `src/extras2.js`, `src/extras3.js`, `src/features/*.js` | Neuere Inhalte, je Thema eine Datei (Geschichten, Hof, Riff, Strand, Seilbahn, Ballon, Schmetterlinge, Wrack, Spiele, Fotowettbewerb, Grill, Sterne, Nachbarzimmer, Höhlen-Tiefen) |
 | `src/extras4.js`, `src/client/fun2.js`, `src/ui-extra.js`, `src/world-extra.js` | Inselleben 4: Logik, Minispiele & Fahrten im Browser, Fenster, 3D (Grotte, Vulkan, Tümpel, Stempel) |
 | `src/extras5.js` + `src/features/*.js`, `src/client/fun3.js`, `src/ui-extra2.js`, `src/world-extra2.js`, `src/npc-walk.js` | Inselleben 5: Logik (aufgeteilt nach Themen), Minispiele & Fahrten, Fenster, 3D (Pony, Bahn, Hochsee-Boot, Lack); Wegsuche der Nachbarn |
@@ -325,8 +336,9 @@ npm run smoke                      # Browser: neue Insel, alle Orte & Fenster, H
 npm run together                   # Host + Gast über den lokalen Verbindungsserver (einmalig zusätzlich: npm i --no-save ws)
 npm i --no-save playwright peer && node test/multiplayer.e2e.cjs   # Host + Gast über PeerJS
 node cloud/dev-server.mjs 8787 & python3 test/cloud.e2e.py         # eigener Server & Cloud-Spielstand (lokaler Nachbau)
+npm run serverwelt                 # 🌍 Serverwelt: Beitreten, Übernehmen, Funkloch, Hintergrund (lokaler Nachbau)
 ```
 
-Auf GitHub laufen `npm test`, der Smoke-Test und der Zwei-Spieler-Test bei jedem Hochladen automatisch (`.github/workflows/test.yml`); Bildschirmfotos liegen danach unter „Artifacts“.
+Auf GitHub laufen `npm test`, der Smoke-Test, der Zwei-Spieler-Test und der Serverwelt-Test bei jedem Hochladen automatisch (`.github/workflows/test.yml`); Bildschirmfotos liegen danach unter „Artifacts“.
 
 Den Worker neu veröffentlichen: `cloud/worker.js` als Modul-Worker `kuschelinsel` mit den Durable-Object-Bindungen `ROOM` (Klasse `Room`) und `VAULT` (Klasse `Vault`, beide SQLite) hochladen, z. B. mit Wrangler oder über die Cloudflare-API.

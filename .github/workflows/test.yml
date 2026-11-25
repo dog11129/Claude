@@ -26,6 +26,8 @@ jobs:
         run: npm run smoke
       - name: Zwei-Spieler-Test
         run: npm run together
+      - name: Serverwelt-Test
+        run: npm run serverwelt
       - name: Modell-Liste aktuell
         run: npm run export-models
       - uses: actions/upload-artifact@v4

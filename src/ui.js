@@ -239,15 +239,18 @@ const PANELS = {
     return h;
   },
   friends(s, g) {
-    const link = g.code ? `${location.origin}${location.pathname}?join=${g.code}` : '';
-    let h = g.code
+    const link = g.server ? `${location.origin}${location.pathname}#welt=${g.server.key}` : g.code ? `${location.origin}${location.pathname}?join=${g.code}` : '';
+    let h = g.server
+      ? `<div class="row"><div class="ic">🌍</div><div class="tx"><b>Serverwelt</b><small>Diese Insel liegt auf eurem Server. Dein Lieblingsmensch kommt einfach über „🌍 Serverwelt“ im Hauptmenü dazu – kein Code nötig. Wer zuletzt geht, speichert für beide.</small></div>
+         <div class="bt"><button class="btn small white" data-ui="copy">Link kopieren</button></div></div>`
+      : g.code
       ? `<div class="row"><div class="ic">💌</div><div class="tx"><b style="font-size:28px;letter-spacing:5px">${esc(g.code)}</b><small>Schick diesen Code (oder den Link) an deinen Lieblingsmenschen. Sie öffnet das Spiel und gibt ihn bei „Mit Code beitreten“ ein.</small></div>
          <div class="bt"><button class="btn small pink" data-ui="share">Link teilen</button><button class="btn small white" data-ui="copy">Kopieren</button></div></div>`
       : `<div class="note">${g.role === 'host' ? '⏳ Einladen gerade nicht möglich (keine Verbindung zum Vermittlungs-Server). Spielen geht trotzdem!' : ''}</div>`;
     h += `<input type="hidden" id="invlink" value="${esc(link)}">`;
     for (const p of Object.values(g.players)) {
       const kick = (p.id !== g.me ? btn('🎁 Geben', { ui: 'give', id: p.id }, 'pink') + btn('Hinbeamen ✨', { ui: 'goto', id: p.id }) : '') + (g.role === 'host' && p.id !== g.me ? btn('Entfernen', { ui: 'kick', id: p.id }, 'white') : '');
-      h += row(`<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:${esc(p.look?.topColor || '#ccc')};border:3px solid ${esc(p.look?.hairColor || '#fff')}"></span>`, esc(p.name) + (p.id === 'h' ? ' 👑' : '') + (p.id === g.me ? ' (du)' : ''), p.id === 'h' ? 'Host – die Insel wird auf diesem Gerät gespeichert' : 'Gast – bekommt automatisch eine Kopie der Insel', kick);
+      h += row(`<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:${esc(p.look?.topColor || '#ccc')};border:3px solid ${esc(p.look?.hairColor || '#fff')}"></span>`, esc(p.name) + (p.id === 'h' ? ' 👑' : '') + (p.id === g.me ? ' (du)' : ''), p.id === 'h' ? (g.server ? 'Hat die Insel gerade offen – gespeichert wird auf dem Server' : 'Host – die Insel wird auf diesem Gerät gespeichert') : g.server ? 'Ist mit auf der Serverwelt' : 'Gast – bekommt automatisch eine Kopie der Insel', kick);
     }
     h += '<div class="note">Jede/r hat eine eigene Tasche – mit „🎁 Geben“ schenkt ihr euch Sachen, oder ihr legt sie in die 🧰 Lagerkiste im Haus. Geteilt sind Taler, Museum und Fortschritt. Jede/r bekommt eine Sicherheitskopie und kann die Insel später auch selbst hosten.</div>';
     return h;

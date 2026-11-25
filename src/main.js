@@ -16,6 +16,7 @@ import { loadAssets, loadTextures } from './assets.js';
 import { FLOORS, WALLS, FURNITURE } from './furni-data.js';
 import * as backup from './backup.js';
 import * as cloud from './cloud.js';
+import * as SW from './serverwelt.js';
 import * as photos from './photos.js';
 import * as XS from './extras.js';
 import * as PAT from './patterns.js';
@@ -126,19 +127,23 @@ $('coverbtn').onclick = () => leave();
 // ---------- Spieler & Sitzung ----------
 const cleanProfile = p => ({ name: String(p?.name || '').trim().slice(0, 16) || 'Gast', look: cleanLook(p?.look || p) });
 // Fester Schlüssel für die eigene Tasche (bleibt gleich, auch wenn man später wiederkommt)
-const keyOf = (id, p) => id === 'h' ? 'host' : /^[a-z0-9]{8,16}$/.test(p?.uid || '') ? 'u_' + p.uid : 'n_' + (String(p?.name || 'gast').replace(/\s/g, '').slice(0, 16) || 'gast');
+const keyOf = (id, p) => id === 'h' ? 'host' : /^[a-z0-9]{8,16}$/.test(p?.uid || '') ? 'u_' + (G?.server && G.role === 'host' ? SW.whoKey(G.s, p.name, p.uid) : p.uid) : 'n_' + (String(p?.name || 'gast').replace(/\s/g, '').slice(0, 16) || 'gast');
 const newPlayer = (id, p) => ({ id, key: keyOf(id, p), ...cleanProfile(p), x: SPAWN.x + (Math.random() - 0.5) * 2, z: SPAWN.z + Math.random(), ry: 0, m: false, ak: null, an: 0, held: null, pose: null, fishing: false, run: false, sw: false });
+const myBag = s => 'u_' + (G?.server ? SW.guestUid(s, profile.name, profile.uid) : profile.uid);
 const session = (role, s, me) => ({ role, s, me, players: {}, social: {}, sel: 'hand', settings, touch, code: null, lastSeen: {}, lastSave: 0, lastState: 0, get myName() { return profile.name; } });
 
 // Gast-Kopien liegen unter eigenem Schlüssel, damit sie nie die eigene Farm überschreiben.
 function saveFarm(force) {
   if (!G?.s || !G.key) return;
   G.lastSave = performance.now();
-  const f = store.get('ki.islands', {});
-  f[G.key] = { name: G.s.name, saved: Date.now(), s: G.s, guest: G.role === 'guest' ? G.players.h?.name || '?' : G.copyOf };
+  const f = store.get('ki.islands', {}), now = Date.now();
+  if (G.server) { // Serverwelt: Spiegel auf dem Gerät; "pushed" = bis wann der Server alles hat
+    const host = G.role === 'host';
+    f[G.key] = { name: G.s.name, saved: now, s: G.s, server: true, pushed: host ? f[G.key]?.pushed || 0 : now };
+  } else f[G.key] = { name: G.s.name, saved: now, s: G.s, guest: G.role === 'guest' ? G.players.h?.name || '?' : G.copyOf };
   store.set('ki.islands', f);
   backup.snapshot(G.key, f[G.key]); // automatischer Zwischenstand (höchstens alle 5 Minuten)
-  cloudSave(f[G.key], force);
+  if (G.server) serverSave(f[G.key], force); else cloudSave(f[G.key], force);
 }
 // Cloud-Spielstand: höchstens jede Minute hochladen, beim Verlassen/Wegschalten sofort
 let lastCloud = 0;
@@ -149,10 +154,47 @@ function cloudSave(f, force) {
   lastCloud = now;
   cloud.push(G.key, f);
 }
+// Serverwelt: wer die Insel offen hat, speichert laufend auf dem Server – aber nur, solange die Leitung
+// nachweislich steht (sonst könnte ein aufwachendes Handy einen älteren Stand über den neueren schreiben)
+let lastSrv = 0;
+function serverSave(f, force) {
+  const g = G;
+  if (g.role !== 'host' || !g.net || g.ended) return;
+  const now = Date.now();
+  if (!force && now - lastSrv < SW.SAVE_EVERY) return;
+  if (!g.net.alive) { g.net.check?.(); return; }
+  lastSrv = now;
+  const done = r => {
+    if (r !== 'ok') return;
+    const all = store.get('ki.islands', {}), m = all[SW.LOCAL];
+    if (m && !(m.pushed >= f.saved)) { m.pushed = f.saved; store.set('ki.islands', all); }
+  };
+  SW.push(g.server, f, { keepalive: force }).then(r => {
+    // Jemand anderes hat dazwischengeschrieben, obwohl wir die Insel offen haben (z. B. ein Handy, das spät aufwacht): unser Stand gilt
+    if (r === 'conflict' && G === g && g.net?.alive) return SW.push(g.server, f, { force: true }).then(done);
+    done(r);
+  });
+}
+// Serverwelt: Wer die Insel offen hat und die App wegschaltet (Handy in die Tasche), gibt sie sofort frei –
+// sonst hielte ein schlafendes Handy die Insel fest und der andere käme nicht rein. Beim Zurückkommen geht es nahtlos weiter.
+let srvPaused = null;
+function pauseServer() {
+  const g = G, me = g.players[g.me];
+  srvPaused = { keep: me ? { x: me.x, z: me.z, ry: me.ry } : {} };
+  g.ended = true;
+  g.net?.broadcast({ t: 'bye' });
+  g.net?.close();
+  G = null;
+  srvRun++;
+  clearInterval(enterGame.timer);
+  $('hud').classList.add('hidden');
+  cover('🌍 Kurze Pause – gleich geht es weiter…');
+}
 backup.keepData();
 addEventListener('pagehide', () => saveFarm(true));
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveFarm(true);
+  if (document.hidden) { saveFarm(true); if (G?.server && G.role === 'host' && G.ready && !G.ended) pauseServer(); }
+  else if (srvPaused && !G) { const o = srvPaused; srvPaused = null; startServer({ ...o, keep: o.keep || {}, text: '🌍 Zurück auf eurer Serverwelt…' }); }
   else if (G?.ready) wakeLock();
 });
 function wakeLock() { navigator.wakeLock?.request('screen').then(l => { if (G) G.wake = l; }).catch(() => {}); }
@@ -184,6 +226,101 @@ async function startHost(s, key = s.id, copyOf) {
   }
 }
 
+// ---------- 🌍 Serverwelt ----------
+// Erst schauen, ob schon jemand drin ist (dann einfach dazu), sonst die Insel vom Server holen und selbst öffnen.
+// o.keep: eigene Position (beim Wechsel mitten im Spiel), o.carry: eigener aktueller Stand (Übernahme als Gast)
+let srvRun = 0;
+async function startServer(o = {}) {
+  const c = SW.cfg();
+  if (!c || (!o.keep && needName())) return;
+  if (document.hidden) { srvPaused = { keep: o.keep, carry: o.carry }; G = null; return; } // App im Hintergrund: weiter, sobald sie wieder vorne ist
+  const run = ++srvRun;
+  unlock();
+  const code = SW.codeOf(c.key);
+  $('hud').classList.add('hidden');
+  cover(o.text || '🌍 Verbinde mit eurer Serverwelt…');
+  let err = null;
+  for (let i = 0; i < 6 && run === srvRun; i++) {
+    if (i) await sleep(700 + Math.random() * 1100);
+    if (run !== srvRun) return;
+    if (!(o.carry && i === 0)) { // bei der Übernahme ist gerade niemand da – sonst zuerst dazukommen
+      const g = session('guest', null, null);
+      Object.assign(g, { joinCode: code, server: c, keepMe: o.keep || null });
+      G = g;
+      try { await connectGuest(g); if (G === g) return; } catch (e) {
+        if (G === g) G = null;
+        if (run !== srvRun) return;
+        err = e;
+        if (e?.type === 'network') break;
+        if (e?.type !== 'peer-unavailable') continue;
+      }
+    }
+    // Niemand da: die Insel selbst öffnen. Genommen wird der weiteste Stand: Server, eigene Kopie (Übernahme)
+    // oder der Spiegel hier, falls dessen letzter Stand den Server nicht mehr erreicht hat.
+    let remote;
+    try { remote = await SW.pull(c); } catch (e) { err = { type: 'network', message: e.message }; break; }
+    if (run !== srvRun) return;
+    const m = store.get('ki.islands', {})[SW.LOCAL], pending = m?.server && cloud.valid(m) && m.saved > (m.pushed || 0) ? m : null;
+    let pick = remote;
+    for (const x of [o.carry, pending]) if (x && cloud.valid(x) && SW.ahead(x, pick)) pick = x;
+    if (!pick) { err = { type: 'empty' }; break; }
+    try { if (await hostServer(c, code, pick, o.keep, run)) return; } catch (e) { err = e; if (e?.type === 'network') break; }
+  }
+  if (run !== srvRun) return;
+  G = null;
+  leave();
+  toast('⚠️ ' + (err?.type === 'empty' ? 'Auf dem Server liegt noch keine Insel.' : err?.type === 'network' ? 'Keine Verbindung zur Serverwelt – bist du online?' : 'Die Serverwelt antwortet gerade nicht. Versuch es gleich nochmal.'), true);
+}
+
+async function hostServer(c, code, src, keep, run) {
+  const g = session('host', S.migrate(structuredClone(src.s)), 'h');
+  Object.assign(g, { server: c, key: SW.LOCAL, code });
+  let n;
+  try {
+    n = await cloud.relayHost(code, { onData: (id, d) => G === g && hostData(id, d), onLeave: id => G === g && hostLeave(id) },
+      { ping: 8000, onDisplaced: () => G === g && displaced(g) });
+  } catch (e) { if (e?.type === 'unavailable-id') return false; throw e; } // jemand war schneller: dann dorthin
+  if (run !== srvRun) { n.close(); return true; }
+  G = g;
+  g.net = n;
+  SW.claim(g.s, SW.whoKey(g.s, profile.name, profile.uid)); // eigene Tasche (auch von einem anderen Gerät)
+  S.bindInv(g.s, 'host');
+  g.s.code = code;
+  SW.remember(g.s);
+  g.players.h = newPlayer('h', profile);
+  if (keep) Object.assign(g.players.h, keep);
+  enterGame();
+  lastSrv = 0;
+  saveFarm(true); // sofort auf den Server
+  return true;
+}
+
+// Wir hatten die Insel offen, waren aber kurz weg – inzwischen hat der andere sie geöffnet: einfach dazukommen.
+// Was hier seitdem passiert ist, bleibt als Zwischenstand erhalten (⏪ unter „Meine Inseln“).
+function displaced(g) {
+  if (G !== g || g.ended) return;
+  g.ended = true;
+  const me = g.players[g.me], keep = me && { x: me.x, z: me.z, ry: me.ry };
+  backup.snapshot(SW.LOCAL, { name: g.s.name, s: g.s }, true);
+  G = null;
+  startServer({ keep, text: '🔁 Dein Lieblingsmensch hat die Insel gerade geöffnet – du kommst dazu…' });
+}
+
+// Wer die Insel offen hatte, ist gegangen: wir übernehmen sie mit unserem aktuellen Stand.
+async function takeOver(g) {
+  if (G !== g || g.ended) return;
+  g.ended = true;
+  try { g.conn?.close(); } catch { /* */ }
+  const me = g.players[g.me], keep = me && { x: me.x, z: me.z, ry: me.ry };
+  const carry = g.sRaw && cloud.valid({ s: g.sRaw }) ? { name: g.sRaw.name, s: structuredClone(g.sRaw) } : null;
+  if (carry) saveFarm();
+  G = null;
+  $('hud').classList.add('hidden');
+  cover('🌍 Du übernimmst die Insel…');
+  await sleep(1000 + Math.random() * 900);
+  startServer({ keep, carry, text: '🌍 Du übernimmst die Insel…' });
+}
+
 function hostData(id, d) {
   if (!G || G.role !== 'host' || id === 'h' || !d || typeof d !== 'object') return;
   G.lastSeen[id] = performance.now();
@@ -194,7 +331,7 @@ function hostData(id, d) {
     if (!fr.includes(G.players[id].name)) { fr.push(G.players[id].name); if (fr.length > 8) fr.shift(); }
     G.net.send(id, { t: 'welcome', id, s: pack(G.s), players: G.players, code: G.code });
     say(`💕 ${G.players[id].name} ist da!`, 'join');
-    setTimeout(() => { playMelody(); G.net?.broadcast({ t: 'mel' }, id); }, 1200);
+    setTimeout(() => { playMelody(); G?.net?.broadcast({ t: 'mel' }, id); }, 1200);
     const nm = G.players[id].name, mo = {};
     if (XS.moment(G.s, 'visit:' + nm, '💞', `${nm} kommt zu Besuch`, 'Zum ersten Mal zusammen auf der Insel!', mo)) { G.dirty = true; G.net.broadcast({ t: 'moment', m: mo.moment }); onMoment(mo.moment); }
     return;
@@ -335,7 +472,8 @@ async function startGuest(code) {
 async function connectGuest(g) {
   let conn;
   const current = () => G === g && g.conn === conn;
-  conn = await net.join(g.joinCode, { onData: d => current() && guestData(d), onClose: () => current() && lostConnection() });
+  const h = { onData: d => current() && guestData(d), onClose: () => current() && lostConnection() };
+  conn = await (g.server ? cloud.relayJoin(g.joinCode, h) : net.join(g.joinCode, h));
   if (G !== g) { conn.close(); return; }
   g.conn = conn;
   g.lastHost = performance.now();
@@ -358,24 +496,27 @@ function guestData(d) {
       const old = G.players[G.me];
       G.me = d.id;
       G.sRaw = d.s;
-      G.s = S.bindInv(S.migrate(structuredClone(d.s)), 'u_' + profile.uid);
+      G.s = S.bindInv(S.migrate(structuredClone(d.s)), myBag(d.s));
       G.players = normPlayers(d.players);
-      if (old) Object.assign(G.players[G.me], { x: old.x, z: old.z, ry: old.ry });
+      if (old || G.keepMe) Object.assign(G.players[G.me], old ? { x: old.x, z: old.z, ry: old.ry } : G.keepMe);
+      G.keepMe = null;
       G.code = d.code;
-      G.key = 'copy:' + G.s.id;
-      store.set('ki.lastJoin', { code: G.joinCode, host: G.players.h?.name || '', farm: G.s.name });
+      if (G.server) { G.key = SW.LOCAL; SW.remember(G.s); } else {
+        G.key = 'copy:' + G.s.id;
+        store.set('ki.lastJoin', { code: G.joinCode, host: G.players.h?.name || '', farm: G.s.name });
+      }
       G.onWelcome?.();
       if (!G.ready) enterGame(); else hideCover();
       saveFarm();
       break;
     }
-    case 's': if (G.s && d.s && typeof d.s === 'object') { G.sRaw = d.s; G.s = S.bindInv(S.migrate(structuredClone(d.s)), 'u_' + profile.uid); } break;
+    case 's': if (G.s && d.s && typeof d.s === 'object') { G.sRaw = d.s; G.s = S.bindInv(S.migrate(structuredClone(d.s)), myBag(d.s)); } break;
     case 'sd': { // nur die geänderten Teile
       if (!G.s || !G.sRaw || !d.d || typeof d.d !== 'object') break;
       const raw = { ...G.sRaw, ...d.d };
       for (const k of Array.isArray(d.x) ? d.x : []) delete raw[k];
       G.sRaw = raw;
-      G.s = S.bindInv(S.migrate(structuredClone(raw)), 'u_' + profile.uid);
+      G.s = S.bindInv(S.migrate(structuredClone(raw)), myBag(raw));
       break;
     }
     case 'p': {
@@ -400,7 +541,7 @@ function guestData(d) {
     case 'card': if (typeof d.url === 'string' && d.url.startsWith('data:image/jpeg')) onCard(d); break;
     case 'wake': wake(); break;
     case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Insel geschickt.', true); break;
-    case 'bye': G.ended = true; G.conn?.close(); saveFarm(); cover('🏝️ Der Host hat die Insel verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Inseln“.', true); break;
+    case 'bye': if (G.server) { takeOver(G); break; } G.ended = true; G.conn?.close(); saveFarm(); cover('🏝️ Der Host hat die Insel verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Inseln“.', true); break;
   }
 }
 
@@ -417,6 +558,21 @@ async function lostConnection() {
   g.reconnecting = true;
   g.conn?.close();
   saveFarm();
+  if (g.server) { // Serverwelt: neu verbinden – ist niemand mehr da, übernehmen wir die Insel
+    cover('📡 Verbindung zur Serverwelt kurz weg – verbinde neu…', true);
+    for (let i = 0; i < 400 && G === g && !g.ended; i++) {
+      try {
+        await connectGuest(g);
+        if (G === g) { g.reconnecting = false; g.lastHost = performance.now(); hideCover(); toast('✅ Wieder verbunden!'); }
+        return;
+      } catch (e) {
+        if (G !== g || g.ended) return;
+        if (e?.type === 'peer-unavailable') { g.reconnecting = false; return takeOver(g); }
+        await sleep(i < 5 ? 1500 : 3000);
+      }
+    }
+    return;
+  }
   cover('📡 Verbindung verloren – verbinde neu…', true);
   for (let i = 0; i < 40 && G === g; i++) {
     try {
@@ -838,6 +994,8 @@ function enterGame() {
 
 function leave() {
   const g = G;
+  srvRun++; // laufende Serverwelt-Verbindung abbrechen
+  srvPaused = null;
   if (g) {
     saveFarm(true);
     if (g.role === 'host' && g.net) { g.net.broadcast({ t: 'bye' }); setTimeout(() => g.net.close(), 1000); }
@@ -866,8 +1024,13 @@ function showMenu(screen = 'title') {
   menuScreen = screen;
   for (const el of document.querySelectorAll('#menu .screen')) el.classList.toggle('hidden', el.id !== 'm-' + screen);
   const farms = Object.entries(store.get('ki.islands', {})).filter(([, f]) => Number.isFinite(f?.s?.money)).sort((a, b) => b[1].saved - a[1].saved);
+  const sc = SW.cfg(), oldOf = f => !f.server && sc?.id && f.s.id === sc.id; // ältere Kopien derselben Insel
   if (screen === 'title') {
-    const own = farms.find(([, f]) => !f.guest);
+    const m = farms.find(([k]) => k === SW.LOCAL)?.[1];
+    $('b-server').classList.toggle('hidden', !sc);
+    if (sc) $('server-sub').textContent = `${m?.name || sc.name || 'Eure gemeinsame Insel'}${m ? ` · Tag ${m.s.day}` : ''} · einfach rein, ohne Einladen`;
+    $('b-continue').classList.toggle('pink', !sc);
+    const own = farms.find(([, f]) => !f.guest && !f.server && !oldOf(f));
     $('b-continue').classList.toggle('hidden', !own);
     if (own) {
       $('b-continue').dataset.key = own[0];
@@ -880,14 +1043,14 @@ function showMenu(screen = 'title') {
   }
   if (screen === 'farms') {
     $('farms').innerHTML = farms.length ? farms.map(([id, f]) => `<div class="farm"><div class="tx"><b>${esc(f.name)}</b>
-      <small>Tag ${f.s.day} · Level ${f.s.level} · 🪙 ${f.s.money.toLocaleString('de-DE')}${f.guest ? ` · Kopie von ${esc(f.guest)}s Insel` : ''}</small>
+      <small>${f.server ? '🌍 Serverwelt · ' : ''}Tag ${f.s.day} · Level ${f.s.level} · 🪙 ${f.s.money.toLocaleString('de-DE')}${f.guest ? ` · Kopie von ${esc(f.guest)}s Insel` : ''}${oldOf(f) ? ' · älterer Stand eurer Serverwelt' : ''}</small>
       <small>${new Date(f.saved).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</small></div>
       <button class="btn small" data-play="${esc(id)}">Spielen</button><button class="btn small white" data-exp="${esc(id)}" title="Als Datei sichern">💾</button>
       <button class="btn small white" data-snaps="${esc(id)}" title="Frühere Stände">⏪</button><button class="btn small white" data-del="${esc(id)}">🗑️</button></div>
       <div class="snaps hidden" id="snaps-${esc(id)}"></div>`).join('')
       : '<div class="note">Noch keine Insel – gründet unten eure erste! 🏝️</div>';
   }
-  if (screen === 'farms') { cloudBox(); cloudSync(); }
+  if (screen === 'farms') { serverBox(); cloudBox(); cloudSync(); }
   if (screen === 'settings') $('msettings').innerHTML = settingsHtml(settings, touch);
   if (screen === 'join') setTimeout(() => $('jcode').focus(), 50);
 }
@@ -898,6 +1061,7 @@ for (const b of document.querySelectorAll('[data-go]')) {
     if (b.dataset.go === 'char') openEditor(); else showMenu(b.dataset.go);
   };
 }
+$('b-server').onclick = () => { play('click'); startServer(); };
 $('b-continue').onclick = () => {
   const f = store.get('ki.islands', {})[$('b-continue').dataset.key];
   if (f && !needName()) startHost(f.s, $('b-continue').dataset.key, f.guest);
@@ -920,7 +1084,15 @@ $('farms').onclick = async e => {
   }
   if (b.dataset.restore) {
     const x = (await backup.snapshots(b.dataset.key)).find(q => String(q.id) === b.dataset.restore);
-    if (x && confirm(`Insel auf „Tag ${x.day}“ zurücksetzen? Der jetzige Stand wird vorher noch gemerkt.`)) {
+    if (x && b.dataset.key === SW.LOCAL) { // Serverwelt: gilt für beide – also auf den Server
+      const c = SW.cfg();
+      if (c && confirm(`Eure Serverwelt auf „Tag ${x.day}“ zurücksetzen? Das gilt dann für euch beide – am besten, wenn gerade niemand auf der Insel ist.`)) {
+        if (farms[SW.LOCAL]) await backup.snapshot(SW.LOCAL, farms[SW.LOCAL], true);
+        const f = { name: x.name, saved: Date.now(), s: x.s };
+        if (await SW.push(c, f, { force: true }) === 'ok') { farms[SW.LOCAL] = { ...f, server: true, pushed: f.saved }; store.set('ki.islands', farms); toast('⏪ Serverwelt zurückgesetzt'); showMenu('farms'); }
+        else toast('⚠️ Der Server ist gerade nicht erreichbar – nichts geändert.');
+      }
+    } else if (x && confirm(`Insel auf „Tag ${x.day}“ zurücksetzen? Der jetzige Stand wird vorher noch gemerkt.`)) {
       if (farms[b.dataset.key]) await backup.snapshot(b.dataset.key, farms[b.dataset.key], true);
       farms[b.dataset.key] = { ...(farms[b.dataset.key] || { name: x.name }), saved: Date.now(), s: x.s };
       store.set('ki.islands', farms);
@@ -933,8 +1105,80 @@ $('farms').onclick = async e => {
     store.set('ki.islands', farms);
     showMenu('farms');
   }
+  if (b.dataset.play && farms[b.dataset.play]?.server && SW.cfg()) { if (!needName()) startServer(); return; }
+  const sc = SW.cfg();
+  if (b.dataset.play && sc?.id && farms[b.dataset.play]?.s?.id === sc.id && !farms[b.dataset.play].server
+    && !confirm('Das ist ein älterer Stand eurer Serverwelt. Trotzdem hier für dich allein spielen? (Die Serverwelt bleibt davon unberührt.)')) return;
   if (b.dataset.play && farms[b.dataset.play] && !needName()) startHost(farms[b.dataset.play].s, b.dataset.play, farms[b.dataset.play].guest);
 };
+// ---------- 🌍 Serverwelt einrichten ----------
+let srvMsg = '';
+// Spiegel einer anderen (früheren) Serverwelt als normale Insel aufheben, damit nichts überschrieben wird
+function archiveMirror() {
+  const farms = store.get('ki.islands', {}), m = farms[SW.LOCAL];
+  if (!m) return;
+  delete m.server; delete m.pushed;
+  farms['w' + Date.now().toString(36)] = m;
+  delete farms[SW.LOCAL];
+  store.set('ki.islands', farms);
+}
+function serverBox() {
+  const el = $('serverbox'), c = SW.cfg();
+  if (!el) return;
+  const farms = Object.entries(store.get('ki.islands', {})).filter(([k, f]) => k !== SW.LOCAL && Number.isFinite(f?.s?.money)).sort((a, b) => b[1].saved - a[1].saved);
+  el.innerHTML = c
+    ? `<b>🌍 Serverwelt: ${esc(store.get('ki.islands', {})[SW.LOCAL]?.name || c.name || 'eure Insel')}</b><small>Liegt auf eurem Server. Wer zuerst kommt, öffnet sie – wer dazukommt, landet automatisch dort. Kein Einladen, kein Herunterladen. Den Link nur deinem Lieblingsmenschen geben!</small>
+      <div class="row2"><button class="btn small pink" data-sw="go">🌍 Betreten</button><button class="btn small white" data-sw="share">🔗 Link teilen</button><button class="btn small white" data-sw="off">Von diesem Gerät entfernen</button></div>`
+    : `<b>🌍 Serverwelt</b><small>Eine gemeinsame Insel auf dem Server: ihr könnt beide jederzeit rein – ohne einander einzuladen und ohne Dateien hin und her zu schicken.</small>
+      ${farms.length ? `<div class="row2"><select id="swpick">${farms.map(([k, f]) => `<option value="${esc(k)}">${esc(f.name)} · Tag ${f.s.day}${f.guest ? ' · Kopie' : ''}</option>`).join('')}</select><button class="btn small pink" data-sw="make">Zur Serverwelt machen</button></div>` : ''}
+      <div class="row2" style="margin-top:8px"><input type="text" id="swkey" placeholder="Serverwelt-Link oder Schlüssel" autocomplete="off"><button class="btn small white" data-sw="use">Verbinden</button></div>`;
+  el.insertAdjacentHTML('beforeend', `<div class="st">${srvMsg}</div>`);
+}
+function shareServer() {
+  const c = SW.cfg();
+  if (!c) return;
+  const url = SW.link(c.key);
+  if (navigator.share) navigator.share({ title: 'Kuschelinsel', text: '🌍 Unsere Serverwelt – einmal öffnen, danach immer über „Serverwelt“ rein:', url }).catch(() => {});
+  else navigator.clipboard?.writeText(url).then(() => toast('📋 Link kopiert – nur an deinen Lieblingsmenschen schicken!'), () => toast(url));
+}
+$('serverbox').onclick = async e => {
+  const b = e.target.closest('[data-sw]');
+  if (!b) return;
+  play('click');
+  const k = b.dataset.sw;
+  if (k === 'go') startServer();
+  if (k === 'share') shareServer();
+  if (k === 'off' && confirm('Serverwelt von diesem Gerät entfernen? Auf dem Server bleibt sie erhalten – mit dem Link kommst du jederzeit wieder rein. Die Kopie hier bleibt unter „Meine Inseln“.')) {
+    archiveMirror(); SW.forget(); srvMsg = ''; showMenu('farms');
+  }
+  if (k === 'use') {
+    const raw = $('swkey').value, key = (raw.match(/welt=([A-Za-z0-9-]+)/) || [, raw])[1], before = SW.cfg()?.key, c = SW.setup(key);
+    if (!c) { srvMsg = '⚠️ Das ist kein Serverwelt-Link.'; return serverBox(); }
+    if (before !== c.key) archiveMirror();
+    srvMsg = '✅ Verbunden – tippe auf „Betreten“.'; showMenu('farms');
+  }
+  if (k === 'make') {
+    const farms = store.get('ki.islands', {}), id = $('swpick')?.value, f = farms[id];
+    if (!f || !confirm(`„${f.name}“ zur Serverwelt machen? Sie liegt dann auf dem Server und ihr könnt beide jederzeit rein. Deine Insel hier bleibt zusätzlich erhalten.`)) return;
+    const key = SW.newKey(), c = { key }, x = { name: f.name, saved: Date.now(), s: f.s };
+    srvMsg = '⏳ Lade hoch …'; serverBox();
+    if (await SW.push(c, x) !== 'ok') { srvMsg = '⚠️ Der Server ist gerade nicht erreichbar.'; return serverBox(); }
+    archiveMirror();
+    SW.setup(key); SW.remember(f.s);
+    const all = store.get('ki.islands', {});
+    all[SW.LOCAL] = { ...x, server: true, pushed: x.saved };
+    store.set('ki.islands', all);
+    srvMsg = '✅ Fertig! Schick jetzt den Link an deinen Lieblingsmenschen.'; showMenu('farms'); shareServer();
+  }
+};
+// Link …#welt=SCHLÜSSEL: Serverwelt auf diesem Gerät einrichten
+{
+  const had = SW.cfg()?.key, r = SW.readLink();
+  if (r === 'new') { if (had || store.get('ki.islands', {})[SW.LOCAL]) archiveMirror(); setTimeout(() => toast('🌍 Serverwelt eingerichtet! Tippe auf „Serverwelt“.', true), 1200); }
+  if (r === 'same') setTimeout(() => toast('🌍 Serverwelt ist schon eingerichtet.'), 1200);
+  if (r === 'bad') setTimeout(() => toast('⚠️ Der Serverwelt-Link ist unvollständig.', true), 1200);
+}
+
 // ---------- Cloud-Spielstand ----------
 let cloudMsg = '', cloudBusy = false;
 function cloudBox() {
@@ -2598,7 +2842,7 @@ function gameFrame(dt, now) {
   $('orderdot').classList.toggle('hidden', !ready);
   const np = Object.keys(G.players).length;
   setText('pcount', String(np));
-  const inv = G.role === 'host' && G.code && np === 1;
+  const inv = G.role === 'host' && G.code && np === 1 && !G.server;
   $('invite').classList.toggle('hidden', !inv);
   if (inv) setText('invcode', G.code);
 
@@ -2648,4 +2892,4 @@ function demoFarm() {
 
 showMenu(joinParam ? 'join' : 'title');
 requestAnimationFrame(frame);
-window.__game = { get G() { return G; }, world, S, profile, settings, openTalk, social, showRiddle, panels, XS, send, travel };  // für Tests & Fehlersuche
+window.__game = { get G() { return G; }, world, S, profile, settings, openTalk, social, showRiddle, panels, XS, send, travel, leave, SW };  // für Tests & Fehlersuche

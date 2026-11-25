@@ -23,20 +23,22 @@ function open(url, ms = 8000) {
     ws.onerror = () => { clearTimeout(t); fail({ type: 'network' }); };
   });
 }
-const keepAlive = ws => { const i = setInterval(() => { if (ws.readyState === 1) ws.send('p'); }, 20000); return () => clearInterval(i); };
+const keepAlive = (ws, ms = 20000) => { const i = setInterval(() => { if (ws.readyState === 1) ws.send('p'); }, ms); return () => clearInterval(i); };
 
-// Gastgeber: hält den Raum offen; verbindet sich bei kurzen Aussetzern von selbst neu
-export async function relayHost(code, h) {
+// Gastgeber: hält den Raum offen; verbindet sich bei kurzen Aussetzern von selbst neu.
+// o.ping: Lebenszeichen-Takt (ms); o.onDisplaced: jemand anderes hat den Raum inzwischen übernommen (Serverwelt)
+export async function relayHost(code, h, o = {}) {
   const sec = sessionStorage.getItem('ki.hostsec.' + code) || rid(16);
   sessionStorage.setItem('ki.hostsec.' + code, sec);
   const url = `${WS}/room/${code}?role=host&s=${sec}`;
-  let ws = await open(url), closed = false, stop = null;
+  let ws = await open(url), closed = false, stop = null, pong = Date.now();
   const guests = new Set();
   let stale = new Set();
   const wire = () => {
-    stop = keepAlive(ws);
+    pong = Date.now();
+    stop = keepAlive(ws, o.ping);
     ws.onmessage = e => {
-      if (e.data === 'q') return;
+      if (e.data === 'q') { pong = Date.now(); return; }
       let m; try { m = JSON.parse(e.data); } catch { return; }
       if (m.sys === 'join' && stale.has(m.id)) out({ drop: m.id, to: '-', d: null }); // war vor dem Aussetzer da: sauber neu verbinden lassen
       else if (m.sys === 'join') guests.add(m.id);
@@ -51,7 +53,10 @@ export async function relayHost(code, h) {
       guests.clear();
       const retry = async (n = 0) => {
         if (closed) return;
-        try { ws = await open(url); wire(); } catch { setTimeout(() => retry(n + 1), Math.min(15000, 1500 * (n + 1))); }
+        try { ws = await open(url); if (closed) { ws.close(); return; } wire(); } catch (e) {
+          if (e?.type === 'unavailable-id' && o.onDisplaced) { closed = true; o.onDisplaced(); return; }
+          setTimeout(() => retry(n + 1), Math.min(15000, 1500 * (n + 1)));
+        }
       };
       setTimeout(retry, 1200);
     };
@@ -65,6 +70,15 @@ export async function relayHost(code, h) {
     drop(id) { guests.delete(id); setTimeout(() => out({ drop: id, d: null, to: '-' }), 1000); },
     close() { closed = true; stop?.(); try { ws.close(); } catch { /* */ } },
     get online() { return ws.readyState === 1; },
+    // Steht die Leitung wirklich? (Antwort auf das letzte Lebenszeichen ist frisch)
+    get alive() { return !closed && ws.readyState === 1 && Date.now() - pong < (o.ping || 20000) * 3; },
+    // Nach dem Aufwachen (Handy war im Hintergrund): kurz nachfragen, sonst neu verbinden
+    check() {
+      if (closed || ws.readyState !== 1) return;
+      const w = ws, t0 = Date.now();
+      try { w.send('p'); } catch { /* */ }
+      setTimeout(() => { if (ws === w && pong < t0 && w.readyState === 1) try { w.close(); } catch { /* */ } }, 4000);
+    },
   };
 }
 
@@ -98,16 +112,16 @@ export function enable(key) {
 export function disable() { setCfg({}); }
 const ISLE = k => /^[A-Za-z0-9_-]{1,40}$/.test(k);
 
-async function gzip(text) {
+export async function gzip(text) {
   if (!globalThis.CompressionStream) return new TextEncoder().encode(text);
   return new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
 }
-async function gunzip(buf) {
+export async function gunzip(buf) {
   const b = new Uint8Array(buf);
   if (b[0] !== 0x1f || b[1] !== 0x8b) return new TextDecoder().decode(b);
   return await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
 }
-const valid = f => f && typeof f.s === 'object' && Number.isFinite(f.s.money) && Number.isFinite(f.s.day) && f.s.tiles && typeof f.s.tiles === 'object';
+export const valid = f => f && typeof f.s === 'object' && Number.isFinite(f.s.money) && Number.isFinite(f.s.day) && f.s.tiles && typeof f.s.tiles === 'object';
 
 // Eine Insel hochladen (nur wenn sie sich seit dem letzten Mal geändert hat)
 const busy = new Set();
