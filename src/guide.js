@@ -93,6 +93,7 @@ export const GUIDE = [
   ['Garten', '🐦', 'Nistkästen', 'Nistkasten (Krämerladen) in die Nähe von Bäumen stellen: Vögel ziehen ein, brüten, und die Küken werden flügge.', s => (s.stats?.fledged || 0) > 0 || has(s, 'nistkasten')],
   ['Insel', '🏡', 'Neue Nachbarn', 'Handy ➜ Wohnen: jede Woche drei Bewerbungen – einem zusagen, am Einzugstag die Umzugskartons tragen.', s => !!s.housing?.week || !!s.moving],
   ['Garten', '🧺', 'Bauernmarkt', 'Marktstand (Krämerladen) aufstellen: samstags 8–15 Uhr Ernte auslegen, die Nachbarn kaufen – Wünsche bringen doppelt.', s => !!s.market],
+  ['Kreativ', '🛋️', 'Möbel-Serien', 'Krämerladen ➜ Möbel ➜ eine Serie wählen (z. B. Pilzwald oder Retro-Diner): vier verschiedene Stücke im Haus bringen Extrapunkte beim Wohnwert.', s => (s.hha?.best || 0) > 0 && Object.values(s.home?.items || {}).some(o => o?.k && ['landbuffet', 'pilztisch', 'dinertisch', 'bistrotisch', 'zeichentisch', 'bauerntisch'].includes(o.k))],
   ['Insel', '📅', 'Insel-Kalender & Rückblick', 'Handy ➜ Kalender zeigt alle Termine (mit Echtzeit auch als Datei für den Handy-Kalender), Handy ➜ Rückblick eine Diashow des Jahres.', s => !!s.lastYear],
 ];
 export function guideList(s) {

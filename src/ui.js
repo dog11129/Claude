@@ -11,6 +11,7 @@ import { PANELS_W, TITLES_W, TABS_W, APPS_W } from './ui-extra.js';
 import { PANELS_V, TITLES_V, APPS_V } from './ui-extra2.js';
 import { PANELS_6, TITLES_6, APPS_6 } from './ui-extra3.js';
 import { PANELS_7, TITLES_7, APPS_7, sig7 } from './ui-extra4.js';
+import { FURN_SETS, SET_MIN, SET_BONUS } from './furni-data2.js';
 import { PIRATE_LVL } from './extras6.js';
 import { DEEPSEA_PRICE, DEEPSEA_LVL, ponyHappy } from './extras5.js';
 import { VOLCANO_PRICE, VOLCANO_LVL } from './extras4.js';
@@ -123,18 +124,30 @@ const SHOP = {
     for (const [id, u] of Object.entries(UPGRADES)) if (u.tab === 'goods') h += upgradeRow(s, id);
     return h;
   },
-  furn(s) {
-    const cats = { sitzen: '🪑 Sitzen', tische: '🍽️ Tische', betten: '🛏️ Schlafen & Schränke', licht: '💡 Licht', kueche: '🍳 Küche', teppiche: '🟫 Teppiche', pflanzen: '🪴 Pflanzen', deko: '🧸 Deko', wand: '🖼️ Wand' };
+  furn(s, g) {
+    const cats = { sitzen: '🪑 Sitzen', tische: '🍽️ Tische', betten: '🛏️ Schlafen & Schränke', licht: '💡 Licht', kueche: '🍳 Küche', bad: '🛁 Bad', teppiche: '🟫 Teppiche', pflanzen: '🪴 Pflanzen', deko: '🧸 Deko', wand: '🖼️ Wand' };
+    const flt = g?.furnCat || '', chip = (v, l) => `<button class="btn small ${flt === v ? 'pink' : 'white'}" data-act='${JSON.stringify({ ui: 'f:furncat', c: v })}'>${l}</button>`;
     let h = '<div class="note">Möbel fürs Haus: kaufen ➜ ins Haus gehen 🚪 ➜ 🔨 Baumodus öffnen ➜ Möbel wählen ➜ aufs Feld tippen. Antippen im Baumodus hebt sie wieder auf. Manche Möbel gibt es nur an der Werkbank.</div>';
     const sw = (kind, list) => `<div class="swatches">${list.map(([id, l, c]) => `<button title="${l}" style="background:${c};width:44px;height:44px;border-radius:12px" data-act='${JSON.stringify({ t: 'hstyle', kind, id })}' class="${s.home[kind] === id ? 'on' : ''}"></button>`).join('')}</div>`;
-    h += `<div class="row"><div class="ic">🖌️</div><div class="tx"><b>Tapete <span class="lv">🪙 350</span></b><small>${WALLS.find(w => w[0] === s.home.wall)?.[1] || ''}</small>${sw('wall', WALLS)}</div></div>`;
-    h += `<div class="row"><div class="ic">🪵</div><div class="tx"><b>Boden <span class="lv">🪙 350</span></b><small>${FLOORS.find(w => w[0] === s.home.floor)?.[1] || ''}</small>${sw('floor', FLOORS)}</div></div>`;
+    h += `<div class="pattools chips">${chip('', '✨ Alle')}${Object.entries(cats).map(([k, l]) => chip('cat:' + k, l)).join('')}</div>`;
+    h += `<div class="note" style="margin-bottom:2px">Serien: vier verschiedene Stücke im Haus = +${SET_BONUS.toLocaleString('de-DE')} Wohnwert-Punkte</div><div class="pattools chips">${Object.entries(FURN_SETS).map(([k, [ic, n]]) => chip('set:' + k, `${ic} ${n}`)).join('')}</div>`;
+    if (!flt) {
+      h += `<div class="row"><div class="ic">🖌️</div><div class="tx"><b>Tapete <span class="lv">🪙 350</span></b><small>${WALLS.find(w => w[0] === s.home.wall)?.[1] || ''}</small>${sw('wall', WALLS)}</div></div>`;
+      h += `<div class="row"><div class="ic">🪵</div><div class="tx"><b>Boden <span class="lv">🪙 350</span></b><small>${FLOORS.find(w => w[0] === s.home.floor)?.[1] || ''}</small>${sw('floor', FLOORS)}</div></div>`;
+    }
+    const set = flt.startsWith('set:') ? flt.slice(4) : null, only = flt.startsWith('cat:') ? flt.slice(4) : null;
+    if (set) {
+      const mine = new Set([...Object.values(s.home?.items || {}), ...Object.values(s.home?.rugs || {}), ...Object.values(s.home?.walls || {})].map(o => o.k).filter(k => FURNITURE[k]?.set === set));
+      h += `<div class="note">${FURN_SETS[set][0]} <b>${FURN_SETS[set][1]}</b>: ${mine.size} von ${SET_MIN} verschiedenen Stücken im Haus${mine.size >= SET_MIN ? ' – Serie vollständig! ✨' : ''}</div>`;
+    }
     for (const [c, label] of Object.entries(cats)) {
+      if (only && c !== only) continue;
+      const list = Object.entries(FURNITURE).filter(([, f]) => f.cat === c && !f.rare && (!set || f.set === set));
+      if (!list.length) continue;
       h += `<h3>${label}</h3>`;
-      for (const [id, f] of Object.entries(FURNITURE)) {
-        if (f.cat !== c || f.rare) continue;
+      for (const [id, f] of list) {
         const locked = f.lvl > s.level, have = s.inv[id] || 0;
-        h += row(itemIcon(id), f.name + (locked ? lvTag(f.lvl) : ''), `${f.w}×${f.d}${f.sit ? ' · zum Sitzen' : ''}${f.bed ? ' · zum Schlafen' : ''}${f.store ? ' · Lagerkiste für alle' : ''}${f.craft ? (f.buy ? ' · auch an der Werkbank' : ' · nur an der Werkbank') : ''}${have ? ` · <b>${have}× in der Tasche</b>` : ''}`,
+        h += row(itemIcon(id), f.name + (locked ? lvTag(f.lvl) : ''), `${f.w}×${f.d}${f.set && !set ? ` · ${FURN_SETS[f.set][0]} ${FURN_SETS[f.set][1]}` : ''}${f.sit ? ' · zum Sitzen' : ''}${f.bed ? ' · zum Schlafen' : ''}${f.store ? ' · Lagerkiste für alle' : ''}${f.craft ? (f.buy ? ' · auch an der Werkbank' : ' · nur an der Werkbank') : ''}${have ? ` · <b>${have}× in der Tasche</b>` : ''}`,
           f.buy ? btn(`🪙 ${f.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < f.buy) : '<span class="lv">🔨</span>', locked);
       }
     }
@@ -148,7 +161,7 @@ const SHOP = {
 };
 
 const PANELS = {
-  shop: (s, g, tab) => SHOP[tab](s),
+  shop: (s, g, tab) => SHOP[tab](s, g),
   sell(s) {
     const sellable = Object.entries(s.inv).filter(([id, n]) => n > 0 && price(s, id) > 0);
     const total = sellable.filter(([id]) => !ITEMS[id].turnip).reduce((t, [id, n]) => t + price(s, id) * n, 0);

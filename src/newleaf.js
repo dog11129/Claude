@@ -2,6 +2,7 @@
 // Hauskredit & Wohnwert-Verein und die Tropeninsel mit Touren. Nur Daten und reine Rechnungen (keine Grafik).
 import { ITEMS, PLACE, PROJECTS, CROPS, weekday } from './data.js';
 import { FURNITURE } from './furni-data.js';
+import { setsIn, SET_BONUS } from './furni-data2.js';
 import { AREAS, areaOf } from './areas.js';
 export { PROJECTS };
 
@@ -134,10 +135,12 @@ export function homeScore(s) {
     pts += 200 + Math.round((f.buy || 1500) / 8);
   }
   pts += kinds.size * 250;                                   // Abwechslung
+  const sets = setsIn([...kinds], FURNITURE);
+  pts += sets.length * SET_BONUS;                            // Möbel-Serien (vier verschiedene Stücke einer Serie)
   if (h.wall && h.wall !== 'vanille') pts += 600;            // eigene Tapete
   if (h.floor && h.floor !== 'dielen') pts += 600;           // eigener Boden
   pts += (s.up?.house || 1) * 800;                           // größeres Haus
-  return { pts, pieces: all.length, kinds: kinds.size };
+  return { pts, pieces: all.length, kinds: kinds.size, sets };
 }
 export const HHA_RANKS = [[0, 'Gemütlich angefangen', '🌱'], [6000, 'Schön eingerichtet', '🏡'], [12000, 'Wohnwert-Stern', '⭐'], [20000, 'Traumhaus', '🌟'], [30000, 'Wohnwert-Legende', '🏆']];
 export const hhaRank = pts => HHA_RANKS.filter(r => pts >= r[0]).pop();

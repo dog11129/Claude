@@ -37,6 +37,11 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
+### 🛋️ Neu: 120 Möbel in zwölf Serien
+- Landhaus, Strandhaus, Pilzwald, Retro-Diner, Sternenreise, Kinderzimmer, Musikzimmer, Atelier & Büro, Badezimmer, Winterhütte, Café & Bäckerei und Gartenzimmer – je zehn Stücke, vom Spülstein bis zum Flügel, vom Mondbett bis zur Diner-Musikbox.
+- Im Krämerladen ➜ Möbel lassen sich die Möbel nach Art (jetzt auch 🛁 Bad) oder nach Serie filtern.
+- **Serien-Bonus:** Vier verschiedene Stücke einer Serie im Haus bringen beim Wohnwert-Verein 1.500 Extrapunkte – für jede Serie.
+
 ### ✋ Neu: Aufheben im Baumodus
 - Im Baumodus einfach auf ein aufgestelltes Möbelstück (im Haus) oder auf Deko (draußen) tippen: Es wird aufgehoben und ist gleich zum Woandershinstellen ausgewählt – lackierte Möbel behalten dabei ihre Farbe. Wer es nicht wieder hinstellt, findet es in der Tasche.
 - Der Knopf **✋ Aufheben** oben in der Bauleiste (Taste X, am Controller X) packt mehrere Sachen nacheinander ein. Inselprojekte baut man nur so ab (mit Rückfrage); Nachbarhäuser bleiben stehen.
@@ -265,6 +270,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/extras4.js`, `src/client/fun2.js`, `src/ui-extra.js`, `src/world-extra.js` | Inselleben 4: Logik, Minispiele & Fahrten im Browser, Fenster, 3D (Grotte, Vulkan, Tümpel, Stempel) |
 | `src/extras5.js` + `src/features/*.js`, `src/client/fun3.js`, `src/ui-extra2.js`, `src/world-extra2.js`, `src/npc-walk.js` | Inselleben 5: Logik (aufgeteilt nach Themen), Minispiele & Fahrten, Fenster, 3D (Pony, Bahn, Hochsee-Boot, Lack); Wegsuche der Nachbarn |
 | `src/extras6.js` + `src/features/*.js`, `src/client/fun4.js`, `src/ui-extra3.js`, `src/world-extra3.js` | Inselleben 6: Logik, Minispiele (Entenangeln, Restaurant, Bandprobe), Fahrten, Einstieg, Fenster, 3D (Jahrmarkt, Becken, Wildtiere, Tandem) |
+| `src/furni-data2.js`, `src/models-furn2.js` | 120 Möbel in zwölf Serien (Daten & Modelle), Serien-Bonus |
 | `src/extras7.js` + `src/features/{moor,bamboo,weather2,fests2,nests,housing,market,calendar}.js`, `src/client/fun5.js`, `src/client/pad.js`, `src/ui-extra4.js`, `src/world-extra4.js` | Inselleben 7: Logik, Minispiele (Teezeremonie, Gymnastik), Floß, Laternenumzug, Feuerwerk, Diashow, Kalender-Export, Controller, Fenster, 3D (Moor, Bambushain, Irrlichter, Kartons) |
 | `src/client/fun.js`, `src/guide.js` | Ballonfahrt, Fotowettbewerb-Knopf, Sternbild-Editor, Fahrrad, Drachen · Inselführer |
 | `src/models-extra.js` | Modelle der neuen Deko und Möbel |

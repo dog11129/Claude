@@ -8,6 +8,7 @@ import {
 } from './data.js';
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, bridgeRail, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
+import { FURN_SETS } from './furni-data2.js';
 import * as X from './extras.js';
 import * as Y from './extras2.js';
 import * as Z from './extras3.js';
@@ -712,7 +713,7 @@ function newDay(s) {
     if (bonus) { s.money += bonus; s.stats.earned += bonus; }
     s.hha.best = Math.max(s.hha.best || 0, h.pts);
     s.mail.push({ kind: 'note', from: 'hha', title: `${r[2]} Wohnwert-Verein: ${fmt(h.pts)} Punkte`, item, n,
-      text: `Hallo ihr Lieben,\nwir haben euer Zuhause bewertet: ${h.pieces} Möbelstücke, ${h.kinds} verschiedene – das macht ${fmt(h.pts)} Punkte. Unsere Auszeichnung: „${r[1]}“.${bonus ? `\nNeuer Rekord! Dafür schicken wir euch ${fmt(bonus)} Taler.` : ''}${item ? '\nUnd weil es so wunderschön ist: unser Wohnwert-Pokal für euren Garten! 🏆' : ''}\n\nEuer Wohnwert-Verein 🛋️`, day: s.day });
+      text: `Hallo ihr Lieben,\nwir haben euer Zuhause bewertet: ${h.pieces} Möbelstücke, ${h.kinds} verschiedene${h.sets?.length ? `, ${h.sets.length === 1 ? 'eine vollständige Serie' : `${h.sets.length} vollständige Serien`} (${h.sets.map(k => FURN_SETS[k]?.[1] || k).join(', ')})` : ''} – das macht ${fmt(h.pts)} Punkte. Unsere Auszeichnung: „${r[1]}“.${bonus ? `\nNeuer Rekord! Dafür schicken wir euch ${fmt(bonus)} Taler.` : ''}${item ? '\nUnd weil es so wunderschön ist: unser Wohnwert-Pokal für euren Garten! 🏆' : ''}\n\nEuer Wohnwert-Verein 🛋️`, day: s.day });
   }
   const sc = islandScore(s);
   if (sc.stars > (s.stars || 1)) {

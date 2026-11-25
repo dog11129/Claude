@@ -1501,7 +1501,7 @@ function select(id, quiet) {
 // Aufstellen, Einrichten, Wege legen und Abbauen geht nur hier: unten eine Leiste mit Kategorien und den Sachen aus der Tasche,
 // auf dem Feld eine Vorschau. Draußen auch Inselprojekte (die man jetzt wieder abbauen und versetzen kann).
 const OUT_CATS = [['deko', '🏮 Deko'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['haus', '🏠 Haus']]; // ✋ Aufheben: eigener Knopf oben (#bpick)
-const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['lackieren', '🖌️ Lackieren']];
+const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['bad', '🛁 Bad'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['lackieren', '🖌️ Lackieren']];
 function buildList(b) {
   const inv = G.s.inv;
   if (b.inside) return Object.keys(FURNITURE).filter(id => inv[id] > 0 && (b.cat === 'alle' || FURNITURE[id].cat === b.cat));

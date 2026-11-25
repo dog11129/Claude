@@ -21,7 +21,7 @@ export const TITLES_7 = { moorsteg: '🪷 Steg zum Moor', bambusgate: '⛩️ Ba
 export const APPS_7 = [['housing', '🏡', 'Wohnen', '#d8f0c8'], ['calendar', '📅', 'Kalender', '#cfe0ff'], ['fwedit', '🎆', 'Feuerwerk', '#e2d8ff'], ['review', '📽️', 'Rückblick', '#ffe0c8']];
 export const APP_PANELS_7 = { housing: ['housing'], calendar: ['calendar'], fwedit: ['fwedit'], review: ['review'] };
 // Was ein offenes Fenster neu zeichnen lässt
-export const sig7 = (s, g, open) => [s.moor, s.bambus, s.parade, s.newyear, s.rockets, s.gym, s.housing, s.moving, s.market, s.lastYear, g.fwEdit, g.mk, open === 'market' || open === 'calendar' ? Math.floor(s.dayTime * 36) : 0];
+export const sig7 = (s, g, open) => [g.furnCat, s.moor, s.bambus, s.parade, s.newyear, s.rockets, s.gym, s.housing, s.moving, s.market, s.lastYear, g.fwEdit, g.mk, open === 'market' || open === 'calendar' ? Math.floor(s.dayTime * 36) : 0];
 
 export const PANELS_7 = {
   moorsteg(s, g) {

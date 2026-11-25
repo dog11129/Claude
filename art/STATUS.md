@@ -5,10 +5,10 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
 | place | 133 | 49 | 84 |
-| furniture | 140 | 41 | 99 |
+| furniture | 260 | 41 | 219 |
 | items | 142 | 0 | 142 |
 | crops | 102 | 42 | 60 |
-| Icons | 544 | 0 eigene Bilder | 544 gerendert |
+| Icons | 664 | 0 eigene Bilder | 664 gerendert |
 
 ## place – noch Platzhalter (84)
 
@@ -99,7 +99,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Bimmelbahn | `bahnhof` | 2.6 × 1.76 × 1.63 | 148 |
 | Inselrestaurant | `restaurant` | 2.47 × 2.02 × 2.47 | 472 |
 
-## furniture – noch Platzhalter (99)
+## furniture – noch Platzhalter (219)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -188,6 +188,126 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Gymnastikmatte | `gymnastikmatte` | 0.7 × 0.18 × 1.7 | 84 |
 | Neujahrsglocke | `neujahrsglocke` | 0.76 × 1.04 × 0.4 | 508 |
 | Froschkönig-Figur | `froschkoenig` | 0.36 × 0.56 × 0.36 | 1260 |
+| Küchenbuffet | `landbuffet` | 0.95 × 1.8 × 0.59 | 1012 |
+| Holzherd | `holzherd` | 0.9 × 1.73 × 0.67 | 500 |
+| Spülstein | `spuelstein` | 0.9 × 1.14 × 0.57 | 392 |
+| Brotregal | `brotregal` | 0.86 × 1.45 × 0.4 | 1320 |
+| Eckbank | `eckbank` | 1.9 × 0.97 × 0.53 | 1356 |
+| Bauerntisch | `bauerntisch` | 1.9 × 1.02 × 0.9 | 1260 |
+| Kräuterbund | `kraeuterbund` | 0.7 × 0.42 × 0.13 | 180 |
+| Milchkanne | `milchkanne` | 0.41 × 0.73 × 0.41 | 768 |
+| Flickenteppich | `flickenteppich` | 1.96 × 0.01 × 1.96 | 240 |
+| Petroleumlampe | `petroleumlampe` | 0.34 × 0.44 × 0.28 | 776 |
+| Strandkorb-Sessel | `strandkorbsessel` | 0.98 × 1.57 × 0.79 | 504 |
+| Zimmer-Hängematte | `zimmerhaengematte` | 2.2 × 1.3 × 0.62 | 900 |
+| Rettungsring | `rettungsring` | 0.62 × 0.62 × 0.15 | 1152 |
+| Bullauge | `bullauge` | 0.58 × 0.58 × 0.11 | 2016 |
+| Fischernetz | `fischernetz` | 1 × 0.99 × 0.1 | 680 |
+| Seemannskiste | `seekiste` | 0.8 × 0.71 × 0.53 | 444 |
+| Ankerlampe | `ankerlampe` | 0.35 × 1.54 × 0.36 | 716 |
+| Muschelregal | `muschelregal` | 0.8 × 1.3 × 0.35 | 1252 |
+| Wellenteppich | `wellenteppich` | 1.92 × 0.07 × 1.92 | 1380 |
+| Surfbrett zum Anlehnen | `surfdeko` | 0.65 × 1.81 × 0.64 | 792 |
+| Pilztisch | `pilztisch` | 0.87 × 1.04 × 0.86 | 1478 |
+| Pilzbett | `pilzbett` | 1.15 × 1.37 × 2.03 | 2430 |
+| Pilzschrank | `pilzschrank` | 0.93 × 1.8 × 0.92 | 1278 |
+| Moossessel | `moossessel` | 0.94 × 1.1 × 0.82 | 1456 |
+| Wurzelregal | `wurzelregal` | 0.96 × 1.41 × 0.3 | 1386 |
+| Glockenblumen-Lampe | `glockenlampe` | 0.56 × 1.43 × 0.32 | 156 |
+| Moosteppich | `moosteppich` | 1.89 × 0.09 × 1.86 | 1218 |
+| Eichelvase | `eichelvase` | 0.44 × 0.92 × 0.43 | 1638 |
+| Farn im Topf | `farntopf` | 0.84 × 0.51 × 0.82 | 1344 |
+| Schneckenhocker | `schneckenhocker` | 0.62 × 0.77 × 0.57 | 1568 |
+| Diner-Musikbox | `dinerjukebox` | 0.8 × 1.56 × 0.53 | 820 |
+| Diner-Bank | `dinerbank` | 1.9 × 1.17 × 0.64 | 396 |
+| Diner-Tisch | `dinertisch` | 0.89 × 1.06 × 0.89 | 944 |
+| Barhocker | `barhocker` | 0.47 × 0.55 × 0.47 | 944 |
+| Milchshake-Theke | `shaketheke` | 0.94 × 1.32 × 0.6 | 988 |
+| Neon-Herz | `neonherz` | 0.7 × 0.6 × 0.06 | 3468 |
+| Flipperautomat | `flipper` | 0.72 × 1.7 × 1.05 | 920 |
+| Lavalampe | `lavalampe` | 0.28 × 0.8 × 0.28 | 672 |
+| Karoteppich | `karoteppich` | 1.96 × 0.01 × 1.96 | 816 |
+| Röhrenfernseher | `roehrenfernseher` | 0.78 × 1.33 × 0.63 | 432 |
+| Raketenregal | `raketenregal` | 0.67 × 1.9 × 0.77 | 1048 |
+| Planetenlampe | `planetenlampe` | 0.69 × 1.25 × 0.6 | 848 |
+| Mondbett | `mondbett` | 1.9 × 1.77 × 2.07 | 1692 |
+| Sternhocker | `sternhocker` | 0.61 × 0.44 × 0.58 | 112 |
+| UFO-Leuchte | `ufolampe` | 0.68 × 1.19 × 0.68 | 1750 |
+| Raumfahrerhelm | `astronautenhelm` | 0.5 × 0.95 × 0.5 | 940 |
+| Galaxie-Teppich | `galaxieteppich` | 1.92 × 0.03 × 1.92 | 840 |
+| Sternbild-Poster | `sternbildposter` | 0.66 × 0.86 × 0.03 | 288 |
+| Meteorit | `meteorit` | 0.71 × 0.59 × 0.7 | 672 |
+| Ringplaneten-Sessel | `saturnsessel` | 1.1 × 0.74 × 1.09 | 812 |
+| Schaukelpferd | `schaukelpferd` | 0.78 × 0.85 × 1.05 | 1740 |
+| Bauklötze | `bauklotzturm` | 0.72 × 0.76 × 0.58 | 140 |
+| Spielzeugkiste | `spielzeugkiste` | 0.84 × 0.77 × 0.54 | 868 |
+| Spielzelt | `spielzelt` | 0.87 × 1.62 × 1.01 | 262 |
+| Hochbett | `hochbett` | 0.96 × 1.7 × 1.88 | 1392 |
+| Maltafel | `maltafel` | 0.77 × 1.3 × 0.55 | 768 |
+| Holzeisenbahn | `holzeisenbahn` | 1.48 × 0.42 × 1.48 | 984 |
+| Wolkenkissen | `wolkenkissen` | 0.89 × 0.35 × 0.58 | 1536 |
+| Sternen-Mobile | `sternmobile` | 0.63 × 0.77 × 0.14 | 316 |
+| ABC-Teppich | `abcteppich` | 1.9 × 0.02 × 1.9 | 276 |
+| Harfe | `harfe` | 0.76 × 1.81 × 0.3 | 672 |
+| Cello | `cello` | 0.74 × 1.54 × 0.36 | 688 |
+| Schlagzeug | `schlagzeug` | 2.04 × 1.04 × 0.85 | 848 |
+| Notenpult | `notenpult` | 0.5 × 1.36 × 0.41 | 168 |
+| Gitarre im Ständer | `gitarrenstaender` | 0.4 × 1.34 × 0.3 | 920 |
+| Grammophon | `grammophon` | 0.59 × 0.89 × 0.66 | 412 |
+| Flügel | `fluegel` | 1.8 × 1.77 × 1.85 | 772 |
+| Xylophon | `xylophon` | 0.7 × 0.63 × 0.59 | 652 |
+| Notenblatt-Rahmen | `notenrahmen` | 0.66 × 0.5 × 0.05 | 900 |
+| Akkordeon | `akkordeon` | 0.68 × 0.53 × 0.4 | 960 |
+| Zeichentisch | `zeichentisch` | 1.03 × 1.49 × 0.62 | 260 |
+| Drehstuhl | `drehstuhl` | 0.6 × 1.03 × 0.63 | 1412 |
+| Aktenschrank | `aktenschrank` | 0.6 × 1.57 × 0.59 | 408 |
+| Pinnwand | `pinnwand` | 0.84 × 0.64 × 0.06 | 1044 |
+| Globus | `globus` | 0.61 × 1.2 × 0.55 | 1624 |
+| Kreidetafel | `kreidetafel` | 0.9 × 0.67 × 0.08 | 516 |
+| Farbregal | `farbregal` | 0.8 × 1.31 × 0.35 | 560 |
+| Schneiderpuppe | `schneiderpuppe` | 0.6 × 1.46 × 0.6 | 512 |
+| Leselampe | `leselampe` | 0.66 × 1.53 × 0.32 | 324 |
+| Papierkorb | `papierkorb` | 0.32 × 0.4 × 0.32 | 852 |
+| Badewanne | `badewanne` | 1.7 × 0.92 × 0.8 | 2320 |
+| Waschtisch | `waschtisch` | 0.84 × 0.97 × 0.52 | 872 |
+| Toilette | `toilette` | 0.46 × 0.88 × 0.73 | 652 |
+| Dusche | `dusche` | 0.9 × 1.95 × 0.9 | 414 |
+| Spiegelschrank | `spiegelschrank` | 0.6 × 0.75 × 0.16 | 284 |
+| Handtuchhalter | `handtuchhalter` | 0.63 × 0.5 × 0.11 | 84 |
+| Badvorleger | `badvorleger` | 0.85 × 0.04 × 0.6 | 1704 |
+| Wäschekorb | `waeschekorb` | 0.41 × 0.61 × 0.41 | 1584 |
+| Badregal mit Entchen | `badregal` | 0.6 × 1.12 × 0.31 | 1652 |
+| Badschrank | `badschrank` | 0.54 × 1.64 × 0.46 | 104 |
+| Kaminholz | `kaminholz` | 0.7 × 0.49 × 0.4 | 660 |
+| Holzschlitten | `holzschlitten` | 0.57 × 0.36 × 1.02 | 656 |
+| Hüttensofa | `huettensofa` | 1.92 × 0.99 × 0.84 | 1284 |
+| Schaffell-Teppich | `fellteppich` | 1.92 × 0.09 × 1.9 | 3896 |
+| Kakao-Ecke | `kakaoecke` | 0.9 × 1.45 × 0.54 | 1060 |
+| Schneeflockenlampe | `schneeflockenlampe` | 0.68 × 1.2 × 0.32 | 1268 |
+| Sternlaterne | `sternlaterne` | 0.29 × 0.78 × 0.34 | 588 |
+| Adventskranz | `adventskranz` | 0.72 × 0.41 × 0.72 | 2784 |
+| Tannenbäumchen | `tannenbaum` | 0.72 × 1.44 × 0.76 | 1824 |
+| Schneemann-Figur | `schneemannfigur` | 0.86 × 1.17 × 0.53 | 2092 |
+| Tortenvitrine | `tortenvitrine` | 0.88 × 1.16 × 0.57 | 860 |
+| Kaffeemaschine | `kaffeemaschine` | 0.9 × 1.33 × 0.54 | 352 |
+| Bistrotisch | `bistrotisch` | 0.67 × 0.83 × 0.67 | 788 |
+| Bistrostuhl | `bistrostuhl` | 0.4 × 0.9 × 0.4 | 700 |
+| Kuchen-Etagere | `etagere` | 0.39 × 0.85 × 0.4 | 2400 |
+| Steinbackofen | `steinbackofen` | 0.9 × 1.37 × 0.97 | 756 |
+| Menütafel | `menuetafel` | 0.66 × 0.8 × 0.04 | 528 |
+| Tassenregal | `tassenregal` | 0.8 × 0.48 × 0.2 | 1936 |
+| Donut-Sitzkissen | `donutkissen` | 0.84 × 0.28 × 0.84 | 1080 |
+| Bonbonglas | `bonbonglas` | 0.39 × 0.61 × 0.39 | 2672 |
+| Pflanzenleiter | `pflanzenleiter` | 0.76 × 1.5 × 0.53 | 1588 |
+| Blumenampel | `blumenampel` | 0.34 × 0.95 × 0.32 | 1414 |
+| Zitronenbäumchen | `zitronenbaum` | 0.66 × 1.32 × 0.63 | 1932 |
+| Sukkulentenschale | `sukkulenten` | 0.59 × 0.2 × 0.6 | 778 |
+| Sonnenblumenvase | `sonnenblumenvase` | 0.48 × 1.01 × 0.26 | 6088 |
+| Kräutertöpfe | `kraeutertoepfe` | 0.9 × 1.08 × 0.54 | 448 |
+| Zinkgießkanne | `zinkkanne` | 0.68 × 0.55 × 0.34 | 1796 |
+| Gartenbank | `gartenbank` | 1.8 × 0.85 × 0.5 | 864 |
+| Rosenspalier | `rosenspalier` | 0.7 × 1.9 × 0.29 | 3192 |
+| Lavendeltopf | `lavendeltopf` | 0.32 × 0.75 × 0.32 | 2052 |
 | Wollteppich (rot) | `wollteppich_rot` | 1.9 × 0.05 × 1.62 | 784 |
 | Strickkissen (rot) | `strickkissen_rot` | 0.62 × 0.21 × 0.62 | 588 |
 | Wollteppich (rosa) | `wollteppich_rosa` | 1.9 × 0.05 × 1.62 | 784 |

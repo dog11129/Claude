@@ -45,6 +45,7 @@ export function uiF(kind, d) {
   if (kind === 'review') startReview(!!d.last);
   if (kind === 'ics') exportIcs();
   if (kind === 'fwedit') C.panels.show('fwedit');
+  if (kind === 'furncat') { G.furnCat = typeof d.c === 'string' ? d.c : ''; C.panels.sig = null; const b = document.getElementById('pbody'); if (b) b.scrollTop = 0; } // Laden: Möbel nach Art oder Serie
   if (kind === 'fwadd' || kind === 'fwset' || kind === 'fwdel') {
     const list = (G.fwEdit ||= (s.rockets?.[myKey()] || []).map(r => ({ ...r })));
     if (kind === 'fwadd' && list.length < 3) list.push({ c: E.FW_COLORS[list.length % E.FW_COLORS.length][0], sh: E.FW_SHAPES[(list.length + 1) % E.FW_SHAPES.length][0], h: 'mittel' });

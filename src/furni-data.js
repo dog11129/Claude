@@ -1,5 +1,6 @@
 // Möbel-, Tapeten- und Bodenkatalog als reine Daten (ohne three.js, damit die Spiellogik in Node-Tests läuft).
-// cat: sitzen | tische | betten | licht | deko | pflanzen | teppiche | kueche | wand
+// cat: sitzen | tische | betten | licht | deko | pflanzen | teppiche | kueche | bad | wand
+import { FURN2 } from './furni-data2.js';
 export const FURNITURE = {
   stuhl:          { name: 'Holzstuhl',       icon: '🪑', buy: 140,  lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true, craft: { holz: 6 } },
   hocker:         { name: 'Pilzhocker',      icon: '🍄', buy: 80,   lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true, craft: { holz: 3 } },
@@ -132,6 +133,7 @@ Object.assign(FURNITURE, {
   froschkoenig:   { name: 'Froschkönig-Figur', icon: '🐸', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'moor' },
 });
 export const WOOL_COLORS = [['rot', 'rot', 0xe8505a], ['rosa', 'rosa', 0xff9ab8], ['gelb', 'gelb', 0xf2cf4a], ['orange', 'orange', 0xff9a3a], ['lila', 'lila', 0xa98bff], ['blau', 'blau', 0x5a9ae8], ['weiss', 'weiß', 0xf4f0e6]];
+for (const [k, v] of Object.entries(FURN2)) if (!FURNITURE[k]) FURNITURE[k] = v; // 120 weitere Möbel in Serien (furni-data2.js)
 FURNITURE.aquarium.tank = 'fish'; // das bekannte Aquarium bekommt Bewohner (Größe bleibt, alte Spielstände unverändert)
 for (const [c, cn] of WOOL_COLORS) {
   FURNITURE[`wollteppich_${c}`] = { name: `Wollteppich (${cn})`, icon: '🟫', buy: 0, lvl: 1, cat: 'teppiche', w: 2, d: 2, solid: false, rug: true, rare: 'wool' };
