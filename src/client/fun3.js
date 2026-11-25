@@ -67,7 +67,7 @@ export function exitV(room) {
 
 // ---------- Aktionen ----------
 export function contextV(m) {
-  if (C.G.sel === 'pony' && !S.inside(m)) return { ponyride: true, label: m.pony ? '🐴 Absteigen' : '🐴 Aufs Pony', tiles: [] };
+  if (C.G.sel === 'pony' && zoneOf(m) === 'island') return { ponyride: true, label: m.pony ? '🐴 Absteigen' : '🐴 Aufs Pony', tiles: [] };
   return null;
 }
 export function executeV(r, fresh) {

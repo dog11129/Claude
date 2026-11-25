@@ -233,7 +233,7 @@ export function contextE(m) {
   const G = C.G;
   if (G.fride) return { label: G.fride.k === 'rad' ? '🎡 Gute Fahrt!' : '🎠 Rundherum!', tiles: [] };
   if (G.passenger) return { hopoff: true, label: '🚲 Absteigen', tiles: [] };
-  if (G.sel === 'tandem' && !S.inside(m)) return { tandem: true, label: m.td ? '🚲 Absteigen' : '🚲 Aufs Tandem', tiles: [] };
+  if (G.sel === 'tandem' && ['island', 'street', 'tropic'].includes(zoneOf(m))) return { tandem: true, label: m.td ? '🚲 Absteigen' : '🚲 Aufs Tandem', tiles: [] };
   if (!m.td && !m.bike && !m.sw) for (const o of Object.values(G.players)) {
     if (o.id === G.me || !o.td || Math.hypot(o.x - m.x, o.z - m.z) > 1.6) continue;
     if (Object.values(G.players).some(p => p.id !== G.me && p.tp && Math.hypot(p.x - o.x, p.z - o.z) < 1.2)) continue;
