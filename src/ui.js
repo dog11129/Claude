@@ -1,5 +1,5 @@
 // Fenster-Inhalte (Laden, Lager, Aufträge, Freunde, Einstellungen). Reines HTML, Klicks gehen an Callbacks.
-import { CROPS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SHELLS, SEA, SOCIAL, STORY, DAILY, MUSEUM, MUSEUM_ALL, isFlower, PAVE, WEEKDAYS, weekday, TURNIP_STACK, DIY_IDS, FESTS, BIRTHDAYS, NPC_DATA } from './data.js';
+import { CROPS, ITEMS, PLACE, UPGRADES, EMOTE_LIST, AREA_NAME, ACHIEVEMENTS, needXp, SEASONS, RECIPES, ALBUM, BUGS, FOSSILS, FISH, SHELLS, SEA, SOCIAL, STORY, DAILY, MUSEUM, MUSEUM_ALL, isFlower, PAVE, WEEKDAYS, weekday, TURNIP_STACK, DIY_IDS, FESTS, BIRTHDAYS, NPC_DATA, NPC_IDS } from './data.js';
 import { settingsHtml } from './menu.js';
 import { boxCap, AREAS } from './state.js';
 import { itemIcon, fillIcons } from './icons.js';
@@ -8,6 +8,7 @@ import { NPCS, letter, requestLine, npcLine } from './npc.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { esc } from './world.js';
 import { TRIP_KINDS, TRIP_PRICE, tripLayout } from './trips.js';
+import { RIDE_PRICE, SKY_GIFTS, GARDEN_BUGS, GRILL_OF, grillParty, C4_W, C4_H, PHOTO_THEMES, photoTheme, BRIGHT, NWISH } from './extras3.js';
 import { REEF_DECO, reefScore, castleScore, CASTLE_MAX, SHELL_IDS, beachKind, beachOpen, cableBuilt, TALES } from './extras2.js';
 import { VISITORS, vhearts, MEL_NOTES, MEL_DEFAULT, WEATHER, WEEK_GOALS, catalogPrice, annivToday, cookDay, cookOpen, nightOpen, STALL_MAX } from './extras.js';
 import {
@@ -30,9 +31,9 @@ export const TABS = {
   settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
   piano: [['keys', '🎹 Klavier'], ['song', '🎶 Inselmelodie']],
   news: [['paper', '📰 Zeitung'], ['week', '🤝 Wochenziele']],
-  book: [['pages', '📸 Momente'], ['photos', '🖼️ Fotos'], ['anniv', '🎂 Jahrestage']],
+  book: [['pages', '📸 Momente'], ['photos', '🖼️ Fotos'], ['contest', '🏆 Wettbewerb'], ['anniv', '🎂 Jahrestage']],
 };
-const TITLES = { cable: '🚡 Seilbahn', reef: '🪸 Korallenriff', castle: '🏰 Sandburg', visitor: '💬 Besuch', piano: '🎹 Klavier & Inselmelodie', patterns: '🎨 Muster-Editor', night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
+const TITLES = { balloon: '🎈 Ballonplatz', grill: '🔥 Strandgrill', butterfly: '🦋 Schmetterlingshaus', wrecklock: '🔒 Kapitänskajüte', games: '🎲 Spieleabend', stars: '✨ Sternbilder', cable: '🚡 Seilbahn', reef: '🪸 Korallenriff', castle: '🏰 Sandburg', visitor: '💬 Besuch', piano: '🎹 Klavier & Inselmelodie', patterns: '🎨 Muster-Editor', night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
 
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
@@ -264,7 +265,7 @@ const PANELS = {
       ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
       ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
       ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0],
-      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
+      ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['stars', '✨', 'Sternbilder', '#8f9ee8'], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2']];
     const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
     return `<div class="phone-top"><b>${s.real ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : `${hh}:${String(mm).padStart(2, '0')}`}</b><span>${WEEKDAYS[weekday(s.day)]} · ${esc(s.name)}</span></div>
       <div class="apps">${apps.map(([id, ic, l, c, dot]) => `<button data-ui="app" data-app="${id}"><span class="ai" style="background:${c}">${ic}${dot ? `<i>${dot}</i>` : ''}</span><small>${l}</small></button>`).join('')}</div>`;
@@ -380,6 +381,20 @@ const PANELS = {
       <div class="pad">${esc(P.ad)}</div></div>`;
   },
   book(s, g, tab) {
+    if (tab === 'contest') {
+      const P = s.photoc || {}, T = PHOTO_THEMES[P.theme || photoTheme(s)], mine = P.entries?.[myKey(g)], days = 7 - ((s.day - 1) % 7);
+      let h = hero('📸 Fotowettbewerb', `${T[0]} Thema der Woche: ${T[1]}`, `${T[2]}<br><small>Im 📷 Fotomodus auf 🏆 tippen, um dein Foto einzureichen (du kannst es jederzeit austauschen). Bewertet wird ${days === 7 ? 'heute in einer Woche' : `in ${days} Tag${days === 1 ? '' : 'en'}`}, sonntags früh.</small>`);
+      h += `<div class="pattools">${btn('📷 Zum Fotomodus', { ui: 'photocam' }, 'pink')}</div>`;
+      const list = Object.entries(P.entries || {});
+      h += '<h3>🖼️ Eingereicht</h3>' + (list.length ? `<div class="pgrid">${list.map(([k, e]) => `<figure class="pcard${k === myKey(g) ? ' mine' : ''}"><img src="${e.img}" alt=""><figcaption>${esc(e.name)}</figcaption></figure>`).join('')}</div>` : '<div class="note">Noch keine Fotos diese Woche.</div>');
+      if (mine) h += '<div class="note">✅ Dein Foto ist dabei.</div>';
+      if (P.last?.list?.length) {
+        const L = P.last, W = L.list[0], LT = PHOTO_THEMES[L.theme];
+        h += `<h3>🏆 Letzte Woche: ${LT[0]} ${LT[1]}</h3><figure class="pcard win">${W.img ? `<img src="${W.img}" alt="">` : ''}<figcaption>${esc(W.name)} – ${W.stars}/15 ⭐</figcaption></figure>`;
+        h += L.list.map(r => row('📷', `${esc(r.name)} <span class="lv">${r.stars}/15 ⭐</span>`, r.votes.map(v => `${NPCS[v[0]].icon} „${esc(v[2])}“`).join('<br>'), '')).join('');
+      }
+      return h;
+    }
     if (tab === 'photos') return `<div class="note">📷 Fotos aus dem Fotomodus landen hier (nur auf diesem Gerät). Als 📮 Postkarte kannst du sie an Mitspieler schicken oder teilen.</div><div id="photogrid" class="photogrid"><div class="note">Lade Fotos …</div></div>`;
     if (tab === 'anniv') {
       const a = s.anniv || {}, A = annivToday(s), d = a.founded ? new Date(a.founded + 'T12:00') : null;
@@ -400,6 +415,63 @@ const PANELS = {
     const furn = ids.filter(id => FURNITURE[id]), deco = ids.filter(id => !FURNITURE[id]);
     const list = arr => arr.sort((a, b) => ITEMS[a].name.localeCompare(ITEMS[b].name)).map(id => { const c = catalogPrice(id); return row(itemIcon(id), ITEMS[id].name, `${s.inv[id] ? `${s.inv[id]}× in der Tasche · ` : ''}sofort nachbestellbar`, btn(`🪙 ${c.toLocaleString('de-DE')}`, { t: 'catbuy', id }, '', s.money < c)); }).join('');
     return `<div class="note">📦 Alles, was ihr je besessen habt (${ids.length} Sachen) – hier könnt ihr es nachbestellen.</div>${furn.length ? '<h3>🛋️ Möbel</h3>' + list(furn) : ''}${deco.length ? '<h3>🏮 Garten & Deko</h3>' + list(deco) : ''}`;
+  },
+  balloon(s, g) {
+    const left = SKY_GIFTS - (s.skyg?.day === s.day ? s.skyg.who?.[myKey(g)] || 0 : 0);
+    return hero('🎈 Ballonplatz', 'Einmal über die ganze Insel schweben', `Eine Rundfahrt dauert gut 45 Sekunden. Unterwegs schweben Geschenkballons am Himmel – fliegt einfach hindurch! Heute noch ${Math.max(0, left)} Himmelsgeschenk${left === 1 ? '' : 'e'} für dich.`)
+      + `<div class="pattools">${btn(`🎈 Abheben · 🪙 ${RIDE_PRICE}`, { t: 'ride' }, 'pink', s.money < RIDE_PRICE)}</div>`;
+  },
+  grill(s, g) {
+    const items = Object.entries(s.inv).filter(([id, n]) => n > 0 && GRILL_OF(id)), party = grillParty(s), hr = 6 + s.dayTime * 18;
+    let h = hero('🔥 Strandgrill', party ? '🎶 Grillabend mit allen Nachbarn!' : 'Fisch, Mais, Kartoffeln, Gemüse, Äpfel oder Mehl für Stockbrot', party ? 'Alle sitzen um den Grill und singen. Gebt den Nachbarn etwas vom Grill – sie lieben es!' : `Ab 17:30 Uhr lockt der Duft die Nachbarn an: Grillt abends drei Sachen, dann wird es ein Grillabend.${hr >= 17.5 && s.grill?.day === s.day ? ` (heute Abend schon ${s.grill.n}/3)` : ''}`);
+    h += items.length ? `<div class="itemgrid">${items.map(([id, n]) => itemCell(id, n, btn(`➜ ${ITEMS[GRILL_OF(id)].icon}`, { t: 'grill', x: +g.grillK.split(',')[0], z: +g.grillK.split(',')[1], item: id }, 'pink'))).join('')}</div>` : '<div class="note">Nichts zum Grillen dabei. Angelt einen Fisch, erntet Mais oder Kartoffeln!</div>';
+    return h;
+  },
+  butterfly(s) {
+    let h = '<div class="note">🦋 Seltene Falter kommen nur ans Schmetterlingshaus – und nur, wenn rundherum (bis 5 Felder) mindestens zwei ihrer Lieblingsblumen blühen. Dann mit dem Kescher in der Nähe auf Fang gehen!</div>';
+    for (const b of GARDEN_BUGS) h += row(itemIcon(b[0]), `${b[1]}${s.album?.[b[0]] ? ' <span class="lv">✓ gefangen</span>' : ''}`, `Liebt ${CROPS[b[8]]?.icon || ''} ${CROPS[b[8]]?.name || b[8]} · ${b[4].map(x => SEASONS[x][1]).join('')}`, '');
+    return h;
+  },
+  wrecklock(s, g) {
+    const code = g.lock || [];
+    let h = hero('🔒 Kapitänskajüte', 'Vier Zeichen öffnen die Tür', s.inv.seekarte > 0 || s.wreck?.chart ? 'Die Seekarte sagt: „Lies die Bullaugen vom Bug bis zum Heck.“ Der Bug ist vorne bei der Galionsfigur (Westen).' : 'Vielleicht steckt in einer der Truhen ein Hinweis …');
+    h += `<div class="lockcode">${[0, 1, 2, 3].map(i => `<span>${code[i] || '·'}</span>`).join('')}</div>`;
+    h += `<div class="pattools">${['⚓', '🐚', '⭐', '🐟'].map(sym => btn(sym, { ui: 'lockadd', sym }, 'white')).join('')}</div>`;
+    h += `<div class="pattools">${btn('↩️ Neu', { ui: 'lockreset' }, 'white')}${btn('🔑 Öffnen', { ui: 'lockopen' }, 'pink', code.length !== 4)}</div>`;
+    return h;
+  },
+  games(s, g) {
+    const G2 = s.game, me = myKey(g);
+    if (!G2 || G2.win != null) {
+      let h = G2?.win != null ? `<div class="note">🏆 ${G2.win === 'draw' ? 'Unentschieden!' : `${esc(G2.p[G2.win].name)} hat gewonnen!`}</div>` : '';
+      h += '<div class="note">🎲 Wer spielt mit? Nachbarn sagen nie nein – und Mitspieler müssen auch an den Spieltisch kommen.</div>';
+      const others = Object.values(g.players).filter(p => p.key && p.key !== me);
+      for (const [k, name] of [['c4', '🔴 Vier gewinnt'], ['mem', '🃏 Memory']]) {
+        h += `<h3>${name}</h3><div class="pattools">${NPC_IDS.map(id => btn(`${NPCS[id].icon} ${NPCS[id].name}`, { ui: 'gamestart', k, vs: 'npc:' + id }, 'white')).join('')}${others.map(p => btn(`👤 ${esc(p.name)}`, { ui: 'gamestart', k, vs: p.key, vsName: p.name }, 'pink')).join('')}</div>`;
+      }
+      return h;
+    }
+    const cur = G2.p[G2.turn], mine = cur.who === me, inGame = G2.p.some(p => p.who === me);
+    let h = `<div class="note">${G2.k === 'c4' ? '🔴 Vier gewinnt' : '🃏 Memory'}: ${G2.p.map((p, i) => `${G2.k === 'c4' ? (i ? '🟡' : '🔴') : ''} ${esc(p.name)}${G2.k === 'mem' ? ` (${G2.score[i]})` : ''}`).join(' gegen ')}<br><b>${mine ? 'Du bist dran!' : `${esc(cur.name)} ist dran …`}</b></div>`;
+    if (G2.k === 'c4') {
+      h += '<div class="c4">';
+      for (let c = 0; c < C4_W; c++) h += `<button class="c4col" data-act='${JSON.stringify({ t: 'game', op: 'move', col: c })}' ${mine && G2.b[c] < 0 ? '' : 'disabled'}>${Array.from({ length: C4_H }, (_, r) => { const v = G2.b[r * C4_W + c]; return `<i class="${v === 0 ? 'r' : v === 1 ? 'y' : ''}${G2.last === r * C4_W + c ? ' last' : ''}"></i>`; }).join('')}</button>`;
+      h += '</div>';
+    } else {
+      h += `<div class="memgrid">${G2.b.map((id, i) => { const up = G2.found[i] !== undefined || G2.open.includes(i) || G2.miss?.includes(i); return `<button class="mem${up ? ' up' : ''}${G2.found[i] !== undefined ? ' got' : ''}" data-act='${JSON.stringify({ t: 'game', op: 'flip', i })}' ${mine && !up ? '' : 'disabled'}>${up ? itemIcon(id) : '❓'}</button>`; }).join('')}</div>`;
+    }
+    if (inGame) h += `<div class="pattools">${btn('🏳️ Aufhören', { t: 'game', op: 'quit' }, 'white')}</div>`;
+    return h;
+  },
+  stars(s, g) {
+    const c = g.cst || { sec: 0, lines: [] }, dirs = ['Norden', 'Nordosten', 'Osten', 'Südosten', 'Süden', 'Südwesten', 'Westen', 'Nordwesten'];
+    let h = '<div class="note">✨ Tippe einen Stern an, dann den nächsten – so ziehst du Linien. Gib deinem Sternbild einen Namen: Ab dann leuchtet es jede Nacht am Himmel (🔭 Himmel).</div>';
+    h += `<div class="pattools">${btn('◀', { ui: 'cstsec', dir: -1 }, 'white')}<b style="align-self:center">Himmel im ${dirs[c.sec]}</b>${btn('▶', { ui: 'cstsec', dir: 1 }, 'white')}</div>`;
+    h += '<div style="text-align:center"><canvas id="cstcv" width="420" height="260"></canvas></div>';
+    h += `<div class="pattools"><input id="cstname" maxlength="24" placeholder="Name, z. B. Die Kuschelkatze">${btn('↩️', { ui: 'cstundo' }, 'white')}${btn('💾 Speichern', { ui: 'cstsave' }, 'pink')}</div>`;
+    const list = s.consts || [];
+    if (list.length) h += '<h3>🌌 Eure Sternbilder</h3>' + list.map((k, i) => row('✨', esc(k.n), `${dirs[k.sec]} · von ${esc(k.by)}`, k.who === myKey(g) || g.role === 'host' ? btn('🗑️', { ui: 'cstdel', i }, 'white') : '')).join('');
+    return h;
   },
   cable(s) { // Seilbahn: schwebend zu den Gebieten
     if (!cableBuilt(s)) return '<div class="note">Die Seilbahn muss erst im Rathaus gebaut werden.</div>';
@@ -545,6 +617,7 @@ const PANELS = {
 };
 
 // ---------- Bürgermeister-Update: Rathaus, Baustelle, Bummelgasse, Tropeninsel ----------
+const myKey = g => g.players?.[g.me]?.key || 'host';
 const hero = (who, title, text) => `<div class="quest-hero"><div class="qh-top"><span class="qh-chap">${who}</span><b>${title}</b></div><p>${text}</p></div>`;
 const hrs = ([a, b]) => `${a}–${b} Uhr`;
 const siteOf = s => Object.entries(s.obj).find(([, o]) => o.k === 'baustelle');
@@ -747,7 +820,7 @@ export class Panels {
   // Nur neu zeichnen, wenn sich etwas Sichtbares geändert hat (Scroll-Position bleibt erhalten).
   update(s, g) {
     if (!this.open) return;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;

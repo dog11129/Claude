@@ -302,7 +302,23 @@ const CROP = {
 
 
 // ---------- Blumen (Tulpe, Kosmee, Stiefmütterchen, Rose, Hyazinthe) ----------
-const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff, lilie: 0xfff0f4, mohn: 0xff3b2f, kornblume: 0x4f7dff, lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff };
+const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff, lilie: 0xfff0f4, mohn: 0xff3b2f, kornblume: 0x4f7dff, lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff,
+  gaensebluemchen: 0xffffff, ringelblume: 0xff9a2a, vergissmeinnicht: 0x6fa8ff, narzisse: 0xffe14a, nelke: 0xff7fa8, margerite: 0xfffbea, krokus: 0xb07bff, dahlie: 0xe0408a, schneegloeckchen: 0xffffff, christrose: 0xf8e2ec };
+// Neue Blumen mit eigener Blütenform (sonst: einfache Blüte)
+function newBloom(k, c, x, y, z) {
+  const Y = 0xffd23f;
+  if (k === 'gaensebluemchen') return [bloom(0.05, c, x, y - 0.08, z, 12, 0.1, 0.01, -0.3, x * 9), B(0.018, Y, x, y - 0.075, z, 1, 0.6, 1, 6, 4)];
+  if (k === 'margerite') return [bloom(0.085, c, x, y, z, 14, 0.12, 0.012, -0.35, x * 9), B(0.026, Y, x, y + 0.01, z, 1, 0.6, 1, 7, 5)];
+  if (k === 'ringelblume') return [bloom(0.075, c, x, y, z, 12, 0.2, 0.014, -0.35, x * 9), bloom(0.05, shade(c, 0.08), x, y + 0.012, z, 10, 0.3, 0.012, -0.35, x * 7), B(0.022, 0xc8641a, x, y + 0.02, z, 1, 0.6, 1, 6, 4)];
+  if (k === 'vergissmeinnicht') return [0, 1, 2, 3, 4].flatMap(j => { const a = j * 1.26, px = x + Math.cos(a) * 0.035, pz = z + Math.sin(a) * 0.035, py = y + (j % 2) * 0.015; return [bloom(0.022, c, px, py, pz, 5, 0.2, 0.008, -0.2, a), B(0.008, Y, px, py + 0.006, pz, 1, 1, 1, 4, 3)]; });
+  if (k === 'narzisse') return [bloom(0.07, 0xfff6c8, x, y, z, 6, 0.15, 0.012, -1.2, x * 9), C(0.025, 0.035, 0.05, c, x, y + 0.02, z + 0.02, 10, true, -1.2)];
+  if (k === 'nelke') return [B(0.045, c, x, y + 0.03, z, 1, 0.7, 1, 9, 6), bloom(0.06, shade(c, 0.06), x, y + 0.02, z, 12, 0.5, 0.012), B(0.03, LEAF, x, y - 0.01, z, 0.8, 1.3, 0.8, 6, 4)];
+  if (k === 'krokus') return [B(0.04, c, x, y - 0.12, z, 1, 1.5, 1, 8, 6), ...[0, 1, 2].map(j => leaf(0.07, 0.04, shade(c, 0.05), x, y - 0.13, z, j * 2.1, 1.2, -0.1, 0.45, 4, 5)), B(0.012, 0xff9a2a, x, y - 0.06, z)];
+  if (k === 'dahlie') return [bloom(0.11, shade(c, -0.05), x, y, z, 12, 0.25, 0.014, -0.35, x * 9), bloom(0.08, c, x, y + 0.012, z, 10, 0.4, 0.014, -0.35, x * 7), bloom(0.05, shade(c, 0.1), x, y + 0.024, z, 8, 0.55, 0.012, -0.35, x * 5), B(0.02, shade(c, 0.15), x, y + 0.03, z, 1, 0.7, 1, 6, 4)];
+  if (k === 'schneegloeckchen') return [B(0.035, c, x + 0.03, y - 0.04, z, 0.9, 1.35, 0.9, 8, 6), B(0.015, LEAF, x + 0.03, y + 0.005, z, 1, 1, 1, 5, 3), stick([x, y, z], [x + 0.03, y + 0.01, z], 0.006, STEM, 3)];
+  if (k === 'christrose') return [bloom(0.085, c, x, y, z, 5, 0.25, 0.014, -0.4, x * 9), bloom(0.05, 0xfff8fb, x, y + 0.01, z, 5, 0.3, 0.012, -0.4, x * 9 + 0.6), B(0.025, Y, x, y + 0.02, z, 1, 0.5, 1, 7, 4)];
+  return null;
+}
 function flowerPlant(k, st) {
   const c = FCOL[k], p = [];
   const n = st === 1 ? 4 : 6;
@@ -312,7 +328,9 @@ function flowerPlant(k, st) {
   for (const [x, y, z] of heads) {
     p.push(stick([x * 0.3, 0, z * 0.3], [x, y, z], 0.012, STEM, 4));
     if (st === 2) { p.push(B(0.04, c, x, y + 0.03, z, 1, 1.4, 1, 6, 5), B(0.03, LEAF, x, y, z, 1.1, 0.8, 1.1, 6, 4)); continue; }
-    if (k === 'tulpe') p.push(B(0.06, c, x, y + 0.05, z, 1, 1.3, 1, 8, 6), ...[0, 1, 2].map(j => leaf(0.09, 0.065, c, x, y + 0.01, z, j * 2.1, 1.25, -0.05, 0.45, 4, 5)));
+    const nb = newBloom(k, c, x, y, z);
+    if (nb) p.push(...nb);
+    else if (k === 'tulpe') p.push(B(0.06, c, x, y + 0.05, z, 1, 1.3, 1, 8, 6), ...[0, 1, 2].map(j => leaf(0.09, 0.065, c, x, y + 0.01, z, j * 2.1, 1.25, -0.05, 0.45, 4, 5)));
     else if (k === 'rose') p.push(B(0.06, c, x, y + 0.04, z, 1, 0.85, 1, 9, 6), B(0.045, shade(c, 0.08), x, y + 0.07, z, 1, 0.8, 1, 8, 5), bloom(0.075, shade(c, -0.05), x, y + 0.02, z, 6, 0.55, 0.016));
     else if (k === 'hyazinthe') for (let j = 0; j < 9; j++) { const a = j * 2.4; p.push(B(0.03, j % 2 ? c : shade(c, 0.1), x + Math.cos(a) * 0.035, y + 0.02 + j * 0.018, z + Math.sin(a) * 0.035, 1, 1, 1, 6, 4)); }
     else p.push(bloom(k === 'kosmee' ? 0.09 : 0.075, c, x, y, z, k === 'kosmee' ? 8 : 5, k === 'kosmee' ? 0.15 : 0.25, 0.016, -0.35, x * 9), B(0.025, k === 'kosmee' ? 0xffa020 : 0xfff0a0, x, y + 0.012, z + 0.01, 1, 0.7, 1, 6, 4));

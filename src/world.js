@@ -40,10 +40,12 @@ import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUIL
 import { grass as onGrass } from './island.js';
 import { nightOpen, NIGHT_AT } from './extras.js';
 import { REEF_BUOY, cableBuilt, cableStop, taleMark, farmHappy, CASTLE_MAX } from './extras2.js';
+import { WRECK_BUOY, grillParty, BRIGHT, STAR_SECTORS, gardenBugs } from './extras3.js';
+import { itemModel } from './itemmodels.js';
 import { AREAS } from './areas.js';
 import { patMesh, patTexture } from './patterns.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
-import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
+import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, roomOf, roomIdAt, nroomZ, NROOM_SIZE, homeAt, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
 import { coast, cliffZ, CLIFF_H, riverX, RIVER_W, BRIDGES, BRIDGE_W, POND, inPond, PIER, PATHS, onPath, PLAZA, onPlaza, grass, rng, COAST_GLSL } from './island.js';
 
 const C = h => new THREE.Color(h);
@@ -1090,12 +1092,51 @@ export class World {
       this.scene.add(this.room);
     }
     this.furnM ||= new Map();
+    this.furnSync(s, this.furnM, h, 0);
+    this.syncNroom(s);
+  }
+  // Zimmer eines Nachbarn (nur das, in dem gerade jemand steht)
+  syncNroom(s) {
+    const id = this.target.x > HOME_X / 2 ? roomIdAt(this.target.z) : null, R = id ? roomOf(s, id) : null, sig = id ? `${id}|${R.wall}|${R.floor}` : '';
+    if (this.nroomSig !== sig) {
+      this.nroomSig = sig;
+      if (this.nroom) this.scene.remove(this.nroom);
+      if (this.nroomNpc) this.scene.remove(this.nroomNpc.m);
+      for (const e of this.nfurnM?.values() || []) this.scene.remove(e.m);
+      this.nfurnM = new Map();
+      this.nroom = this.nroomNpc = null;
+      if (id) {
+        const [w, d] = NROOM_SIZE, g = new THREE.Group(), base = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
+        base.rotation.x = -Math.PI / 2; base.position.y = -0.02;
+        g.add(makeRoom(w, d, R.wall, R.floor), base);
+        g.position.set(HOME_X, 0, R.z0);
+        g.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
+        this.scene.add(g);
+        this.nroom = g;
+        const m = makeNpc(id);
+        this.scene.add(m);
+        this.nroomNpc = { id, m, x: HOME_X + 1.6, z: R.z0 - 0.6, ry: 0, speed: 0, awake: true, host: true };
+      }
+    }
+    if (!id) return;
+    this.furnSync(s, this.nfurnM, R, R.z0);
+    const e = this.nroomNpc, spot = [[1, 0], [-1, 0], [2, 0], [1, 1], [-1, 1], [0, -1], [2, 1], [-2, 1], [0, 0]].find(([x, z]) => !homeAt(s, x, z, false, R)) || [0, 0];
+    const talk = this.npcTalk?.id === id, me = this.target;
+    e.x += (HOME_X + spot[0] - e.x) * 0.2; e.z += (R.z0 + spot[1] - e.z) * 0.2; // freier Platz im Zimmer
+    e.ry += angDiff(e.ry, talk ? Math.atan2(this.npcTalk.x - e.x, this.npcTalk.z - e.z) : Math.atan2(me.x - e.x, me.z - e.z) * 0.6) * Math.min(1, (this.dt || 0.016) * 4);
+    e.m.position.set(e.x, 0, e.z);
+    e.m.rotation.y = e.ry;
+    e.m.userData.update(this.dt || 0.016, { speed: 0, talking: talk, time: this.time });
+    this.tag('nroomnpc', `${NPCS[id].icon} ${NPCS[id].name}`, e.x, (e.m.userData.headTop || 1.3) + 0.3, e.z, 'name npc');
+  }
+  // Möbel eines Zimmers aufstellen (eigenes Haus: z0 = 0)
+  furnSync(s, store, h, z0) {
     const seen = new Set();
     for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r'], [h.walls || {}, 'w']]) for (const [k, o] of Object.entries(map)) {
       const f = FURNITURE[o.k], px = f?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px;
       if (!f) continue;
       seen.add(id);
-      if (this.furnM.has(id)) continue;
+      if (store.has(id)) continue;
       const [x, z] = k.split(',').map(Number), [fw, fd] = o.r % 2 ? [f.d, f.w] : [f.w, f.d];
       const m = model(o.k) || makeFurniture(o.k);
       if (f.pattern) { // Musterrahmen: eigenes Bild
@@ -1103,14 +1144,14 @@ export class World {
         pic.position.set(0, 1.45, -0.425);
         m.add(pic);
       }
-      m.position.set(HOME_X + x + (fw - 1) / 2, f.rug ? 0.005 : 0, z + (fd - 1) / 2);
+      m.position.set(HOME_X + x + (fw - 1) / 2, f.rug ? 0.005 : 0, z0 + z + (fd - 1) / 2);
       m.rotation.y = o.r * Math.PI / 2;
       m.traverse(c => { if (c.isMesh) { c.castShadow = !f.rug; c.receiveShadow = true; } });
       this.scene.add(m);
-      this.furnM.set(id, { m, born: this.time, x: m.position.x, z: m.position.z, clock: o.k === 'wanduhr' && part(m, 'clock_h') ? { h: part(m, 'clock_h'), m: part(m, 'clock_m') } : null });
+      store.set(id, { m, born: this.time, x: m.position.x, z: m.position.z, clock: o.k === 'wanduhr' && part(m, 'clock_h') ? { h: part(m, 'clock_h'), m: part(m, 'clock_m') } : null });
     }
-    for (const [id, e] of this.furnM) {
-      if (!seen.has(id)) { this.vanish(e.m); this.furnM.delete(id); this.burst(e.x, e.z, 'dust'); continue; }
+    for (const [id, e] of store) {
+      if (!seen.has(id)) { this.vanish(e.m); store.delete(id); this.burst(e.x, e.z, 'dust'); continue; }
       const pop = Math.min(1, (this.time - e.born) * 4);
       e.m.scale.setScalar(pop < 1 ? 0.6 + 0.4 * pop + Math.sin(pop * Math.PI) * 0.15 : 1);
     }
@@ -1310,7 +1351,15 @@ export class World {
     this.npcMood ||= {};
     const awake = npcAwake(s), hoppel = turnipSeller(s);
     const visit = (id, t) => ({ x: 2.6 + Math.sin(t * 0.07) * 0.6, z: 4.3 + Math.sin(t * 0.05) * 0.25, walking: Math.abs(Math.cos(t * 0.07)) > 0.6 });
-    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : npcPos(id, t, d);
+    const party = grillParty(s), gp = party ? party.split(',').map(Number) : null;
+    const partyPos = (id, t) => { const a = NPC_IDS.indexOf(id) / NPC_IDS.length * Math.PI * 2 + 0.3, r = 2 + Math.sin(t * 0.2 + a) * 0.15; return { x: gp[0] + Math.cos(a) * r, z: gp[1] + Math.sin(a) * r, walking: false }; };
+    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : gp ? partyPos(id, t) : npcPos(id, t, d);
+    if (gp && this.time > (this.singT || 0)) {
+      this.singT = this.time + 4 + Math.random() * 4;
+      const id = NPC_IDS[Math.floor(Math.random() * NPC_IDS.length)];
+      this.npcBubble(id, ['🎶 Die Glut ist warm, der Himmel klar …', '🎶 Wir sitzen hier am Feuerschein, la la la!', '🎶 Insel, Insel, du bist mein Zuhaus …', 'Mmh, wie das duftet!', 'Noch ein Stockbrot? Ja bitte!', '🎶 Die Sterne kommen raus, wir bleiben noch hier …', 'Das sollten wir öfter machen!'][Math.floor(Math.random() * 7)]);
+      this.npcSay(id, 'happy');
+    }
     // Nachbarn, die beieinander stehen, drehen sich zueinander und plaudern
     const bday = birthdayOf(s.day), hour = 6 + s.dayTime * 18;
     this.npcPairs ||= new Map();
@@ -1351,6 +1400,7 @@ export class World {
         if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
         e.speed += ((p.walking ? 0.7 : 0) - e.speed) * Math.min(1, dt * 6);
         if (e.face != null) { e.ry = e.face; e.speed *= 0.5; }
+        if (gp && Math.hypot(e.x - gp[0], e.z - gp[1]) < 2.6) e.ry = Math.atan2(gp[0] - e.x, gp[1] - e.z); // zum Grill schauen
       }
       // Accessoires: Partyhut am Geburtstag, Schirm bei Regen, Schal im Winter
       this.npcGear(e, id, { hat: bday === id, umb: s.weather === 'rain' || s.weather === 'storm', scarf: this.season === 'winter' || s.weather === 'snow' });
@@ -1395,7 +1445,7 @@ export class World {
   }
   npcNear(x, z, r = 1.1) {
     let best = null, bd = r;
-    for (const [id, e] of [...(this.npcM || []), ...(this.visM || [])]) {
+    for (const [id, e] of [...(this.npcM || []), ...(this.visM || []), ...(this.nroomNpc ? [[this.nroomNpc.id, this.nroomNpc]] : [])]) {
       if (!e.awake) continue;
       const d = Math.hypot(e.x - x, e.z - z);
       if (d < bd) { bd = d; best = { id, x: e.x, z: e.z, visitor: !!e.visitor }; }
@@ -1605,7 +1655,7 @@ export class World {
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
       const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000;
-      e.m.position.set(e.x, -0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0), e.z);
+      e.m.position.set(e.x, -0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
       if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
@@ -1614,6 +1664,7 @@ export class World {
       e.m.userData.update(dt, { speed: p.pose || bk ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: bk ? 'sit' : p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
       this.syncBike(e, bk, dt);
       this.syncKite(e, p.kh || 0, dt);
+      this.syncRide(e, p.rh || 0);
 
       if (e.pet) { // Haustier läuft hinterher und setzt sich neben dich
         const side = p.pose ? 0.7 : 0.55, back = p.pose ? 0 : 0.85;
@@ -1635,12 +1686,12 @@ export class World {
         } else if (e.trickT !== undefined) { e.pet.position.y = 0; e.pet.rotation.x = 0; e.trickT = undefined; }
       }
 
-      const top = (HAT_TOP[p.look.hat] || 1.45) - (p.pose ? 0.35 : 0) - (p.sw ? 0.75 : 0); // Kopf-/Hutoberkante der Figur
+      const top = (HAT_TOP[p.look.hat] || 1.45) - (p.pose ? 0.35 : 0) - (p.sw ? 0.75 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0) + (p.bk && !p.sw ? 0.34 : 0); // Kopf-/Hutoberkante der Figur
       if (showNames) this.tag('pn' + p.id, esc(p.name), e.x, top + 0.22, e.z, 'name' + (local ? ' me' : ''));
       if (p.chatUntil > now) this.tag('pc' + p.id, esc(p.chat), e.x, top + 0.6, e.z, 'chat');
       if (emote) this.tag('pe' + p.id, emote, e.x, top + (p.chatUntil > now ? 1.35 : 0.75), e.z, 'emote');
     }
-    for (const [id, e] of this.players) if (!seen.has(id)) { this.scene.remove(e.m); if (e.pet) this.scene.remove(e.pet); if (e.bike) this.scene.remove(e.bike); if (e.kite) this.scene.remove(e.kite, e.kline); this.players.delete(id); }
+    for (const [id, e] of this.players) if (!seen.has(id)) { this.scene.remove(e.m); if (e.pet) this.scene.remove(e.pet); if (e.bike) this.scene.remove(e.bike); if (e.kite) this.scene.remove(e.kite, e.kline); if (e.balloon) this.scene.remove(e.balloon); this.players.delete(id); }
   }
 
   light(s) {
@@ -1694,6 +1745,25 @@ export class World {
   }
 
   lightning() { this.bolt = this.time; }
+
+  // Heißluftballon unter der Figur (Ballonfahrt)
+  syncRide(e, h) {
+    if (!(h > 0)) { if (e.balloon) e.balloon.visible = false; return; }
+    if (!e.balloon) { e.balloon = placeable('heissluftballon'); this.scene.add(e.balloon); }
+    e.balloon.visible = true;
+    e.balloon.position.set(e.x, h - 0.05, e.z);
+    e.balloon.rotation.y = this.time * 0.1;
+    if (Math.random() < 0.02) this.burst(e.x, e.z, 'smoke', h + 1.6);
+  }
+  // Geschenkballons am Himmel während der Ballonfahrt (nur für die eigene Fahrt)
+  syncSkyGifts(list) {
+    this.skyGiftM ||= [];
+    while (this.skyGiftM.length < (list?.length || 0)) {
+      const m = M.model([M.ball(0.32, 0xff6b8a, 0, 0.9, 0, 1, 1.15, 1, 12), M.cone(0.06, 0.08, 0xff6b8a, 0, 0.52, 0, 6, Math.PI), M.cyl(0.006, 0.006, 0.4, 0xffffff, 0, 0.3, 0, 4), M.box(0.26, 0.22, 0.26, 0xffd23f, 0, 0, 0), M.box(0.28, 0.05, 0.05, 0xff6b8a, 0, 0.02, 0), M.box(0.05, 0.05, 0.28, 0xff6b8a, 0, 0.02, 0)], [], false);
+      this.scene.add(m); this.skyGiftM.push(m);
+    }
+    this.skyGiftM.forEach((m, i) => { const g = list?.[i]; m.visible = !!g && !g.got; if (m.visible) { m.position.set(g.x, g.y + Math.sin(this.time * 2 + i) * 0.15, g.z); m.rotation.y = this.time; } });
+  }
 
   // Fahrrad unter der Figur (Räder drehen sich beim Fahren)
   syncBike(e, on, dt) {
@@ -1749,6 +1819,53 @@ export class World {
     a.needsUpdate = true;
   }
 
+  // Seltene Falter flattern um das Schmetterlingshaus, wenn ihre Lieblingsblumen blühen
+  syncGardenBF(s) {
+    this.bfM ||= new Map();
+    const hour = 6 + s.dayTime * 18, want = new Map();
+    if (hour >= 6 && hour < 20) for (const [k, o] of Object.entries(s.obj || {})) {
+      if (o?.k !== 'schmetterlingshaus') continue;
+      const [x, z] = k.split(',').map(Number);
+      if (Math.hypot(x - this.target.x, z - this.target.z) > 25) continue;
+      gardenBugs(s, x, z).slice(0, 4).forEach((b, i) => want.set(k + b[0], { x, z, id: b[0], i }));
+    }
+    for (const [k, e] of this.bfM) if (!want.has(k)) { this.scene.remove(e.m); this.bfM.delete(k); }
+    for (const [k, w] of want) {
+      let e = this.bfM.get(k);
+      if (!e) { const m = itemModel(w.id) || M.model([M.ball(0.1, 0xff8fab)]); m.scale.setScalar(0.45); this.scene.add(m); e = { m }; this.bfM.set(k, e); }
+      const a = this.time * (0.7 + w.i * 0.13) + w.i * 1.7, r = 1.4 + Math.sin(this.time * 0.5 + w.i) * 0.6;
+      e.m.position.set(w.x + Math.cos(a) * r, 0.9 + Math.sin(this.time * 3 + w.i) * 0.25 + w.i * 0.15, w.z + Math.sin(a) * r);
+      e.m.rotation.set(0, -a, Math.sin(this.time * 14 + w.i) * 0.25);
+    }
+  }
+
+  // Sternbilder am Nachthimmel: helle Sterne und Linien (am Himmelsgewölbe, das mit der Kamera wandert)
+  syncConsts(s, night, sky) {
+    const sig = JSON.stringify((s.consts || []).map(c => [c.sec, c.l]));
+    const dir = (az, el) => { const A = az * Math.PI / 180, E = el * Math.PI / 180; return new THREE.Vector3(Math.sin(A) * Math.cos(E), Math.sin(E), -Math.cos(A) * Math.cos(E)).multiplyScalar(260); };
+    if (!this.brightM) {
+      const pts = BRIGHT.flat().map(b => dir(b.az, b.el));
+      this.brightM = new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts), new THREE.PointsMaterial({ color: 0xfff1c0, size: 7, sizeAttenuation: false, transparent: true, fog: false, depthWrite: false }));
+      this.sky.add(this.brightM);
+    }
+    if (this.constSig !== sig) {
+      this.constSig = sig;
+      if (this.constM) this.sky.remove(this.constM);
+      const seg = [];
+      for (const c of s.consts || []) for (const [a, b] of c.l) { const A = BRIGHT[c.sec]?.[a], B = BRIGHT[c.sec]?.[b]; if (A && B) seg.push(dir(A.az, A.el), dir(B.az, B.el)); }
+      this.constM = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg), new THREE.LineBasicMaterial({ color: 0xd8e4ff, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+      this.sky.add(this.constM);
+    }
+    const k = Math.max(0, Math.min(1, (night - 0.55) * 2.5)) * (this.target.z > 1000 || this.target.x > HOME_X / 2 ? 0 : 1);
+    this.brightM.material.opacity = k;
+    this.constM.material.opacity = k * 0.8;
+    if (sky && k > 0.2) (s.consts || []).forEach((c, i) => {
+      const st = c.l.flat().map(j => BRIGHT[c.sec][j]), az = st.reduce((t, b) => t + b.az, 0) / st.length, el = Math.max(...st.map(b => b.el)) + 5;
+      const v = dir(az, el).add(this.camera.position);
+      this.tag('const' + i, `✨ ${esc(c.n)}`, v.x, v.y, v.z, 'name');
+    });
+  }
+
   // Bauernhof, Sandburgen, Riffboje und Seilbahn-Haltestellen
   syncExtras2(s) {
     const dt = this.dt || 0.016;
@@ -1758,6 +1875,14 @@ export class World {
     this.buoyM.rotation.z = Math.sin(this.time * 1.2) * 0.08;
     if (Math.hypot(REEF_BUOY[0] - this.target.x, REEF_BUOY[1] - this.target.z) < 9) this.tag('buoy', s.reef?.found ? '🪸 Riffboje' : '🪸 ?', REEF_BUOY[0], 1.4, REEF_BUOY[1], 'name npc');
     if (Math.random() < 0.03) this.burst(REEF_BUOY[0] + (Math.random() - 0.5) * 1.5, REEF_BUOY[1] + (Math.random() - 0.5) * 1.5, 'bubble', SEA_Y);
+    if (!this.wbuoyM) { this.wbuoyM = placeable('wrackboje'); this.scene.add(this.wbuoyM); }
+    this.wbuoyM.position.set(WRECK_BUOY[0], SEA_Y + 0.02 + Math.sin(this.time * 1.4 + 1) * 0.06, WRECK_BUOY[1]);
+    this.wbuoyM.rotation.z = Math.sin(this.time * 1.1) * 0.08;
+    if (Math.hypot(WRECK_BUOY[0] - this.target.x, WRECK_BUOY[1] - this.target.z) < 9) this.tag('wbuoy', s.wreck?.found ? '⚓ Wrackboje' : '⚓ ?', WRECK_BUOY[0], 1.4, WRECK_BUOY[1], 'name npc');
+    if (Math.random() < 0.02) this.burst(WRECK_BUOY[0] + (Math.random() - 0.5) * 1.5, WRECK_BUOY[1] + (Math.random() - 0.5) * 1.5, 'bubble', SEA_Y);
+    // Grill raucht, wenn heute gegrillt wurde
+    if (s.grill?.day === s.day && Math.random() < 0.08) { const [gx, gz] = s.grill.at.split(',').map(Number); if (s.obj?.[s.grill.at]?.k === 'strandgrill') this.burst(gx + (Math.random() - 0.5) * 0.2, gz, 'smoke', 0.9); }
+    this.syncGardenBF(s);
     // Hof-Tiere: drei Hühner beim Stall, eine Kuh auf der Weide
     this.farmM ||= new Map();
     const want = new Set();
@@ -1895,6 +2020,8 @@ export class World {
     this.syncPuddles(s, info.hour);
     this.syncAurora(s, info.night || 0);
     this.zones.update(this, s, this.time, info.night || 0, this.target);
+    this.syncConsts(s, info.night || 0, !!opt.sky);
+    this.syncSkyGifts(opt.skyGifts);
     if (this.animations !== false) tickAssets(dt);
     snow.value += ((this.season === 'winter' ? 0.85 : 0) - snow.value) * Math.min(1, dt * 2);
     { // Rathausuhr und Wanduhren zeigen die Spielzeit (bzw. die echte Uhrzeit)
@@ -1942,13 +2069,14 @@ export class World {
       const portrait = Math.min(1.7, Math.max(1, 1.25 / this.camera.aspect)), home = this.target.x > HOME_X / 2;
       // Himmelsblick (Sternschnuppen, Regenbogen): Kamera geht tief und schaut nach oben
       this.skyK = (this.skyK || 0) + ((opt.sky && !home ? 1 : 0) - (this.skyK || 0)) * Math.min(1, dt * 3);
-      const k = this.skyK, d = 13.4 * this.zoom * portrait * (home ? 0.78 : 1), el = opt.photo ? this.el : home ? 0.83 : (this.baseEl || 0.74);
+      this.rideY = (this.rideY || 0) + ((pl?.rh || 0) - (this.rideY || 0)) * Math.min(1, dt * 2.5);
+      const k = this.skyK, d = 13.4 * this.zoom * portrait * (home ? 0.78 : 1) * (1 + this.rideY * 0.07), el = opt.photo ? this.el : home ? 0.83 : (this.baseEl || 0.74);
       const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw), cam = this.camera.position;
       // normal: schräg von oben · Himmel: knapp hinter der Figur, Blick 30° nach oben
-      cam.set(this.target.x + sy * Math.cos(el) * d, Math.max(0.6, Math.sin(el) * d), this.target.z + cy * Math.cos(el) * d);
+      cam.set(this.target.x + sy * Math.cos(el) * d, Math.max(0.6, Math.sin(el) * d) + this.rideY, this.target.z + cy * Math.cos(el) * d);
       cam.lerp(this.v.set(this.target.x + sy * 1.6, 1.5, this.target.z + cy * 1.6), k);
       const lx = this.target.x * (1 - k) + (cam.x - sy * 10) * k, lz = this.target.z * (1 - k) + (cam.z - cy * 10) * k, ly = 0.6 * (1 - k) + (cam.y + 5.8) * k;
-      this.camera.lookAt(lx, ly, lz);
+      this.camera.lookAt(lx, ly + this.rideY * (1 - k), lz);
     }
     this.sky.position.copy(this.camera.position);
     for (const c of this.clouds) {

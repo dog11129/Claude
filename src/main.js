@@ -21,6 +21,7 @@ import * as XS from './extras.js';
 import * as PAT from './patterns.js';
 import { TRIP, TRIP_PRICE } from './trips.js';
 import { REEF, REEF_BUOY, cableBuilt, cableStop, taleState, beachOpen, beachKind } from './extras2.js';
+import { WRECK, WRECK_BUOY, RIDE_SECS, ridePos, skyGiftTimes, wishNow, BRIGHT, STAR_SECTORS, PHOTO_THEMES, photoTheme } from './extras3.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -181,6 +182,7 @@ function hostData(id, d) {
     p.sw = d.sw === true;
     p.bk = d.bk === true; // Fahrrad
     p.kh = Number.isFinite(d.kh) ? Math.max(0, Math.min(120, d.kh)) : 0; // Drachen-Höhe
+    p.rh = Number.isFinite(d.rh) ? Math.max(0, Math.min(12, d.rh)) : 0; // Ballonfahrt
   }
   if (d.t === 'look') Object.assign(p, cleanProfile(d));
   if (d.t === 'act') handleAct(id, d.a);
@@ -222,7 +224,7 @@ function handleAct(id, a) {
     a = { ...a, to: to.key };
   }
   const who = G.players[id]?.key || 'host';
-  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle', 'cookin', 'stalladd', 'stallswap', 'fwstart', 'castle', 'kitescore'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
+  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle', 'cookin', 'stalladd', 'stallswap', 'fwstart', 'castle', 'kitescore', 'game', 'photoentry', 'sternbild'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
   S.bindInv(G.s, 'host');
   if (out.gave) { // dem Empfänger Bescheid sagen
     const rid = Object.keys(G.players).find(k => G.players[k].key === out.gave.to), it = ITEMS[out.gave.item];
@@ -231,7 +233,7 @@ function handleAct(id, a) {
   }
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes, taleSay: out.taleSay, taleReady: out.taleReady };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes, taleSay: out.taleSay, taleReady: out.taleReady, ride: out.ride };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -418,6 +420,7 @@ function onRes(r) {
   if (r.cookVotes) r.cookVotes.forEach((v, i) => setTimeout(() => { toast(`${v.icon} ${v.name}: „${v.line}“ – ${'⭐'.repeat(Math.round(v.score / 2))} ${v.score}/10`); play(v.score >= 7 ? 'love' : 'chat'); }, 600 + i * 1400));
   if (r.newAlbum) { toast(`📖 Neu im Sammelbuch: ${ITEMS[r.newAlbum].icon} ${ITEMS[r.newAlbum].name}`, 'ach'); play('ach'); }
   if (r.taleSay && G.talk) { say2(r.taleSay); world.npcSay(G.talk.id, 'love'); }
+  if (r.ride) startRide();
   if (r.taleReady) setTimeout(() => toast(`📖 Geschafft! ${r.taleReady} wartet auf dich – die Geschichte geht weiter.`, 'ach'), 900);
   if (G.talk) setTimeout(() => G?.talk && updTale(G.talk.id), 450);
 }
@@ -746,7 +749,7 @@ function netTick() {
   } else {
     const me = G.players[G.me];
     if (!me || G.reconnecting || G.ended) return;
-    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, kh: me.kh || 0 };
+    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, kh: me.kh || 0, rh: me.rh || 0 };
     const sig = JSON.stringify(msg);
     if (sig !== G.lastMove || now - (G.lastMoveT || 0) > 1000) { G.conn?.send(msg); G.lastMove = sig; G.lastMoveT = now; }
     if (now - G.lastHost > 9000) lostConnection();
@@ -1162,6 +1165,20 @@ const panels = new Panels({
       setTimeout(() => G?.ready && travel('tropic'), 600);
     }
     if (kind === 'sailhome') travel('pier');
+    if (kind === 'lockadd' && WRECK_SYMS_UI.includes(d.sym)) { G.lock = [...(G.lock || []), d.sym].slice(-4); play('click'); panels.sig = null; }
+    if (kind === 'lockreset') { G.lock = []; panels.sig = null; }
+    if (kind === 'lockopen' && G.lock?.length === 4) { send({ t: 'wreck', op: 'open', code: G.lock }); G.lock = []; panels.sig = null; }
+    if (kind === 'gamestart') send({ t: 'game', op: 'start', k: d.k, vs: d.vs, vsName: d.vsName, name: profile.name });
+    if (kind === 'cstsec') { G.cst = { sec: ((G.cst?.sec || 0) + (+d.dir) + STAR_SECTORS) % STAR_SECTORS, lines: [], sel: null }; panels.sig = null; }
+    if (kind === 'cstundo' && G.cst) { G.cst.lines.pop(); G.cst.sel = null; }
+    if (kind === 'cstsave' && G.cst?.lines.length) {
+      const n = $('cstname')?.value.trim();
+      if (!n) { toast('✨ Gib deinem Sternbild erst einen Namen.'); return; }
+      send({ t: 'sternbild', op: 'add', n, sec: G.cst.sec, l: G.cst.lines, by: profile.name });
+      G.cst = { sec: G.cst.sec, lines: [], sel: null }; $('cstname').value = ''; panels.sig = null;
+    }
+    if (kind === 'cstdel') send({ t: 'sternbild', op: 'del', i: +d.i });
+    if (kind === 'photocam') { panels.close(); setPhoto(true); toast(`🏆 Thema der Woche: ${PHOTO_THEMES[photoTheme(G.s)][0]} ${PHOTO_THEMES[photoTheme(G.s)][1]} – mit 🏆 einreichen!`); }
     if (kind === 'cablego') { panels.close(); toast('🚡 Die Gondel schwebt los … 🎶'); play('whistle'); setTimeout(() => G?.ready && travel('cable:' + d.to), 650); }
     if (kind === 'trip') {
       if (G.s.money < TRIP_PRICE) { toast(`Der Ausflug kostet ${TRIP_PRICE} Taler.`); return; }
@@ -1205,7 +1222,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'] }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'] }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -1273,7 +1290,7 @@ $('rotbtn').onclick = () => world.rotate(Math.PI / 4);
 const keys = new Set();
 const joy = { x: 0, y: 0, id: null };
 let actHeld = false, nextAct = 0;
-const busy = () => !G?.ready || !!G.kite || panels.open || editor.isOpen || G.photo || G.talk || (G.hide?.phase === 'count' && G.hide.seeker === G.me);
+const busy = () => !G?.ready || !!G.kite || !!G.ride || panels.open || editor.isOpen || G.photo || G.talk || (G.hide?.phase === 'count' && G.hide.seeker === G.me);
 
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') { if (e.key === 'Escape') closeChat(); return; }
@@ -1434,8 +1451,9 @@ function openBuild(cat) {
   interrupt();
   panels.close();
   if (me.pose) standUp(me);
-  const inside = zone === 'home';
-  G.build = { inside, cat: cat || (inside ? 'alle' : 'deko'), item: null, r: 0, mode: 'place', path: G.pathType || 'erde', zoom: world.zoom };
+  const inside = zone === 'home', room = inside ? S.roomIdAt(me.z) : null;
+  if (room && S.hearts(G.s, room) < 3) { toast('🔨 Hier darfst du erst ab 3 Herzen einrichten.'); return; }
+  G.build = { inside, room, z0: room ? S.nroomZ(room) : 0, cat: cat || (inside ? 'alle' : 'deko'), item: null, r: 0, mode: 'place', path: G.pathType || 'erde', zoom: world.zoom };
   world.zoom = Math.max(world.zoom, inside ? 1.15 : 1.45);
   document.body.classList.add('building');
   $('buildbar').classList.remove('hidden');
@@ -1496,7 +1514,7 @@ $('bitems').onclick = e => {
 function buildTile(at) {
   const me = G.players[G.me], b = G.build;
   const p = at || { x: me.x + Math.sin(me.ry) * 1.2, z: me.z + Math.cos(me.ry) * 1.2 };
-  return b.inside ? [Math.round(p.x - S.HOME_X), Math.round(p.z)] : [Math.round(p.x), Math.round(p.z)];
+  return b.inside ? [Math.round(p.x - S.HOME_X), Math.round(p.z - b.z0)] : [Math.round(p.x), Math.round(p.z)];
 }
 function buildCtx(at) {
   const b = G.build, [x, z] = buildTile(at);
@@ -1525,7 +1543,7 @@ function updateBuild() {
   const b = G.build;
   if (!b) return null;
   const me = G.players[G.me], zone = zoneOf(me);
-  if ((b.inside && zone !== 'home') || (!b.inside && zone !== 'island')) { closeBuild(); return null; }
+  if ((b.inside && (zone !== 'home' || S.roomIdAt(me.z) !== b.room)) || (!b.inside && zone !== 'island')) { closeBuild(); return null; }
   renderBuild();
   const r = buildCtx(G.hover ? world.pick(G.hover.cx, G.hover.cy) : null);
   $('bhint').textContent = r.label || '';
@@ -1533,7 +1551,7 @@ function updateBuild() {
     const f = FURNITURE[b.item], rr = r.r ?? b.r;
     if (b.inside && f) {
       const [fw, fd] = rr % 2 ? [f.d, f.w] : [f.w, f.d];
-      world.setGhost({ kind: 'furn', id: b.item, x: S.HOME_X + r.bx + (fw - 1) / 2, z: r.bz + (fd - 1) / 2, y: f.rug ? 0.005 : 0, r: rr, ok: !!r.a });
+      world.setGhost({ kind: 'furn', id: b.item, x: S.HOME_X + r.bx + (fw - 1) / 2, z: b.z0 + r.bz + (fd - 1) / 2, y: f.rug ? 0.005 : 0, r: rr, ok: !!r.a });
     } else world.setGhost({ kind: 'place', id: b.item, x: r.bx, z: r.bz, r: b.r, ok: !!r.a });
   } else world.setGhost(null);
   return { label: r.label, tiles: r.tiles, a: r.a, build: true, bad: !r.a };
@@ -1587,6 +1605,7 @@ function execute(r, fresh) {
       me.pose = null;
       world.burst(me.x, me.z, 'splash', -0.2);
       if (r.reef) { if (!G.s.reef?.found) send({ t: 'reef', op: 'found' }); travel('reef'); return; }
+      if (r.wreck) { if (!G.s.wreck?.found) send({ t: 'wreck', op: 'found' }); travel('wreck'); return; }
       if (r.a) send(r.a); else toast('🫧 Nur Sand und Seegras da unten. Such nach Luftblasen!');
     }, 1100);
     return;
@@ -1622,6 +1641,8 @@ function execute(r, fresh) {
   }
   if ((r.ui || r.enter || r.visit) && fresh) world.boingNear(me.x, me.z);
   if (r.visit) {
+    if (fresh && world.npcM?.get(r.visit)?.awake !== false && S.hearts(G.s, r.visit) >= 3 && S.npcAwake(G.s)) { interrupt(); travel('nroom:' + r.visit); return; }
+    if (fresh && S.hearts(G.s, r.visit) < 3) { toast(`🚪 Klopf, klopf … Ab 3 Herzen lädt ${NPCS[r.visit].icon} ${NPCS[r.visit].name} dich zu sich nach Hause ein.`); play('door'); return; }
     if (fresh) { const n = NPCS[r.visit], away = world.npcM?.get(r.visit)?.awake; toast(away ? `🚪 Klopf, klopf … ${n.icon} ${n.name} ist gerade draußen auf der Insel unterwegs.` : `🌙 ${n.icon} ${n.name} schläft schon. Pssst!`); play('door'); }
     return;
   }
@@ -1642,6 +1663,7 @@ function execute(r, fresh) {
     play('door');
     const [, d] = S.roomSize(G.s);
     if (r.enter) Object.assign(me, { x: S.HOME_X, z: d / 2 - 0.7, ry: Math.PI, pose: null });
+    else if (r.room && BUILDINGS['vh_' + r.room]) { const B = BUILDINGS['vh_' + r.room]; Object.assign(me, { x: B.cx, z: B.z1 + 1.3, ry: 0, pose: null }); }
     else Object.assign(me, { x: BUILDINGS.house.cx, z: BUILDINGS.house.z1 + 1.4, ry: 0, pose: null });
   } else if (r.sleep) {
     if (!fresh) return;
@@ -1670,7 +1692,7 @@ function standUp(me) {
   const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25], [0, 0]].some(([a, b]) => S.blocked(G.s, x + a, z + b));
   const ok = spots.find(([dx, dz]) => free(me.x + dx, me.z + dz));
   if (ok) { me.x += ok[0]; me.z += ok[1]; }
-  else if (S.inside(me)) { me.x = S.HOME_X; me.z = S.roomSize(G.s)[1] / 2 - 0.7; }
+  else if (S.inside(me)) { const R = S.roomOf(G.s, S.roomIdAt(me.z)); me.x = S.HOME_X; me.z = R.z0 + R.size[1] / 2 - 0.7; }
 }
 
 function tapAt(cx, cy) {
@@ -1714,6 +1736,12 @@ function aimAt(cx, cy) {
 
 // Ortswechsel: Bummelgasse, Tropeninsel (mit dem Boot) und zurück
 // Insel-Erweiterungen: hinein (am Südrand ankommen) und zurück vors Tor auf der Insel
+// Zu Besuch im Zimmer eines Nachbarn
+function nroomTravel(id) {
+  if (!NPCS[id]) return null;
+  const z0 = S.nroomZ(id), w = wishNow(G.s, id);
+  return [S.HOME_X, z0 + S.NROOM_SIZE[1] / 2 - 0.7, Math.PI, `🏠 ${NPCS[id].icon} ${NPCS[id].name}: „Komm rein!“${w ? ' – sprich mich an, ich hab einen Einrichtungswunsch.' : ''}`, 'door'];
+}
 // Seilbahn: Talstation auf der Insel oder Haltestelle im Gebiet
 function cableTravel(id) {
   const st = cableBuilt(G.s);
@@ -1740,7 +1768,7 @@ function travel(where) {
   interrupt();
   panels.close();
   fade();
-  const to = where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
+  const to = where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
@@ -1748,6 +1776,8 @@ function travel(where) {
     trip: [TRIP.x, TRIP.z + TRIP.r + 1.8, Math.PI, '', 'splash'],
     reef: [REEF.x, REEF.z + REEF.r - 2.6, Math.PI, G.s.reef?.found ? '🪸 Hinab ins Korallenriff!' : '🪸 Ein ganzes Riff unter der Boje! ✨ Fundstellen absuchen, auf die Steinplatten Korallen & Muscheln setzen.', 'splash'],
     reefup: [REEF_BUOY[0], REEF_BUOY[1] + 0.8, 0, '🫧 Wieder an der Oberfläche!', 'splash'],
+    wreck: [WRECK.x, WRECK.z + WRECK.r - 2.6, Math.PI, G.s.wreck?.found ? '⚓ Hinab zum Schiffswrack!' : '⚓ Ein altes Segelschiff! Öffnet die ✨ Truhen – irgendwo steckt ein Hinweis auf die Kapitänskajüte.', 'splash'],
+    wreckup: [WRECK_BUOY[0], WRECK_BUOY[1] + 0.8, 0, '🫧 Wieder an der Oberfläche!', 'splash'],
   }[where] || areaTravel(where, me);
   if (!to) return;
   Object.assign(me, { x: to[0], z: to[1], ry: to[2], pose: null });
@@ -1876,8 +1906,10 @@ function openTalk(id) {
   const N = NPCS[id], h = S.hearts(G.s, id);
   $('dlgname').style.background = N.color;
   $('dlgname').innerHTML = `${N.icon} ${N.name}<small>${'❤️'.repeat(Math.ceil(h / 2)) || '🤍'}</small>`;
-  const ctx = talkCtx(id), tale = taleState(G.s, id);
+  const ctx = talkCtx(id), tale = taleState(G.s, id), home = S.inside(me) && S.roomIdAt(me.z) === id, wish = home ? wishNow(G.s, id) : null;
   updTale(id);
+  $('dlgwish').classList.toggle('hidden', !home);
+  if (home) { say2(wish ? `Schön, dass du mich besuchst! Ich hätte da einen Wunsch: ${wish.t}` : 'Mein Zimmer ist ein Traum – dank dir! Setz dich doch!'); world.npcSay(id, 'happy'); play('chat'); return; }
   say2(festLine(id, ctx) || (tale.ready ? (tale.t.ch ? `Du, ${profile.name || 'du'} … erinnerst du dich an „${tale.T.title}“? Ich hätte da noch eine Idee! (📖)` : `Du, ${profile.name || 'du'} … darf ich dir etwas erzählen? Ich hab da so einen Traum. (📖)`) : npcLine(id, ctx)));
   world.npcSay(id, 'happy');
   play(ctx.bday === id ? 'party' : 'chat');
@@ -1955,6 +1987,7 @@ $('dialog').addEventListener('click', e => {
   if (!b || !G?.talk) return;
   const id = G.talk.id;
   if (b.dataset.dlg === 'bye') closeTalk();
+  if (b.dataset.dlg === 'nwish') { $('dlggifts').classList.add('hidden'); send({ t: 'nwish', id }); play('click'); }
   if (b.dataset.dlg === 'tale') {
     $('dlggifts').classList.add('hidden');
     const st = taleState(G.s, id);
@@ -1977,6 +2010,102 @@ $('dialog').addEventListener('click', e => {
     send({ t: 'gift', id, item: b.dataset.gift });
     $('dlggifts').classList.add('hidden');
   }
+});
+
+// ---------- Ballonfahrt ----------
+const WRECK_SYMS_UI = ['⚓', '🐚', '⭐', '🐟'];
+function startRide() {
+  const me = G.players[G.me], st = Object.entries(G.s.obj || {}).find(([, o]) => o?.k === 'ballonplatz');
+  if (!st || G.ride) return;
+  interrupt(); panels.close();
+  if (me.bike) setBike(false, true);
+  if (G.kite) endKite();
+  me.pose = null;
+  const [sx, sz] = st[0].split(',').map(Number);
+  G.ride = { t: 0, t0: performance.now(), sx, sz, shot: false, gifts: skyGiftTimes(G.s).map(tt => { const p = ridePos(tt, sx, sz); return { x: p.x, y: p.y + 1.3, z: p.z, got: false }; }) };
+  setTimeout(() => toast('🎈 Wir heben ab! Fliegt durch die Geschenkballons, um sie zu fangen.'), 300);
+}
+function updateRide(dt) {
+  const r = G.ride, me = G.players[G.me];
+  if (!r) { me.rh = 0; return; }
+  r.t = (performance.now() - r.t0) / 1000; // echte Zeit (auch wenn Bilder ausfallen)
+  const p = ridePos(r.t, r.sx, r.sz), q = ridePos(r.t + 0.3, r.sx, r.sz);
+  Object.assign(me, { x: p.x, z: p.z, rh: p.y, m: false });
+  if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) me.ry = Math.atan2(q.x - p.x, q.z - p.z);
+  for (const g of r.gifts) if (!g.got && Math.hypot(g.x - p.x, g.z - p.z) < 2.4) { g.got = true; send({ t: 'skygift' }); world.burst(g.x, g.z, 'coin', g.y); play('found'); }
+  if (!r.shot && r.t > 16) { r.shot = true; send({ t: 'rideshot' }); }
+  if (r.t >= RIDE_SECS) endRide();
+}
+function endRide() {
+  const r = G.ride, me = G.players[G.me];
+  if (!r) return;
+  G.ride = null;
+  me.rh = 0;
+  const spot = [[0, 2.2], [2.2, 0], [-2.2, 0], [0, -2.2]].find(([a, b]) => freeAt(r.sx + a, r.sz + b)) || [0, 2.2];
+  Object.assign(me, { x: r.sx + spot[0], z: r.sz + spot[1], ry: 0 });
+  world.burst(me.x, me.z, 'dust');
+  toast('🎈 Sanft gelandet. Was für eine Aussicht!');
+}
+
+// ---------- Fotowettbewerb: Bild bewerten (was ist zu sehen?) und einreichen ----------
+function sceneScore(theme) {
+  const s = G.s, me = G.players[G.me], cx = world.target.x, cz = world.target.z, h = 6 + s.dayTime * 18, night = h >= 20 || h < 5, near = (x, z, r = 6) => Math.hypot(x - cx, z - cz) <= r;
+  const objs = Object.entries(s.obj || {}).filter(([k]) => { const [x, z] = k.split(',').map(Number); return near(x, z, 7); }).map(([, o]) => o.k);
+  let base = 0;
+  if (theme === 'blumen') { const fl = Object.entries(s.tiles || {}).filter(([k, t]) => t?.c && CROPS[t.c.k]?.cat === 'fruit' && S.stage(t.c) === 3 && near(...k.split(',').map(Number))).length; base = Math.min(70, fl * 5 + objs.filter(k => ['blumen', 'rosenbogen', 'blumenkuebel', 'rosenstrauch', 'fliederbusch', 'hortensie'].includes(k)).length * 6); }
+  if (theme === 'abend') base = !S.inside(me) && h >= 17 && h <= 20.5 ? Math.max(10, 70 - Math.abs(h - 18.7) * 22) : 0;
+  if (theme === 'nacht') base = night && !S.inside(me) ? Math.min(70, 40 + (s.starNight ? 15 : 0) + objs.filter(k => PLACE[k]?.glow).length * 5) : 0;
+  if (theme === 'freunde') base = Math.min(70, (Object.values(G.players).filter(p => near(p.x, p.z)).length - 1) * 18 + [...(world.npcM || [])].filter(([, e]) => e.awake && near(e.x, e.z)).length * 12);
+  if (theme === 'tiere') base = Math.min(70, Object.values(G.players).filter(p => p.look?.pet && near(p.x, p.z)).length * 15 + objs.filter(k => PLACE[k]?.farm).length * 20 + objs.filter(k => k === 'schmetterlingshaus').length * 15 + (world.bfM?.size || 0) * 5);
+  if (theme === 'strand') { let n = 0; for (let x = -4; x <= 4; x++) for (let z = -4; z <= 4; z++) if (S.sandX(Math.round(cx) + x, Math.round(cz) + z)) n++; base = n > 8 ? Math.min(70, 30 + Object.keys(s.castles || {}).filter(k => near(...k.split(',').map(Number))).length * 12 + Object.keys(s.shells || {}).filter(k => near(...k.split(',').map(Number))).length * 4 + objs.filter(k => ['strandkorb', 'sonnenschirm', 'liegestuhl', 'surfbrett', 'strandgrill'].includes(k)).length * 8) : 0; }
+  if (theme === 'wetter') base = !S.inside(me) ? { rain: 55, snow: 60, storm: 70, fog: 60 }[s.weather] || (s.rainbow ? 50 : 8) : 0;
+  if (theme === 'zuhause' && S.inside(me)) { const R = S.roomOf(s, S.roomIdAt(me.z)), all = [...Object.values(R.items), ...Object.values(R.rugs), ...Object.values(R.walls)]; base = Math.min(70, all.length * 4 + new Set(all.map(o => FURNITURE[o.k]?.cat)).size * 4); }
+  const bonus = Math.min(15, (Object.values(G.players).filter(p => p.emoteUntil > performance.now()).length) * 8) + Math.floor(Math.random() * 15);
+  return Math.max(0, Math.min(100, Math.round(base + bonus)));
+}
+async function photoEntry() {
+  if (!G?.ready) return;
+  const th = photoTheme(G.s), sc = sceneScore(th);
+  play('shutter');
+  $('flash').classList.add('on');
+  setTimeout(() => $('flash').classList.remove('on'), 60);
+  const url = world.snapshot();
+  let img = await photos.shrink(url, 200, 0.6);
+  if (img.length > 19000) img = await photos.shrink(url, 140, 0.5);
+  await photos.add(isleKey(), await photos.shrink(url, 1100, 0.86), { kind: 'photo', day: G.s.day });
+  send({ t: 'photoentry', score: sc, img, name: profile.name });
+}
+$('photoentry').onclick = () => photoEntry();
+
+// ---------- Sternbilder zeichnen ----------
+const starXY = (sec, b, W, H) => [(b.az - (sec * 45 - 25)) / 50 * W, H - (b.el - 10) / 38 * H];
+function drawStars() {
+  const cv = $('cstcv');
+  if (!cv) return;
+  G.cst ||= { sec: 0, lines: [], sel: null };
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height, c = G.cst, st = BRIGHT[c.sec];
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#0d1433'); gr.addColorStop(1, '#2a3a78');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 60; i++) { g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect((i * 97) % W, (i * 53) % H, 1.5, 1.5); }
+  g.lineWidth = 2;
+  for (const k of G.s.consts || []) if (k.sec === c.sec) {
+    g.strokeStyle = 'rgba(190,210,255,0.35)';
+    for (const [a, b] of k.l) { const A = starXY(c.sec, st[a], W, H), B = starXY(c.sec, st[b], W, H); g.beginPath(); g.moveTo(...A); g.lineTo(...B); g.stroke(); }
+    const A = starXY(c.sec, st[k.l[0][0]], W, H); g.fillStyle = 'rgba(220,230,255,0.7)'; g.font = '12px sans-serif'; g.fillText(k.n, A[0] + 8, A[1] - 8);
+  }
+  g.strokeStyle = '#ffe9a8'; g.lineWidth = 3;
+  for (const [a, b] of c.lines) { const A = starXY(c.sec, st[a], W, H), B = starXY(c.sec, st[b], W, H); g.beginPath(); g.moveTo(...A); g.lineTo(...B); g.stroke(); }
+  st.forEach((b, i) => { const [x, y] = starXY(c.sec, b, W, H); g.fillStyle = i === c.sel ? '#ff9ab8' : '#fff4c8'; g.beginPath(); g.arc(x, y, 4 + b.m * 4 + (i === c.sel ? 3 : 0), 0, Math.PI * 2); g.fill(); });
+}
+$('pbody').addEventListener('pointerdown', e => {
+  if (e.target.id !== 'cstcv' || !G?.cst) return;
+  const r = e.target.getBoundingClientRect(), W = e.target.width, H = e.target.height, x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H, c = G.cst;
+  let best = -1, bd = 26;
+  BRIGHT[c.sec].forEach((b, i) => { const [sx, sy] = starXY(c.sec, b, W, H), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = i; } });
+  if (best < 0) { c.sel = null; return; }
+  if (c.sel === null || c.sel === best) { c.sel = c.sel === best ? null : best; play('click'); return; }
+  if (c.lines.length < 14 && !c.lines.some(([a, b]) => (a === c.sel && b === best) || (a === best && b === c.sel))) { c.lines.push([c.sel, best]); play('click'); }
+  c.sel = best;
 });
 
 // ---------- Fahrrad ----------
@@ -2336,12 +2465,12 @@ function gameFrame(dt, now) {
     if (stuck || free(me.x, me.z + wz * sp)) me.z += wz * sp;
     me.ry = Math.atan2(wx, wz);
     if (G.fishing) stopFishing();
-    if (S.inside(me) && me.z > S.roomSize(s)[1] / 2 + 0.25) execute({ exit: true }, true); // durch die Tür hinaus
+    if (S.inside(me)) { const R = S.roomOf(s, S.roomIdAt(me.z)); if (me.z - R.z0 > R.size[1] / 2 + 0.25) execute({ exit: true, room: R.id }, true); } // durch die Tür hinaus
     if (zoneOf(me) === 'street' && me.z - STREET.z > STREET.d + 0.5) travel('island'); // durchs Tor zurück
     if (me.x < -150) { const A = S.AREAS[S.areaOf(me)]; if (me.z - A.z > A.d + 0.7) travel('island'); }
   } else me.run = false;
   const wasSw = me.sw;
-  me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit';
+  me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit' && !G.ride;
   if (me.bike && (me.sw || S.inside(me) || zoneOf(me) === 'reef' || me.pose || !(s.inv.fahrrad > 0))) setBike(false, true);
   if (me.sw && !wasSw) { world.burst(me.x, me.z, 'splash', -0.2); play('splash'); if (!G.swimTip) { G.swimTip = 1; toast('🤿 Du schwimmst! Bei Luftblasen 🫧 Aktion drücken zum Tauchen.'); } }
   me.held = heldItem();
@@ -2375,6 +2504,10 @@ function gameFrame(dt, now) {
   if (actHeld && now > nextAct) { nextAct = now + 300; execute(G.ctx, false); }
   updateFishing(dt);
   updateKite(dt);
+  updateRide(dt);
+  // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)
+  const gm = s.game;
+  if (G.role === 'host' && gm && gm.win == null && gm.p[gm.turn]?.npc) { if (!G.aiDue) G.aiDue = now + (gm.k === 'mem' ? 1300 : 900); else if (now > G.aiDue) { G.aiDue = 0; send({ t: 'game', op: 'ai' }); } } else G.aiDue = 0;
   updateTour();
   if (beachOpen(s) && G.beachTip !== s.day && zoneOf(me) === 'island') {
     G.beachTip = s.day;
@@ -2403,9 +2536,11 @@ function gameFrame(dt, now) {
     tiles: G.photo || editor.isOpen ? [] : G.build ? G.ctx?.tiles : shown?.tiles, hlOn: G.build ? !!G.ctx?.a : usable(shown), hlBad: G.build ? !G.ctx?.a : shown && !shown.a && !shown.ui && !shown.fish && !shown.sit && /kein|Nur|Erst/.test(shown.label || ''),
     prompt: G.photo || editor.isOpen ? null : prompt, photo: G.photo, hideNames: G.photo || !settings.names,
     bobber: G.fishing && { x: G.fishing.x, z: G.fishing.z, bite: G.fishing.phase === 'bite', nib: G.fishing.nib > 0 },
+    skyGifts: G.ride?.gifts || null,
     preview: editor.isOpen ? previewCam(me.x, me.z) : null, sky: G.skyView,
   });
   if (panels.open === 'map') drawMap();
+  if (panels.open === 'stars') drawStars();
   if (s.balloon && G.balloonSeen !== s.balloon.id) { G.balloonSeen = s.balloon.id; toast('🎈 Ein Geschenkballon schwebt über die Insel! Schnapp dir die Schleuder.'); play('chat'); }
   ambience({ day: info.day, night: info.night, rain: XS.isRainy(s) && !S.inside(me), storm: s.weather === 'storm', fog: s.weather === 'fog', walking: me.m, area: me.x < -150 ? S.areaOf(me) : null });
   musicTick(6 + s.dayTime * 18, XS.isRainy(s));

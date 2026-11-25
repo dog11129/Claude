@@ -12,6 +12,7 @@ import { cropModel } from './nature.js';
 import { crop } from './plants.js';
 import { TRIP, TRIP_KINDS, tripLayout, tripUses, nodeThing } from './trips.js';
 import { REEF, REEF_SLOTS, REEF_SPOTS, reefScore } from './extras2.js';
+import { WRECK, WRECK_CHESTS, WRECK_PORTS, WRECK_DOOR } from './extras3.js';
 import { itemModel } from './itemmodels.js';
 
 function canvasTex(w, h, paint, rep) {
@@ -363,6 +364,58 @@ function buildReef() {
   g.userData = { weed, deco: new Map(), fish: [], lights: [[X - 1, Z + R - 1.2], [X + 1, Z + R - 1.2]], sig: '' };
   return g;
 }
+// ---------- Schiffswrack (unter Wasser) ----------
+function buildWreck() {
+  const g = new THREE.Group(), X = WRECK.x, Z = WRECK.z, R = WRECK.r;
+  const geo = new THREE.CircleGeometry(46, 72);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), cs = new THREE.Color(0xcdbb8e), cd = new THREE.Color(0x2f5f78), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i), r = Math.hypot(x, z);
+    pos.setY(i, r > R ? Math.min(5, (r - R) ** 1.3 * 0.5) : 0.06 * Math.sin(x * 0.7) * Math.cos(z * 0.5));
+    c.copy(cs).lerp(cd, THREE.MathUtils.smoothstep(r, R - 2, R + 5));
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.computeVertexNormals();
+  const floor = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: tex('grass', 24, 24) }));
+  floor.position.set(X, 0, Z); floor.receiveShadow = true; g.add(floor);
+  const P = [], G = [], WD = 0x6a4a2a, WL = 0x8a6440, BR = 0xc8a050;
+  // Rumpf (leicht schief im Sand), Deck, Kajüte am Heck (Osten), Galionsfigur am Bug (Westen)
+  P.push(M.box(13.2, 1.4, 3.2, WD, 0, 0.5, -3, 0, 0, 0.03), M.box(13.4, 1.2, 0.2, WL, 0, 1.6, -1.45, 0, 0, 0.03), M.box(13.4, 1.0, 0.2, WL, 0, 1.5, -4.55, 0, 0, 0.03));
+  for (let i = 0; i < 12; i++) if (i < 4 || i > 6) P.push(M.box(1.05, 0.08, 3.0, i % 2 ? WL : 0x7a5434, -6 + i * 1.08, 1.22, -3));
+  P.push(M.box(2.0, 2.4, 3.0, WL, 5.6, 2.3, -3), M.box(2.2, 0.15, 3.2, WD, 5.6, 3.55, -3), M.box(0.08, 1.3, 0.9, 0x3a2a1a, 6.62, 1.85, WRECK_DOOR[1]), M.ball(0.06, BR, 6.68, 1.85, WRECK_DOOR[1] + 0.3));
+  P.push(M.cone(0.5, 1.6, WD, -7.2, 1.0, -3, 4, 0, 0, Math.PI / 2), M.ball(0.28, BR, -7.9, 1.7, -3, 1, 1.2, 0.8), M.cone(0.12, 0.4, BR, -8.15, 1.95, -3, 6, 0, 0, Math.PI / 2.4), M.ball(0.08, 0xfff0c0, -8.0, 1.8, -2.8));
+  // Bullaugen auf der Südseite (Messingring, dunkles Glas)
+  for (const [x, z] of WRECK_PORTS) { P.push(M.cyl(0.34, 0.34, 0.08, BR, x, 1.25, z - 0.27, 16, Math.PI / 2), M.cyl(0.26, 0.26, 0.1, 0x22404a, x, 1.25, z - 0.25, 16, Math.PI / 2)); }
+  // umgekippter Mast mit zerrissenem Segel
+  P.push(M.cyl(0.14, 0.18, 9, WL, 1.5, 0.6, 1.2, 8, 0, 0, Math.PI / 2 - 0.12), M.box(1.6, 0.03, 1.1, 0xcfc2a2, 2.4, 0.75, 1.75, 0.5, 0.35, 0.1), M.box(0.9, 0.03, 0.7, 0xc4b694, 3.5, 0.62, 2.3, -0.4, 0.25, 0.05));
+  // Truhen
+  for (const [x, z] of WRECK_CHESTS) P.push(M.box(0.8, 0.45, 0.55, 0x8a5a36, x, 0.24, z), M.cyl(0.275, 0.275, 0.8, 0x8a5a36, x, 0.46, z, 10, 0, 0, Math.PI / 2), M.box(0.06, 0.75, 0.57, BR, x - 0.25, 0.35, z), M.box(0.06, 0.75, 0.57, BR, x + 0.25, 0.35, z), M.box(0.12, 0.12, 0.04, BR, x, 0.38, z + 0.29));
+  // Fässer, Felsen, Muscheln
+  for (const [x, z, r] of [[-4, 1.5, 0.3], [3.8, 5.2, 1.2], [8.6, 1.0, 0.6], [-8.5, 5.5, 0.2]]) P.push(M.cyl(0.28, 0.28, 0.6, 0x9a6a3a, x, 0.3, z, 12, Math.PI / 2, r));
+  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(1711);
+  for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2 + rnd() * 0.2, r = R + 0.5 + rnd() * 1.4, s = (0.5 + rnd() * 0.9) * (Math.sin(a) > 0.2 ? 0.45 : 1); if (Math.abs(Math.cos(a) * r) < 2.2 && Math.sin(a) > 0.8) continue; P.push(M.ball(s, [0x6a6478, 0x5a5468, 0x7a7088][i % 3], Math.cos(a) * r, s * 0.4, Math.sin(a) * r, 1.3, 0.8, 1.1, 8)); }
+  // Seil zum Auftauchen
+  P.push(M.cyl(0.035, 0.035, 2.4, 0xe8d6a8, 0, 1.2, R - 1.2, 6), M.cyl(0.35, 0.35, 0.12, 0x6a6478, 0, 0.06, R - 1.2, 10), M.ball(0.16, 0xffd23f, 0, 2.45, R - 1.2));
+  G.push(M.ball(0.08, 0, 0, 2.62, R - 1.2), M.box(0.5, 0.35, 0.02, 0, WRECK_DOOR[0] - 0.4, 2.9, WRECK_DOOR[1] + 1.52));
+  g.add(put(new THREE.Group(), M.model(P, G), X, Z));
+  // Seegras
+  const weed = [];
+  for (let i = 0; i < 18; i++) {
+    const a = rnd() * Math.PI * 2, r = 2 + rnd() * (R - 3), x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if ((x > -8.5 && x < 8 && z > -5.5 && z < 0.5) || WRECK_CHESTS.some(([cx, cz]) => Math.hypot(cx - x, cz - z) < 1.2) || (z > R - 3 && Math.abs(x) < 1.8)) continue;
+    const h = 0.8 + rnd() * 1.4, Sx = [];
+    for (let j = 0; j < 3; j++) Sx.push(M.cone(0.07, h, [0x3f7a4a, 0x4f8f5a, 0x2f6a5a][j], (j - 1) * 0.1, h / 2, (j % 2) * 0.08, 5, 0, 0, (j - 1) * 0.15));
+    const m = M.model(Sx);
+    m.position.set(X + x, 0, Z + z);
+    g.add(m); weed.push(m);
+  }
+  const rayMat = new THREE.MeshBasicMaterial({ color: 0xbfefff, transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false });
+  for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.4 + rnd() * 1.5, 14), rayMat); m.position.set(X - 8 + i * 4, 6, Z - 2 + rnd() * 6); m.rotation.set(0, rnd() * 3, 0.25); g.add(m); }
+  g.userData = { weed, fish: [], lights: [[X + WRECK_DOOR[0] - 0.4, Z + WRECK_DOOR[1] + 1.5], [X, Z + R - 1.2]] };
+  return g;
+}
 const FISH_COL = [[0xff8a3a, 0xffffff], [0xffd23f, 0x6cb4ff], [0x6cb4ff, 0xffe066], [0xff6b8a, 0xffd0dc], [0x8ad45a, 0xffe066], [0xc9a8ff, 0xffffff]];
 function reefFish(i) {
   const [a, b] = FISH_COL[i % FISH_COL.length], s = 0.7 + (i % 3) * 0.2;
@@ -419,11 +472,13 @@ export class Zones {
   update(world, s, t, night, target) {
     this.tropic.userData.u.t.value = t;
     this.tropic.userData.u.night.value = night;
-    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 1000 ? 'reef' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
+    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 1350 ? 'wreck' : target.z > 1000 ? 'reef' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
     this.street.visible = where === 'street';
     this.tropic.visible = where === 'tropic';
     if (this.trip) this.trip.visible = where === 'trip';
     if (this.reef) this.reef.visible = where === 'reef';
+    if (this.wreck) this.wreck.visible = where === 'wreck';
+    if (where === 'wreck') { this.updateWreck(world, s, t); return; }
     if (where === 'trip') { this.updateTrip(world, s, t); return; }
     if (where === 'reef') { this.updateReef(world, s, t); return; }
     let here = null;
@@ -523,6 +578,19 @@ export class Zones {
       world.burst(X + x, Z + z, 'bubble', 0.3);
     });
   }
+  updateWreck(world, s, t) {
+    if (!this.wreck) { this.wreck = buildWreck(); this.scene.add(this.wreck); }
+    const g = this.wreck, U = g.userData, X = WRECK.x, Z = WRECK.z, W = s.wreck || {};
+    U.weed.forEach((m, i) => { m.rotation.z = Math.sin(t * 0.8 + i) * 0.12; });
+    world.tag('wreckexit', '🫧 Auftauchen', X, 2.4, Z + WRECK.r - 1.2, 'name npc');
+    world.tag('wrecktitle', '⚓ Schiffswrack', X - 2, 4.2, Z - 3, 'name npc');
+    world.tag('wreckdoor', W.open ? '🚪 Kajüte (offen)' : '🔒 Kapitänskajüte', X + WRECK_DOOR[0] + 0.3, 2.9, Z + WRECK_DOOR[1], 'name npc');
+    WRECK_CHESTS.forEach(([x, z], i) => { if (W.got?.[i] !== s.day) world.tag('wchest' + i, '✨', X + x, 1.1 + Math.sin(t * 2 + i) * 0.1, Z + z, 'bubble'); });
+    WRECK_PORTS.forEach(([x, z], i) => { if (Math.hypot(world.target.x - X - x, world.target.z - Z - z) < 4.5) world.tag('wport' + i, W.code?.[i] || '?', X + x, 1.9, Z + z - 0.2, 'bubble'); });
+    if (Math.random() < 0.2) world.burst(X + (Math.random() - 0.5) * 18, Z + (Math.random() - 0.5) * 18, 'bubble', 0.2 + Math.random() * 2);
+    while (U.fish.length < 6) { const f = reefFish(U.fish.length + 3); g.add(f); U.fish.push(f); }
+    for (const f of U.fish) { const u = f.userData, a = u.p + t * u.w * 0.8; f.position.set(X + Math.cos(a) * (u.r + 2), u.y + 0.8, Z + Math.sin(a) * (u.r + 2)); f.rotation.y = -a + (u.w > 0 ? -Math.PI / 2 : Math.PI / 2); }
+  }
   updateArea(world, s, id, t) {
     const g = this.area(id), A = AREAS[id];
     world.tag('areaexit', '🏝️ Zur Insel', A.x, 2.2, A.z + A.d + 0.6, 'name npc');
@@ -543,6 +611,6 @@ export class Zones {
   }
   lights(target) {
     if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
-    return target.z < -150 ? this.street.userData.lights : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
+    return target.z < -150 ? this.street.userData.lights : target.z > 1350 ? this.wreck?.userData.lights || null : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
   }
 }

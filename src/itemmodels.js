@@ -83,6 +83,8 @@ function lobster(c) {
   return p;
 }
 const SEA_MODELS = {
+  dublone: () => [cyl(0.15, 0.15, 0.03, 0xffd23f, 0, 0.16, 0, 18, PI / 2), cyl(0.11, 0.11, 0.035, 0xf0c020, 0, 0.16, 0, 18, PI / 2), box(0.04, 0.1, 0.04, 0xffe98a, 0, 0.16, 0.02)],
+  seekarte: () => [box(0.5, 0.01, 0.36, 0xf2e0b8, 0, 0.02, 0), cyl(0.03, 0.03, 0.38, 0xe8d0a0, -0.25, 0.04, 0, 8, PI / 2), cyl(0.03, 0.03, 0.38, 0xe8d0a0, 0.25, 0.04, 0, 8, PI / 2), ...[[-0.1, -0.05], [0.05, 0.08], [0.15, -0.06]].map(([x, z]) => ball(0.025, 0x6cb4ff, x, 0.03, z, 1, 0.3, 1)), box(0.05, 0.012, 0.012, 0xe8283c, 0.12, 0.03, 0.08, 0, 0.8), box(0.05, 0.012, 0.012, 0xe8283c, 0.12, 0.03, 0.08, 0, -0.8)],
   seeglas: () => [ell(0.16, 0x8fe0d0, -0.06, 0.06, 0, 1.2, 0.35, 0.9, 0, 0.4), ell(0.12, 0xa8c8ff, 0.14, 0.05, 0.06, 1.1, 0.35, 0.8, 0, -0.6), ell(0.09, 0xc8f0e0, 0.02, 0.05, -0.14, 1, 0.3, 1)],
   riffkoralle: () => [ell(0.2, 0xe8d8c8, 0, 0.04, 0, 1.1, 0.3, 1), ...[[0, 0.36, 0, 0, 0xff7b8a], [0.12, 0.28, 0.05, -0.5, 0xffb36b], [-0.12, 0.3, -0.03, 0.5, 0xc9a8ff], [0.04, 0.22, 0.12, -0.2, 0xff9ad8], [-0.06, 0.24, -0.12, 0.3, 0x6cd4c8]].flatMap(([x, h, z, r, c]) => [cyl(0.03, 0.045, h, c, x, h / 2 + 0.04, z, 6, 0, 0, r), ball(0.045, c, x - Math.sin(r) * h * 0.5, h + 0.06, z)])],
   krebs: () => lobster(0xd2603a), hummer: () => lobster(0xc8402e), krabbe: () => crab(0xf07a4a, 0xf05a3a),
@@ -129,6 +131,14 @@ const BUG_MODELS = {
   gewitterkaefer: () => beetle(0x2a3a6a, 0x1a2244, [[0.04, 0.07], [-0.08, -0.07], [0.04, -0.07], [-0.08, 0.07]]),
   nebelfalter: () => butterfly(0xe6ecf2, 0xc8d2dc, 0x9aa8b8, 1.05),
   sternenfalter: () => butterfly(0x2a3470, 0x4a5aa8, 0xffe066, 1.1),
+  tulpenfalter: () => butterfly(0xff5d7a, 0xffb0c0, 0xffffff, 0.95),
+  lavendelfalter: () => butterfly(0xa98bff, 0xd2c0ff, 0x5a3aa8, 1.0),
+  glockenfalter: () => butterfly(0x6f8cff, 0xb8c8ff, 0xffffff, 1.0),
+  himmelsblaeuling: () => butterfly(0x8fd0ff, 0xd8f0ff, 0xffe066, 0.9),
+  sonnenfalter: () => butterfly(0xffb020, 0xffd860, 0x6a3a1a, 1.1),
+  rosenschwaermer: () => butterfly(0xd8283c, 0xff8fa0, 0x2a1a1a, 1.15),
+  dahlienpfau: () => butterfly(0xc02a7a, 0xff9ad8, 0x2a6aff, 1.2),
+  eisfalter: () => butterfly(0xeaf6ff, 0xbfe4ff, 0x8fc8ff, 1.15),
   goliathkaefer: () => [...beetle(0xf0ecdf, 0x2a2222, [[0.0, 0.08], [0.0, -0.08], [-0.12, 0.1], [-0.12, -0.1]])],
   biene: () => [ell(0.13, 0xffc83a, 0, 0.25, 0, 1.4, 1, 1), ...[-0.07, 0.03].map(x => cyl(0.125, 0.125, 0.04, 0x2a2222, x, 0.25, 0, 12, 0, 0, PI / 2)), ball(0.08, 0x2a2222, 0.18, 0.27, 0), cone(0.02, 0.06, 0x2a2222, -0.21, 0.25, 0, 5, 0, 0, PI / 2), ...[-1, 1].map(s => ell(0.1, 0xe8f4ff, -0.02, 0.4, s * 0.08, 0.7, 0.3, 1, s * 0.4)), ...eye(0.23, 0.3, 0.05, 0.022)],
   raupe: () => [...Array.from({ length: 6 }, (_, i) => ball(0.07, i % 2 ? 0x8ad45a : 0x6ab83a, -0.3 + i * 0.11, 0.08 + Math.sin(i * 1.1) * 0.03, 0)), ball(0.09, 0x8ad45a, 0.36, 0.12, 0), ...eye(0.42, 0.15, 0.05, 0.022), ...eye(0.42, 0.15, -0.05, 0.022), cyl(0.008, 0.008, 0.08, 0x3a2e2e, 0.38, 0.22, 0.03, 4)],
@@ -162,6 +172,12 @@ const PLATE = 0xfffaf2;
 const bowl = (soup, extras = []) => [cyl(0.22, 0.14, 0.14, 0xf2e6d6, 0, 0.07, 0, 18), cyl(0.2, 0.2, 0.01, soup, 0, 0.13, 0, 18), torus(0.215, 0.02, 0xe8dccc, 0, 0.14, 0, PI / 2), ...extras];
 const plate = extras => [cyl(0.3, 0.24, 0.04, PLATE, 0, 0.02, 0, 22), ...extras];
 const DISH_MODELS = {
+  grillfisch: () => [ell(0.24, 0xe8d8c8, 0, 0.03, 0, 1.3, 0.1, 0.9), ell(0.12, 0xc88a4a, 0, 0.1, 0, 2.2, 0.6, 0.8), cone(0.08, 0.14, 0xb8783a, -0.32, 0.1, 0, 4, 0, 0, PI / 2), ...[-0.12, 0, 0.12].map(x => box(0.02, 0.015, 0.16, 0x5a3a2a, x, 0.17, 0, 0, 0.3)), ball(0.025, 0xffd23f, 0.25, 0.1, 0.06)],
+  grillmais: () => [ell(0.08, 0xffc830, 0, 0.12, 0, 3, 1, 1), ...Array.from({ length: 10 }, (_, i) => ball(0.02, 0x6a4a2a, -0.18 + i * 0.04, 0.2, (i % 2 - 0.5) * 0.06)), cyl(0.012, 0.012, 0.3, 0xd9a86c, 0.32, 0.12, 0, 6, 0, 0, PI / 2)],
+  ofenkartoffel: () => [ell(0.16, 0xc8c8d0, 0, 0.1, 0, 1.4, 0.7, 1.1), ell(0.12, 0xd8a85a, 0, 0.15, 0, 1.2, 0.6, 1), ell(0.06, 0xfff8e8, 0, 0.21, 0, 1.3, 0.5, 1), ball(0.015, 0x6cc04a, 0.03, 0.24, 0.02)],
+  grillgemuese: () => [cyl(0.008, 0.008, 0.6, 0xd9a86c, 0, 0.15, 0, 6, 0, 0, PI / 2), ...[[0xff8a2a, -0.2], [0x6cc04a, -0.08], [0xe8283c, 0.04], [0xffd23f, 0.16]].map(([c, x]) => box(0.09, 0.09, 0.09, c, x, 0.15, 0, 0, 0.3))],
+  bratapfel: () => [ell(0.17, 0xc8402e, 0, 0.17, 0, 1, 0.9, 1), cyl(0.012, 0.015, 0.08, 0x6a4a2a, 0, 0.34, 0, 5), ell(0.06, 0xfff0d0, 0, 0.3, 0, 1, 0.4, 1), ell(0.22, 0xffffff, 0, 0.02, 0, 1.1, 0.12, 1.1)],
+  stockbrot: () => [cyl(0.012, 0.012, 0.7, 0x8a5a36, 0, 0.12, 0, 6, 0, 0, PI / 2 - 0.2), ...Array.from({ length: 5 }, (_, i) => ell(0.06, i % 2 ? 0xe8b86a : 0xd8a050, 0.1 + i * 0.04, 0.16 + i * 0.008, 0, 1, 0.8, 0.8))],
   goldei: () => [[ell(0.13, 0xffd23f, 0, 0.17, 0, 1, 1.3, 1)], [ball(0.025, 0, 0.05, 0.24, 0.11), ball(0.018, 0, -0.06, 0.12, 0.11)]],
   kaese: () => [cyl(0.24, 0.24, 0.18, 0xffd85a, 0, 0.09, 0, 18, 0, 0, 0), box(0.2, 0.17, 0.2, 0xffe48a, 0.13, 0.09, 0.13, 0, PI / 4), ...[[0.08, 0.13, 0.2], [-0.12, 0.08, 0.18], [0.18, 0.06, -0.08]].map(([x, y, z]) => ball(0.035, 0xe8b830, x, y, z, 1, 1, 0.4))],
   brot: () => [ell(0.24, 0xd8944a, 0, 0.14, 0, 1.4, 0.65, 0.9), ...[-0.12, 0, 0.12].map(x => box(0.03, 0.02, 0.16, 0xf2c88a, x, 0.29, 0, 0, 0, 0.4))],
@@ -244,7 +260,7 @@ const GEAR_MODELS = {
 };
 
 // ---------- Samentüten ----------
-const SEED_COL = { lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff, tulpe: 0xff6b8a, kosmee: 0xff9ad8, stiefmuetterchen: 0x9b7be0, rose: 0xe8304a, hyazinthe: 0x7a8aff, sonnenblume: 0xffd23f, lilie: 0xfff0f6, mohn: 0xff4a2a, kornblume: 0x4a7aff, weizen: 0xf0c860, karotte: 0xff8a2a, kartoffel: 0xc8965a, tomate: 0xf0402a, kuerbis: 0xff9a2a };
+const SEED_COL = { gaensebluemchen: 0xffffff, ringelblume: 0xff9a2a, vergissmeinnicht: 0x6fa8ff, narzisse: 0xffe14a, nelke: 0xff7fa8, margerite: 0xfffbea, krokus: 0xb07bff, dahlie: 0xe0408a, schneegloeckchen: 0xf0f4ff, christrose: 0xf8e2ec, salatkopf: 0x8fd06a, erdbeere: 0xe8283c, mais: 0xffc830, brokkoli: 0x4a9e3c, traube: 0x8a4ab0, melone: 0x5aa84a, lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff, tulpe: 0xff6b8a, kosmee: 0xff9ad8, stiefmuetterchen: 0x9b7be0, rose: 0xe8304a, hyazinthe: 0x7a8aff, sonnenblume: 0xffd23f, lilie: 0xfff0f6, mohn: 0xff4a2a, kornblume: 0x4a7aff, weizen: 0xf0c860, karotte: 0xff8a2a, kartoffel: 0xc8965a, tomate: 0xf0402a, kuerbis: 0xff9a2a };
 function seedBag(k) {
   const c = SEED_COL[k] || 0x8ad45a, p = [box(0.34, 0.44, 0.06, 0xf6ecd8, 0, 0.24, 0), box(0.36, 0.06, 0.07, 0xe8d8b8, 0, 0.47, 0), box(0.3, 0.26, 0.02, 0xffffff, 0, 0.22, 0.035)];
   // kleines Bild der Pflanze vorne drauf

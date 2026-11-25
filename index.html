@@ -254,6 +254,25 @@ body.eyesclosed::after { content: '🙈'; position: fixed; inset: 0; display: gr
 #fishbar.bite { background: var(--yellow); animation: pop .2s; }
 #tourbar { position: absolute; left: 50%; top: calc(10px + var(--safe-t)); transform: translateX(-50%); font-size: 16px; font-weight: 600; z-index: 3; }
 #tourbar.hurry { background: #ffe0e0; }
+/* Fotowettbewerb, Kajüte, Spieleabend */
+.pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin: 6px 0 10px; }
+.pcard { margin: 0; background: #fff; border-radius: 14px; padding: 6px; box-shadow: 0 2px 8px #0001; text-align: center; }
+.pcard img { width: 100%; border-radius: 10px; display: block; }
+.pcard figcaption { font-size: 13px; margin-top: 4px; }
+.pcard.mine { outline: 3px solid #ff8fab; } .pcard.win { max-width: 260px; margin: 6px auto; outline: 3px solid #ffd23f; }
+.lockcode { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
+.lockcode span { width: 52px; height: 52px; border-radius: 14px; background: #fff; display: grid; place-items: center; font-size: 28px; box-shadow: inset 0 0 0 2px #e8dcc6; }
+.c4 { display: flex; gap: 4px; justify-content: center; background: #4f7dff; padding: 8px; border-radius: 16px; margin: 6px auto; width: max-content; }
+.c4col { display: flex; flex-direction: column; gap: 4px; background: none; border: 0; padding: 2px; border-radius: 10px; cursor: pointer; }
+.c4col:not([disabled]):hover { background: #ffffff33; }
+.c4col i { width: 34px; height: 34px; border-radius: 50%; background: #dfe8ff; display: block; }
+.c4col i.r { background: #ff5d6a; } .c4col i.y { background: #ffd23f; } .c4col i.last { box-shadow: 0 0 0 3px #fff; }
+.memgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 360px; margin: 8px auto; }
+.mem { aspect-ratio: 1; border: 0; border-radius: 14px; background: linear-gradient(135deg, #ffb7c8, #c9b2ff); font-size: 26px; cursor: pointer; display: grid; place-items: center; }
+.mem.up { background: #fff; box-shadow: inset 0 0 0 2px #e8dcc6; } .mem.got { opacity: 0.55; }
+.mem .ico, .mem img { width: 70%; height: auto; }
+#cstcv { width: 100%; max-width: 420px; border-radius: 14px; touch-action: none; }
+#cstname { flex: 1; min-width: 140px; padding: 8px 10px; border-radius: 12px; border: 2px solid #e8dcc6; font: inherit; }
 #kitebar { position: absolute; left: 50%; bottom: calc(108px + var(--safe-b, 0px)); transform: translateX(-50%); width: min(340px, 86vw); background: #fffdf8ee; border-radius: 18px; padding: 10px 14px; box-shadow: 0 6px 18px #0002; z-index: 3; text-align: center; zoom: var(--ui, 1); }
 #kitebar b { display: block; font-size: 16px; margin-bottom: 6px; }
 #kitebar small { display: block; margin-top: 4px; opacity: 0.7; }
@@ -619,13 +638,14 @@ body.building #hotbar, body.building #actbtn, body.building #joyhint, body.build
     <div class="dlgname" id="dlgname"></div>
     <p id="dlgtext"></p>
     <div id="dlggifts" class="hidden"></div>
-    <div class="dlgbtns"><button class="btn white" data-dlg="talk">💬 Plaudern</button><button class="btn pink" data-dlg="gift">🎁 Geschenk</button><button class="btn pink hidden" data-dlg="tale" id="dlgtale">📖 Geschichte</button><button class="btn white" data-dlg="bye">👋 Tschüss</button></div>
+    <div class="dlgbtns"><button class="btn white" data-dlg="talk">💬 Plaudern</button><button class="btn pink" data-dlg="gift">🎁 Geschenk</button><button class="btn pink hidden" data-dlg="tale" id="dlgtale">📖 Geschichte</button><button class="btn pink hidden" data-dlg="nwish" id="dlgwish">🏠 Schau mal!</button><button class="btn white" data-dlg="bye">👋 Tschüss</button></div>
   </div>
 </div>
 <div id="photobar" class="hidden">
   <button class="round" data-prot="-1">⟲</button>
   <button id="shutter">📸</button>
   <button class="round" id="riddlebtn" title="Als Foto-Rätsel schicken">🧩</button>
+  <button class="round" id="photoentry" title="Beim Fotowettbewerb einreichen">🏆</button>
   <button class="round" data-prot="1">⟳</button>
   <button class="round" id="photoexit">✖️</button>
 </div>

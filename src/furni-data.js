@@ -69,6 +69,32 @@ export const FURNITURE = {
   sternteleskop:  { name: 'Wandas Teleskop',  icon: '🔭', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'tale' },
   korallenlampe:  { name: 'Korallenlampe',    icon: '🪸', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'reef' },
   // Zeigt ein eigenes Pixel-Muster (🎨 Muster-Editor)
+  // Neue Möbel
+  spieltisch:     { name: 'Spieltisch',      icon: '🎲', buy: 2400, lvl: 2, cat: 'tische',   w: 1, d: 1, solid: true },
+  ohrensessel:    { name: 'Ohrensessel',     icon: '🛋️', buy: 1300, lvl: 2, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
+  schaukelstuhl:  { name: 'Schaukelstuhl',   icon: '🪑', buy: 1100, lvl: 2, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
+  bodenkissen:    { name: 'Bodenkissen',     icon: '🟣', buy: 300,  lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: false, sit: true },
+  haengesessel:   { name: 'Hängesessel',     icon: '🥚', buy: 1800, lvl: 3, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true },
+  nachttisch:     { name: 'Nachttisch',      icon: '🗄️', buy: 400,  lvl: 1, cat: 'tische',   w: 1, d: 1, solid: true },
+  naehmaschine:   { name: 'Nähtisch',        icon: '🧵', buy: 1200, lvl: 2, cat: 'tische',   w: 1, d: 1, solid: true },
+  standspiegel:   { name: 'Standspiegel',    icon: '🪞', buy: 900,  lvl: 2, cat: 'deko',     w: 1, d: 1, solid: true },
+  puppenhaus:     { name: 'Puppenhaus',      icon: '🏠', buy: 1500, lvl: 2, cat: 'deko',     w: 1, d: 1, solid: true },
+  schreibmaschine:{ name: 'Schreibmaschine', icon: '⌨️', buy: 900,  lvl: 2, cat: 'deko',     w: 1, d: 1, solid: true },
+  zimmerbrunnen:  { name: 'Zimmerbrunnen',   icon: '⛲', buy: 1400, lvl: 3, cat: 'deko',     w: 1, d: 1, solid: true },
+  kachelofen:     { name: 'Kachelofen',      icon: '🔥', buy: 2600, lvl: 3, cat: 'licht',    w: 1, d: 1, solid: true, glow: true },
+  bonsai:         { name: 'Bonsai',          icon: '🌳', buy: 1100, lvl: 2, cat: 'pflanzen', w: 1, d: 1, solid: true },
+  zimmerpalme:    { name: 'Zimmerpalme',     icon: '🌴', buy: 800,  lvl: 1, cat: 'pflanzen', w: 1, d: 1, solid: true },
+  orchideentopf:  { name: 'Orchideentopf',   icon: '🌸', buy: 700,  lvl: 2, cat: 'pflanzen', w: 1, d: 1, solid: true },
+  haengepflanze:  { name: 'Hängepflanze',    icon: '🌿', buy: 500,  lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true },
+  kuckucksuhr:    { name: 'Kuckucksuhr',     icon: '🕰️', buy: 1600, lvl: 3, cat: 'wand',     w: 1, d: 1, solid: false, wall: true },
+  wandteppich:    { name: 'Wandteppich',     icon: '🧶', buy: 900,  lvl: 2, cat: 'wand',     w: 1, d: 1, solid: false, wall: true },
+  sternenteppich: { name: 'Sternenteppich',  icon: '⭐', buy: 1200, lvl: 2, cat: 'teppiche', w: 2, d: 2, solid: false, rug: true },
+  // Aus dem Schiffswrack
+  buddelschiff:   { name: 'Buddelschiff',    icon: '⛵', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'wreck' },
+  schiffsglocke:  { name: 'Schiffsglocke',   icon: '🔔', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'wreck' },
+  kapitaenstruhe: { name: 'Kapitänstruhe',   icon: '🧳', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'wreck' },
+  // Dank der Nachbarn fürs Einrichten
+  traumlampe:     { name: 'Traumlampe',      icon: '🌙', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'nroom' },
   musterbild:     { name: 'Musterrahmen',    icon: '🖼️', buy: 400, lvl: 1, cat: 'wand',   w: 1, d: 1, solid: false, wall: true, pattern: true },
 };
 
