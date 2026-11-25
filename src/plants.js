@@ -5,6 +5,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, cyl, cone } from './models.js';
 import { PLACE_X } from './models-extra.js';
+import { CROPS } from './data.js';
 
 const PI = Math.PI, H = PI / 2, TAU = PI * 2;
 let seed = 1;
@@ -304,9 +305,19 @@ const CROP = {
 // ---------- Blumen (Tulpe, Kosmee, Stiefmütterchen, Rose, Hyazinthe) ----------
 const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff, lilie: 0xfff0f4, mohn: 0xff3b2f, kornblume: 0x4f7dff, lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff,
   gaensebluemchen: 0xffffff, ringelblume: 0xff9a2a, vergissmeinnicht: 0x6fa8ff, narzisse: 0xffe14a, nelke: 0xff7fa8, margerite: 0xfffbea, krokus: 0xb07bff, dahlie: 0xe0408a, schneegloeckchen: 0xffffff, christrose: 0xf8e2ec };
+for (const [k, c] of Object.entries(CROPS)) if (c.peony && c.flower !== undefined) FCOL[k] = c.flower; // Pfingstrosen in allen Farben
+// Pfingstrose: große, runde, gefüllte Blüte aus mehreren gewölbten Blütenblatt-Lagen
+function peonyHead(k, c, x, y, z) {
+  const sp = CROPS[k]?.peony, cols = sp === 'zweifarbig' ? [0xfff6f8, 0xffe0ea, 0xffa8c8, 0xff7fae] : sp === 'regenbogen' ? [0xff8a8a, 0xffd36a, 0x8fe3a0, 0x8fb8ff, 0xc8a0ff] : [shade(c, -0.08), c, shade(c, 0.04), shade(c, 0.09)];
+  const p = [bloom(0.115, cols[0], x, y, z, 10, 0.5, 0.016, -0.25, x * 9), bloom(0.095, cols[1], x, y + 0.018, z, 9, 0.75, 0.016, -0.25, x * 7 + 0.5), bloom(0.072, cols[2], x, y + 0.034, z, 8, 0.95, 0.014, -0.25, x * 5 + 1)];
+  if (cols[4]) p.push(bloom(0.05, cols[3], x, y + 0.046, z, 7, 1.0, 0.012, -0.25, x * 3), B(0.034, cols[4], x, y + 0.056, z, 1, 0.7, 1, 8, 6));
+  else p.push(B(0.046, cols[3], x, y + 0.05, z, 1, 0.72, 1, 8, 6));
+  return p;
+}
 // Neue Blumen mit eigener Blütenform (sonst: einfache Blüte)
 function newBloom(k, c, x, y, z) {
   const Y = 0xffd23f;
+  if (k.startsWith('pfingstrose')) return peonyHead(k, c, x, y, z);
   if (k === 'gaensebluemchen') return [bloom(0.05, c, x, y - 0.08, z, 12, 0.1, 0.01, -0.3, x * 9), B(0.018, Y, x, y - 0.075, z, 1, 0.6, 1, 6, 4)];
   if (k === 'margerite') return [bloom(0.085, c, x, y, z, 14, 0.12, 0.012, -0.35, x * 9), B(0.026, Y, x, y + 0.01, z, 1, 0.6, 1, 7, 5)];
   if (k === 'ringelblume') return [bloom(0.075, c, x, y, z, 12, 0.2, 0.014, -0.35, x * 9), bloom(0.05, shade(c, 0.08), x, y + 0.012, z, 10, 0.3, 0.012, -0.35, x * 7), B(0.022, 0xc8641a, x, y + 0.02, z, 1, 0.6, 1, 6, 4)];

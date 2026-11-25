@@ -48,6 +48,15 @@ export const CROPS = {
   traube:      { name: 'Weintrauben',    icon: '🍇', seed: 90,  sell: 160, grow: 260, lvl: 5, cat: 'veg',   xp: 5, regrow: 120, sea: ['autumn'] },
   melone:      { name: 'Melone',         icon: '🍉', seed: 150, sell: 420, grow: 320, lvl: 6, cat: 'veg',   xp: 10, sea: ['summer'] },
 };
+// Pfingstrosen in vielen Farben: fünf gibt es in der Gärtnerei Knolle, die anderen nur durch Kreuzen (siehe HYBRIDS)
+const PEONY = ['spring', 'summer', 'autumn'];
+for (const [k, name, icon, flower, seed, sell, lvl] of [
+  ['weiss', 'Weiße Pfingstrose', '🤍', 0xfffaf6, 120, 240, 1], ['hellrosa', 'Zartrosa Pfingstrose', '🩷', 0xffd0e0, 120, 240, 1],
+  ['rot', 'Rote Pfingstrose', '❤️', 0xe8283c, 140, 260, 2], ['gelb', 'Gelbe Pfingstrose', '💛', 0xffe066, 140, 260, 2], ['creme', 'Cremefarbene Pfingstrose', '🌼', 0xfff0c8, 160, 280, 3],
+  ['zweifarbig', 'Zweifarbige Pfingstrose', '🌸', 0xffb8d0, 0, 520, 1], ['koralle', 'Korallen-Pfingstrose', '🧡', 0xff8a5c, 0, 520, 1], ['pfirsich', 'Pfirsich-Pfingstrose', '🍑', 0xffb894, 0, 520, 1],
+  ['magenta', 'Magenta-Pfingstrose', '💗', 0xe0408a, 0, 520, 1], ['weinrot', 'Weinrote Pfingstrose', '🍷', 0x9a1838, 0, 640, 1], ['lila', 'Lila Pfingstrose', '💜', 0xb07bd8, 0, 640, 1],
+  ['blau', 'Blaue Pfingstrose', '💙', 0x7f9cff, 0, 900, 1], ['regenbogen', 'Regenbogen-Pfingstrose', '🌈', 0xffd0f0, 0, 1800, 1],
+]) CROPS['pfingstrose_' + k] = { name, icon, seed, sell, grow: 180, lvl, cat: 'fruit', xp: seed ? 3 : 6, flower, regrow: 140, sea: PEONY, peony: k, ...(seed ? { garden: 1 } : { rare: 1 }) };
 for (const c of Object.values(CROPS)) c.sea ||= ALL;
 export const isFlower = k => !!CROPS[k] && CROPS[k].cat === 'fruit';
 
@@ -314,6 +323,7 @@ export const ITEMS = {
 for (const [k, c] of Object.entries(CROPS)) {
   ITEMS[k] = { name: c.name, icon: c.icon, sell: c.sell, cat: c.cat, xp: c.xp };
   ITEMS['s_' + k] = { name: c.name + (isFlower(k) ? '-Samen' : '-Saat'), icon: c.icon, buy: c.seed, lvl: c.lvl, seed: k };
+  if (c.peony) ITEMS['s_' + k].name = c.name.replace('Pfingstrose', 'Pfingstrosen') + '-Samen'; // „Weiße Pfingstrosen-Samen“
 }
 
 // Fische: [id, Name, Symbol, Preis, Gewicht je Angel-Stufe 1..3, Jahreszeiten|null, Ort: 'river' | 'sea' | 'pond', Schattengröße 1..6 (6 = Flosse)]
@@ -624,7 +634,12 @@ export const FEST_DECO = {
   lichter: [['lichterbaum', -2, 3], ['snowman', 2, 3]],
 };
 // Blumen-Kreuzungen: zwei verschiedene, gegossene Blumen nebeneinander -> manchmal keimt über Nacht eine seltene Blume daneben
-export const HYBRIDS = { 'rose+tulpe': 'mohn', 'kosmee+tulpe': 'lilie', 'hyazinthe+stiefmuetterchen': 'kornblume', 'kosmee+rose': 'mohn', 'hyazinthe+rose': 'kornblume', 'stiefmuetterchen+tulpe': 'lilie', 'kosmee+sonnenblume': 'lilie', 'hyazinthe+kosmee': 'kornblume' };
+export const HYBRIDS = {
+  // Pfingstrosen kreuzen (über Nacht, nebeneinander, gegossen)
+  ...Object.fromEntries([['pfingstrose_hellrosa', 'pfingstrose_weiss', 'zweifarbig'], ['pfingstrose', 'pfingstrose_weiss', 'zweifarbig'], ['pfingstrose_gelb', 'pfingstrose_rot', 'koralle'], ['pfingstrose_gelb', 'pfingstrose_hellrosa', 'pfirsich'], ['pfingstrose_creme', 'pfingstrose_koralle', 'pfirsich'],
+    ['pfingstrose_hellrosa', 'pfingstrose_rot', 'magenta'], ['pfingstrose', 'pfingstrose_rot', 'magenta'], ['pfingstrose_magenta', 'pfingstrose_rot', 'weinrot'], ['krokus', 'pfingstrose_hellrosa', 'lila'], ['krokus', 'pfingstrose', 'lila'],
+    ['kornblume', 'pfingstrose_weiss', 'blau'], ['pfingstrose_blau', 'pfingstrose_gelb', 'regenbogen']].map(([a, b, h]) => [[a, b].sort().join('+'), 'pfingstrose_' + h])),
+  'rose+tulpe': 'mohn', 'kosmee+tulpe': 'lilie', 'hyazinthe+stiefmuetterchen': 'kornblume', 'kosmee+rose': 'mohn', 'hyazinthe+rose': 'kornblume', 'stiefmuetterchen+tulpe': 'lilie', 'kosmee+sonnenblume': 'lilie', 'hyazinthe+kosmee': 'kornblume' };
 export const BIRTHDAYS = { mira: ['spring', 2], bruno: ['summer', 1], pippa: ['summer', 5], lio: ['autumn', 4], kalle: ['winter', 2], wanda: ['autumn', 7] };
 
 for (const [id, name, icon, sell] of BUGS) ITEMS[id] = { name, icon, sell, cat: 'bug', xp: Math.ceil(sell / 150) };

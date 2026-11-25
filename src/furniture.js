@@ -536,6 +536,14 @@ function wallParts(p, gl, w, d, [, , base, pat, acc]) {
         }
         if (k === 0) { disc(0, -L / 2 + 0.8, 1.95, 0.2, 0, 0.02, gl); disc(0, -L / 2 + 0.89, 2.0, 0.18, base, 0.03); }
         break;
+      case 'peonies': // Pfingstrosen-Tapete: große rosa Blüten mit Blättern auf zartem Rosa
+        for (let j = 0, v = V0 + 0.42; v < ROOM_H - 0.15; j++, v += 0.62)
+          for (let u = -L / 2 + 0.35 + (j % 2) * 0.4; u < L / 2 - 0.2; u += 0.8) {
+            for (const [r, n, c] of [[0.13, 8, shade(acc, -0.06)], [0.085, 6, acc], [0.045, 5, shade(acc, 0.08)]]) for (let q = 0; q < n; q++) disc(k, u + Math.cos(q / n * 6.283 + r * 9) * r, v + Math.sin(q / n * 6.283 + r * 9) * r, r * 0.62, c, 0.02 + (0.14 - r) * 0.12);
+            disc(k, u, v, 0.035, 0xffe6a0, 0.04);
+            disc(k, u - 0.16, v - 0.12, 0.05, 0x8fcf7a, 0.015); disc(k, u + 0.15, v - 0.13, 0.045, 0x7cc06a, 0.015);
+          }
+        break;
       case 'wainscot':
         put(k, 0, 0.52, L, 0.76, acc, 0.025);
         put(k, 0, 0.92, L, 0.06, acc, 0.06);

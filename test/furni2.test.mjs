@@ -14,7 +14,8 @@ import { homeScore } from '../src/newleaf.js';
 test('120 neue Möbel, zwölf Serien, nichts Altes überschrieben', () => {
   const ids = Object.keys(FURN2);
   assert.ok(ids.length >= 100, `${ids.length} Möbel`);
-  assert.equal(Object.keys(FURN_SETS).length, 12);
+  assert.equal(Object.keys(FURN_SETS).length, 13);
+  assert.ok(ids.filter(id => FURN2[id].set === 'pfingstrose').length >= 12, 'Pfingstrosen-Serie');
   for (const [k, n] of Object.entries(FURN_SETS)) assert.ok(ids.filter(id => FURN2[id].set === k).length >= SET_MIN, `${n[1]} hat genug Stücke`);
   const snap = JSON.parse(readFileSync(new URL('./fixtures/catalog-snapshot.json', import.meta.url), 'utf8'));
   const old = snap.F;
@@ -67,4 +68,31 @@ test('Alter Spielstand bleibt heil', () => {
   const o = JSON.parse(readFileSync(new URL('./fixtures/old-save.json', import.meta.url), 'utf8')), s = migrate(JSON.parse(JSON.stringify(o)));
   assert.deepEqual(s.home.items, o.home?.items ?? s.home.items);
   for (const [id, n] of Object.entries(o.inv || {})) assert.equal(s.inv[id], n);
+});
+
+test('Pfingstrosen in allen Farben: Gärtnerei, Kreuzungen, Modelle, Tapete & Boden', async () => {
+  const { CROPS, HYBRIDS } = await import('../src/data.js');
+  const { WALLS, FLOORS } = await import('../src/furni-data.js');
+  const { flowerColor } = await import('../src/features/florist.js');
+  const peonies = Object.keys(CROPS).filter(k => k.startsWith('pfingstrose'));
+  assert.ok(peonies.length >= 13, `${peonies.length} Pfingstrosen`);
+  const cols = new Set(peonies.map(flowerColor));
+  for (const c of ['weiss', 'rosa', 'rot', 'gelb', 'orange', 'lila', 'blau']) assert.ok(cols.has(c), `Farbe ${c}`);
+  // jede Sorte ist erreichbar: Gärtnerei, Blütenwiese oder Kreuzung aus erreichbaren Eltern
+  const ok = new Set(peonies.filter(k => CROPS[k].garden || CROPS[k].wild).concat(Object.keys(CROPS).filter(k => CROPS[k].seed > 0)));
+  for (let r = 0; r < 6; r++) for (const [pair, h] of Object.entries(HYBRIDS)) if (pair.split('+').every(p => ok.has(p))) ok.add(h);
+  for (const k of peonies) assert.ok(ok.has(k), `${k} erreichbar`);
+  for (const [pair] of Object.entries(HYBRIDS)) assert.equal(pair, pair.split('+').sort().join('+'), 'Kreuzungen sortiert');
+  // Pflanze & Samentüte
+  const { crop } = await import('../src/plants.js');
+  for (const k of peonies) for (const st of [1, 2, 3]) assert.ok(crop(k, st), `${k} Stufe ${st}`);
+  // Laden: seltene nicht im Krämerladen
+  const s = migrate(newFarm('T')); s._who = 'host'; s.money = 9999; s.level = 5;
+  assert.ok(act(s, { t: 'buy', id: 's_pfingstrose_weiss', n: 1 }).ok);
+  assert.ok(!act(s, { t: 'buy', id: 's_pfingstrose_blau', n: 1 }).ok, 'blaue nur durch Kreuzen');
+  // Wohnung
+  assert.ok(WALLS.some(w => w[0] === 'pfingstrosen' && w[3] === 'peonies'));
+  assert.ok(FLOORS.some(f => f[0] === 'rosadielen') && FLOORS.some(f => f[0] === 'rosenparkett'));
+  s.money = 9999;
+  assert.ok(act(s, { t: 'hstyle', kind: 'wall', id: 'pfingstrosen' }).ok && s.home.wall === 'pfingstrosen');
 });

@@ -4,6 +4,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { ball, cyl, cone, box, model } from './models.js';
 import { model as asset } from './assets.js';
+import { CROPS } from './data.js';
 
 const PI = Math.PI;
 const EYE = 0x2b2222, WHITE = 0xffffff;
@@ -269,7 +270,7 @@ const GEAR_MODELS = {
 // ---------- Samentüten ----------
 const SEED_COL = { gaensebluemchen: 0xffffff, ringelblume: 0xff9a2a, vergissmeinnicht: 0x6fa8ff, narzisse: 0xffe14a, nelke: 0xff7fa8, margerite: 0xfffbea, krokus: 0xb07bff, dahlie: 0xe0408a, schneegloeckchen: 0xf0f4ff, christrose: 0xf8e2ec, salatkopf: 0x8fd06a, erdbeere: 0xe8283c, mais: 0xffc830, brokkoli: 0x4a9e3c, traube: 0x8a4ab0, melone: 0x5aa84a, lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff, tulpe: 0xff6b8a, kosmee: 0xff9ad8, stiefmuetterchen: 0x9b7be0, rose: 0xe8304a, hyazinthe: 0x7a8aff, sonnenblume: 0xffd23f, lilie: 0xfff0f6, mohn: 0xff4a2a, kornblume: 0x4a7aff, weizen: 0xf0c860, karotte: 0xff8a2a, kartoffel: 0xc8965a, tomate: 0xf0402a, kuerbis: 0xff9a2a };
 function seedBag(k) {
-  const c = SEED_COL[k] || 0x8ad45a, p = [box(0.34, 0.44, 0.06, 0xf6ecd8, 0, 0.24, 0), box(0.36, 0.06, 0.07, 0xe8d8b8, 0, 0.47, 0), box(0.3, 0.26, 0.02, 0xffffff, 0, 0.22, 0.035)];
+  const c = SEED_COL[k] || (CROPS[k]?.peony ? CROPS[k].flower : 0) || 0x8ad45a, p = [box(0.34, 0.44, 0.06, 0xf6ecd8, 0, 0.24, 0), box(0.36, 0.06, 0.07, 0xe8d8b8, 0, 0.47, 0), box(0.3, 0.26, 0.02, 0xffffff, 0, 0.22, 0.035)];
   // kleines Bild der Pflanze vorne drauf
   p.push(cyl(0.008, 0.008, 0.12, 0x6ab83a, 0, 0.16, 0.05, 4), ell(0.03, 0x6ab83a, 0.04, 0.16, 0.05, 1.3, 0.6, 0.3, 0, 0, -0.5));
   for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2; p.push(ball(0.035, c, Math.cos(a) * 0.04, 0.26 + Math.sin(a) * 0.04, 0.055, 1, 1, 0.35)); }

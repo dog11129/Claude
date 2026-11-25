@@ -37,7 +37,11 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🛋️ Neu: 120 Möbel in zwölf Serien
+### 🩷 Neu: Pfingstrosen
+- **Pfingstrosen in 14 Farben:** Weiß, Zartrosa, Rot, Gelb und Creme gibt es als Samen in der Gärtnerei Knolle, Rosa wächst auf der Blütenwiese. Zweifarbig, Koralle, Pfirsich, Magenta, Weinrot, Lila, Blau und Regenbogen entstehen nur, wenn man passende Sorten nebeneinander pflanzt und gießt (z. B. Gelb + Rot = Koralle, Weiß + Kornblume = Blau, Blau + Gelb = Regenbogen).
+- **Pfingstrosen-Serie** im Krämerladen, ganz in Rosa: Sofa, Sessel, Pouf, Bett, Kommode, Kleiderschrank, Tisch, Frisiertisch, Stehlampe, Wandleuchte, Teppich, Vase, Spiegel, Gemälde und ein Blumenbogen – dazu die Tapete „Pfingstrosen“ und die Böden „Rosa Dielen“ und „Pfingstrosen-Parkett“.
+
+### 🛋️ 120 Möbel in zwölf Serien
 - Landhaus, Strandhaus, Pilzwald, Retro-Diner, Sternenreise, Kinderzimmer, Musikzimmer, Atelier & Büro, Badezimmer, Winterhütte, Café & Bäckerei und Gartenzimmer – je zehn Stücke, vom Spülstein bis zum Flügel, vom Mondbett bis zur Diner-Musikbox.
 - Im Krämerladen ➜ Möbel lassen sich die Möbel nach Art (jetzt auch 🛁 Bad) oder nach Serie filtern.
 - **Serien-Bonus:** Vier verschiedene Stücke einer Serie im Haus bringen beim Wohnwert-Verein 1.500 Extrapunkte – für jede Serie.

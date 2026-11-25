@@ -279,5 +279,55 @@ export const FURN_2 = {
   lavendeltopf: () => [...pot(0, 0, 0.15, 0.22, 0xe8dcc6), ...[0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(i => { const a = i / 9 * TAU, r = (i % 3) * 0.04 + 0.03, x = Math.cos(a) * r, z = Math.sin(a) * r, h = 0.3 + (i % 4) * 0.05; return [C(0.006, 0.006, h, 0x8fbf6a, x, 0.24 + h / 2, z, 4, Math.sin(a) * 0.15, 0, -Math.cos(a) * 0.15), B(0.025, 0xa890d8, x * 1.3, 0.25 + h, z * 1.3, 1, 2.2, 1)]; }),
     X(0.32, 0.03, 0.02, 0xa890d8, 0, 0.12, 0.155)],
 };
+// ---------- 🩷 Pfingstrosen (alles in Rosa) ----------
+const P1 = 0xff9ac4, PL = 0xffd0e0, PD = 0xf07aa8, PW = 0xfff4f6, GOLD = 0xe8c070;
+const tint = (c, l) => new THREE.Color(c).offsetHSL(0, 0, l);
+// Pfingstrosen-Blüte aus drei Blütenblatt-Ringen und einer Mitte; front = schaut nach +z (Wand, Kopfteil), sonst liegt sie oben auf
+function peony(R, c, x, y, z, front = false) {
+  const out = [];
+  for (const [r, n, l] of [[0.62, 9, -0.06], [0.4, 7, 0], [0.2, 5, 0.06]]) for (let i = 0; i < n; i++) {
+    const a = i / n * TAU + r * 4, px = Math.cos(a) * r * R, py = Math.sin(a) * r * R, h = (0.7 - r) * 0.35 * R, col = tint(c, l);
+    out.push(front ? B(0.34 * R, col, x + px, y + py, z + h, 1, 1, 0.38) : B(0.34 * R, col, x + px, y + h, z + py, 1, 0.38, 1));
+  }
+  out.push(front ? B(0.2 * R, tint(c, 0.1), x, y, z + 0.28 * R, 1, 1, 0.6) : B(0.2 * R, tint(c, 0.1), x, y + 0.28 * R, z, 1, 0.6, 1));
+  return out;
+}
+const leafPair = (x, y, z, s = 1, front = false) => [-1, 1].map(k => (front ? B(0.09 * s, LEAF, x + k * 0.12 * s, y - 0.04 * s, z, 1.6, 0.7, 0.3) : B(0.09 * s, LEAF, x + k * 0.12 * s, y, z, 1.6, 0.3, 0.8)));
+const petalFlat = (len, wid, c, x, y, z, ang) => put(new THREE.SphereGeometry(1, 12, 6).scale(len, 0.008, wid), c, x, y, z, 0, -ang);
+Object.assign(FURN_2, {
+  pfingstrosensofa: () => [S(1.9, 0.32, 0.8, 0xffc0d4, 0, 0.24, 0.02, 0.35), ...[-0.44, 0.44].map(x => S(0.84, 0.14, 0.6, PL, x, 0.46, 0.08, 0.4)), ...[-0.66, -0.22, 0.22, 0.66].map((x, i) => B(0.34, i % 2 ? P1 : PD, x, 0.8, -0.27, 1, 1.05, 0.34)),
+    ...[-0.86, 0.86].map(x => C(0.15, 0.15, 0.78, P1, x, 0.5, 0.03, 16, H)), ...[[-0.8, 0.3], [0.8, 0.3], [-0.8, -0.3], [0.8, -0.3]].map(([x, z]) => B(0.05, GOLD, x, 0.06, z)), ...peony(0.2, PW, -0.42, 0.72, -0.1, true), ...peony(0.16, PD, 0.5, 0.7, -0.08, true)],
+  pfingstrosensessel: () => [C(0.2, 0.26, 0.12, GOLD, 0, 0.06, 0, 16), S(0.72, 0.26, 0.66, PL, 0, 0.28, 0.02, 0.4), S(0.58, 0.12, 0.52, PW, 0, 0.44, 0.06, 0.45),
+    ...[0, 1, 2, 3, 4, 5, 6].map(i => { const a = PI * (0.08 + i / 6 * 0.84); return B(0.2, i % 2 ? P1 : PD, Math.cos(a) * 0.32, 0.62 + Math.sin(a) * 0.12, -Math.sin(a) * 0.22, 0.9, 1.3, 0.45); }), ...peony(0.12, P1, 0.12, 0.52, 0.12)],
+  pfingstrosenpouf: () => [C(0.3, 0.32, 0.26, PD, 0, 0.13, 0, 18), ...peony(0.4, P1, 0, 0.24, 0)],
+  pfingstrosenbett: () => [S(1.9, 0.26, 1.96, 0xf2c0d0, 0, 0.2, 0, 0.2), S(1.8, 0.2, 1.84, PW, 0, 0.4, 0.03, 0.3), S(1.86, 0.12, 1.3, P1, 0, 0.5, 0.32, 0.3), S(1.88, 0.09, 0.22, PL, 0, 0.56, -0.3, 0.4),
+    ...[-0.44, 0.44].map(x => S(0.74, 0.17, 0.4, WHITE, x, 0.58, -0.66, 0.45)), S(1.98, 0.9, 0.14, PL, 0, 0.6, -0.93, 0.25), ...peony(0.42, P1, 0, 0.98, -0.86, true), ...peony(0.22, PD, -0.62, 0.82, -0.86, true), ...peony(0.22, PD, 0.62, 0.82, -0.86, true),
+    ...[[-0.5, 0.2], [0.45, 0.55], [-0.1, 0.75]].flatMap(([x, z]) => peony(0.1, PW, x, 0.56, z)), ...[[-0.9, 0.9], [0.9, 0.9], [-0.9, -0.9], [0.9, -0.9]].map(([x, z]) => C(0.05, 0.04, 0.1, GOLD, x, 0.05, z, 10))],
+  pfingstrosenkommode: () => [S(0.9, 0.76, 0.52, PL, 0, 0.46, -0.2, 0.2), S(0.94, 0.05, 0.56, P1, 0, 0.85, -0.2, 0.3), ...[0.66, 0.45, 0.24].flatMap(y => [S(0.8, 0.18, 0.04, P1, 0, y, 0.07, 0.3), B(0.028, GOLD, -0.2, y, 0.1), B(0.028, GOLD, 0.2, y, 0.1)]),
+    ...peony(0.07, PW, 0, 0.66, 0.1, true), ...[[-0.38, 0.0], [0.38, 0.0], [-0.38, -0.38], [0.38, -0.38]].map(([x, z]) => C(0.03, 0.025, 0.1, GOLD, x, 0.05, z, 8)), C(0.07, 0.05, 0.16, PW, 0.25, 0.95, -0.25, 12),
+    ...peony(0.1, P1, 0.22, 1.08, -0.25), ...peony(0.08, PD, 0.32, 1.04, -0.2), ...leafPair(0.27, 1.02, -0.2, 0.8)],
+  pfingstrosenschrank: () => [S(0.92, 1.8, 0.58, PL, 0, 0.95, -0.2, 0.15), S(0.98, 0.08, 0.64, P1, 0, 1.87, -0.2, 0.3), ...[-0.215, 0.215].flatMap(x => [S(0.41, 1.55, 0.04, P1, x, 0.98, 0.09, 0.2), ...peony(0.11, PW, x, 1.55, 0.11, true), ...leafPair(x, 1.5, 0.11, 0.7, true)]),
+    C(0.015, 0.015, 0.2, GOLD, -0.04, 1.0, 0.13, 8), C(0.015, 0.015, 0.2, GOLD, 0.04, 1.0, 0.13, 8), ...[[-0.38, 0.02], [0.38, 0.02], [-0.38, -0.42], [0.38, -0.42]].map(([x, z]) => C(0.035, 0.03, 0.08, GOLD, x, 0.04, z, 8))],
+  pfingstrosentisch: () => [C(0.42, 0.42, 0.05, PW, 0, 0.73, 0, 24), ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => B(0.07, i % 2 ? P1 : PL, Math.cos(i / 12 * TAU) * 0.4, 0.73, Math.sin(i / 12 * TAU) * 0.4, 1, 0.4, 1)),
+    C(0.05, 0.06, 0.68, GOLD, 0, 0.36, 0, 10), C(0.22, 0.26, 0.04, GOLD, 0, 0.02, 0, 16), C(0.06, 0.05, 0.14, PL, 0, 0.83, 0, 12), ...peony(0.1, P1, 0, 0.96, 0), ...peony(0.07, PD, 0.1, 0.92, 0.06), ...leafPair(0, 0.9, 0.05, 0.7)],
+  pfingstrosenschminktisch: () => [S(0.9, 0.06, 0.5, PW, 0, 0.74, -0.2, 0.2), ...[-0.3, 0.3].map(x => S(0.26, 0.68, 0.46, PL, x, 0.37, -0.2, 0.2)), ...[0.55, 0.3].flatMap(y => [-0.3, 0.3].map(x => B(0.025, GOLD, x, y, 0.04))),
+    put(new THREE.CylinderGeometry(0.28, 0.28, 0.04, 24).scale(1, 1, 1), P1, 0, 1.18, -0.4, H), put(new THREE.CylinderGeometry(0.24, 0.24, 0.045, 24), 0xd8eef8, 0, 1.18, -0.39, H),
+    ...peony(0.12, PD, -0.24, 1.42, -0.36, true), ...peony(0.09, PL, 0.26, 1.38, -0.36, true), C(0.03, 0.03, 0.08, PD, 0.25, 0.81, -0.1, 10), C(0.04, 0.035, 0.06, GOLD, -0.2, 0.8, -0.08, 10)],
+  pfingstrosenlampe: () => [[C(0.17, 0.2, 0.05, GOLD, 0, 0.025, 0, 16), C(0.025, 0.025, 1.3, GOLD, 0, 0.7, 0, 8), ...leafPair(0, 0.8, 0.0, 1.2),
+    ...[0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i / 8 * TAU; return B(0.17, i % 2 ? P1 : PD, Math.cos(a) * 0.2, 1.5, Math.sin(a) * 0.2, 0.7, 1.1, 0.7); }), ...[0, 1, 2, 3, 4].map(i => { const a = i / 5 * TAU + 0.3; return B(0.12, PL, Math.cos(a) * 0.1, 1.66, Math.sin(a) * 0.1, 0.8, 0.8, 0.8); })],
+    [B(0.12, 0, 0, 1.42, 0)]],
+  pfingstrosenleuchte: () => [[C(0.16, 0.16, 0.03, GOLD, 0, 1.55, -0.46, 18, H), ...peony(0.22, P1, 0, 1.55, -0.43, true).slice(0, 16)], [B(0.06, 0, 0, 1.55, -0.33, 1, 1, 0.6)]],
+  pfingstrosenteppich: () => [put(new THREE.CylinderGeometry(0.96, 0.96, 0.012, 32), PW, 0, 0.006, 0), ...[[0.8, 12, PD], [0.58, 10, P1], [0.36, 8, PL]].flatMap(([r, n, c], l) => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].slice(0, n).map(i => { const a = i / n * TAU + l * 0.3; return petalFlat(0.24 + r * 0.1, 0.17, c, Math.cos(a) * r * 0.62, 0.014 + l * 0.004, Math.sin(a) * r * 0.62, a); })),
+    put(new THREE.CylinderGeometry(0.14, 0.14, 0.012, 16), 0xffe0a0, 0, 0.03, 0), ...[0, 1, 2, 3].map(i => petalFlat(0.22, 0.08, LEAF, Math.cos(i * H + PI / 4) * 0.74, 0.012, Math.sin(i * H + PI / 4) * 0.74, i * H + PI / 4))],
+  pfingstrosenvase: () => [C(0.11, 0.14, 0.34, PL, 0, 0.17, 0, 16), C(0.09, 0.11, 0.06, PL, 0, 0.37, 0, 16), T(0.1, 0.015, GOLD, 0, 0.4, 0, H, 0), ...[[0, 0.82, 0.02], [-0.14, 0.72, 0.05], [0.13, 0.7, -0.04]].flatMap(([x, y, z], i) => [C(0.01, 0.01, y - 0.36, DLEAF, x * 0.5, (y + 0.36) / 2, z * 0.5, 5, 0, 0, -x * 1.2), ...peony(0.13, [P1, PD, PW][i], x, y, z)]),
+    ...leafPair(0, 0.55, 0.05, 1.1), ...leafPair(0.02, 0.62, -0.06, 0.9)],
+  pfingstrosenspiegel: () => [put(new THREE.TorusGeometry(0.3, 0.05, 10, 28).scale(1, 1.25, 1), P1, 0, 1.45, -0.45), put(new THREE.CylinderGeometry(0.29, 0.29, 0.02, 24).scale(1, 1, 1.25), 0xd8eef8, 0, 1.45, -0.46, H),
+    ...peony(0.13, PD, -0.24, 1.82, -0.42, true), ...peony(0.1, PL, 0.2, 1.86, -0.42, true), ...peony(0.09, P1, 0.3, 1.1, -0.42, true), ...leafPair(-0.05, 1.86, -0.42, 0.8, true)],
+  pfingstrosenbild: () => [X(0.74, 0.58, 0.04, GOLD, 0, 1.45, -0.465), X(0.62, 0.46, 0.02, 0xfff3e8, 0, 1.45, -0.44), ...peony(0.11, P1, -0.14, 1.48, -0.425, true), ...peony(0.09, PD, 0.12, 1.4, -0.425, true), ...peony(0.07, PL, 0.06, 1.58, -0.425, true),
+    ...leafPair(-0.02, 1.32, -0.425, 0.8, true), X(0.012, 0.18, 0.004, DLEAF, -0.1, 1.3, -0.428, 0, 0, 0.3)],
+  pfingstrosenbogen: () => [...[-0.85, 0.85].flatMap(x => [C(0.05, 0.06, 1.2, PW, x, 0.6, 0, 10), C(0.12, 0.14, 0.08, PW, x, 0.04, 0, 12)]), put(new THREE.TorusGeometry(0.85, 0.05, 8, 24, PI), PW, 0, 1.2, 0),
+    ...[0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap(i => { const a = i / 8 * PI, x = Math.cos(a) * 0.85, y = 1.2 + Math.sin(a) * 0.85; return [...peony(0.12, [P1, PD, PL][i % 3], x, y, 0.06, true), B(0.07, LEAF, x * 0.95, y - 0.08, -0.04, 1.4, 0.7, 0.6)]; }),
+    ...[0.3, 0.7].flatMap(y => [-0.85, 0.85].flatMap(x => peony(0.08, P1, x, y, 0.06, true)))],
+});
 // Kleine Aufräumhilfe: null-Einträge (Platzhalter aus Bedingungen) entfernen
 for (const [k, fn] of Object.entries(FURN_2)) FURN_2[k] = () => { const r = fn(); return Array.isArray(r[0]) ? [r[0].filter(Boolean), r[1].filter(Boolean)] : r.filter(Boolean); };

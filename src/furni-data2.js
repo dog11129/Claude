@@ -2,6 +2,7 @@
 // Wer vier verschiedene Stücke einer Serie im Haus hat, bekommt beim Wohnwert-Verein einen Serien-Bonus.
 // Neue Schlüssel nur anhängen – nichts Bestehendes überschreiben (siehe test/furni2.test.mjs).
 export const FURN_SETS = {
+  pfingstrose: ['🩷', 'Pfingstrosen'],
   landhaus: ['🏡', 'Landhaus'], strand: ['🏖️', 'Strandhaus'], pilz: ['🍄', 'Pilzwald'], retro: ['🎵', 'Retro-Diner'],
   sterne: ['🚀', 'Sternenreise'], kinder: ['🧸', 'Kinderzimmer'], musik: ['🎻', 'Musikzimmer'], atelier: ['🎨', 'Atelier & Büro'],
   bad: ['🛁', 'Badezimmer'], winter: ['❄️', 'Winterhütte'], cafe: ['☕', 'Café & Bäckerei'], garten: ['🌻', 'Gartenzimmer'],
@@ -82,12 +83,24 @@ const L = [
   ['zinkkanne', 'Zinkgießkanne', '🫗', 300, 1, 'deko'], ['gartenbank', 'Gartenbank', '🪑', 1100, 1, 'sitzen', 2, 1, { sit: true }],
   ['rosenspalier', 'Rosenspalier', '🌹', 650, 2, 'pflanzen'], ['lavendeltopf', 'Lavendeltopf', '💜', 380, 1, 'pflanzen'],
 ];
-const SET_ORDER = Object.keys(FURN_SETS);
+const SET_ORDER = ['landhaus', 'strand', 'pilz', 'retro', 'sterne', 'kinder', 'musik', 'atelier', 'bad', 'winter', 'cafe', 'garten']; // je zehn Stücke in L, in dieser Reihenfolge
 export const FURN2 = {};
 L.forEach(([id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}], i) => {
   const set = SET_ORDER[Math.floor(i / 10)];
   FURN2[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, set, ...x };
 });
+// 🩷 Pfingstrosen-Serie: alles in Rosa mit Pfingstrosen-Blüten (eigene Liste, Serie steht dabei)
+const PEONY_SET = [
+  ['pfingstrosensofa', 'Pfingstrosen-Sofa', '🛋️', 2400, 2, 'sitzen', 2, 1, { sit: true }], ['pfingstrosensessel', 'Pfingstrosen-Sessel', '🩷', 1400, 2, 'sitzen', 1, 1, { sit: true }],
+  ['pfingstrosenpouf', 'Pfingstrosen-Pouf', '🌸', 500, 1, 'sitzen', 1, 1, { sit: true }], ['pfingstrosenbett', 'Pfingstrosen-Bett', '🛏️', 3600, 3, 'betten', 2, 2, { bed: true }],
+  ['pfingstrosenkommode', 'Pfingstrosen-Kommode', '🗄️', 1500, 2, 'betten'], ['pfingstrosenschrank', 'Pfingstrosen-Kleiderschrank', '🚪', 2200, 3, 'betten'],
+  ['pfingstrosentisch', 'Pfingstrosen-Tisch', '🍽️', 1100, 2, 'tische'], ['pfingstrosenschminktisch', 'Pfingstrosen-Frisiertisch', '💄', 2600, 3, 'tische'],
+  ['pfingstrosenlampe', 'Pfingstrosen-Stehlampe', '💡', 1200, 2, 'licht', 1, 1, { glow: true }], ['pfingstrosenleuchte', 'Pfingstrosen-Wandleuchte', '🌸', 800, 1, 'licht', 1, 1, { wall: true, glow: true }],
+  ['pfingstrosenteppich', 'Pfingstrosen-Teppich', '🩷', 900, 1, 'teppiche', 2, 2, { rug: true }], ['pfingstrosenvase', 'Pfingstrosen-Vase', '🏺', 600, 1, 'pflanzen'],
+  ['pfingstrosenspiegel', 'Pfingstrosen-Spiegel', '🪞', 1100, 2, 'wand', 1, 1, { wall: true }], ['pfingstrosenbild', 'Pfingstrosen-Gemälde', '🖼️', 700, 1, 'wand', 1, 1, { wall: true }],
+  ['pfingstrosenbogen', 'Pfingstrosen-Blumenbogen', '🌸', 2000, 2, 'deko', 2, 1, { solid: false }],
+];
+for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of PEONY_SET) FURN2[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, set: 'pfingstrose', ...x };
 // Serien-Bonus: wie viele Serien sind mit mindestens vier verschiedenen Stücken vertreten?
 export function setsIn(keys, FURN) {
   const by = {};

@@ -30,7 +30,8 @@ test('Haus umziehen: kostet Taler, Haus & Briefkasten wandern mit, alter Platz w
 });
 
 test('Haus umziehen: nicht ins Wasser, nicht auf Bäume oder Deko, nicht an andere Häuser', () => {
-  const s = fresh();
+  let s = fresh();
+  for (let i = 0; i < 8 && !free(s); i++) s = fresh(); // Bäume stehen zufällig – eine Insel mit freiem Platz nehmen
   assert.equal(houseFit(s, 0, 40).ok, false);
   assert.equal(houseFit(s, BUILDINGS.museum.cx, BUILDINGS.museum.cz).ok, false);
   const at = free(s);

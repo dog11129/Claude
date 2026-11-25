@@ -148,6 +148,7 @@ export const WALLS = [
   ['sterne',    'Sternennacht',    '#3f4b80', 'stars',   '#ffe9a8'],
   ['karo',      'Himmelkaro',      '#e2f0ff', 'checker', '#b5d6f6'],
   ['mint',      'Mint',            '#cdeee0', 'wainscot', '#fffaf2'],
+  ['pfingstrosen', 'Pfingstrosen',  '#ffe9ef', 'peonies',  '#ff9ac4'],
 ];
 export const FLOORS = [
   ['dielen',  'Helle Dielen',  '#e6c595', 'planks'],
@@ -158,4 +159,6 @@ export const FLOORS = [
   ['moos',    'Moosboden',     '#93c97c', 'moss',    '#aedb92'],
   ['parkett', 'Parkett',       '#dcaa70', 'parquet', '#c8925a'],
   ['fliesen', 'Blaue Fliesen', '#94bfe8', 'tiles',   '#fdfbf6'],
+  ['rosadielen', 'Rosa Dielen', '#f4c9d2', 'planks'],
+  ['rosenparkett', 'Pfingstrosen-Parkett', '#f8d6de', 'parquet', '#f0b8c6'],
 ];

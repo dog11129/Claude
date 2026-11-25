@@ -5,10 +5,10 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
 | place | 133 | 49 | 84 |
-| furniture | 260 | 41 | 219 |
+| furniture | 275 | 41 | 234 |
 | items | 142 | 0 | 142 |
-| crops | 102 | 42 | 60 |
-| Icons | 664 | 0 eigene Bilder | 664 gerendert |
+| crops | 141 | 42 | 99 |
+| Icons | 692 | 0 eigene Bilder | 692 gerendert |
 
 ## place – noch Platzhalter (84)
 
@@ -99,7 +99,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Bimmelbahn | `bahnhof` | 2.6 × 1.76 × 1.63 | 148 |
 | Inselrestaurant | `restaurant` | 2.47 × 2.02 × 2.47 | 472 |
 
-## furniture – noch Platzhalter (219)
+## furniture – noch Platzhalter (234)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -308,6 +308,21 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Gartenbank | `gartenbank` | 1.8 × 0.85 × 0.5 | 864 |
 | Rosenspalier | `rosenspalier` | 0.7 × 1.9 × 0.29 | 3192 |
 | Lavendeltopf | `lavendeltopf` | 0.32 × 0.75 × 0.32 | 2052 |
+| Pfingstrosen-Sofa | `pfingstrosensofa` | 2.02 × 1.15 × 0.8 | 10616 |
+| Pfingstrosen-Sessel | `pfingstrosensessel` | 0.97 × 1 × 0.66 | 5968 |
+| Pfingstrosen-Pouf | `pfingstrosenpouf` | 0.75 × 0.4 × 0.76 | 4296 |
+| Pfingstrosen-Bett | `pfingstrosenbett` | 1.98 × 1.38 × 1.98 | 26680 |
+| Pfingstrosen-Kommode | `pfingstrosenkommode` | 0.95 × 1.12 × 0.61 | 15224 |
+| Pfingstrosen-Kleiderschrank | `pfingstrosenschrank` | 0.98 × 1.91 × 0.67 | 10080 |
+| Pfingstrosen-Tisch | `pfingstrosentisch` | 0.94 × 1 × 0.94 | 11384 |
+| Pfingstrosen-Frisiertisch | `pfingstrosenschminktisch` | 0.9 × 1.5 × 0.51 | 9992 |
+| Pfingstrosen-Stehlampe | `pfingstrosenlampe` | 0.63 × 1.76 × 0.63 | 3168 |
+| Pfingstrosen-Wandleuchte | `pfingstrosenleuchte` | 0.41 × 0.42 × 0.18 | 3336 |
+| Pfingstrosen-Teppich | `pfingstrosenteppich` | 1.92 × 0.04 × 1.92 | 4272 |
+| Pfingstrosen-Vase | `pfingstrosenvase` | 0.58 × 0.87 × 0.34 | 14012 |
+| Pfingstrosen-Spiegel | `pfingstrosenspiegel` | 0.75 × 0.94 × 0.13 | 13712 |
+| Pfingstrosen-Gemälde | `pfingstrosenbild` | 0.74 × 0.58 × 0.1 | 13092 |
+| Pfingstrosen-Blumenbogen | `pfingstrosenbogen` | 1.98 × 2.16 × 0.28 | 57200 |
 | Wollteppich (rot) | `wollteppich_rot` | 1.9 × 0.05 × 1.62 | 784 |
 | Strickkissen (rot) | `strickkissen_rot` | 0.62 × 0.21 × 0.62 | 588 |
 | Wollteppich (rosa) | `wollteppich_rosa` | 1.9 × 0.05 × 1.62 | 784 |
@@ -470,7 +485,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Mondpudding | `item_mondpudding` | 0.59 × 0.38 × 0.6 | 552 |
 | Regenbogen-Eis | `item_regenbogeneis` | 0.28 × 0.41 × 0.28 | 588 |
 
-## crops – noch Platzhalter (60)
+## crops – noch Platzhalter (99)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -479,7 +494,7 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Lavendel (Stufe 3) | `crop_lavendel_3` | 0.36 × 0.35 × 0.29 | 552 |
 | Pfingstrose (Stufe 1) | `crop_pfingstrose_1` | 0.21 × 0.08 × 0.21 | 160 |
 | Pfingstrose (Stufe 2) | `crop_pfingstrose_2` | 0.21 × 0.39 × 0.21 | 332 |
-| Pfingstrose (Stufe 3) | `crop_pfingstrose_3` | 0.36 × 0.35 × 0.29 | 552 |
+| Pfingstrose (Stufe 3) | `crop_pfingstrose_3` | 0.42 × 0.43 × 0.37 | 1476 |
 | Glockenblume (Stufe 1) | `crop_glockenblume_1` | 0.21 × 0.08 × 0.21 | 160 |
 | Glockenblume (Stufe 2) | `crop_glockenblume_2` | 0.21 × 0.39 × 0.21 | 332 |
 | Glockenblume (Stufe 3) | `crop_glockenblume_3` | 0.36 × 0.35 × 0.29 | 552 |
@@ -534,4 +549,43 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Melone (Stufe 1) | `crop_melone_1` | 0.43 × 0.08 × 0.45 | 264 |
 | Melone (Stufe 2) | `crop_melone_2` | 0.72 × 0.14 × 0.69 | 652 |
 | Melone (Stufe 3) | `crop_melone_3` | 0.71 × 0.37 × 0.71 | 792 |
+| Weiße Pfingstrose (Stufe 1) | `crop_pfingstrose_weiss_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Weiße Pfingstrose (Stufe 2) | `crop_pfingstrose_weiss_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Weiße Pfingstrose (Stufe 3) | `crop_pfingstrose_weiss_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Zartrosa Pfingstrose (Stufe 1) | `crop_pfingstrose_hellrosa_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Zartrosa Pfingstrose (Stufe 2) | `crop_pfingstrose_hellrosa_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Zartrosa Pfingstrose (Stufe 3) | `crop_pfingstrose_hellrosa_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Rote Pfingstrose (Stufe 1) | `crop_pfingstrose_rot_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Rote Pfingstrose (Stufe 2) | `crop_pfingstrose_rot_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Rote Pfingstrose (Stufe 3) | `crop_pfingstrose_rot_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Gelbe Pfingstrose (Stufe 1) | `crop_pfingstrose_gelb_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Gelbe Pfingstrose (Stufe 2) | `crop_pfingstrose_gelb_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Gelbe Pfingstrose (Stufe 3) | `crop_pfingstrose_gelb_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Cremefarbene Pfingstrose (Stufe 1) | `crop_pfingstrose_creme_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Cremefarbene Pfingstrose (Stufe 2) | `crop_pfingstrose_creme_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Cremefarbene Pfingstrose (Stufe 3) | `crop_pfingstrose_creme_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Zweifarbige Pfingstrose (Stufe 1) | `crop_pfingstrose_zweifarbig_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Zweifarbige Pfingstrose (Stufe 2) | `crop_pfingstrose_zweifarbig_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Zweifarbige Pfingstrose (Stufe 3) | `crop_pfingstrose_zweifarbig_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Korallen-Pfingstrose (Stufe 1) | `crop_pfingstrose_koralle_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Korallen-Pfingstrose (Stufe 2) | `crop_pfingstrose_koralle_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Korallen-Pfingstrose (Stufe 3) | `crop_pfingstrose_koralle_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Pfirsich-Pfingstrose (Stufe 1) | `crop_pfingstrose_pfirsich_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Pfirsich-Pfingstrose (Stufe 2) | `crop_pfingstrose_pfirsich_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Pfirsich-Pfingstrose (Stufe 3) | `crop_pfingstrose_pfirsich_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Magenta-Pfingstrose (Stufe 1) | `crop_pfingstrose_magenta_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Magenta-Pfingstrose (Stufe 2) | `crop_pfingstrose_magenta_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Magenta-Pfingstrose (Stufe 3) | `crop_pfingstrose_magenta_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Weinrote Pfingstrose (Stufe 1) | `crop_pfingstrose_weinrot_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Weinrote Pfingstrose (Stufe 2) | `crop_pfingstrose_weinrot_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Weinrote Pfingstrose (Stufe 3) | `crop_pfingstrose_weinrot_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Lila Pfingstrose (Stufe 1) | `crop_pfingstrose_lila_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Lila Pfingstrose (Stufe 2) | `crop_pfingstrose_lila_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Lila Pfingstrose (Stufe 3) | `crop_pfingstrose_lila_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Blaue Pfingstrose (Stufe 1) | `crop_pfingstrose_blau_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Blaue Pfingstrose (Stufe 2) | `crop_pfingstrose_blau_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Blaue Pfingstrose (Stufe 3) | `crop_pfingstrose_blau_3` | 0.42 × 0.43 × 0.37 | 1476 |
+| Regenbogen-Pfingstrose (Stufe 1) | `crop_pfingstrose_regenbogen_1` | 0.21 × 0.08 × 0.21 | 160 |
+| Regenbogen-Pfingstrose (Stufe 2) | `crop_pfingstrose_regenbogen_2` | 0.21 × 0.39 × 0.21 | 332 |
+| Regenbogen-Pfingstrose (Stufe 3) | `crop_pfingstrose_regenbogen_3` | 0.42 × 0.43 × 0.37 | 1728 |
 
