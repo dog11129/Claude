@@ -182,7 +182,7 @@ function pauseServer() {
   const g = G, me = g.players[g.me];
   srvPaused = { keep: me ? { x: me.x, z: me.z, ry: me.ry } : {} };
   g.ended = true;
-  g.net?.broadcast({ t: 'bye' });
+  g.net?.broadcast({ t: 'bye', s: pack(g.s) }); // letzter Stand direkt mit – wer übernimmt, braucht nicht auf den Server zu warten
   g.net?.close();
   G = null;
   srvRun++;
@@ -541,7 +541,7 @@ function guestData(d) {
     case 'card': if (typeof d.url === 'string' && d.url.startsWith('data:image/jpeg')) onCard(d); break;
     case 'wake': wake(); break;
     case 'kick': G.ended = true; G.conn?.close(); cover('Der Host hat dich von der Insel geschickt.', true); break;
-    case 'bye': if (G.server) { takeOver(G); break; } G.ended = true; G.conn?.close(); saveFarm(); cover('🏝️ Der Host hat die Insel verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Inseln“.', true); break;
+    case 'bye': if (G.server) { if (d.s && typeof d.s === 'object') G.sRaw = d.s; takeOver(G); break; } G.ended = true; G.conn?.close(); saveFarm(); cover('🏝️ Der Host hat die Insel verlassen. Deine Kopie ist gespeichert – du findest sie unter „Meine Inseln“.', true); break;
   }
 }
 
@@ -998,7 +998,7 @@ function leave() {
   srvPaused = null;
   if (g) {
     saveFarm(true);
-    if (g.role === 'host' && g.net) { g.net.broadcast({ t: 'bye' }); setTimeout(() => g.net.close(), 1000); }
+    if (g.role === 'host' && g.net) { g.net.broadcast(g.server ? { t: 'bye', s: pack(g.s) } : { t: 'bye' }); setTimeout(() => g.net.close(), 1000); }
     if (g.role === 'guest') { g.ended = true; g.conn?.close(); }
     g.wake?.release?.();
   }
