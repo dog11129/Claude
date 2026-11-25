@@ -47,3 +47,28 @@ test('Weiterer Stand gewinnt (Spielzeit)', () => {
   assert.ok(!SW.ahead(a, { s: { time: 100 } }));
   assert.ok(SW.ahead(a, null));
 });
+
+test('Große Flächen sind fein unterteilt (Krümmung der Welt)', async () => {
+  const M = await import('../src/models.js'), THREE = await import('../vendor/three.module.min.js');
+  const edges = g => { const p = g.attributes.position, idx = g.index, n = idx ? idx.count : p.count, a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(); let w = 0;
+    for (let i = 0; i < n; i += 3) { a.fromBufferAttribute(p, idx ? idx.getX(i) : i); b.fromBufferAttribute(p, idx ? idx.getX(i + 1) : i + 1); c.fromBufferAttribute(p, idx ? idx.getX(i + 2) : i + 2); w = Math.max(w, a.distanceTo(b), b.distanceTo(c), a.distanceTo(c)); } return w; };
+  assert.ok(edges(M.flat(90, 60, 2)) < 3);
+  assert.ok(edges(M.fine(new THREE.PlaneGeometry(40, 34), 1.5)) <= 1.5 + 1e-6);
+  const d = M.disc(48, 72, 1.2), p = d.attributes.position;
+  let ring = 0; for (let i = 0; i < p.count; i++) { const r = Math.hypot(p.getX(i), p.getY(i)); if (r > 1 && r < 2) ring++; }
+  assert.ok(ring > 0, 'Scheibe hat innere Ringe');
+});
+
+test('Insel-Erweiterungen: alles lässt sich benutzen (auch Bienenstöcke)', async () => {
+  const S = await import('../src/state.js');
+  const s = S.bindInv(S.migrate(S.newFarm('X')), 'host');
+  s.areas = { wald: { open: 1 }, wiese: { open: 1 }, hoehle: { open: 1 } };
+  for (const id of Object.keys(S.AREAS)) {
+    const A = S.AREAS[id];
+    for (const n of S.NODES[id]) {
+      const r = S.resolve(s, { x: A.x + n.x, z: A.z + n.z + 1, ry: Math.PI }, n.kind === 'ore' ? 'shovel' : 'hand', { x: A.x + n.x, z: A.z + n.z });
+      assert.equal(typeof r.label, 'string');
+      if (n.kind === 'hive' || n.kind === 'pine' || n.kind === 'ore') assert.ok(r.a, `${id} ${n.kind} ist benutzbar`);
+    }
+  }
+});

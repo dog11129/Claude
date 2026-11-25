@@ -49,6 +49,7 @@ function row(icon, title, sub, buttons, locked) {
 }
 // Gegenstand als Kachel mit eigenem Bild (wird von icons.js nachgeladen)
 const itemCell = (id, n, buttons) => `<div class="icell" title="${esc(ITEMS[id].name)}">${itemIcon(id)}<b>${esc(ITEMS[id].name)}</b><span class="icn">${n}×</span><div class="ib">${buttons}</div></div>`;
+const mi = id => itemIcon(id, 'mini'); // kleines Bild im Text (Zutaten, Wünsche)
 const btn = (label, data, cls = '', dis = false) => `<button class="btn small ${cls}" data-act='${JSON.stringify(data)}' ${dis ? 'disabled' : ''}>${label}</button>`;
 
 function upgradeRow(s, id) {
@@ -64,7 +65,7 @@ function placeRow(s, id) {
   let sub = p.desc || '';
   if (p.kind === 'deco') sub = 'Zum Dekorieren eurer Insel';
   sub += have ? ` · <b>${have}× im Lager</b>` : '';
-  return row(p.icon, p.name + (locked ? lvTag(p.lvl) : ''), sub, btn(`🪙 ${p.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < p.buy), locked);
+  return row(ITEMS[id] ? itemIcon(id) : p.icon, p.name + (locked ? lvTag(p.lvl) : ''), sub, btn(`🪙 ${p.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < p.buy), locked);
 }
 
 const SHOP = {
@@ -76,7 +77,7 @@ const SHOP = {
       if (k === 'weizen') h += '<h3>🥕 Gemüse</h3>';
       const id = 's_' + k, locked = c.lvl > s.level, have = s.inv[id] || 0, ok = c.sea.includes(sea);
       const sub = `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · Wächst in ${time(c.grow)}${c.regrow ? (isFlower(k) ? ' · blüht immer wieder' : ' · trägt immer wieder') : ''}${c.yield ? ` · ${c.yield}× Ernte` : ''} · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`;
-      h += row(c.icon, c.name + (locked ? lvTag(c.lvl) : ''), sub,
+      h += row(ITEMS[k] ? itemIcon(k) : c.icon, c.name + (locked ? lvTag(c.lvl) : ''), sub,
         btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, '', locked || s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, '', locked || s.money < c.seed * 10), locked);
     }
     return h;
@@ -90,14 +91,14 @@ const SHOP = {
     let h = '<div class="note">🐔 Hühnerstall und 🐄 Kuhweide aufstellen ➜ jeden Tag füttern (Weizen, Kartoffeln, Karotten oder Äpfel aus eurem Garten) ➜ streicheln. Gefütterte Tiere legen Eier und geben Milch für die Küche – glückliche Tiere (💗💗💗) geben sogar mehr, und manchmal gibt es eine Überraschung!</div>';
     for (const [id, p] of Object.entries(PLACE)) if (p.farm) h += placeRow(s, id);
     const farms = Object.values(s.obj || {}).filter(o => PLACE[o?.k]?.farm);
-    if (farms.length) h += '<h3>🏡 Eure Tiere</h3>' + farms.map(o => row(PLACE[o.k].icon, PLACE[o.k].name, `${o.fed === s.day ? '🌾 heute gefüttert' : '😋 hat Hunger'} · ${o.pet === s.day ? '🤗 gestreichelt' : 'möchte gestreichelt werden'} · ${'💗'.repeat(Math.ceil(Math.min(10, o.h || 0) / 2)) || '🤍'}`, '')).join('');
+    if (farms.length) h += '<h3>🏡 Eure Tiere</h3>' + farms.map(o => row(ITEMS[o.k] ? itemIcon(o.k) : PLACE[o.k].icon, PLACE[o.k].name, `${o.fed === s.day ? '🌾 heute gefüttert' : '😋 hat Hunger'} · ${o.pet === s.day ? '🤗 gestreichelt' : 'möchte gestreichelt werden'} · ${'💗'.repeat(Math.ceil(Math.min(10, o.h || 0) / 2)) || '🤍'}`, '')).join('');
     return h;
   },
   food(s) {
     let h = '<div class="note">Zutaten für die Gartenküche 🍳 – zusammen mit eurem Obst, Gemüse und Fisch werden daraus leckere Gerichte.</div>';
     for (const id of ['mehl', 'zucker', 'milch', 'ei']) {
       const it = ITEMS[id];
-      h += row(it.icon, it.name, `${s.inv[id] || 0} in der Tasche`, btn(`1× 🪙${it.buy}`, { t: 'buy', id, n: 1 }, '', s.money < it.buy) + btn(`5× 🪙${it.buy * 5}`, { t: 'buy', id, n: 5 }, '', s.money < it.buy * 5));
+      h += row(itemIcon(id), it.name, `${s.inv[id] || 0} in der Tasche`, btn(`1× 🪙${it.buy}`, { t: 'buy', id, n: 1 }, '', s.money < it.buy) + btn(`5× 🪙${it.buy * 5}`, { t: 'buy', id, n: 5 }, '', s.money < it.buy * 5));
     }
     return h;
   },
@@ -234,7 +235,7 @@ const PANELS = {
     s.orders.forEach((o, i) => {
       const have = s.inv[o.item] || 0, it = ITEMS[o.item], N = NPCS[o.npc];
       const say = N ? (lines[o.day + o.item + o.npc] ||= requestLine(o.npc, it.name, o.n)) : '';
-      h += row(N ? `<span title="${N.name}">${N.icon}</span>` : it.icon, `${N ? N.name + ': ' : ''}${o.n}× ${it.icon} ${it.name}`, (say ? `„${esc(say)}“<br>` : '') + `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐<div class="bar"><i style="width:${Math.min(1, have / o.n) * 100}%"></i></div>`, btn('Abgeben', { t: 'order', i, item: o.item, n: o.n }, 'pink', have < o.n));
+      h += row(itemIcon(o.item), `${N ? N.icon + ' ' + N.name + ': ' : ''}${o.n}× ${it.name}`, (say ? `„${esc(say)}“<br>` : '') + `Ihr habt ${Math.min(have, o.n)}/${o.n} · Lohn ${money(o.reward)} + ${o.xp} ⭐<div class="bar"><i style="width:${Math.min(1, have / o.n) * 100}%"></i></div>`, btn('Abgeben', { t: 'order', i, item: o.item, n: o.n }, 'pink', have < o.n));
     });
     return h;
   },
@@ -331,7 +332,7 @@ const PANELS = {
         if (r.st !== st) continue;
         if (st === 'craft' && !s.recipes?.[rid]) continue;
         const it = ITEMS[r.out], can = Object.entries(r.in).every(([k, n]) => (s.inv[k] || 0) >= n);
-        h += row(it.icon, `${r.n > 1 ? r.n + '× ' : ''}${it.name}${(r.lvl || 1) > s.level ? lvTag(r.lvl) : ''}`, Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#a08a76'}">${ITEMS[k].icon} ${s.inv[k] || 0}/${n}</span>`).join(' · '), can ? '<span class="lv">✓ bereit</span>' : '');
+        h += row(itemIcon(r.out), `${r.n > 1 ? r.n + '× ' : ''}${it.name}${(r.lvl || 1) > s.level ? lvTag(r.lvl) : ''}`, Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#a08a76'}">${mi(k)} ${s.inv[k] || 0}/${n}</span>`).join(' · '), can ? '<span class="lv">✓ bereit</span>' : '');
       }
     }
     return h;
@@ -357,9 +358,9 @@ const PANELS = {
     const away = s.mail.filter(m => m.kind === 'letter' && m.from === g.myName && s.day < m.arrive).map(m => `<div class="note">📮 Dein Brief an <b>${esc(m.to)}</b> ist unterwegs und kommt morgen früh an.</div>`).join('');
     if (!s.mail.some(mine)) return write + away + '<div class="note">📭 Der Briefkasten ist leer. Freundet euch mit den Nachbarn an – manchmal schreiben sie euch!</div>';
     return write + away + s.mail.map((m, i) => { if (!mine(m)) return ''; if (m.kind === 'letter') return `<div class="letter paper${m.paper || 0}"><h3>💌 Von ${esc(m.from)}</h3><p>${esc(m.text).replace(/\n/g, '<br>')}</p>
-      ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item]?.icon || '🎁'}</div><div class="tx"><b>Beigelegt: ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i, from: m.from })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i, from: m.from }, 'white')}</div>`}</div>`;
+      ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item] ? itemIcon(m.item) : '🎁'}</div><div class="tx"><b>Beigelegt: ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i, from: m.from })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i, from: m.from }, 'white')}</div>`}</div>`;
       const L = m.kind ? { title: m.title, text: m.text } : (lines['mail' + i + m.from + m.hearts] ||= letter(m.from, m.hearts, g.myName)); return `<div class="letter"><h3>${m.kind ? '' : NPCS[m.from]?.icon || '💌'} ${esc(L.title)}</h3><p>${esc(L.text).replace(/\n/g, '<br>')}</p>
-      ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item]?.icon || '🎁'}</div><div class="tx"><b>Geschenk: ${m.n || 1}× ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i, from: m.from, hearts: m.hearts })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i, from: m.from, hearts: m.hearts }, 'white')}</div>`}</div>`; }).join('');
+      ${m.item ? `<div class="row"><div class="ic">${ITEMS[m.item] ? itemIcon(m.item) : '🎁'}</div><div class="tx"><b>Geschenk: ${m.n || 1}× ${ITEMS[m.item]?.name || m.item}</b></div><div class="bt">${btn('Annehmen', { t: 'mail', i, from: m.from, hearts: m.hearts })}</div></div>` : `<div class="bt">${btn('Gelesen ✓', { t: 'mail', i, from: m.from, hearts: m.hearts }, 'white')}</div>`}</div>`; }).join('');
   },
   letter(s, g) {
     const others = Object.values(g.players).filter(p => p.id !== g.me).map(p => p.name), known = [...new Set([...others, ...(s.friends || []).filter(n => n !== g.myName)])];
@@ -777,7 +778,7 @@ Object.assign(PANELS, {
     for (const [k, c] of Object.entries(CROPS)) {
       if (!c.garden) continue;
       const id = 's_' + k, have = s.inv[id] || 0, ok = c.sea.includes(seasonOf(s.day));
-      h += row(c.icon, c.name, `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · blüht immer wieder · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`,
+      h += row(ITEMS[k] ? itemIcon(k) : c.icon, c.name, `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · blüht immer wieder · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`,
         btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, '', s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, '', s.money < c.seed * 10));
     }
     return h;
@@ -798,7 +799,7 @@ Object.assign(PANELS, {
     if (s.tour) { const T = TOURS[s.tour.k], left = s.tour.targets.filter(t => !t.got).length; h += row(T.icon, `${T.name} läuft!`, `Noch ${left} von ${T.n} · ${Math.max(0, Math.ceil(s.tour.end - s.time))} Sekunden`, ''); }
     for (const [k, T] of Object.entries(TOURS)) h += row(T.icon, T.name, `${T.desc} · Belohnung: 🏅 ${T.medals}`, btn('Starten', { t: 'tour', k }, 'pink', !!s.tour));
     h += '<h3>🏅 Tauschen</h3>';
-    for (const id of MEDAL_SHOP) { const p = PLACE[id]; h += row(p.icon, p.name, (p.desc || 'Deko aus den Tropen') + (s.inv[id] ? ` · <b>${s.inv[id]}× im Lager</b>` : ''), btn(`🏅 ${p.medals}`, { t: 'mbuy', id }, '', (s.medals || 0) < p.medals)); }
+    for (const id of MEDAL_SHOP) { const p = PLACE[id]; h += row(ITEMS[id] ? itemIcon(id) : p.icon, p.name, (p.desc || 'Deko aus den Tropen') + (s.inv[id] ? ` · <b>${s.inv[id]}× im Lager</b>` : ''), btn(`🏅 ${p.medals}`, { t: 'mbuy', id }, '', (s.medals || 0) < p.medals)); }
     const W = WARDROBE.sunhat, own = s.wardrobe?.sunhat;
     h += row(W.icon, W.name + (own ? ' <span class="lv">✓ gehört euch</span>' : ''), 'Ein Hut für Sonnentage', own ? '' : btn(`🏅 ${W.medals}`, { t: 'wear', id: 'sunhat' }, '', (s.medals || 0) < W.medals));
     return h;
@@ -826,8 +827,8 @@ function recipes(s, st) {
   for (const [id, r] of Object.entries(RECIPES)) {
     if (r.st !== st || (st === 'craft' && !s.recipes?.[id] && !r.gem) || (r.excl && !s.recipes?.[id])) continue;
     const it = ITEMS[r.out], locked = (r.lvl || 1) > s.level, can = Object.entries(r.in).every(([k, n]) => (s.inv[k] || 0) >= n);
-    const need = Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#d64545'}">${ITEMS[k].icon} ${s.inv[k] || 0}/${n}</span>`).join(' · ');
-    h += row(it.icon, `${r.n > 1 ? r.n + '× ' : ''}${it.name}${locked ? lvTag(r.lvl) : ''}`, need + (it.sell ? ` · Wert ${money(price(s, r.out))}` : ''), btn(st === 'cook' ? 'Kochen' : 'Bauen', { t: 'craft', id }, 'pink', locked || !can), locked);
+    const need = Object.entries(r.in).map(([k, n]) => `<span style="color:${(s.inv[k] || 0) >= n ? '#5aa84a' : '#d64545'}">${mi(k)} ${s.inv[k] || 0}/${n}</span>`).join(' · ');
+    h += row(itemIcon(r.out), `${r.n > 1 ? r.n + '× ' : ''}${it.name}${locked ? lvTag(r.lvl) : ''}`, need + (it.sell ? ` · Wert ${money(price(s, r.out))}` : ''), btn(st === 'cook' ? 'Kochen' : 'Bauen', { t: 'craft', id }, 'pink', locked || !can), locked);
   }
   return h;
 }

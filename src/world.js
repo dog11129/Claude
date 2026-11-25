@@ -165,6 +165,7 @@ export class World {
     this.soil = new THREE.InstancedMesh(soilGeo, M.MAT, 400);
     this.soil.receiveShadow = true;
     this.soil.count = 0;
+    this.soil.frustumCulled = false; // Kopien wandern über die ganze Insel – die Hülle wird nicht nachgerechnet
     s.add(this.soil);
 
     // Markierung des Zielfelds: weicher, abgerundeter Rahmen
@@ -185,6 +186,7 @@ export class World {
     this.hl = new THREE.InstancedMesh(hlGeo, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, toneMapped: false }), 25);
     this.hl.count = 0;
     this.hl.renderOrder = 2;
+    this.hl.frustumCulled = false;
     s.add(this.hl);
 
     this.crops = new Map();
@@ -951,6 +953,7 @@ export class World {
       if (!e.m.visible || !e.m.parent) continue;
       col(e.x, e.z, r, height(e), { x: e.x, z: e.z, kind: 'thing', m: e.m });
     }
+    for (const [x, z, r, h] of this.zones?.picks(this.target) || []) col(x, z, r, h, { x, z, kind: 'thing' }); // Kiefern, Bambus & Co. in den anderen Gebieten
     for (const m of this.festG?.children || []) { // Fest-Deko und Turnierstand
       if (!m.userData.hh) { B.setFromObject(m); m.userData.hh = Math.max(0.5, Math.min(4, B.max.y)); }
       col(m.position.x, m.position.z, 0.55, m.userData.hh, { x: m.position.x, z: m.position.z, kind: 'thing', m });
@@ -1103,7 +1106,7 @@ export class World {
       if (this.room) this.scene.remove(this.room);
       this.room = new THREE.Group();
       const r = makeRoom(w, d, h.wall, h.floor);
-      const base = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
+      const base = new THREE.Mesh(M.flat(80, 80, 3), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
       base.rotation.x = -Math.PI / 2;
       base.position.y = -0.02;
       this.room.add(r, base);
@@ -1126,7 +1129,7 @@ export class World {
       this.nfurnM = new Map();
       this.nroom = this.nroomNpc = null;
       if (id) {
-        const [w, d] = R.size || NROOM_SIZE, g = new THREE.Group(), base = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
+        const [w, d] = R.size || NROOM_SIZE, g = new THREE.Group(), base = new THREE.Mesh(M.flat(40, 40, 3), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
         base.rotation.x = -Math.PI / 2; base.position.y = -0.02;
         g.add(makeRoom(w, d, R.wall, R.floor), base);
         g.position.set(HOME_X, 0, R.z0);
@@ -1507,6 +1510,7 @@ export class World {
         const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff, map }), 2400);
         m.count = 0;
         m.receiveShadow = true;
+        m.frustumCulled = false; // sonst verschwinden Wege, die nach dem ersten Bild dazukommen (alte Hülle)
         m.position.y = 0.016;
         this.pathM[k] = m;
         this.scene.add(m);

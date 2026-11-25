@@ -3,7 +3,7 @@
 // Wandsachen (wall: true) hängen an der Rückseite ihrer Kachel (z ≈ -0.47), gedreht also an jeder Wand.
 // Jedes Modell wird einmal gebaut und zwischengespeichert; Kopien teilen sich die Geometrie.
 import * as THREE from '../vendor/three.module.min.js';
-import { MAT, GLOW, merge, box, ball, cyl, cone } from './models.js';
+import { MAT, GLOW, merge, box, ball, cyl, cone, flat } from './models.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { tex, model } from './assets.js';
 import { FURN_X } from './models-extra.js';
@@ -594,11 +594,11 @@ export function makeRoom(w, d, wallId, floorId) {
   if (!fl || !wl) return instance(built(['room', w, d, wallId, floorId].join(), () => buildRoom(w, d, wallId, floorId)), false);
   // Raum-Hülle (Wände, Leisten, Schwelle) + Boden und Tapete als Blender-Texturen (2×2 Felder bzw. 2 breit × Raumhöhe)
   const g = instance(built(['roomshell', w, d, wallId, floorId].join(), () => buildRoom(w, d, wallId, floorId, true)), false), hw = w / 2, hd = d / 2;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ map: fl }));
+  const floor = new THREE.Mesh(flat(w, d, 1), new THREE.MeshLambertMaterial({ map: fl }));
   floor.rotation.x = -PI / 2; floor.position.y = 0.002; floor.receiveShadow = true;
   g.add(floor);
   const wall = (L, x, z, ry) => {
-    const t = tex('wall_' + wallId, L / 2, 1), m = new THREE.Mesh(new THREE.PlaneGeometry(L, ROOM_H), new THREE.MeshLambertMaterial({ map: t }));
+    const t = tex('wall_' + wallId, L / 2, 1), m = new THREE.Mesh(new THREE.PlaneGeometry(L, ROOM_H, Math.ceil(L), 1), new THREE.MeshLambertMaterial({ map: t }));
     m.position.set(x, ROOM_H / 2, z); m.rotation.y = ry; m.receiveShadow = true;
     g.add(m);
   };

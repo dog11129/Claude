@@ -66,6 +66,8 @@ test('eigene Icons: jede Datei gehört zu einem Gegenstand und ist eingetragen',
     assert.ok(existsSync(new URL(`assets/icons/${id}.webp`, R)), id);
   }
   for (const id of ['pfingstrosensofa', 'pfingstrose_koralle', 's_pfingstrose_weiss', 'marktstand', 'nistkasten', 'laubfrosch', 'kleehonig', 'holz']) assert.ok(ids.includes(id), id);
+  const missing = Object.keys(D.ITEMS).filter(id => !ids.includes(id));
+  assert.deepEqual(missing, [], 'jeder Gegenstand hat ein eigenes Bild');
 });
 
 test('Welt-Stücke aus Blender (world2.glb) passen zu den Namen im Code', () => {

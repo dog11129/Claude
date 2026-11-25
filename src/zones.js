@@ -16,6 +16,8 @@ import { REEF, REEF_SLOTS, REEF_SPOTS, reefScore } from './extras2.js';
 import { WRECK, WRECK_CHESTS, WRECK_PORTS, WRECK_DOOR, DEPTH, DEPTH_LV, DEPTH_UP, DEPTH_DOOR, DEPTH_VEINS, DEPTH_RING, ECHO_STONES, DEPTH_LAKE, DEPTH_STAIRS, depthAt } from './extras3.js';
 import { itemModel } from './itemmodels.js';
 import { zonesW, lightsW } from './world-extra.js';
+import { BAMBUS, CLUMPS } from './features/bamboo.js';
+import { MOOR, REEDS } from './features/moor.js';
 
 function canvasTex(w, h, paint, rep) {
   const c = document.createElement('canvas');
@@ -32,7 +34,7 @@ const put = (g, m, x, z, ry = 0) => { m.position.set(x, 0, z); m.rotation.y = ry
 function buildStreet() {
   const g = new THREE.Group(), X = STREET.x, Z = STREET.z;
   // Wiese rundherum, Kopfsteinpflaster, Gehweg vor den Läden
-  const grass = new THREE.Mesh(new THREE.PlaneGeometry(90, 60), new THREE.MeshLambertMaterial({ color: 0x86c75e, map: tex('grass', 45, 30) }));
+  const grass = new THREE.Mesh(M.flat(90, 60, 2), new THREE.MeshLambertMaterial({ color: 0x86c75e, map: tex('grass', 45, 30) }));
   grass.rotation.x = -Math.PI / 2; grass.position.set(X, -0.02, Z); grass.receiveShadow = true; g.add(grass);
   const cobble = tex('cobble', 29 / 2, 8.2 / 2) || canvasTex(128, 128, c => { // Kopfstein aus Blender
     c.fillStyle = '#c9bfb2'; c.fillRect(0, 0, 128, 128);
@@ -42,17 +44,17 @@ function buildStreet() {
       c.beginPath(); c.roundRect(x + o + 1, y + 1, 14, 14, 5); c.fill();
     }
   }, [14, 4]);
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(29, 8.2), new THREE.MeshLambertMaterial({ map: cobble }));
+  const road = new THREE.Mesh(M.flat(29, 8.2, 1), new THREE.MeshLambertMaterial({ map: cobble }));
   road.rotation.x = -Math.PI / 2; road.position.set(X, 0.005, Z); road.receiveShadow = true; g.add(road);
   // Gehweg vor und unter den Läden (Steinplatten), mit Bordstein zur Straße und Beeten dahinter
   const slabs = tex('floor_stein', 29 / 1.6, 5 / 1.6);
   const walk = new THREE.Mesh(new THREE.PlaneGeometry(29, 5, 29, 5), new THREE.MeshLambertMaterial(slabs ? { map: slabs, color: 0xfff6ea } : { color: 0xe3d6c4 }));
   walk.rotation.x = -Math.PI / 2; walk.position.set(X, 0.045, Z - 5.5); walk.receiveShadow = true; g.add(walk);
-  const curb = new THREE.Mesh(new THREE.BoxGeometry(29.2, 0.12, 0.22), new THREE.MeshLambertMaterial({ color: 0xd9cfc2 }));
+  const curb = new THREE.Mesh(new THREE.BoxGeometry(29.2, 0.12, 0.22, 30), new THREE.MeshLambertMaterial({ color: 0xd9cfc2 }));
   curb.position.set(X, 0.06, Z - 3.0); curb.receiveShadow = curb.castShadow = true; g.add(curb);
-  const back = new THREE.Mesh(new THREE.BoxGeometry(29.2, 0.28, 0.5), new THREE.MeshLambertMaterial({ color: 0xb98a5c }));
+  const back = new THREE.Mesh(new THREE.BoxGeometry(29.2, 0.28, 0.5, 30), new THREE.MeshLambertMaterial({ color: 0xb98a5c }));
   back.position.set(X, 0.14, Z - 8.1); back.receiveShadow = back.castShadow = true; g.add(back);
-  const soil = new THREE.Mesh(new THREE.BoxGeometry(28.8, 0.06, 0.36), new THREE.MeshLambertMaterial({ color: 0x7a5a3a }));
+  const soil = new THREE.Mesh(new THREE.BoxGeometry(28.8, 0.06, 0.36, 30), new THREE.MeshLambertMaterial({ color: 0x7a5a3a }));
   soil.position.set(X, 0.29, Z - 8.1); g.add(soil);
   for (let x = -14; x <= 14; x += 1.15) put(g, placeable(Math.round(x * 3) % 2 ? 'buchsbaum' : 'hortensie'), X + x, Z - 8.35);
   // Läden (Fronten zeigen nach Süden zur Straße)
@@ -82,7 +84,7 @@ function buildStreet() {
 function buildTropic() {
   const g = new THREE.Group(), X = TROPIC.x, Z = TROPIC.z, R = TROPIC.r;
   // Insel: Sandring + Wiese in der Mitte, leicht gewölbt
-  const geo = new THREE.CircleGeometry(R + 1.2, 64, 0, Math.PI * 2);
+  const geo = M.disc(R + 1.2, 64, 0.6);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), cs = new THREE.Color(0xf2dfa6), cg = new THREE.Color(0x7fd05a), c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
@@ -169,10 +171,10 @@ function mushroom(kind) {
 function buildArea(id) {
   const A = AREAS[id], g = new THREE.Group(), X = A.x, Z = A.z, W = A.w, D = A.d;
   const stoneT = tex('floor_stein', (W * 2 + 18) / 2.2, (D * 2 + 18) / 2.2);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W * 2 + 18, D * 2 + 18), new THREE.MeshLambertMaterial(A.cave ? { color: 0x8a7f9a, map: stoneT } : { color: A.ground, map: tex('grass', W + 9, D + 9) }));
+  const floor = new THREE.Mesh(M.flat(W * 2 + 18, D * 2 + 18), new THREE.MeshLambertMaterial(A.cave ? { color: 0x8a7f9a, map: stoneT } : { color: A.ground, map: tex('grass', W + 9, D + 9) }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(X, -0.02, Z); floor.receiveShadow = true; g.add(floor);
   // Weg vom Eingang (Süden) in die Mitte
-  const path = new THREE.Mesh(new THREE.PlaneGeometry(2.2, D + 1.4), new THREE.MeshLambertMaterial(A.cave ? { color: 0x7a7088 } : { color: 0xf2deb0, map: tex('path', 1.2, (D + 1.4) / 2) }));
+  const path = new THREE.Mesh(M.flat(2.2, D + 1.4, 0.75), new THREE.MeshLambertMaterial(A.cave ? { color: 0x7a7088 } : { color: 0xf2deb0, map: tex('path', 1.2, (D + 1.4) / 2) }));
   path.rotation.x = -Math.PI / 2; path.position.set(X, 0.01, Z + D / 2 + 0.7); path.receiveShadow = true; g.add(path);
   const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(id.length * 999 + 7);
   if (A.cave) {
@@ -242,7 +244,7 @@ function buildDepths() {
   const stoneT = tex('floor_stein', 9, 9);
   DEPTH_LV.forEach((L, lv) => {
     const X0 = L.x, parts = [], glow = [];
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(R + 4, 40), new THREE.MeshLambertMaterial({ color: [0x5a5068, 0x4a5670, 0x4a4a6a][lv], map: stoneT }));
+    const floor = new THREE.Mesh(M.disc(R + 4, 40), new THREE.MeshLambertMaterial({ color: [0x5a5068, 0x4a5670, 0x4a4a6a][lv], map: stoneT }));
     floor.rotation.x = -Math.PI / 2; floor.position.set(X0, -0.02, Z0); floor.receiveShadow = true; g.add(floor);
     // Felswand rundherum; im Süden die Treppe, im Norden die Tür
     for (let i = 0; i < 60; i++) {
@@ -289,7 +291,7 @@ function buildDepths() {
     if (lv === 1) ECHO_STONES.forEach(([x, z], i) => { parts.push(M.cyl(0.32, 0.38, 0.12, 0x4e4660, x, 0.06, z, 10)); glow.push(M.ball(0.3, ECHO_COLS[i], x, 0.3 + i * 0.05, z, 1, 0.75 + i * 0.12, 1, 10)); });
     // Ebene 3: Kristallsee mit dem Herzkristall auf einer kleinen Insel
     if (lv === 2) {
-      const lake = new THREE.Mesh(new THREE.CircleGeometry(DEPTH_LAKE, 40), new THREE.MeshLambertMaterial({ color: 0x2a4a9a, transparent: true, opacity: 0.88 }));
+      const lake = new THREE.Mesh(M.disc(DEPTH_LAKE, 40), new THREE.MeshLambertMaterial({ color: 0x2a4a9a, transparent: true, opacity: 0.88 }));
       lake.rotation.x = -Math.PI / 2; lake.position.set(X0, 0.03, Z0); g.add(lake);
       parts.push(M.cyl(0.95, 1.15, 0.28, 0x5c5272, 0, 0.1, 0, 14));
       for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; glow.push(M.cone(0.06, 0.3, [0xff7a9a, 0xffd96a, 0x7affc8, 0x7ac4ff][i % 4], Math.cos(a) * (DEPTH_LAKE + 0.25), 0.15, Math.sin(a) * (DEPTH_LAKE + 0.25), 5)); }
@@ -327,7 +329,7 @@ function pool() {
 }
 function buildTrip(seed) {
   const L = tripLayout(seed), K = TRIP_KINDS[L.kind], g = new THREE.Group(), X = TRIP.x, Z = TRIP.z, R = TRIP.r;
-  const geo = new THREE.CircleGeometry(R + 1.2, 64);
+  const geo = M.disc(R + 1.2, 64, 0.6);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), cs = new THREE.Color(0xf2dfa6), cg = new THREE.Color(K.ground), c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
@@ -340,9 +342,9 @@ function buildTrip(seed) {
   geo.computeVertexNormals();
   const land = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: tex('grass', R + 1.2, R + 1.2) }));
   land.position.set(X, 0, Z); land.receiveShadow = true; g.add(land);
-  const sea = new THREE.Mesh(new THREE.CircleGeometry(70, 48), new THREE.MeshLambertMaterial({ color: 0x3fb0d8, transparent: true, opacity: 0.92 }));
+  const sea = new THREE.Mesh(M.disc(70, 48, 2.5), new THREE.MeshLambertMaterial({ color: 0x3fb0d8, transparent: true, opacity: 0.92 }));
   sea.rotation.x = -Math.PI / 2; sea.position.set(X, -0.24, Z); g.add(sea);
-  const shallow = new THREE.Mesh(new THREE.RingGeometry(R - 0.2, R + 4, 48), new THREE.MeshLambertMaterial({ color: 0x7fe0dc, transparent: true, opacity: 0.7 }));
+  const shallow = new THREE.Mesh(new THREE.RingGeometry(R - 0.2, R + 4, 48, 4), new THREE.MeshLambertMaterial({ color: 0x7fe0dc, transparent: true, opacity: 0.7 }));
   shallow.rotation.x = -Math.PI / 2; shallow.position.set(X, -0.2, Z); g.add(shallow);
   // Steg mit Boot im Süden
   const P = [];
@@ -386,7 +388,7 @@ function buildTrip(seed) {
 function buildReef() {
   const g = new THREE.Group(), X = REEF.x, Z = REEF.z, R = REEF.r;
   // Meeresboden: heller Sand im Riff, außen steigt er zu einem Felsenkessel an
-  const geo = new THREE.CircleGeometry(48, 72, 0, Math.PI * 2);
+  const geo = M.disc(48, 72, 1.2);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), cs = new THREE.Color(0xf0dcaa), cd = new THREE.Color(0x5a8aa0), c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
@@ -446,7 +448,7 @@ function buildReef() {
 // ---------- Schiffswrack (unter Wasser) ----------
 function buildWreck() {
   const g = new THREE.Group(), X = WRECK.x, Z = WRECK.z, R = WRECK.r;
-  const geo = new THREE.CircleGeometry(46, 72);
+  const geo = M.disc(46, 72, 1.2);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), cs = new THREE.Color(0xcdbb8e), cd = new THREE.Color(0x2f5f78), c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
@@ -704,6 +706,20 @@ export class Zones {
       e.m = e.n.kind === 'mush' ? mushroom(want) : cropModel(want, 3, crop);
       put(g, e.m, e.x, e.z, e.n.i);
     }
+  }
+  // Antippen: hohe Dinge (Kiefern, Erzfelsen, Bienenstöcke, Bambus, Schilf, Obstbäume) als Säulen [x, z, Radius, Höhe],
+  // damit man auch Krone oder Spitze treffen kann – sonst landet der Finger auf dem Boden dahinter
+  picks(target) {
+    const out = [];
+    if (target.x < -150) {
+      let id = null, bd = Infinity;
+      for (const [k, A] of Object.entries(AREAS)) { const d = Math.abs(target.z - A.z); if (d < bd) { bd = d; id = k; } }
+      const A = AREAS[id], H = { pine: [0.6, 3.6], ore: [0.62, 1.3], hive: [0.55, 1.3], berry: [0.5, 0.95], mush: [0.42, 0.6], bloom: [0.42, 0.75] };
+      for (const n of NODES[id]) out.push([A.x + n.x, A.z + n.z, ...H[n.kind]]);
+    } else if (target.z < -1050) for (const [x, z] of CLUMPS) out.push([BAMBUS.x + x, BAMBUS.z + z, 0.95, 3.4]);
+    else if (target.z < -750) for (const [x, z] of REEDS) out.push([MOOR.x + x, MOOR.z + z, 0.7, 1.5]);
+    else if (target.z > 150 && target.z < 450) for (const [x, z] of TROPIC_TREES) out.push([TROPIC.x + x, TROPIC.z + z, 0.6, 3.2]);
+    return out;
   }
   lights(target) {
     const lw = lightsW(this, target);

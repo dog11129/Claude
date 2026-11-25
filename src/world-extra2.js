@@ -87,7 +87,7 @@ export function updateIslandV(world, s, riding) {
 // ---------- Hochsee: das Boot von Käpt'n Flossi auf offenem Meer ----------
 function buildDeepsea() {
   const g = new THREE.Group(), X = V.DEEPSEA.x, Z = V.DEEPSEA.z, w = V.DEEPSEA.w, d = V.DEEPSEA.d;
-  const sea = new THREE.Mesh(new THREE.CircleGeometry(120, 48), new THREE.MeshLambertMaterial({ color: 0x2a78b8 }));
+  const sea = new THREE.Mesh(M.disc(120, 48, 3), new THREE.MeshLambertMaterial({ color: 0x2a78b8 }));
   sea.rotation.x = -Math.PI / 2; sea.position.set(X, -0.55, Z); g.add(sea);
   const P = [
     M.box(w * 2, 0.9, d * 2, 0xffffff, 0, -0.5, 0), M.box(w * 2 + 0.1, 0.18, d * 2 + 0.1, 0x3a6aa8, 0, -0.85, 0),

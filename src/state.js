@@ -2028,7 +2028,8 @@ function resolveArea(s, me, sel, at) {
   }
   if (n.kind === 'ore') return sel === 'shovel' ? ((used?.u || 0) < nodeUses(n) ? { a: a('mine'), label: '⛏️ Auf die Erzader hauen', tiles } : { label: '💎 Morgen wieder', tiles }) : { label: '💎 Erzader · mit der Schaufel draufhauen', tiles };
   if (!today || used) return { label: '', tiles: [] };
-  const lbl = { mush: `${ITEMS[today]?.icon || '🍄'} ${ITEMS[today]?.name || 'Pilz'} pflücken`, berry: `${ITEMS[today].icon} Beeren pflücken`, hive: '🍯 Honig ernten', bloom: `🌸 ${CROPS[today]?.name} pflücken (Samen!)` }[n.kind];
+  const it = typeof today === 'string' ? ITEMS[today] : null; // Bienenstock: today = true (kein Gegenstand)
+  const lbl = n.kind === 'mush' ? `${it?.icon || '🍄'} ${it?.name || 'Pilz'} pflücken` : n.kind === 'berry' ? `${it?.icon || '🫐'} Beeren pflücken` : n.kind === 'hive' ? '🍯 Honig ernten' : `🌸 ${CROPS[today]?.name || 'Blume'} pflücken (Samen!)`;
   return { a: a('pick'), label: lbl, tiles };
 }
 

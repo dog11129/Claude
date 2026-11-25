@@ -21,9 +21,9 @@ function buildMoor() {
   const plane = (w, d, col, y) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d, Math.ceil(w / 2.5), Math.ceil(d / 2.5)), new THREE.MeshLambertMaterial({ color: col })); m.rotation.x = -Math.PI / 2; m.position.set(X, y, Z); g.add(m); return m; };
   plane(140, 140, 0x6b9a52, -0.03);
   plane(E.MOOR.w * 2 + 3, E.MOOR.d * 2 + 3, 0x7a9a4c, -0.015);
-  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshLambertMaterial({ color: 0x4f8f90, transparent: true, opacity: 0.92 }));
+  const water = new THREE.Mesh(M.disc(1, 40, 0.15), new THREE.MeshLambertMaterial({ color: 0x4f8f90, transparent: true, opacity: 0.92 }));
   water.rotation.x = -Math.PI / 2; water.scale.set(P.rx, P.rz, 1); water.position.set(X + P.x, 0.02, Z + P.z); g.add(water);
-  const rim = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshLambertMaterial({ color: 0x5b6e3a }));
+  const rim = new THREE.Mesh(M.disc(1, 40, 0.15), new THREE.MeshLambertMaterial({ color: 0x5b6e3a }));
   rim.rotation.x = -Math.PI / 2; rim.scale.set(P.rx + 0.5, P.rz + 0.5, 1); rim.position.set(X + P.x, 0.005, Z + P.z); g.add(rim);
   // Steg: vom Tor im Süden über den Teich bis ans Nordufer
   for (let z = -P.rz - 1; z <= E.MOOR.d + 0.6; z += 0.5) parts.push(M.box(1.5, 0.08, 0.42, z % 1 ? 0xb08458 : 0xa07448, 0, 0.12, P.z + z));

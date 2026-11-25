@@ -67,7 +67,7 @@ export function syncSled(world, e, on) {
 // ---------- Grotte hinter dem Wasserfall ----------
 function buildGrotto() {
   const g = new THREE.Group(), X = W.GROTTO.x, Z = W.GROTTO.z, R = W.GROTTO.r, parts = [], glow = [], rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(777);
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(R + 4, 40), new THREE.MeshLambertMaterial({ color: 0x4a5a6a }));
+  const floor = new THREE.Mesh(M.disc(R + 4, 40), new THREE.MeshLambertMaterial({ color: 0x4a5a6a }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(X, -0.02, Z); g.add(floor);
   for (let i = 0; i < 52; i++) { const a = i / 52 * Math.PI * 2, rx = Math.sin(a) * (R + 0.8), rz = Math.cos(a) * (R + 0.8); if (rz > 1 && Math.abs(rx) < 1.6) continue; const low = rz > 1; parts.push(M.ball(low ? 0.8 : 1.2 + rnd() * 0.7, rnd() < 0.5 ? 0x4e5a68 : 0x5a6878, rx, low ? 0.15 : 0.8 + rnd() * 1.5, rz, 1, low ? 0.55 : 1.6 + rnd() * 0.6, 1, 7)); }
   for (let i = 0; i < 30; i++) { const a = rnd() * 6.28, r = R - rnd() * 0.6; glow.push(M.ball(0.05, [0x7affe8, 0x9ad8ff, 0xc8ff9a][i % 3], Math.sin(a) * r, 0.6 + rnd() * 2.2, Math.cos(a) * r, 1, 1, 1, 5)); }
@@ -77,7 +77,7 @@ function buildGrotto() {
   const [cx, cz] = W.GROTTO_CHEST;
   parts.push(M.box(0.8, 0.45, 0.55, 0x8a5a36, cx, 0.24, cz), M.box(0.84, 0.08, 0.59, 0xe0b862, cx, 0.47, cz));
   g.add(bmv('zone_grotto', parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
-  const pool = new THREE.Mesh(new THREE.CircleGeometry(W.GROTTO.pool, 32), new THREE.MeshBasicMaterial({ color: 0x3ad8e8, transparent: true, opacity: 0.85 }));
+  const pool = new THREE.Mesh(M.disc(W.GROTTO.pool, 32), new THREE.MeshBasicMaterial({ color: 0x3ad8e8, transparent: true, opacity: 0.85 }));
   pool.rotation.x = -Math.PI / 2; pool.position.set(X, 0.04, Z); g.add(pool);
   g.userData = { pool, lights: [[X, Z], [X + 4, Z + 3], [X - 4, Z + 3]] };
   return g;
@@ -86,11 +86,11 @@ function buildGrotto() {
 // ---------- Vulkaninsel ----------
 function buildVolcano() {
   const g = new THREE.Group(), X = W.VOLCANO.x, Z = W.VOLCANO.z, R = W.VOLCANO.r, parts = [], glow = [], rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(4321);
-  const sea = new THREE.Mesh(new THREE.CircleGeometry(R + 40, 48), new THREE.MeshLambertMaterial({ color: 0x3a9ad0 }));
+  const sea = new THREE.Mesh(M.disc(R + 40, 48, 2.5), new THREE.MeshLambertMaterial({ color: 0x3a9ad0 }));
   sea.rotation.x = -Math.PI / 2; sea.position.set(X, -0.3, Z); g.add(sea);
-  const land = new THREE.Mesh(new THREE.CylinderGeometry(R, R + 1.2, 0.5, 48), new THREE.MeshLambertMaterial({ color: 0x9a8070 }));
+  const land = new THREE.Mesh(M.fine(new THREE.CylinderGeometry(R, R + 1.2, 0.5, 48), 1.5, true), new THREE.MeshLambertMaterial({ color: 0x9a8070 }));
   land.position.set(X, -0.25, Z); g.add(land);
-  const sand = new THREE.Mesh(new THREE.RingGeometry(R - 2.2, R, 48), new THREE.MeshLambertMaterial({ color: 0xd8c4a4 }));
+  const sand = new THREE.Mesh(new THREE.RingGeometry(R - 2.2, R, 48, 2), new THREE.MeshLambertMaterial({ color: 0xd8c4a4 }));
   sand.rotation.x = -Math.PI / 2; sand.position.set(X, 0.005, Z); g.add(sand);
   // Vulkankegel mit glühendem Krater
   const [vx, vz, vr] = W.VOLC_CONE;

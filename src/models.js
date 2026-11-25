@@ -36,6 +36,37 @@ export function curveDrop(camera, x, z) {
   const t = Math.min(1, Math.max(0, (-fy - 0.25) / 0.2));
   return CURVE_K * d * d * t * t * (3 - 2 * t);
 }
+// Die Krümmung wirkt pro Eckpunkt: große Flächen müssen fein unterteilt sein, sonst kippen sie weg und
+// "schwimmen" mit der Kamera. flat = Rechteck, disc = runde Scheibe mit Ringen (Abstand höchstens step).
+export const flat = (w, d, step = 1.5) => new THREE.PlaneGeometry(w, d, Math.max(1, Math.ceil(w / step)), Math.max(1, Math.ceil(d / step)));
+export const disc = (r, seg = 48, step = 1.5) => new THREE.RingGeometry(0, r, seg, Math.max(1, Math.ceil(r / step)));
+// Beliebige Geometrie nachträglich unterteilen (längste Kante halbieren, bis alle Kanten ≤ max sind).
+// xz: nur waagrechte Ausdehnung zählt (senkrechte Wände brauchen keine Unterteilung); m: Matrix für die Längenmessung
+export function fine(geo, max = 1.5, xz = false, m = null, flatOnly = false) {
+  const src = geo.index ? geo.toNonIndexed() : geo, names = ['position', ...Object.keys(src.attributes).filter(n => n !== 'position')];
+  const A = names.map(n => src.attributes[n]), size = A.map(a => a.itemSize), out = A.map(() => []);
+  const get = (a, i, k) => [a.getX, a.getY, a.getZ, a.getW][k].call(a, i);
+  const vert = i => A.map((a, j) => Array.from({ length: size[j] }, (_, k) => get(a, i, k)));
+  const P = new THREE.Vector3(), Q = new THREE.Vector3(), R = new THREE.Vector3();
+  const lying = t => { P.fromArray(t[0][0]); Q.fromArray(t[1][0]); R.fromArray(t[2][0]); if (m) { P.applyMatrix4(m); Q.applyMatrix4(m); R.applyMatrix4(m); } return Math.abs(Q.sub(P).cross(R.sub(P)).normalize().y) >= 0.6; };
+  const len = (a, b) => { P.fromArray(a[0]); Q.fromArray(b[0]); if (m) { P.applyMatrix4(m); Q.applyMatrix4(m); } return xz ? Math.hypot(P.x - Q.x, P.z - Q.z) : P.distanceTo(Q); };
+  const mid = (a, b) => a.map((v, j) => v.map((x, k) => (x + b[j][k]) / 2));
+  const stack = [];
+  for (let i = 0; i + 2 < A[0].count; i += 3) stack.push([vert(i), vert(i + 1), vert(i + 2)]);
+  let guard = 400000;
+  while (stack.length && guard-- > 0) {
+    const t = stack.pop(), e = [len(t[0], t[1]), len(t[1], t[2]), len(t[2], t[0])], k = e.indexOf(Math.max(...e));
+    if (e[k] <= max || (flatOnly && !lying(t))) { for (const v of t) v.forEach((x, j) => out[j].push(...x)); continue; }
+    const a = t[k], b = t[(k + 1) % 3], c = t[(k + 2) % 3], ab = mid(a, b);
+    stack.push([a, ab, c], [ab, b, c]);
+  }
+  for (const t of stack) for (const v of t) v.forEach((x, j) => out[j].push(...x));
+  const g = new THREE.BufferGeometry();
+  names.forEach((n, j) => g.setAttribute(n, new THREE.Float32BufferAttribute(out[j], size[j])));
+  if (g.attributes.normal) { const nr = g.attributes.normal; for (let i = 0; i < nr.count; i++) { P.fromBufferAttribute(nr, i).normalize(); nr.setXYZ(i, P.x, P.y, P.z); } }
+  g.computeBoundingSphere();
+  return g;
+}
 export const MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 MAT.onBeforeCompile = cozy;
 MAT.customProgramCacheKey = () => 'cozy';

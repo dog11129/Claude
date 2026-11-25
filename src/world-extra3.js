@@ -146,9 +146,9 @@ export function npcOverride6(world, s, id, t) {
 // ---------- Jahrmarkt ----------
 function buildFair() {
   const g = new THREE.Group(), X = E.FAIR.x, Z = E.FAIR.z, P = E.FAIR_SPOTS, parts = [], glow = [];
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(E.FAIR.w * 2 + 8, E.FAIR.d * 2 + 8), new THREE.MeshLambertMaterial({ color: 0xd8c4a0 }));
+  const ground = new THREE.Mesh(M.flat(E.FAIR.w * 2 + 8, E.FAIR.d * 2 + 8), new THREE.MeshLambertMaterial({ color: 0xd8c4a0 }));
   ground.rotation.x = -Math.PI / 2; ground.position.set(X, -0.01, Z); g.add(ground);
-  const grass = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshLambertMaterial({ color: 0x7ac060 }));
+  const grass = new THREE.Mesh(M.flat(120, 120, 2.5), new THREE.MeshLambertMaterial({ color: 0x7ac060 }));
   grass.rotation.x = -Math.PI / 2; grass.position.set(X, -0.03, Z); g.add(grass);
   // Zaun mit Tor im Süden
   for (let x = -E.FAIR.w - 1; x <= E.FAIR.w + 1; x += 1) for (const z of [-E.FAIR.d - 1, E.FAIR.d + 1]) if (Math.abs(x) > 1.6 || z < 0) parts.push(M.box(0.1, 0.6, 0.1, 0xffffff, x, 0.3, z), M.box(1.0, 0.07, 0.05, x % 2 ? 0xff8fab : 0xffffff, x + 0.5, 0.45, z));

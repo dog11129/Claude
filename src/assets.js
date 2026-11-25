@@ -4,7 +4,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
 import { DRACOLoader } from '../vendor/loaders/DRACOLoader.js';
-import { MAT, cozy } from './models.js';
+import { MAT, cozy, fine } from './models.js';
 
 const LIB = new Map();
 const mixers = new Set();
@@ -37,12 +37,26 @@ export async function loadAssets(files, onProgress) {
   draco.dispose();
 }
 
+// Große flache Teile der Welt-Stücke (Inselboden, Deck …) fein unterteilen, damit sie der Krümmung der Welt folgen
+function fineWorld(o) {
+  const p = o.geometry.attributes.position, idx = o.geometry.index, n = idx ? idx.count : p.count, m = o.matrixWorld;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), nr = new THREE.Vector3(), at = (i, v) => v.fromBufferAttribute(p, idx ? idx.getX(i) : i).applyMatrix4(m);
+  let worst = 0;
+  for (let i = 0; i + 2 < n; i += 3) {
+    at(i, a); at(i + 1, b); at(i + 2, c);
+    if (Math.abs(nr.subVectors(c, b).cross(a.clone().sub(b)).normalize().y) < 0.6) continue; // nur liegende Flächen (Boden, Deck)
+    worst = Math.max(worst, Math.hypot(a.x - b.x, a.z - b.z), Math.hypot(b.x - c.x, b.z - c.z), Math.hypot(a.x - c.x, a.z - c.z));
+  }
+  if (worst > 3) o.geometry = fine(o.geometry, 2, true, m, true);
+}
 function register(gltf, file) {
   for (const root of [...gltf.scene.children]) {
     const names = new Set();
+    if (file.startsWith('world')) { root.position.set(0, 0, 0); root.updateMatrixWorld(true); }
     root.traverse(o => {
       names.add(o.name);
       if (!o.isMesh) return;
+      if (file.startsWith('world') && !o.name.includes('__glow')) fineWorld(o);
       const glow = o.name.includes('__glow') || o.parent?.name?.includes('__glow');
       o.material = glow ? GLOW_VC : OUTDOOR;
       o.castShadow = !glow;
