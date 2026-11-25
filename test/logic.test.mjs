@@ -368,7 +368,8 @@ test('Flaschenpost & Baupläne', async () => {
   const out = act(s, { t: 'pick', x, z });
   assert.ok(out.ok && out.learned && s.recipes[out.learned], 'Bauplan gelernt');
   assert.ok(DIY_IDS.includes(out.learned));
-  s.inv.holz = 99; s.inv.stein = 99;
+  const { RECIPES } = await import('../src/data.js');
+  for (const id of Object.keys(RECIPES.f_kamin.in)) s.inv[id] = 99; // alle Zutaten da – es zählt nur, ob der Bauplan bekannt ist
   assert.equal(act(s, { t: 'craft', id: 'f_kamin' }).ok, !!s.recipes.f_kamin);
 });
 

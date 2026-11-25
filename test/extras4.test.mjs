@@ -71,6 +71,8 @@ test('Kanu & Grotte: Einstieg am Fluss, Angeln und Truhe in der Grotte', () => {
   const s = fresh();
   assert.ok(!blocked(s, ...W.CANOE_START), 'Einstieg erreichbar');
   assert.ok(!blocked(s, ...W.GROTTO_EXIT), 'Ausgang am Wasserfall begehbar');
+  for (const k of ['shells', 'drift', 'weeds', 'eggs', 'ground']) s[k] = {}; // zufällige Funde am Ufer stören nicht
+  s.digs = [];
   const me = { x: W.CANOE_START[0], z: W.CANOE_START[1], ry: 0, key: 'host' };
   assert.ok(!resolve(s, me, 'hand').canoe, 'ohne Kanu nicht');
   s.inv.kanu = 1;
