@@ -6,7 +6,10 @@ import { DatabaseSync } from 'node:sqlite';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { WebSocketServer } = require(process.env.WS_PATH || '/opt/npm-tools/node_modules/ws');
+const { WebSocketServer } = (() => { // Paket "ws": aus WS_PATH, dem Projekt (npm i --no-save ws) oder der Werkzeug-Ablage
+  for (const p of [process.env.WS_PATH, 'ws', '/opt/npm-tools/node_modules/ws']) { if (p) try { return require(p); } catch { /* nächster Ort */ } }
+  throw new Error('Paket "ws" fehlt – einmal  npm i --no-save ws  ausführen');
+})();
 const PORT = +process.argv[2] || 8787;
 
 class FakeSocket {

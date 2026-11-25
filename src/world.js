@@ -34,7 +34,7 @@ import { crop } from './plants.js';
 import { placeable } from './nature.js';
 import { building } from './buildings.js';
 import { Zones } from './zones.js';
-import { tickAssets, part, snow, model, GLOW_VC, tex, flatGeometry } from './assets.js';
+import { tickAssets, part, snow, model, hasModel, GLOW_VC, tex, flatGeometry } from './assets.js';
 import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE, FEST_DECO, CONTEST_AT, FESTS } from './data.js';
 import { grass as onGrass } from './island.js';
@@ -66,6 +66,8 @@ export const SEA_Y = -0.24;
 // Sandburg: Hügel, je Stufe ein Turm mehr, Muscheln vorne drauf
 const SAND = 0xead39a, SAND_D = 0xd8bd80, SHELL_COL = { herzmuschel: 0xffb0c0, kauri: 0xfff3e0, jakobsmuschel: 0xffc890, sanddollar: 0xf2e6c8, koralle: 0xff7b8a };
 function castleModel(c) {
+  const own = model('castle_' + Math.min(5, c.lv || 1));
+  if (own) { if (c.sh?.length) own.add(M.model((c.sh || []).slice(0, 10).map((id, i) => { const a = -1.1 + i * 0.25; return M.ball(0.035, SHELL_COL[id] || 0xffffff, Math.sin(a) * 0.34, 0.16 + (i % 2) * 0.06, Math.cos(a) * 0.34, 1.2, 0.6, 1); }))); return own; }
   const P = [M.ball(0.42, SAND_D, 0, 0, 0, 1.15, 0.45, 1.15, 10), M.cyl(0.32, 0.38, 0.28, SAND, 0, 0.18, 0, 10)];
   const lv = Math.min(5, c.lv || 1);
   if (lv >= 2) P.push(M.cyl(0.13, 0.16, 0.42, SAND, 0, 0.5, 0, 8), M.cone(0.15, 0.16, SAND_D, 0, 0.79, 0, 8));
@@ -850,11 +852,19 @@ export class World {
       t = { el, html: null, cls: null };
       this.tags.set(id, t);
     }
-    if (t.html !== html) { t.el.innerHTML = html; t.html = html; }
-    if (t.cls !== cls) { t.el.className = 'tag ' + cls; t.cls = cls; }
+    if (t.html !== html) { t.el.innerHTML = html; t.html = html; t.w = null; }
+    if (t.cls !== cls) { t.el.className = 'tag ' + cls; t.cls = cls; t.w = null; }
     const p = this.project(x, y, z);
     t.el.style.display = p ? '' : 'none';
-    if (p) t.el.style.transform = `translate(${p[0]}px, ${p[1]}px) translate(-50%, -100%)`;
+    if (p) {
+      let px = p[0];
+      if (cls === 'chat') { // Sprechblasen bleiben ganz im Bild (schmale Handys)
+        t.w ??= t.el.offsetWidth;
+        const half = t.w / 2 + 6, W = this.labels.clientWidth || innerWidth;
+        px = Math.min(Math.max(px, half), Math.max(half, W - half));
+      }
+      t.el.style.transform = `translate(${px}px, ${p[1]}px) translate(-50%, -100%)`;
+    }
     t.used = true;
   }
   float(x, z, txt, y = 1.2, o = {}) {
@@ -1759,7 +1769,7 @@ export class World {
   syncSkyGifts(list) {
     this.skyGiftM ||= [];
     while (this.skyGiftM.length < (list?.length || 0)) {
-      const m = M.model([M.ball(0.32, 0xff6b8a, 0, 0.9, 0, 1, 1.15, 1, 12), M.cone(0.06, 0.08, 0xff6b8a, 0, 0.52, 0, 6, Math.PI), M.cyl(0.006, 0.006, 0.4, 0xffffff, 0, 0.3, 0, 4), M.box(0.26, 0.22, 0.26, 0xffd23f, 0, 0, 0), M.box(0.28, 0.05, 0.05, 0xff6b8a, 0, 0.02, 0), M.box(0.05, 0.05, 0.28, 0xff6b8a, 0, 0.02, 0)], [], false);
+      const m = model('skygift') || M.model([M.ball(0.32, 0xff6b8a, 0, 0.9, 0, 1, 1.15, 1, 12), M.cone(0.06, 0.08, 0xff6b8a, 0, 0.52, 0, 6, Math.PI), M.cyl(0.006, 0.006, 0.4, 0xffffff, 0, 0.3, 0, 4), M.box(0.26, 0.22, 0.26, 0xffd23f, 0, 0, 0), M.box(0.28, 0.05, 0.05, 0xff6b8a, 0, 0.02, 0), M.box(0.05, 0.05, 0.28, 0xff6b8a, 0, 0.02, 0)], [], false);
       this.scene.add(m); this.skyGiftM.push(m);
     }
     this.skyGiftM.forEach((m, i) => { const g = list?.[i]; m.visible = !!g && !g.got; if (m.visible) { m.position.set(g.x, g.y + Math.sin(this.time * 2 + i) * 0.15, g.z); m.rotation.y = this.time; } });
@@ -1768,6 +1778,7 @@ export class World {
   // Fahrrad unter der Figur (Räder drehen sich beim Fahren)
   syncBike(e, on, dt) {
     if (!on) { if (e.bike) e.bike.visible = false; return; }
+    if (!e.bike && hasModel('ride_fahrrad')) { e.bike = model('ride_fahrrad'); e.wheels = ['wheel_f', 'wheel_b'].map(n => part(e.bike, n)).filter(Boolean); this.scene.add(e.bike); }
     if (!e.bike) {
       const g = new THREE.Group(), F = [];
       F.push(M.cyl(0.025, 0.025, 0.62, 0xff6b8a, 0, 0.38, 0, 6, 1.2), M.cyl(0.025, 0.025, 0.42, 0xff6b8a, 0, 0.32, -0.2, 6, 0.3), M.cyl(0.025, 0.025, 0.45, 0xff6b8a, 0, 0.36, 0.24, 6, -0.35));
@@ -1795,9 +1806,9 @@ export class World {
   syncKite(e, h, dt) {
     if (!(h > 0)) { if (e.kite) e.kite.visible = e.kline.visible = false; return; }
     if (!e.kite) {
-      const g = new THREE.Group();
-      g.add(M.model([M.cone(0.55, 0.7, 0xff6b8a, 0, 0.35, 0, 4, 0, 0, 0), M.cone(0.55, 0.35, 0x6cb4ff, 0, -0.17, 0, 4, Math.PI, 0, 0), M.cyl(0.01, 0.01, 1.05, 0xffffff, 0, 0.1, 0.02, 4), M.box(1.1, 0.02, 0.02, 0xffffff, 0, 0.0, 0.02)], [], false));
-      g.children[0].scale.set(1, 1, 0.12);
+      const g = new THREE.Group(), own = model('ride_drache');
+      if (own) g.add(own); else g.add(M.model([M.cone(0.55, 0.7, 0xff6b8a, 0, 0.35, 0, 4, 0, 0, 0), M.cone(0.55, 0.35, 0x6cb4ff, 0, -0.17, 0, 4, Math.PI, 0, 0), M.cyl(0.01, 0.01, 1.05, 0xffffff, 0, 0.1, 0.02, 4), M.box(1.1, 0.02, 0.02, 0xffffff, 0, 0.0, 0.02)], [], false));
+      if (!own) g.children[0].scale.set(1, 1, 0.12);
       g.scale.setScalar(0.62);
       e.tail = [0, 1, 2, 3].map(i => { const b = M.model([M.box(0.14, 0.08, 0.02, [0xffd23f, 0x8ad45a, 0xff8a3a, 0xc9a8ff][i])], [], false); g.add(b); return b; });
       e.kite = g;
@@ -1832,7 +1843,7 @@ export class World {
     for (const [k, e] of this.bfM) if (!want.has(k)) { this.scene.remove(e.m); this.bfM.delete(k); }
     for (const [k, w] of want) {
       let e = this.bfM.get(k);
-      if (!e) { const m = itemModel(w.id) || M.model([M.ball(0.1, 0xff8fab)]); m.scale.setScalar(0.45); this.scene.add(m); e = { m }; this.bfM.set(k, e); }
+      if (!e) { const m = itemModel(w.id) || M.model([M.ball(0.1, 0xff8fab)]); m.scale.setScalar(0.7); this.scene.add(m); e = { m }; this.bfM.set(k, e); }
       const a = this.time * (0.7 + w.i * 0.13) + w.i * 1.7, r = 1.4 + Math.sin(this.time * 0.5 + w.i) * 0.6;
       e.m.position.set(w.x + Math.cos(a) * r, 0.9 + Math.sin(this.time * 3 + w.i) * 0.25 + w.i * 0.15, w.z + Math.sin(a) * r);
       e.m.rotation.set(0, -a, Math.sin(this.time * 14 + w.i) * 0.25);

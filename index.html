@@ -192,7 +192,7 @@ body.eyesclosed::after { content: '🙈'; position: fixed; inset: 0; display: gr
 .papers { display: flex; gap: 6px; }
 #lttext { width: 100%; font: inherit; padding: 10px; border-radius: 12px; border: 2px solid var(--line); resize: vertical; margin: 6px 0; box-sizing: border-box; }
 .diaryadd { display: flex; gap: 8px; margin-bottom: 8px; }
-.diaryadd input { flex: 1; font: inherit; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--line); }
+.diaryadd input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--line); }
 .dyline { display: flex; gap: 8px; padding: 4px 2px; border-bottom: 1px dashed var(--line); }
 .dyline span { width: 24px; text-align: center; }
 .paper { background: #fffdf6; border: 2px solid #eadfc8; border-radius: 14px; padding: 12px 14px; font-family: Georgia, 'Times New Roman', serif; color: #4a3b2e; }
@@ -218,7 +218,7 @@ body.eyesclosed::after { content: '🙈'; position: fixed; inset: 0; display: gr
 .photo .row2 { display: flex; gap: 4px; margin-top: 6px; justify-content: center; flex-wrap: wrap; }
 .photo small { display: block; text-align: center; font-size: 11px; opacity: .6; margin-top: 4px; }
 #contestpill { font-size: 16px; font-weight: 700; background: #fff3c4; color: #8a5a00; }
-#questpill { pointer-events: auto; font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#questpill { pointer-events: auto; font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 #questpill.ready { background: linear-gradient(135deg, #fff3b0, var(--yellow)); animation: wiggle 1.6s ease-in-out infinite; }
 @keyframes wiggle { 0%, 70%, 100% { rotate: 0deg; } 80% { rotate: -2deg; } 90% { rotate: 2deg; } }
 .quest-hero { background: linear-gradient(160deg, #fff6e0, #ffe8ef); border: 3px solid #f6dcc0; border-radius: 22px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 4px 0 rgba(90,70,54,.08); }

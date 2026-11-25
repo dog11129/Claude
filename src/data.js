@@ -183,12 +183,12 @@ export const ITEMS = {
   kaese:         { name: 'Käse',           icon: '🧀', sell: 700, cat: 'misc', xp: 3 },
   seeglas:       { name: 'Seeglas',        icon: '💠', sell: 300, cat: 'misc', xp: 2 },
   riffkoralle:   { name: 'Riffkoralle',    icon: '🪸', sell: 650, cat: 'misc', xp: 3 },
-  grillfisch:    { name: 'Grillfisch',     icon: '🐟', sell: 420, cat: 'dish', xp: 4 },
-  grillmais:     { name: 'Grillmais',      icon: '🌽', sell: 260, cat: 'dish', xp: 3 },
-  ofenkartoffel: { name: 'Ofenkartoffel',  icon: '🥔', sell: 240, cat: 'dish', xp: 3 },
-  grillgemuese:  { name: 'Grillgemüse',    icon: '🍢', sell: 300, cat: 'dish', xp: 3 },
-  bratapfel:     { name: 'Bratapfel',      icon: '🍎', sell: 260, cat: 'dish', xp: 3 },
-  stockbrot:     { name: 'Stockbrot',      icon: '🥖', sell: 200, cat: 'dish', xp: 2 },
+  grillfisch:    { name: 'Grillfisch',     icon: '🐟', sell: 300, cat: 'dish', xp: 4 },
+  grillmais:     { name: 'Grillmais',      icon: '🌽', sell: 170, cat: 'dish', xp: 3 },
+  ofenkartoffel: { name: 'Ofenkartoffel',  icon: '🥔', sell: 150, cat: 'dish', xp: 3 },
+  grillgemuese:  { name: 'Grillgemüse',    icon: '🍢', sell: 160, cat: 'dish', xp: 3 },
+  bratapfel:     { name: 'Bratapfel',      icon: '🍎', sell: 170, cat: 'dish', xp: 3 },
+  stockbrot:     { name: 'Stockbrot',      icon: '🥖', sell: 70, cat: 'dish', xp: 2 },
   seekarte:      { name: 'Alte Seekarte',  icon: '🗺️', cat: 'misc', desc: 'Aus dem Schiffswrack – sie verrät, wie die Kapitänskajüte aufgeht' },
   dublone:       { name: 'Golddublone',    icon: '🪙', sell: 1500, cat: 'misc', xp: 4 },
   drache:        { name: 'Drachen',        icon: '🪁', buy: 1800, lvl: 1, gear: true, desc: 'Steigen lassen: Böen abpassen und Höhe gewinnen' },
@@ -662,6 +662,15 @@ export const STORY = [
   { title: 'Waldläufer', desc: 'Sammelt 10 Pilze, Beeren oder Zapfen in den neuen Gebieten.', ev: 'forage', n: 10, money: 2000, items: { pilzlaterne: 1 } },
   { title: 'Schätze der Tiefe', desc: 'Findet 3 Edelsteine in der Kristallhöhle.', ev: 'gem', n: 3, money: 6000, items: { kristallfels: 1 } },
   { title: 'Alle Gebiete', desc: 'Schaltet alle drei Insel-Erweiterungen frei.', ev: 'expand_all', n: 1, money: 15000, items: { wolkensofa: 1 } },
+  // Fortsetzung: die neuen Ecken der Insel entdecken
+  { title: 'Sandkünstler', desc: 'Baut mit der Schaufel 2 Sandburgen am Strand.', ev: 'castle', n: 2, money: 1200, items: { spieltisch: 1 } },
+  { title: 'Spieleabend', desc: 'Stellt den Spieltisch ins Haus und gewinnt ein Spiel – gegen einen Nachbarn oder einen Mitspieler.', ev: 'gamewin', n: 1, money: 1500, items: { strandgrill: 1 } },
+  { title: 'Grillmeister', desc: 'Stellt den Strandgrill auf und grillt 3 Leckereien. Abends kommen vielleicht die Nachbarn!', ev: 'grill', n: 3, money: 1500, items: { neopren: 1 } },
+  { title: 'Unter Wasser', desc: 'Schwimmt zur rot-weißen Boje und sucht im Korallenriff nach Schätzen (5-mal tauchen).', ev: 'dive', n: 5, money: 2000 },
+  { title: 'Das Geheimnis der gelben Boje', desc: 'Taucht an der gelben Boje im Westen und öffnet eine Truhe im Schiffswrack.', ev: 'chest', n: 1, money: 2000 },
+  { title: 'Sternenhimmel', desc: 'Zeichnet im Handy unter ✨ Sternbilder ein eigenes Sternbild.', ev: 'star', n: 1, money: 1000 },
+  { title: 'Gute Nachbarn', desc: 'Besucht einen Nachbarn (ab 3 Herzen) und erfüllt einen Einrichtungswunsch.', ev: 'nwish', n: 1, money: 2500 },
+  { title: 'Inselfotograf', desc: 'Reicht im Fotomodus (🏆) ein Foto beim Fotowettbewerb ein.', ev: 'photo', n: 1, money: 1000 },
 ];
 export const DAILY = [
   ['Gießt 8 Blumen', 'water', 8, 300], ['Erntet 6 Blumen oder Gemüse', 'harvest', 6, 400], ['Pflückt 6 Obst', 'fruit', 6, 400],
@@ -671,6 +680,9 @@ export const DAILY = [
   ['Grabt etwas aus', 'dig', 1, 400], ['Sammelt 4 Muscheln', 'shell', 4, 300], ['Zupft 5 Unkraut', 'weed', 5, 300], ['Stellt etwas im Museum aus', 'donate', 1, 600], ['Schießt einen Ballon ab', 'balloon', 1, 500],
   // neu (immer nur hinten anhängen – gespeicherte Aufgaben merken sich die Nummer)
   ['Sammelt 4 Pilze im Kiefernwald', 'mush', 4, 600], ['Haut 3× auf Erz in der Kristallhöhle', 'ore', 3, 600], ['Erntet Honig', 'honey', 1, 500], ['Sammelt 6 Beeren', 'berry', 6, 400],
+  // Erweiterungen (erscheinen erst, wenn es das Nötige gibt)
+  ['Füttert und erntet 3-mal auf dem Hof', 'farm', 3, 400], ['Baut eine Sandburg', 'castle', 1, 300], ['Taucht 3-mal nach Meerestieren', 'dive', 3, 500],
+  ['Grillt 3 Leckereien', 'grill', 3, 400], ['Gewinnt ein Spiel am Spieltisch', 'gamewin', 1, 500], ['Öffnet eine Truhe im Schiffswrack', 'chest', 1, 500], ['Lasst den Drachen steigen', 'kite', 1, 300],
 ];
 
 // ---------- Wochentage, Rübenbörse ----------

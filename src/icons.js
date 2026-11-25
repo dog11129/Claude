@@ -12,6 +12,15 @@ import { itemModel } from './itemmodels.js';
 
 const SIZE = 112;
 const urls = new Map();
+// Eigene Bilder (assets/icons/<id>.webp, Liste in assets/icons/index.json) haben Vorrang vor den gerenderten
+const FILES = new Set();
+export async function loadIconFiles() {
+  try {
+    const r = await fetch(new URL('../assets/icons/index.json', import.meta.url));
+    if (r.ok) for (const id of await r.json()) if (typeof id === 'string') { FILES.add(id); urls.set(id, new URL(`../assets/icons/${id}.webp`, import.meta.url).href); }
+  } catch { /* ohne eigene Bilder */ }
+}
+export const iconFile = id => FILES.has(id);
 let R = null, scene, cam;
 
 function setup() {
@@ -32,12 +41,12 @@ function setup() {
 
 // Welches 3D-Modell zeigt den Gegenstand?
 const MAT_ASSET = { holz: 'ground_holz', ast: 'ground_ast', stein: 'ground_stein', lehm: 'ground_lehm', eisen: 'ground_eisen', flaschenpost: 'ground_bottle' };
-function modelFor(id) {
+export function modelFor(id) { // auch für tools/gallery.html
   const it = ITEMS[id];
   if (!it) return null;
   const own = itemModel(id);
   if (own) return own;
-  if (it.furn) return makeFurniture(id);
+  if (it.furn) return asset(id) || makeFurniture(id);
   if (it.place && PLACE[id]) return placeable(id, true);
   if (CROPS[id]) return cropModel(id, 3, crop);
   if (fruitModel(id)) return fruitModel(id);

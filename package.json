@@ -1,1 +1,11 @@
-{"type":"module","private":true,"scripts":{"test":"node --test test/*.test.mjs"}}
+{
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "export-models": "node tools/export-models.mjs",
+    "smoke": "python3 test/smoke.e2e.py",
+    "icons": "python3 tools/import-icons.py",
+    "together": "python3 test/together.e2e.py"
+  }
+}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kuschelinsel – Modell- & Icon-Galerie</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #fff8ef; color: #4a3a3a; margin: 0; padding: 16px; }
+  h1 { margin: 0 0 4px; } h2 { margin: 22px 0 8px; }
+  .bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; position: sticky; top: 0; background: #fff8efee; padding: 8px 0; z-index: 2; }
+  .bar input, .bar select, .bar button { font: inherit; padding: 6px 10px; border-radius: 10px; border: 2px solid #e8dcc6; background: #fff; }
+  .bar button { background: #ff8fab; color: #fff; border-color: #ff8fab; cursor: pointer; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .card { background: #fff; border-radius: 14px; padding: 8px; text-align: center; box-shadow: 0 2px 6px #0001; cursor: pointer; }
+  .card .iic { width: 72px; height: 72px; object-fit: contain; font-size: 48px; display: inline-block; line-height: 72px; }
+  .card b { display: block; font-size: 13px; margin-top: 4px; } .card code { font-size: 11px; opacity: .7; word-break: break-all; }
+  .tags { display: flex; gap: 4px; justify-content: center; margin-top: 4px; font-size: 11px; }
+  .tags span { padding: 1px 6px; border-radius: 8px; background: #f2ece0; } .tags .ok { background: #c9f0c0; } .tags .todo { background: #ffe0e6; }
+  #view { position: fixed; inset: 0; background: #0008; display: none; place-items: center; z-index: 5; }
+  #view.on { display: grid; } #view .box { background: #fff; border-radius: 18px; padding: 12px; text-align: center; }
+  #cv { width: min(520px, 90vw); height: min(420px, 70vh); border-radius: 12px; background: linear-gradient(#dff2ff, #fff3e0); touch-action: none; }
+</style>
+</head>
+<body>
+<h1>🏝️ Modell- & Icon-Galerie</h1>
+<div>Zeigt jedes Ding im Spiel mit seinem Bild und ob es schon ein eigenes Blender-Modell / eigenes Icon hat. Antippen = 3D-Ansicht. Anleitung: <code>ART.md</code></div>
+<div class="bar">
+  <input id="q" placeholder="Suchen …">
+  <select id="f"><option value="">Alle</option><option value="todo-model">Ohne eigenes Modell</option><option value="todo-icon">Ohne eigenes Icon</option></select>
+  <button id="zip">⬇️ Alle Icons als ZIP</button>
+  <span id="sum"></span>
+</div>
+<div id="list">Lädt …</div>
+<div id="view"><div class="box"><canvas id="cv"></canvas><div id="vname"></div><button onclick="document.getElementById('view').classList.remove('on')">Schließen</button></div></div>
+<script type="module">
+import * as THREE from '../vendor/three.module.min.js';
+import { loadAssets, hasModel } from '../src/assets.js';
+import { ITEMS, PLACE, CROPS } from '../src/data.js';
+import { FURNITURE } from '../src/furni-data.js';
+import { itemIcon, fillIcons, iconUrl, loadIconFiles, iconFile, modelFor } from '../src/icons.js';
+import { ITEM_MODEL_IDS } from '../src/itemmodels.js';
+
+const packs = await fetch('../assets/models/packs.json').then(r => r.json()).catch(() => ['buildings', 'nature', 'crops', 'place', 'furniture', 'characters', 'sky', 'extras']);
+await Promise.all([loadAssets(packs), loadIconFiles()]);
+const ALIAS = { kuerbislaterne: 'lantern_pumpkin', schneemann: 'snowman', herzballon: 'heart_balloon', torte: 'cake', angelpokal: 'pokal', kaeferpokal: 'pokal', apfelbaum: 'ptree', orangenbaum: 'ptree', pfirsichbaum: 'ptree', kirschenbaum: 'ptree', birnbaum: 'ptree', mangobaum: 'ptree', bananenbaum: 'banana' };
+const kind = id => ITEMS[id].furn ? 'Möbel' : ITEMS[id].place ? 'Draußen' : CROPS[id] ? 'Pflanzen' : id.startsWith('s_') ? 'Samen' : ITEMS[id].cat === 'fish' ? 'Fische & Meer' : ITEMS[id].cat === 'bug' ? 'Insekten & Fundstücke' : ITEMS[id].cat === 'dish' ? 'Gerichte' : 'Sonstiges';
+const modelName = id => ITEMS[id].furn ? id : ITEMS[id].place ? id : CROPS[id] ? `crop_${id}_3` : ITEM_MODEL_IDS.includes(id) ? 'item_' + id : null;
+const hasOwn = id => { const n = modelName(id); return !!n && (hasModel(n) || hasModel(ALIAS[id] || '')); };
+const all = Object.keys(ITEMS).filter(id => !id.startsWith('s_'));
+function draw() {
+  const q = document.getElementById('q').value.toLowerCase(), f = document.getElementById('f').value, groups = {};
+  for (const id of all) {
+    if (q && !(id + ITEMS[id].name).toLowerCase().includes(q)) continue;
+    if (f === 'todo-model' && (hasOwn(id) || !modelName(id))) continue;
+    if (f === 'todo-icon' && iconFile(id)) continue;
+    (groups[kind(id)] ||= []).push(id);
+  }
+  document.getElementById('list').innerHTML = Object.entries(groups).map(([k, ids]) => `<h2>${k} (${ids.length})</h2><div class="grid">${ids.map(id => `<div class="card" data-id="${id}">${itemIcon(id)}<b>${ITEMS[id].name}</b><code>${modelName(id) || id}</code><div class="tags"><span class="${hasOwn(id) ? 'ok' : 'todo'}">${hasOwn(id) ? '🧊 Modell' : '⚙️ Platzhalter'}</span><span class="${iconFile(id) ? 'ok' : ''}">${iconFile(id) ? '🎨 Icon' : '📷 gerendert'}</span></div></div>`).join('')}</div>`).join('');
+  fillIcons(document.getElementById('list'));
+  document.getElementById('sum').textContent = `${all.filter(hasOwn).length} von ${all.filter(modelName).length} mit eigenem Modell · ${all.filter(iconFile).length} von ${all.length} mit eigenem Icon`;
+}
+document.getElementById('q').oninput = draw;
+document.getElementById('f').onchange = draw;
+draw();
+
+// 3D-Ansicht zum Drehen
+const cv = document.getElementById('cv'), R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }), scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, 0.05, 100);
+R.outputColorSpace = THREE.SRGBColorSpace;
+scene.add(new THREE.HemisphereLight(0xfff8ee, 0xb8c8a8, 2.1)); const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(2, 4, 5); scene.add(sun);
+const grid = new THREE.GridHelper(4, 4, 0xd8c8b0, 0xe8dcc6); scene.add(grid);
+let obj = null, yaw = 0.6, drag = null, dist = 3, mid = new THREE.Vector3();
+document.getElementById('list').addEventListener('click', e => {
+  const c = e.target.closest('.card'); if (!c) return;
+  if (obj) scene.remove(obj);
+  obj = modelFor(c.dataset.id);
+  if (!obj) return;
+  scene.add(obj);
+  const b = new THREE.Box3().setFromObject(obj); b.getCenter(mid); dist = Math.max(1.2, b.getSize(new THREE.Vector3()).length() * 1.6);
+  document.getElementById('vname').textContent = `${ITEMS[c.dataset.id].name} – ${modelName(c.dataset.id) || c.dataset.id} (1 Kästchen = 1 Feld)`;
+  document.getElementById('view').classList.add('on');
+});
+cv.onpointerdown = e => { drag = e.clientX; cv.setPointerCapture(e.pointerId); };
+cv.onpointermove = e => { if (drag !== null) { yaw += (e.clientX - drag) * 0.01; drag = e.clientX; } };
+cv.onpointerup = () => { drag = null; };
+(function loop() {
+  requestAnimationFrame(loop);
+  if (!document.getElementById('view').classList.contains('on')) return;
+  R.setSize(cv.clientWidth, cv.clientHeight, false); cam.aspect = cv.clientWidth / cv.clientHeight; cam.updateProjectionMatrix();
+  cam.position.set(mid.x + Math.sin(yaw) * dist, mid.y + dist * 0.4, mid.z + Math.cos(yaw) * dist); cam.lookAt(mid);
+  R.render(scene, cam);
+})();
+
+// Alle Icons als ZIP (ohne Kompression) – zum Nachmalen
+const crcT = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+const crc = b => { let c = 0xffffffff; for (const x of b) c = crcT[(c ^ x) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+function zip(files) {
+  const enc = new TextEncoder(), parts = [], cent = []; let off = 0;
+  for (const [name, data] of files) {
+    const n = enc.encode(name), c = crc(data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint32(14, c, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, n.length, true);
+    parts.push(new Uint8Array(h.buffer), n, data);
+    const d = new DataView(new ArrayBuffer(46));
+    d.setUint32(0, 0x02014b50, true); d.setUint16(4, 20, true); d.setUint16(6, 20, true); d.setUint32(16, c, true); d.setUint32(20, data.length, true); d.setUint32(24, data.length, true); d.setUint16(28, n.length, true); d.setUint32(42, off, true);
+    cent.push(new Uint8Array(d.buffer), n);
+    off += 30 + n.length + data.length;
+  }
+  const size = cent.reduce((t, p) => t + p.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, size, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cent, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+document.getElementById('zip').onclick = async () => {
+  document.getElementById('f').value = ''; document.getElementById('q').value = ''; draw();
+  const btn = document.getElementById('zip'); btn.textContent = '⏳ Icons werden gerendert …';
+  while (document.querySelector('[data-icon]')) await new Promise(r => setTimeout(r, 200));
+  const files = [];
+  for (const id of all) { const u = iconUrl(id); if (u?.startsWith('data:image/png')) files.push([id + '.png', Uint8Array.from(atob(u.split(',')[1]), ch => ch.charCodeAt(0))]); }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = 'kuschelinsel-icons.zip'; a.click();
+  btn.textContent = `⬇️ Alle Icons als ZIP (${files.length})`;
+};
+</script>
+</body>
+</html>

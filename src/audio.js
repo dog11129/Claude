@@ -97,6 +97,13 @@ const SFX = {
   plopp: t => tone(380, t, 0.09, 'sine', 0.18, sfxGain, 760),
   party: t => [784, 880, 784, 1047, 988].forEach((f, i) => tone(f, t + i * 0.13, 0.2, 'triangle', 0.12)),
   thunder: t => { noise(t, 2.2, 90, 0.9, sfxGain, 0.5); noise(t + 0.04, 0.5, 500, 0.35, sfxGain, 0.7); noise(t + 0.4, 1.6, 140, 0.5, sfxGain, 0.6); },
+  burner: t => { noise(t, 0.9, 700, 0.35, sfxGain, 0.9); noise(t + 0.05, 0.7, 2400, 0.08, sfxGain, 2); }, // Ballon-Brenner
+  crackle: t => { for (let i = 0; i < 7; i++) noise(t + Math.random() * 0.6, 0.02, 2500 + Math.random() * 2500, 0.12, sfxGain, 5); noise(t, 0.6, 400, 0.05, sfxGain, 0.7); }, // Grill & Lagerfeuer
+  bubble: t => { for (let i = 0; i < 4; i++) tone(500 + i * 180 + Math.random() * 80, t + i * 0.07, 0.07, 'sine', 0.08, sfxGain, 1100 + i * 200); },
+  lock: t => { noise(t, 0.04, 2600, 0.5, sfxGain, 4); tone(220, t + 0.05, 0.12, 'square', 0.05, sfxGain, 160); },
+  unlock: t => { noise(t, 0.04, 2600, 0.5, sfxGain, 4); tone(330, t + 0.06, 0.1, 'triangle', 0.12); tone(660, t + 0.16, 0.3, 'triangle', 0.12); },
+  card: t => { noise(t, 0.05, 3800, 0.25, sfxGain, 3); tone(1400, t, 0.04, 'sine', 0.05); },
+  gondola: t => { tone(1568, t, 0.5, 'sine', 0.09); tone(1175, t + 0.25, 0.7, 'sine', 0.09); noise(t + 0.4, 1.2, 600, 0.05, sfxGain, 0.6); },
   found: t => { [659, 784, 988, 1319].forEach((f, i) => tone(f, t + i * 0.08, 0.25, 'triangle', 0.14)); noise(t + 0.3, 0.3, 3000, 0.08, sfxGain, 2); },
 };
 
@@ -177,10 +184,18 @@ export function play(name) {
 }
 
 // Umgebung: Vögel am Tag, Grillen in der Nacht, Regen, Schritte
-let nextZone = 0;
-export function ambience({ day, night, rain, walking, area, storm, fog }) {
+let nextFire = 0, nextZone = 0;
+export function ambience({ day, night, rain, walking, area, storm, fog, underwater, fire }) {
   if (!ctx || ctx.state !== 'running' || !audio.sound) return;
   const t = ctx.currentTime;
+  // Unter Wasser: dumpfes Rauschen und ab und zu Blubbern – keine Vögel, kein Regen
+  if (underwater) {
+    rainGain.gain.setTargetAtTime(0, t, 0.5);
+    if (t > nextZone) { nextZone = t + 0.9 + Math.random() * 2; noise(t, 1.4, 260, 0.08, ambGain, 0.5); if (Math.random() < 0.5) for (let i = 0; i < 3; i++) tone(380 + Math.random() * 300, t + 0.3 + i * 0.09, 0.08, 'sine', 0.03, ambGain, 900); }
+    return;
+  }
+  // Knistern in der Nähe von Grill und Lagerfeuer
+  if (fire && t > nextFire) { nextFire = t + 0.25 + Math.random() * 0.6; noise(t, 0.02, 2600 + Math.random() * 2400, 0.05 * fire, ambGain, 5); }
   rainGain.gain.setTargetAtTime(rain ? (storm ? 0.5 : 0.35) : 0, t, 0.8);
   // Geräusche je Gebiet: Vögel und Specht im Wald, Bienen auf der Wiese, Tropfen in der Höhle
   if (area && t > nextZone) {

@@ -29,10 +29,11 @@ export async function loadAssets(files, onProgress) {
   const draco = new DRACOLoader().setDecoderPath(new URL('../vendor/draco/', import.meta.url).href);
   const loader = new GLTFLoader().setDRACOLoader(draco);
   let done = 0;
-  await Promise.all(files.map(f => loader.loadAsync(new URL(`../assets/models/${f}.glb`, import.meta.url).href)
-    .then(g => register(g, f))
+  const loaded = await Promise.all(files.map(f => loader.loadAsync(new URL(`../assets/models/${f}.glb`, import.meta.url).href)
     .catch(e => console.warn('Modelle fehlen:', f, e))
     .finally(() => onProgress?.(++done / files.length))));
+  // in der Reihenfolge von packs.json eintragen: ein späteres Paket (z. B. custom.glb) ersetzt gleichnamige Modelle
+  loaded.forEach((g, i) => g && register(g, files[i]));
   draco.dispose();
 }
 

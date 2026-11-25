@@ -3,6 +3,7 @@
 // Achsen: y = oben, Tiere schauen nach +x (die Icon-Kamera blickt von vorne auf die Seite).
 import * as THREE from '../vendor/three.module.min.js';
 import { ball, cyl, cone, box, model } from './models.js';
+import { model as asset } from './assets.js';
 
 const PI = Math.PI;
 const EYE = 0x2b2222, WHITE = 0xffffff;
@@ -273,6 +274,8 @@ function seedBag(k) {
 
 // Liefert eine Gruppe (oder null, wenn es kein eigenes Modell gibt)
 export function itemModel(id) {
+  const own = asset('item_' + id); // schöneres Modell aus Blender (assets/models/*.glb, Name item_<id>) hat Vorrang
+  if (own) return own;
   let r = null;
   if (id.startsWith('s_')) r = seedBag(id.slice(2));
   else if (FISH_LOOK[id]) r = fish(id);

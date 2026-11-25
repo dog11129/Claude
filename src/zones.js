@@ -380,16 +380,16 @@ function buildWreck() {
   geo.computeVertexNormals();
   const floor = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: tex('grass', 24, 24) }));
   floor.position.set(X, 0, Z); floor.receiveShadow = true; g.add(floor);
-  const P = [], G = [], WD = 0x6a4a2a, WL = 0x8a6440, BR = 0xc8a050;
+  const P = [], G = [], H = [], WD = 0x6a4a2a, WL = 0x8a6440, BR = 0xc8a050; // H = das Schiff selbst (austauschbar)
   // Rumpf (leicht schief im Sand), Deck, Kajüte am Heck (Osten), Galionsfigur am Bug (Westen)
-  P.push(M.box(13.2, 1.4, 3.2, WD, 0, 0.5, -3, 0, 0, 0.03), M.box(13.4, 1.2, 0.2, WL, 0, 1.6, -1.45, 0, 0, 0.03), M.box(13.4, 1.0, 0.2, WL, 0, 1.5, -4.55, 0, 0, 0.03));
-  for (let i = 0; i < 12; i++) if (i < 4 || i > 6) P.push(M.box(1.05, 0.08, 3.0, i % 2 ? WL : 0x7a5434, -6 + i * 1.08, 1.22, -3));
-  P.push(M.box(2.0, 2.4, 3.0, WL, 5.6, 2.3, -3), M.box(2.2, 0.15, 3.2, WD, 5.6, 3.55, -3), M.box(0.08, 1.3, 0.9, 0x3a2a1a, 6.62, 1.85, WRECK_DOOR[1]), M.ball(0.06, BR, 6.68, 1.85, WRECK_DOOR[1] + 0.3));
-  P.push(M.cone(0.5, 1.6, WD, -7.2, 1.0, -3, 4, 0, 0, Math.PI / 2), M.ball(0.28, BR, -7.9, 1.7, -3, 1, 1.2, 0.8), M.cone(0.12, 0.4, BR, -8.15, 1.95, -3, 6, 0, 0, Math.PI / 2.4), M.ball(0.08, 0xfff0c0, -8.0, 1.8, -2.8));
+  H.push(M.box(13.2, 1.4, 3.2, WD, 0, 0.5, -3, 0, 0, 0.03), M.box(13.4, 1.2, 0.2, WL, 0, 1.6, -1.45, 0, 0, 0.03), M.box(13.4, 1.0, 0.2, WL, 0, 1.5, -4.55, 0, 0, 0.03));
+  for (let i = 0; i < 12; i++) if (i < 4 || i > 6) H.push(M.box(1.05, 0.08, 3.0, i % 2 ? WL : 0x7a5434, -6 + i * 1.08, 1.22, -3));
+  H.push(M.box(2.0, 2.4, 3.0, WL, 5.6, 2.3, -3), M.box(2.2, 0.15, 3.2, WD, 5.6, 3.55, -3), M.box(0.08, 1.3, 0.9, 0x3a2a1a, 6.62, 1.85, WRECK_DOOR[1]), M.ball(0.06, BR, 6.68, 1.85, WRECK_DOOR[1] + 0.3));
+  H.push(M.cone(0.5, 1.6, WD, -7.2, 1.0, -3, 4, 0, 0, Math.PI / 2), M.ball(0.28, BR, -7.9, 1.7, -3, 1, 1.2, 0.8), M.cone(0.12, 0.4, BR, -8.15, 1.95, -3, 6, 0, 0, Math.PI / 2.4), M.ball(0.08, 0xfff0c0, -8.0, 1.8, -2.8));
   // Bullaugen auf der Südseite (Messingring, dunkles Glas)
-  for (const [x, z] of WRECK_PORTS) { P.push(M.cyl(0.34, 0.34, 0.08, BR, x, 1.25, z - 0.27, 16, Math.PI / 2), M.cyl(0.26, 0.26, 0.1, 0x22404a, x, 1.25, z - 0.25, 16, Math.PI / 2)); }
+  for (const [x, z] of WRECK_PORTS) { H.push(M.cyl(0.34, 0.34, 0.08, BR, x, 1.25, z - 0.27, 16, Math.PI / 2), M.cyl(0.26, 0.26, 0.1, 0x22404a, x, 1.25, z - 0.25, 16, Math.PI / 2)); }
   // umgekippter Mast mit zerrissenem Segel
-  P.push(M.cyl(0.14, 0.18, 9, WL, 1.5, 0.6, 1.2, 8, 0, 0, Math.PI / 2 - 0.12), M.box(1.6, 0.03, 1.1, 0xcfc2a2, 2.4, 0.75, 1.75, 0.5, 0.35, 0.1), M.box(0.9, 0.03, 0.7, 0xc4b694, 3.5, 0.62, 2.3, -0.4, 0.25, 0.05));
+  H.push(M.cyl(0.14, 0.18, 9, WL, 1.5, 0.6, 1.2, 8, 0, 0, Math.PI / 2 - 0.12), M.box(1.6, 0.03, 1.1, 0xcfc2a2, 2.4, 0.75, 1.75, 0.5, 0.35, 0.1), M.box(0.9, 0.03, 0.7, 0xc4b694, 3.5, 0.62, 2.3, -0.4, 0.25, 0.05));
   // Truhen
   for (const [x, z] of WRECK_CHESTS) P.push(M.box(0.8, 0.45, 0.55, 0x8a5a36, x, 0.24, z), M.cyl(0.275, 0.275, 0.8, 0x8a5a36, x, 0.46, z, 10, 0, 0, Math.PI / 2), M.box(0.06, 0.75, 0.57, BR, x - 0.25, 0.35, z), M.box(0.06, 0.75, 0.57, BR, x + 0.25, 0.35, z), M.box(0.12, 0.12, 0.04, BR, x, 0.38, z + 0.29));
   // Fässer, Felsen, Muscheln
@@ -400,6 +400,8 @@ function buildWreck() {
   P.push(M.cyl(0.035, 0.035, 2.4, 0xe8d6a8, 0, 1.2, R - 1.2, 6), M.cyl(0.35, 0.35, 0.12, 0x6a6478, 0, 0.06, R - 1.2, 10), M.ball(0.16, 0xffd23f, 0, 2.45, R - 1.2));
   G.push(M.ball(0.08, 0, 0, 2.62, R - 1.2), M.box(0.5, 0.35, 0.02, 0, WRECK_DOOR[0] - 0.4, 2.9, WRECK_DOOR[1] + 1.52));
   g.add(put(new THREE.Group(), M.model(P, G), X, Z));
+  // das Schiff: eigenes Modell zone_wreck_ship (Ursprung = Wrack-Mitte), sonst der Platzhalter
+  g.add(put(new THREE.Group(), model('zone_wreck_ship') || M.model(H), X, Z));
   // Seegras
   const weed = [];
   for (let i = 0; i < 18; i++) {

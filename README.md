@@ -37,8 +37,16 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🎈 Neu: Ballon, Wrack, Spieleabend & Sternbilder
-- **🎈 Heißluftballon** (Rathaus-Projekt „Ballonplatz“): Für 800 Taler eine Runde über die ganze Insel schweben. Unterwegs schweben Geschenkballons am Himmel (drei pro Tag) – einfach hindurchfliegen. Beim ersten Flug kommt ein Luftbild ins Fotobuch.
+### 🧭 Neu: Inselführer, Feinschliff & schnellere Verbindung
+- **📘 Inselführer** (Handy ➜ Inselführer): alles, was es auf der Insel gibt – nach Bereichen, mit kurzer Anleitung, wie man anfängt, und einem Häkchen für alles, was ihr schon entdeckt habt.
+- **Neue Kapitel & Tagesaufgaben:** 8 weitere Kapitel der Insel-Geschichte (Sandkünstler, Spieleabend, Grillmeister, Unter Wasser, Das Geheimnis der gelben Boje, Sternenhimmel, Gute Nachbarn, Inselfotograf) und 7 neue Tagesaufgaben für Hof, Grill, Spieltisch, Wrack, Tauchen und Drachen – die erscheinen nur, wenn ihr das Nötige schon habt.
+- **Eigene Geräusche** für Ballonbrenner, Lagerfeuer-Knistern, Blubbern beim Tauchen, Schlösser, Memory-Karten und die Gondel; unter Wasser und am Grill klingt die Umgebung anders.
+- **Ausgewogener:** Ballonfahrt 1000 Taler, gegrillte Sachen etwas günstiger, Siege gegen Nachbarn bringen höchstens dreimal am Tag Taler.
+- **Handy:** Sprechblasen bleiben ganz im Bild, das Tagebuch passt in schmale Bildschirme, die Quest-Anzeige kürzt mit „…“.
+- **Schneller im Mehrspieler:** Der Host schickt nur noch die Teile der Insel, die sich geändert haben (alle 15 s einmal alles). Fenster zeichnen sich seltener neu, die Grafikstufe passt sich automatisch an.
+
+### 🎈 Ballon, Wrack, Spieleabend & Sternbilder
+- **🎈 Heißluftballon** (Rathaus-Projekt „Ballonplatz“): Für 1000 Taler eine Runde über die ganze Insel schweben. Unterwegs schweben Geschenkballons am Himmel (drei pro Tag) – einfach hindurchfliegen. Beim ersten Flug kommt ein Luftbild ins Fotobuch.
 - **🦋 Schmetterlingsgarten** (Gärtnerei ➜ Pflanzen): Das Schmetterlingshaus lockt acht seltene Falter an – jeder nur, wenn rundherum mindestens zwei seiner Lieblingsblumen blühen (z. B. Tulpenfalter an Tulpen, Eisfalter an Christrosen im Winter). Sie flattern ums Haus und kommen ins Museum.
 - **⚓ Schiffswrack:** An der gelben Boje im Westen abtauchen. Drei Truhen haben jeden Tag etwas drin, in der ersten liegt eine alte Seekarte. Wer die Zeichen auf den Bullaugen in der richtigen Reihenfolge eingibt, öffnet die Kapitänskajüte: Golddublonen, Kapitänstruhe, Buddelschiff, Schiffsglocke, Steuerrad und Anker.
 - **🎲 Spieleabend** (Spieltisch im Krämerladen): Vier gewinnt und Memory gegen einen Nachbarn oder einen Mitspieler. Die Nachbarn spielen unterschiedlich gut – Wanda ist kaum zu schlagen. Siege bringen Taler und Freundschaft.
@@ -167,12 +175,16 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/extras.js` | Inselleben-Update: Zeitung, Fotobuch, Jahrestage, Katalog, Wochenziele, Wetter, Gärtnerei-Technik, Schatzkarte, Kochwettbewerb, Nachtmarkt, Tauschstand, Ausflüge, Campingplatz, Muster, Melodie |
 | `src/trips.js`, `src/patterns.js`, `src/photos.js` | Zufallsinseln, Pixel-Muster, Fotoalbum & Postkarten (IndexedDB) |
 | `src/cloud.js`, `cloud/worker.js`, `cloud/dev-server.mjs` | Cloud-Spielstand & Verbindungsserver (Browser-Seite, Cloudflare Worker, lokaler Nachbau für Tests) |
+| `src/extras2.js`, `src/extras3.js`, `src/features/*.js` | Neuere Inhalte, je Thema eine Datei (Geschichten, Hof, Riff, Strand, Seilbahn, Ballon, Schmetterlinge, Wrack, Spiele, Fotowettbewerb, Grill, Sterne, Nachbarzimmer) |
+| `src/client/fun.js`, `src/guide.js` | Ballonfahrt, Fotowettbewerb-Knopf, Sternbild-Editor, Fahrrad, Drachen · Inselführer |
 | `src/models-extra.js` | Modelle der neuen Deko und Möbel |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |
 
 ### Grafik aus Blender
 
 Alle Modelle und Texturen werden in Blender gebaut (Skripte in `blender/`) und liegen fertig in `assets/models/*.glb` (Draco-komprimiert) und `assets/tex/*.webp`. Fehlt eine Datei, zeichnet das Spiel die alten, einfachen Formen.
+
+**Schönere Modelle & Icons nachrüsten:** Anleitung in [ART.md](ART.md). Kurz: `tools/gallery.html` zeigt alles mit Stand (eigenes Modell/Icon oder Platzhalter), `npm run export-models` schreibt die Platzhalter als GLB-Vorlagen nach `art/export/` und die Liste [art/STATUS.md](art/STATUS.md), neue Modelle kommen als `assets/models/custom.glb` (in `packs.json` eintragen), eigene Icons mit `npm run icons -- ordner`.
 
 | Skript | Ergebnis |
 |---|---|
@@ -197,9 +209,13 @@ Irgendein statischer Webspace mit **https** reicht. GitHub Pages: *Settings → 
 
 ```bash
 python3 -m http.server 8080        # dann http://localhost:8080 öffnen
-npm test                           # Spiellogik
-npm i --no-save playwright peer && node test/multiplayer.e2e.cjs   # Host + Gast im Browser
+npm test                           # Spiellogik & alte Spielstände
+npm run smoke                      # Browser: neue Insel, alle Orte & Fenster, Handy-Ansicht (pip install playwright)
+npm run together                   # Host + Gast über den lokalen Verbindungsserver (einmalig zusätzlich: npm i --no-save ws)
+npm i --no-save playwright peer && node test/multiplayer.e2e.cjs   # Host + Gast über PeerJS
 node cloud/dev-server.mjs 8787 & python3 test/cloud.e2e.py         # eigener Server & Cloud-Spielstand (lokaler Nachbau)
 ```
+
+Auf GitHub laufen `npm test`, der Smoke-Test und der Zwei-Spieler-Test bei jedem Hochladen automatisch (`.github/workflows/test.yml`); Bildschirmfotos liegen danach unter „Artifacts“.
 
 Den Worker neu veröffentlichen: `cloud/worker.js` als Modul-Worker `kuschelinsel` mit den Durable-Object-Bindungen `ROOM` (Klasse `Room`) und `VAULT` (Klasse `Vault`, beide SQLite) hochladen, z. B. mit Wrangler oder über die Cloudflare-API.

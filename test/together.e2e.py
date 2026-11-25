@@ -1,0 +1,116 @@
+# Zwei-Spieler-Test über den lokalen Nachbau des Verbindungsservers (cloud/dev-server.mjs).
+#   npm run together        (braucht Node, pip install playwright und Chrome wie beim Smoke-Test)
+# Host (PC) und Gast (Handy) spielen zusammen: Bewegung, Sandburg, Riff, Vier gewinnt, Sternbild, Foto-Wettbewerb,
+# Nachbarzimmer einrichten, Fahrrad & Drachen. Statt fester Wartezeiten wird auf das Ergebnis gewartet (bis 15 s),
+# und Chrome drosselt Hintergrund-Tabs nicht – so ist der Test auch auf langsamen Rechnern stabil.
+import asyncio, os, socket, subprocess, sys, json
+from playwright.async_api import async_playwright
+
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+fails = []
+def ok(c, what):
+    print(('✔ ' if c else '✘ ') + what)
+    if not c: fails.append(what)
+
+def free_port():
+    s = socket.socket(); s.bind(('127.0.0.1', 0)); p = s.getsockname()[1]; s.close(); return p
+
+def chrome():
+    for p in (os.environ.get('CHROME'), '/usr/bin/google-chrome', '/usr/bin/chromium'):
+        if p and os.path.exists(p): return p
+    return None
+
+INIT = ("localStorage.setItem('kh.settings', JSON.stringify({quality:'low',sound:0,music:0,fullscreen:false}));"
+        "localStorage.setItem('kh.profile', JSON.stringify({name:'%s'}));localStorage.setItem('ki.tutorial','true');localStorage.setItem('ki.buildTip','true')")
+
+async def until(pg, js, arg=None, timeout=15000):
+    """Wartet, bis js (Ausdruck oder Funktion) etwas Wahres liefert; gibt den letzten Wert zurück."""
+    try:
+        h = await pg.wait_for_function(js, arg=arg, timeout=timeout, polling=200)
+        return await h.json_value()
+    except Exception:  # Zeit um: letzten Wert zurückgeben, damit die Meldung zeigt, was stattdessen da war
+        return await (pg.evaluate(js) if arg is None else pg.evaluate(js, arg))
+
+async def main():
+    web, cloud = free_port(), free_port()
+    procs = [subprocess.Popen([sys.executable, '-m', 'http.server', str(web), '--bind', '127.0.0.1'], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),
+             subprocess.Popen(['node', 'cloud/dev-server.mjs', str(cloud)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)]
+    await asyncio.sleep(1.2)
+    base = f'http://127.0.0.1:{web}/index.html?cloud=http://127.0.0.1:{cloud}'
+    errs = []
+    try:
+        async with async_playwright() as p:
+            b = await p.chromium.launch(executable_path=chrome(), args=['--no-sandbox', '--disable-background-timer-throttling',
+                                                                         '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'])
+            async def page(name, prof, **ctx):
+                c = await b.new_context(**ctx)
+                await c.add_init_script(INIT % prof)
+                pg = await c.new_page()
+                pg.on('pageerror', lambda e: errs.append(f'{name}: {e}'))
+                return pg
+            A = await page('Host', 'Shawn', viewport={'width': 900, 'height': 650})
+            await A.goto(base)
+            await A.click('[data-go=farms]'); await A.click('#newbtn')
+            code = await until(A, 'window.__game?.G?.code', timeout=30000)
+            ok(bool(code), f'Host online, Code {code}')
+            B = await page('Gast', 'Mia', viewport={'width': 390, 'height': 760}, is_mobile=True, has_touch=True)
+            await B.goto(base)
+            await B.click('[data-go=join]'); await B.fill('#jcode', code); await B.click('#jbtn')
+            await until(B, 'window.__game?.G?.ready', timeout=30000)
+            n = await until(A, 'Object.keys(window.__game.G.players).length === 2')
+            ok(n is True, 'Host sieht beide Spieler')
+            mia = "Object.values(window.__game.G.players).find(p => p.name === 'Mia')"
+            # Bewegung
+            await B.evaluate("(() => { const G = window.__game.G, me = G.players[G.me]; me.x += 2; me.z += 1; })()")
+            me = await B.evaluate("(() => { const p = window.__game.G.players[window.__game.G.me]; return [p.x, p.z] })()")
+            r = await until(A, f"(m => {{ const g = {mia}; return g && Math.abs(g.x - m[0]) < 0.6 && Math.abs(g.z - m[1]) < 0.6 }})", me)
+            ok(r is True, 'Host sieht die Bewegung des Gastes')
+            # Sandburg: Name kommt vom Host, nicht vom Gast
+            await B.evaluate("""(() => { const {G, S, send} = window.__game; let p = null;
+                for (let x = -30; x <= 30 && !p; x++) for (let z = -30; z <= 30 && !p; z++) { const k = S.key(x, z); if (S.sandX(x, z) && !G.s.digs.includes(k) && !G.s.obj[k] && !G.s.shells?.[k]) p = [x, z]; }
+                send({ t: 'castle', op: 'build', x: p[0], z: p[1], name: 'Schummel' }); })()""")
+            r = await until(A, "Object.keys(window.__game.G.s.castles || {}).length > 0 && JSON.stringify(Object.values(window.__game.G.s.castles).map(c => [c.name, c.by]))")
+            ok(isinstance(r, str) and 'Mia' in r and 'Schummel' not in r, f'Sandburg des Gastes {r}')
+            # Riff entdecken (Gast) -> beide sehen es
+            await B.evaluate("window.__game.send({ t: 'reef', op: 'found' })")
+            ok(await until(A, 'window.__game.G.s.reef?.found > 0') is True, 'Riff entdeckt (vom Gast)')
+            ok(await until(B, 'window.__game.G.s.reef?.found > 0 && Object.keys(window.__game.G.s.castles || {}).length === 1') is True, 'Gast sieht Riff & Burg (Teil-Updates)')
+            # Vier gewinnt: Gast fordert Host heraus, abwechselnd ziehen
+            hk = await A.evaluate('window.__game.G.players[window.__game.G.me].key')
+            await B.evaluate("k => window.__game.send({ t: 'game', op: 'start', k: 'c4', vs: k, vsName: 'Shawn', name: 'Mia' })", hk)
+            await until(A, 'window.__game.G.s.game?.k === "c4"')
+            for i in range(6):
+                await until(A, f'(n => (window.__game.G.s.game?.b || []).filter(v => v >= 0).length >= n)', i)
+                turn_host = await A.evaluate("(() => { const g = window.__game.G.s.game; return g.p[g.turn].name === 'Shawn' })()")
+                pg = A if turn_host else B
+                await until(pg, f'(n => (window.__game.G.s.game?.b || []).filter(v => v >= 0).length >= n)', i)
+                await pg.evaluate("(() => { const g = window.__game.G.s.game; const c = [3, 3, 3, 3, 2, 4, 1].find(c => g.b[c] < 0); window.__game.send({ t: 'game', op: 'move', col: c }); })()")
+            r = await until(A, "(() => { const g = window.__game.G.s.game; return g && g.b.filter(v => v >= 0).length >= 6 && [g.p.map(p => p.name), g.b.filter(v => v >= 0).length] })()")
+            ok(isinstance(r, list) and r[0] == ['Mia', 'Shawn'], f'Vier gewinnt Gast gegen Host {r}')
+            # Sternbild & Foto vom Gast
+            await B.evaluate("window.__game.send({ t: 'sternbild', op: 'add', n: 'Mias Stern', sec: 2, l: [[0, 1]], by: 'Mia' })")
+            await B.evaluate("window.__game.send({ t: 'photoentry', score: 60, img: 'data:image/jpeg;base64,AAAA', name: 'Mia' })")
+            r = await until(A, "(() => { const s = window.__game.G.s; return s.consts?.length && Object.keys(s.photoc?.entries || {}).length && [s.consts.map(c => c.n), Object.values(s.photoc.entries).map(e => e.name)] })()")
+            ok(r == [['Mias Stern'], ['Mia']], f'Sternbild & Foto vom Gast {r}')
+            # Gast richtet Miras Zimmer ein (3 Herzen nötig)
+            await A.evaluate(f"(() => {{ const {{G, S}} = window.__game; S.friendX(G.s, 'mira').f = 500; (G.s.pinv[{mia}.key] ||= {{}}).stuhl = 1; G.dirty = true; }})()")
+            await until(B, 'window.__game.G.s.inv?.stuhl >= 1')
+            await B.evaluate("(() => { const {G, S, send} = window.__game, me = G.players[G.me]; me.x = S.HOME_X; me.z = S.nroomZ('mira') + 1.5; send({ t: 'hplace', x: 1, z: 0, item: 'stuhl', r: 0, room: 'mira' }); })()")
+            r = await until(A, "JSON.stringify(window.__game.G.s.nhome?.mira?.items || {}).includes('stuhl') && JSON.stringify(window.__game.G.s.nhome.mira.items)")
+            ok(isinstance(r, str) and 'stuhl' in r, f'Gast richtet Miras Zimmer ein {r}')
+            # Fahrrad & Drachen des Gastes sieht der Host
+            await A.evaluate(f"(() => {{ const G = window.__game.G, k = {mia}.key; Object.assign(G.s.pinv[k] ||= {{}}, {{ fahrrad: 1, drache: 1 }}); G.dirty = true; }})()")
+            await until(B, 'window.__game.G.s.inv?.fahrrad >= 1')
+            await B.evaluate("window.__game.travel('island')")  # draußen – im Zimmer steigt man vom Rad ab
+            await B.evaluate("(() => { const G = window.__game.G, me = G.players[G.me]; me.bike = me.bk = true; G.kite = { t: 0, h: 60, best: 60, armed: true, cool: 0 }; })()")
+            r = await until(A, f"(() => {{ const o = {mia}; return o?.bk === true && o?.kh > 10 && [o.bk, o.kh] }})()")
+            ok(isinstance(r, list), f'Host sieht Fahrrad & Drachen des Gastes {r}')
+            await b.close()
+    finally:
+        for pr in procs: pr.terminate()
+    for e in errs[:10]: print('  ⚠️', e)
+    ok(not errs, f'keine JS-Fehler ({len(errs)})')
+    print('\n' + ('ALLES OK' if not fails else f'{len(fails)} FEHLGESCHLAGEN'))
+    sys.exit(1 if fails else 0)
+
+asyncio.run(main())
