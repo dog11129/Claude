@@ -20,6 +20,7 @@ import * as photos from './photos.js';
 import * as XS from './extras.js';
 import * as PAT from './patterns.js';
 import { TRIP, TRIP_PRICE } from './trips.js';
+import { REEF, REEF_BUOY, cableBuilt, cableStop, taleState, beachOpen, beachKind } from './extras2.js';
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -178,6 +179,8 @@ function hostData(id, d) {
     p.fishing = d.fishing === true;
     p.run = d.run === true;
     p.sw = d.sw === true;
+    p.bk = d.bk === true; // Fahrrad
+    p.kh = Number.isFinite(d.kh) ? Math.max(0, Math.min(120, d.kh)) : 0; // Drachen-Höhe
   }
   if (d.t === 'look') Object.assign(p, cleanProfile(d));
   if (d.t === 'act') handleAct(id, d.a);
@@ -219,7 +222,7 @@ function handleAct(id, a) {
     a = { ...a, to: to.key };
   }
   const who = G.players[id]?.key || 'host';
-  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle', 'cookin', 'stalladd', 'stallswap', 'fwstart'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
+  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle', 'cookin', 'stalladd', 'stallswap', 'fwstart', 'castle', 'kitescore'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
   S.bindInv(G.s, 'host');
   if (out.gave) { // dem Empfänger Bescheid sagen
     const rid = Object.keys(G.players).find(k => G.players[k].key === out.gave.to), it = ITEMS[out.gave.item];
@@ -228,7 +231,7 @@ function handleAct(id, a) {
   }
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes, taleSay: out.taleSay, taleReady: out.taleReady };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -414,6 +417,9 @@ function onRes(r) {
   }
   if (r.cookVotes) r.cookVotes.forEach((v, i) => setTimeout(() => { toast(`${v.icon} ${v.name}: „${v.line}“ – ${'⭐'.repeat(Math.round(v.score / 2))} ${v.score}/10`); play(v.score >= 7 ? 'love' : 'chat'); }, 600 + i * 1400));
   if (r.newAlbum) { toast(`📖 Neu im Sammelbuch: ${ITEMS[r.newAlbum].icon} ${ITEMS[r.newAlbum].name}`, 'ach'); play('ach'); }
+  if (r.taleSay && G.talk) { say2(r.taleSay); world.npcSay(G.talk.id, 'love'); }
+  if (r.taleReady) setTimeout(() => toast(`📖 Geschafft! ${r.taleReady} wartet auf dich – die Geschichte geht weiter.`, 'ach'), 900);
+  if (G.talk) setTimeout(() => G?.talk && updTale(G.talk.id), 450);
 }
 // Neue Seite im Fotobuch: kurz anzeigen und ein Bild vom Moment festhalten (nur auf diesem Gerät)
 const isleKey = () => G?.s?.id || G?.key || 'insel';
@@ -740,7 +746,7 @@ function netTick() {
   } else {
     const me = G.players[G.me];
     if (!me || G.reconnecting || G.ended) return;
-    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw };
+    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, kh: me.kh || 0 };
     const sig = JSON.stringify(msg);
     if (sig !== G.lastMove || now - (G.lastMoveT || 0) > 1000) { G.conn?.send(msg); G.lastMove = sig; G.lastMoveT = now; }
     if (now - G.lastHost > 9000) lostConnection();
@@ -1156,6 +1162,7 @@ const panels = new Panels({
       setTimeout(() => G?.ready && travel('tropic'), 600);
     }
     if (kind === 'sailhome') travel('pier');
+    if (kind === 'cablego') { panels.close(); toast('🚡 Die Gondel schwebt los … 🎶'); play('whistle'); setTimeout(() => G?.ready && travel('cable:' + d.to), 650); }
     if (kind === 'trip') {
       if (G.s.money < TRIP_PRICE) { toast(`Der Ausflug kostet ${TRIP_PRICE} Taler.`); return; }
       send({ t: 'tripgo' });
@@ -1266,13 +1273,14 @@ $('rotbtn').onclick = () => world.rotate(Math.PI / 4);
 const keys = new Set();
 const joy = { x: 0, y: 0, id: null };
 let actHeld = false, nextAct = 0;
-const busy = () => !G?.ready || panels.open || editor.isOpen || G.photo || G.talk || (G.hide?.phase === 'count' && G.hide.seeker === G.me);
+const busy = () => !G?.ready || !!G.kite || panels.open || editor.isOpen || G.photo || G.talk || (G.hide?.phase === 'count' && G.hide.seeker === G.me);
 
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') { if (e.key === 'Escape') closeChat(); return; }
   if (!G?.ready) return;
   const k = e.key.toLowerCase();
   if (k === 'escape') {
+    if (G.kite) { endKite(); return; }
     if (G.build) { closeBuild(); return; }
     if (G.talk) closeTalk();
     else if (G.photo) setPhoto(false);
@@ -1538,6 +1546,8 @@ function context(me, at) {
     const stars = G.s.starNight && 6 + G.s.dayTime * 18 >= 19;
     return stars ? (world.starActive() ? { wish: true, label: '🌠 Wünschen!', tiles: [] } : { label: '✨ Warte auf eine Sternschnuppe …', tiles: [] }) : { label: '🔭 Himmel', tiles: [] };
   }
+  if (!at && G.sel === 'kite' && !S.inside(me)) return { kite: true, label: '🪁 Drachen steigen lassen', tiles: [] };
+  if (!at && G.sel === 'bike') return { bike: true, label: me.bike ? '🚲 Absteigen' : '🚲 Aufs Fahrrad', tiles: [] };
   const p = at || { x: me.x + Math.sin(me.ry) * 0.9, z: me.z + Math.cos(me.ry) * 0.9 };
   const n = world.npcNear(p.x, p.z, at ? 0.9 : 1.1);
   if (n?.visitor) return { ui: 'visitor', visitor: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
@@ -1550,6 +1560,7 @@ function context(me, at) {
 
 function pressAction() {
   if (G?.build) { buildDo(buildCtx(G.hover ? world.pick(G.hover.cx, G.hover.cy) : null)); return; }
+  if (G?.kite) { kitePull(); return; }
   if (busy()) return;
   actHeld = true;
   nextAct = performance.now() + 380;
@@ -1575,6 +1586,7 @@ function execute(r, fresh) {
       if (!G?.ready) return;
       me.pose = null;
       world.burst(me.x, me.z, 'splash', -0.2);
+      if (r.reef) { if (!G.s.reef?.found) send({ t: 'reef', op: 'found' }); travel('reef'); return; }
       if (r.a) send(r.a); else toast('🫧 Nur Sand und Seegras da unten. Such nach Luftblasen!');
     }, 1100);
     return;
@@ -1589,6 +1601,8 @@ function execute(r, fresh) {
     return;
   }
   if (r.hug) { if (fresh) { interrupt(); G.together = r.hug; panels.show('together'); play('click'); } return; }
+  if (r.kite) { if (fresh) startKite(); return; }
+  if (r.bike) { if (fresh) setBike(!me.bike); return; }
   if (r.go) { if (fresh) travel(r.go); return; }
   if (r.net) {
     if (!fresh || performance.now() < (G.netCool || 0)) return;
@@ -1615,6 +1629,8 @@ function execute(r, fresh) {
   if (r.ui) {
     if (!fresh) return;
     interrupt();
+    if (r.slot !== undefined) G.reefSlot = r.slot;
+    if (r.castle) G.castleK = r.castle;
     if (r.visitor) { G.visitor = r.visitor; G.vline = null; send({ t: 'vtalk', id: r.visitor }); for (let i = 0; i < 4; i++) setTimeout(() => speak('aeiou'[i], NPCS[r.visitor].voice || {}), i * 90); }
     if (r.ui === 'farm') panels.show('shop', 'farm');
     else panels.show(r.ui);
@@ -1659,6 +1675,7 @@ function standUp(me) {
 
 function tapAt(cx, cy) {
   if (G?.build) { buildTap(cx, cy); return; }
+  if (G?.kite) { kitePull(); return; }
   if (busy()) return;
   const me = G.players[G.me];
   if (G.fishing) { reelIn(); return; }
@@ -1680,7 +1697,7 @@ function tapAt(cx, cy) {
 }
 
 // Was zeigen Maus oder Finger an – und kann die Figur es von hier aus benutzen?
-const usable = r => !!r && !!(r.a || r.ui || r.go || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
+const usable = r => !!r && !!(r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
 const reachOf = r => r.npc ? 1.9 : r.hug ? 1.5 : r.ui || r.go || r.enter || r.exit || r.visit ? 2.2 : r.fish ? 1.8 : r.net ? 2 : 1.6;
 function aimAt(cx, cy) {
   const me = G.players[G.me];
@@ -1697,6 +1714,18 @@ function aimAt(cx, cy) {
 
 // Ortswechsel: Bummelgasse, Tropeninsel (mit dem Boot) und zurück
 // Insel-Erweiterungen: hinein (am Südrand ankommen) und zurück vors Tor auf der Insel
+// Seilbahn: Talstation auf der Insel oder Haltestelle im Gebiet
+function cableTravel(id) {
+  const st = cableBuilt(G.s);
+  if (!st) return null;
+  if (id === 'island') {
+    const [x, z] = st[0].split(',').map(Number), spot = [[0, 2.2], [2.2, 0], [-2.2, 0], [0, -2.2]].find(([a, b]) => freeAt(x + a, z + b)) || [0, 2.2];
+    return [x + spot[0], z + spot[1], 0, '🚡 Zurück an der Talstation.', 'door'];
+  }
+  if (!S.AREAS[id] || !G.s.areas?.[id]) return null;
+  const [x, z] = cableStop(id), A = S.AREAS[id];
+  return [x + 1.1, z, Math.PI, `🚡 ${A.icon} ${A.name} – Haltestelle. Zurück geht's hier mit der Gondel.`, 'door'];
+}
 function areaTravel(where, me) {
   const A = S.AREAS[where];
   if (A) return [A.x, A.z + A.d - 0.6, Math.PI, `${A.icon} ${A.name}${A.cave ? ' – Schaufel bereithalten, die Erzadern glitzern!' : ' – schau dich um!'}`, 'door'];
@@ -1711,12 +1740,14 @@ function travel(where) {
   interrupt();
   panels.close();
   fade();
-  const to = me.x < -150 && where === 'island' ? areaTravel(where, me) : {
+  const to = where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
     pier: [-9, 22.6, Math.PI, '⛵ Zurück auf eurer Insel.', 'splash'],
     trip: [TRIP.x, TRIP.z + TRIP.r + 1.8, Math.PI, '', 'splash'],
+    reef: [REEF.x, REEF.z + REEF.r - 2.6, Math.PI, G.s.reef?.found ? '🪸 Hinab ins Korallenriff!' : '🪸 Ein ganzes Riff unter der Boje! ✨ Fundstellen absuchen, auf die Steinplatten Korallen & Muscheln setzen.', 'splash'],
+    reefup: [REEF_BUOY[0], REEF_BUOY[1] + 0.8, 0, '🫧 Wieder an der Oberfläche!', 'splash'],
   }[where] || areaTravel(where, me);
   if (!to) return;
   Object.assign(me, { x: to[0], z: to[1], ry: to[2], pose: null });
@@ -1845,8 +1876,9 @@ function openTalk(id) {
   const N = NPCS[id], h = S.hearts(G.s, id);
   $('dlgname').style.background = N.color;
   $('dlgname').innerHTML = `${N.icon} ${N.name}<small>${'❤️'.repeat(Math.ceil(h / 2)) || '🤍'}</small>`;
-  const ctx = talkCtx(id);
-  say2(festLine(id, ctx) || npcLine(id, ctx));
+  const ctx = talkCtx(id), tale = taleState(G.s, id);
+  updTale(id);
+  say2(festLine(id, ctx) || (tale.ready ? (tale.t.ch ? `Du, ${profile.name || 'du'} … erinnerst du dich an „${tale.T.title}“? Ich hätte da noch eine Idee! (📖)` : `Du, ${profile.name || 'du'} … darf ich dir etwas erzählen? Ich hab da so einen Traum. (📖)`) : npcLine(id, ctx)));
   world.npcSay(id, 'happy');
   play(ctx.bday === id ? 'party' : 'chat');
 }
@@ -1890,6 +1922,17 @@ $('dlgtext').addEventListener('click', () => {
   $('dlgtext').textContent = typeFull;
   $('dlgtext').parentElement.classList.add('done');
 });
+// Knopf „Geschichte“ im Gespräch: neue Geschichte, Erinnerung oder „Erledigt!“
+const taleCan = st => st.active && (st.t.ok || (st.C.kind === 'give' && (G.s.inv[st.C.item] || 0) >= st.C.n));
+function updTale(id) {
+  const b = $('dlgtale'), st = taleState(G.s, id), show = !st.done && (st.ready || st.active);
+  b.classList.toggle('hidden', !show);
+  if (!show) return;
+  const can = taleCan(st);
+  b.textContent = st.ready ? `📖 ${st.t.ch ? 'Weiter: Kapitel ' + (st.t.ch + 1) : 'Geschichte'}` : can ? '✨ Erledigt!' : '📖 Was war nochmal?';
+  b.classList.toggle('pink', st.ready || can);
+  b.classList.toggle('white', !(st.ready || can));
+}
 function closeTalk() {
   clearInterval(typeTimer);
   if (G) G.talk = null;
@@ -1912,6 +1955,16 @@ $('dialog').addEventListener('click', e => {
   if (!b || !G?.talk) return;
   const id = G.talk.id;
   if (b.dataset.dlg === 'bye') closeTalk();
+  if (b.dataset.dlg === 'tale') {
+    $('dlggifts').classList.add('hidden');
+    const st = taleState(G.s, id);
+    if (st.done) return;
+    if (st.ready) { send({ t: 'tale', id, op: 'start' }); play('chat'); }
+    else if (st.active) {
+      if (taleCan(st)) send({ t: 'tale', id, op: 'finish' });
+      else { say2(`${st.C.ask} ${st.C.kind === 'give' ? `(${G.s.inv[st.C.item] || 0}/${st.C.n} ${ITEMS[st.C.item].icon})` : `(${st.t.p || 0}/${st.C.n})`}`); play('chat'); }
+    }
+  }
   if (b.dataset.dlg === 'talk') { $('dlggifts').classList.add('hidden'); say2(npcLine(id, talkCtx(id))); world.npcSay(id, 'happy'); play('chat'); }
   if (b.dataset.dlg === 'gift') {
     const items = Object.entries(G.s.inv).filter(([k, n]) => n > 0 && ITEMS[k] && !ITEMS[k].seed && (ITEMS[k].sell || ITEMS[k].place));
@@ -1925,6 +1978,73 @@ $('dialog').addEventListener('click', e => {
     $('dlggifts').classList.add('hidden');
   }
 });
+
+// ---------- Fahrrad ----------
+function setBike(on, quiet) {
+  const me = G.players[G.me];
+  if (on && (!(G.s.inv.fahrrad > 0) || me.sw || S.inside(me) || zoneOf(me) === 'reef')) { if (!quiet) toast('🚲 Hier geht Radfahren nicht.'); return; }
+  if (!!me.bike === on) return;
+  me.bike = me.bk = on;
+  if (on && me.pose) me.pose = null;
+  world.burst(me.x, me.z, 'dust');
+  if (!quiet) { play(on ? 'whistle' : 'click'); toast(on ? '🚲 Kling kling – los geht\'s!' : '🚲 Abgestiegen.'); }
+}
+
+// ---------- Drachen steigen lassen ----------
+// 25 Sekunden: Die Markierung pendelt hin und her, das grüne Feld ist die Böe. Im Feld drücken = höher, daneben = Absacker.
+const KITE_SECS = 25;
+const kiteMark = k => (Math.sin(k.t * 2.6) + 1) / 2;
+const kiteZone = k => ({ c: 0.5 + Math.sin(k.t * 0.55) * 0.28 + Math.sin(k.t * 1.3) * 0.07, w: Math.max(0.13, 0.3 - k.t * 0.0065) });
+function startKite() {
+  const me = G.players[G.me];
+  if (G.kite || !(G.s.inv.drache > 0)) return;
+  if (S.inside(me) || me.sw || zoneOf(me) === 'reef') { toast('🪁 Hier weht kein Wind – raus an den Strand!'); return; }
+  interrupt();
+  if (me.bike) setBike(false, true);
+  me.pose = null;
+  me.ry = world.yaw; // zur Kamera drehen: der Drachen steigt vor der Figur auf
+  G.kite = { t: 0, h: 10, best: 10, armed: true, cool: 0 };
+  $('kitebar').classList.remove('hidden');
+  toast(touch ? '🪁 Tippe, wenn die Markierung im grünen Böen-Feld ist!' : '🪁 Drücke E, wenn die Markierung im grünen Böen-Feld ist!');
+  play('launch');
+}
+function kitePull() {
+  const k = G.kite, now = performance.now();
+  if (!k || k.t < 0.5 || now < k.cool) return;
+  k.cool = now + 200;
+  const m = kiteMark(k), z = kiteZone(k), me = G.players[G.me];
+  if (Math.abs(m - z.c) < z.w / 2 && k.armed) {
+    k.armed = false;
+    k.h = Math.min(120, k.h + 7 + (1 - Math.abs(m - z.c) / (z.w / 2)) * 6);
+    k.best = Math.max(k.best, k.h);
+    play('plopp'); bump('kitebar', 'pop');
+    world.float(me.x, me.z, '💨', 2.6);
+  } else { k.h = Math.max(0, k.h - 3); play('fail'); }
+}
+function updateKite(dt) {
+  const k = G.kite, me = G.players[G.me];
+  if (!k) { me.kh = 0; return; }
+  k.t += dt;
+  k.h = Math.max(0, k.h - dt * (1.5 + k.h * 0.022));
+  const m = kiteMark(k), z = kiteZone(k);
+  if (Math.abs(m - z.c) >= z.w / 2) k.armed = true; // eine Böe zählt nur einmal
+  me.kh = Math.round(k.h * 10) / 10;
+  $('kitemark').style.left = `${m * 100}%`;
+  $('kitezone').style.left = `${(z.c - z.w / 2) * 100}%`;
+  $('kitezone').style.width = `${z.w * 100}%`;
+  setText('kiteh', `🪁 ${Math.round(k.h)} m · Bestwert ${Math.round(k.best)} m`);
+  setText('kitetime', `⏱️ ${Math.max(0, Math.ceil(KITE_SECS - k.t))} s`);
+  if (k.t >= KITE_SECS || (k.h <= 0 && k.t > 3)) endKite();
+}
+function endKite() {
+  const k = G.kite;
+  if (!k) return;
+  G.kite = null;
+  G.players[G.me].kh = 0;
+  $('kitebar').classList.add('hidden');
+  if (k.h <= 0 && k.best < 14) { toast('🪁 Abgestürzt … nochmal! Drück genau dann, wenn die Markierung im grünen Feld ist.'); play('fail'); return; }
+  send({ t: 'kitescore', score: Math.round(k.best), name: profile.name });
+}
 
 // ---------- Angeln ----------
 // Angeln wie man es kennt: Köder vor einen Fischschatten werfen – der Fisch schwimmt heran, knabbert ein paarmal,
@@ -2209,7 +2329,7 @@ function gameFrame(dt, now) {
     if (me.pose) standUp(me);
     const swim = (s.inv.neopren || 0) > 0 && !S.inside(me);
     me.run = !me.sw && (keys.has('shift') || Math.hypot(joy.x, joy.y) > 0.92);
-    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.run ? 1.6 : 1);
+    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike ? 1.75 : me.run ? 1.6 : 1);
     const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b, swim));
     const stuck = !free(me.x, me.z);
     if (stuck || free(me.x + wx * sp, me.z)) me.x += wx * sp;
@@ -2222,6 +2342,7 @@ function gameFrame(dt, now) {
   } else me.run = false;
   const wasSw = me.sw;
   me.sw = !S.inside(me) && S.swimmable(me.x, me.z) && me.pose !== 'sit';
+  if (me.bike && (me.sw || S.inside(me) || zoneOf(me) === 'reef' || me.pose || !(s.inv.fahrrad > 0))) setBike(false, true);
   if (me.sw && !wasSw) { world.burst(me.x, me.z, 'splash', -0.2); play('splash'); if (!G.swimTip) { G.swimTip = 1; toast('🤿 Du schwimmst! Bei Luftblasen 🫧 Aktion drücken zum Tauchen.'); } }
   me.held = heldItem();
 
@@ -2253,7 +2374,12 @@ function gameFrame(dt, now) {
   }
   if (actHeld && now > nextAct) { nextAct = now + 300; execute(G.ctx, false); }
   updateFishing(dt);
+  updateKite(dt);
   updateTour();
+  if (beachOpen(s) && G.beachTip !== s.day && zoneOf(me) === 'island') {
+    G.beachTip = s.day;
+    toast(beachKind(s) === 'sand' ? '🏰 Heute ist Sandburgen-Wettbewerb! Bis 17 Uhr am Strand bauen – Schaufel auf den Sand, dann mit Muscheln schmücken.' : '🪁 Heute ist Drachenfest! Bis 17 Uhr den Drachen steigen lassen – der höchste Flug gewinnt.', 'ach');
+  }
   updateFest(me, now);
   updateHide(me, now);
   updateHand(me, now);

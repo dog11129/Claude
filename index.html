@@ -254,6 +254,12 @@ body.eyesclosed::after { content: '🙈'; position: fixed; inset: 0; display: gr
 #fishbar.bite { background: var(--yellow); animation: pop .2s; }
 #tourbar { position: absolute; left: 50%; top: calc(10px + var(--safe-t)); transform: translateX(-50%); font-size: 16px; font-weight: 600; z-index: 3; }
 #tourbar.hurry { background: #ffe0e0; }
+#kitebar { position: absolute; left: 50%; bottom: calc(108px + var(--safe-b, 0px)); transform: translateX(-50%); width: min(340px, 86vw); background: #fffdf8ee; border-radius: 18px; padding: 10px 14px; box-shadow: 0 6px 18px #0002; z-index: 3; text-align: center; zoom: var(--ui, 1); }
+#kitebar b { display: block; font-size: 16px; margin-bottom: 6px; }
+#kitebar small { display: block; margin-top: 4px; opacity: 0.7; }
+#kitebar .ktrack { position: relative; height: 22px; border-radius: 11px; background: linear-gradient(90deg, #d8ecff, #eef6ff); overflow: hidden; }
+#kitebar #kitezone { position: absolute; top: 0; bottom: 0; background: #8ad45a; border-radius: 11px; opacity: 0.85; }
+#kitebar #kitemark { position: absolute; top: -2px; bottom: -2px; width: 6px; margin-left: -3px; background: #ff6b8a; border-radius: 3px; box-shadow: 0 0 0 2px #fff; }
 
 /* Handy-Steuerung */
 #joy { position: absolute; left: 0; bottom: 0; width: 45vw; height: 58vh; }
@@ -545,6 +551,7 @@ body.building #hotbar, body.building #actbtn, body.building #joyhint, body.build
   <form id="chatform" class="hidden"><input id="chatin" maxlength="120" placeholder="Nachricht…" autocomplete="off"><button class="btn pink">Senden</button></form>
   <div id="fishbar" class="pill hidden"></div>
   <div id="tourbar" class="pill hidden"></div>
+  <div id="kitebar" class="hidden"><b id="kiteh">🪁</b><div class="ktrack"><i id="kitezone"></i><span id="kitemark"></span></div><small id="kitetime"></small></div>
   <div id="joy"><div id="joybase" class="hidden"></div><div id="joyknob" class="hidden"></div></div>
   <div id="actwrap">
     <div id="actlabel">…</div>
@@ -612,7 +619,7 @@ body.building #hotbar, body.building #actbtn, body.building #joyhint, body.build
     <div class="dlgname" id="dlgname"></div>
     <p id="dlgtext"></p>
     <div id="dlggifts" class="hidden"></div>
-    <div class="dlgbtns"><button class="btn white" data-dlg="talk">💬 Plaudern</button><button class="btn pink" data-dlg="gift">🎁 Geschenk</button><button class="btn white" data-dlg="bye">👋 Tschüss</button></div>
+    <div class="dlgbtns"><button class="btn white" data-dlg="talk">💬 Plaudern</button><button class="btn pink" data-dlg="gift">🎁 Geschenk</button><button class="btn pink hidden" data-dlg="tale" id="dlgtale">📖 Geschichte</button><button class="btn white" data-dlg="bye">👋 Tschüss</button></div>
   </div>
 </div>
 <div id="photobar" class="hidden">

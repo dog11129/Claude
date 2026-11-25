@@ -39,6 +39,8 @@ import { makeFurniture, makeRoom, FURNITURE } from './furniture.js';
 import { PLACE, ANIMALS, ITEMS, CROPS, MAP, RES_SPOTS, TREE_FRUIT, NPC_IDS, BUILDINGS, PAVE, FEST_DECO, CONTEST_AT, FESTS } from './data.js';
 import { grass as onGrass } from './island.js';
 import { nightOpen, NIGHT_AT } from './extras.js';
+import { REEF_BUOY, cableBuilt, cableStop, taleMark, farmHappy, CASTLE_MAX } from './extras2.js';
+import { AREAS } from './areas.js';
 import { patMesh, patTexture } from './patterns.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT } from './newleaf.js';
 import { stage, animalPos, buildingAt, key, seasonOf, npcPos, npcAwake, HOME_X, roomSize, fruitReady, spots, fruitOf, resAt, balloonPos, turnipSeller, festOf, birthdayOf } from './state.js';
@@ -59,6 +61,17 @@ const HAT_TOP = { straw: 1.5, bunny: 1.72, wizard: 1.86, crown: 1.58, cowboy: 1.
 // Gelände: flache Insel (y = 0), Klippen-Plateau im Norden, Strand fällt ins Meer ab, Fluss- und Teichbett
 const noise = (x, z) => Math.sin(x * 0.21 + 1.3) * Math.sin(z * 0.17 + 0.4) * 0.5 + Math.sin(x * 0.07 - z * 0.11 + 2) * 0.5;
 export const SEA_Y = -0.24;
+// Sandburg: Hügel, je Stufe ein Turm mehr, Muscheln vorne drauf
+const SAND = 0xead39a, SAND_D = 0xd8bd80, SHELL_COL = { herzmuschel: 0xffb0c0, kauri: 0xfff3e0, jakobsmuschel: 0xffc890, sanddollar: 0xf2e6c8, koralle: 0xff7b8a };
+function castleModel(c) {
+  const P = [M.ball(0.42, SAND_D, 0, 0, 0, 1.15, 0.45, 1.15, 10), M.cyl(0.32, 0.38, 0.28, SAND, 0, 0.18, 0, 10)];
+  const lv = Math.min(5, c.lv || 1);
+  if (lv >= 2) P.push(M.cyl(0.13, 0.16, 0.42, SAND, 0, 0.5, 0, 8), M.cone(0.15, 0.16, SAND_D, 0, 0.79, 0, 8));
+  [[-0.24, 0.16], [0.24, 0.16], [-0.2, -0.2], [0.2, -0.2]].slice(0, Math.max(0, lv - 2) + (lv >= 3 ? 1 : 0)).forEach(([x, z]) => P.push(M.cyl(0.08, 0.1, 0.3, SAND, x, 0.42, z, 7), ...[0, 1, 2, 3].map(i => M.box(0.04, 0.05, 0.04, SAND, x + Math.cos(i * Math.PI / 2) * 0.06, 0.6, z + Math.sin(i * Math.PI / 2) * 0.06))));
+  if (lv >= 5) P.push(M.box(0.02, 0.18, 0.02, 0x8a5a36, 0, 0.95, 0), M.box(0.12, 0.07, 0.01, 0xff6b8a, 0.06, 1.0, 0));
+  (c.sh || []).slice(0, 10).forEach((id, i) => { const a = -1.1 + i * 0.25; P.push(M.ball(0.035, SHELL_COL[id] || 0xffffff, Math.sin(a) * 0.34, 0.16 + (i % 2) * 0.06, Math.cos(a) * 0.34, 1.2, 0.6, 1)); });
+  return M.model(P);
+}
 export function heightAt(x, z) {
   const cz = cliffZ(x);
   let h = CLIFF_H * smooth(cz + 0.2, cz - 0.3, z) + smooth(cz - 3, cz - 9, z) * (0.6 + 0.5 * noise(x, z));
@@ -1348,7 +1361,7 @@ export class World {
       e.m.rotation.y += angDiff(e.m.rotation.y, e.ry) * Math.min(1, dt * 8);
       const md = this.npcMood[id];
       e.m.userData.update(dt, { speed: e.speed, talking: talk, mood: md && md.until > this.time ? md.mood : null, time: this.time });
-      this.tag('npc' + id, `${NPCS[id].icon} ${NPCS[id].name}`, e.x, (e.m.userData.headTop || 1.3) + 0.3, e.z, 'name npc');
+      this.tag('npc' + id, `${NPCS[id].icon} ${NPCS[id].name}${taleMark(s, id)}`, e.x, (e.m.userData.headTop || 1.3) + 0.3, e.z, 'name npc');
       if (e.bubble && e.bubble.until > this.time && !talk) this.tag('npcb' + id, esc(e.bubble.text), e.x, (e.m.userData.headTop || 1.3) + 0.7, e.z, 'chat');
     }
   }
@@ -1591,12 +1604,16 @@ export class World {
       if (e.held !== p.held) { e.held = p.held; e.m.userData.setHeld(p.held || null); }
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
-      e.m.position.set(e.x, -0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0), e.z);
+      const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000;
+      e.m.position.set(e.x, -0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
       if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
+      if (deep && Math.random() < 0.05) this.burst(e.x + Math.sin(e.ry) * 0.15, e.z + Math.cos(e.ry) * 0.15, 'bubble', 1.4);
       const emote = p.emoteUntil > now ? p.emote : null;
-      e.m.userData.update(dt, { speed: p.pose ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
+      e.m.userData.update(dt, { speed: p.pose || bk ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: bk ? 'sit' : p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
+      this.syncBike(e, bk, dt);
+      this.syncKite(e, p.kh || 0, dt);
 
       if (e.pet) { // Haustier läuft hinterher und setzt sich neben dich
         const side = p.pose ? 0.7 : 0.55, back = p.pose ? 0 : 0.85;
@@ -1623,7 +1640,7 @@ export class World {
       if (p.chatUntil > now) this.tag('pc' + p.id, esc(p.chat), e.x, top + 0.6, e.z, 'chat');
       if (emote) this.tag('pe' + p.id, emote, e.x, top + (p.chatUntil > now ? 1.35 : 0.75), e.z, 'emote');
     }
-    for (const [id, e] of this.players) if (!seen.has(id)) { this.scene.remove(e.m); if (e.pet) this.scene.remove(e.pet); this.players.delete(id); }
+    for (const [id, e] of this.players) if (!seen.has(id)) { this.scene.remove(e.m); if (e.pet) this.scene.remove(e.pet); if (e.bike) this.scene.remove(e.bike); if (e.kite) this.scene.remove(e.kite, e.kline); this.players.delete(id); }
   }
 
   light(s) {
@@ -1661,10 +1678,148 @@ export class World {
     if (fwk > 0) { this.hemi.intensity += fwk * 0.9 * night; this.hemi.color.lerp(this.fwFlash.c, fwk * 0.6 * night); }
     const lk = this.bolt ? Math.max(0, 1 - (this.time - this.bolt) / 0.35) * (Math.sin((this.time - this.bolt) * 60) > -0.3 ? 1 : 0.3) : 0; // Blitz
     if (lk > 0) { this.hemi.intensity += lk * 2.2; this.hemi.color.lerp(this.boltCol, lk * 0.7); top.lerp(this.boltCol, lk * 0.5); hor.lerp(this.boltCol, lk * 0.4); }
+    if (this.target.z > 1000) { // Korallenriff: türkises Dämmerlicht, kurze Sicht, kein Himmel
+      top.setRGB(0.04, 0.26, 0.4).lerp(this.fogCol.setRGB(0.02, 0.05, 0.13), night * 0.8);
+      hor.setRGB(0.1, 0.52, 0.64).lerp(this.fogCol.setRGB(0.03, 0.09, 0.2), night * 0.8);
+      this.scene.fog.color.copy(hor);
+      this.scene.fog.near = 6; this.scene.fog.far = 32;
+      this.stars.material.opacity = 0;
+      this.sun.intensity *= 0.6;
+      this.hemi.color.setRGB(0.6, 0.92, 1);
+      this.hemi.groundColor.setRGB(0.32, 0.46, 0.52);
+      this.hemi.intensity = Math.max(this.hemi.intensity, 0.9);
+      for (const k of ['skysun', 'skymoon']) if (this[k]) this[k].visible = false;
+    }
     return { hour, night, day };
   }
 
   lightning() { this.bolt = this.time; }
+
+  // Fahrrad unter der Figur (Räder drehen sich beim Fahren)
+  syncBike(e, on, dt) {
+    if (!on) { if (e.bike) e.bike.visible = false; return; }
+    if (!e.bike) {
+      const g = new THREE.Group(), F = [];
+      F.push(M.cyl(0.025, 0.025, 0.62, 0xff6b8a, 0, 0.38, 0, 6, 1.2), M.cyl(0.025, 0.025, 0.42, 0xff6b8a, 0, 0.32, -0.2, 6, 0.3), M.cyl(0.025, 0.025, 0.45, 0xff6b8a, 0, 0.36, 0.24, 6, -0.35));
+      F.push(M.box(0.14, 0.04, 0.24, 0x4a3a3a, 0, 0.58, -0.22), M.cyl(0.018, 0.018, 0.5, 0x8a8e98, 0, 0.7, 0.36, 6, 0, 0, Math.PI / 2), M.box(0.16, 0.1, 0.1, 0xf2d27a, 0, 0.55, 0.42), M.ball(0.04, 0xffffff, 0, 0.6, 0.48));
+      g.add(M.model(F));
+      e.wheels = [-0.36, 0.36].map(z => {
+        const w = M.model([...[0, 1, 2].map(i => M.box(0.015, 0.5, 0.015, 0xd8d8e0, 0, 0, 0, 0, i * Math.PI / 3)), M.cyl(0.04, 0.04, 0.05, 0x8a8e98, 0, 0, 0, 8, 0, 0, Math.PI / 2)], [], false);
+        const tire = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.035, 6, 20), new THREE.MeshLambertMaterial({ color: 0x3a3a44 }));
+        tire.rotation.y = Math.PI / 2;
+        w.add(tire);
+        w.position.set(0, 0.27, z);
+        g.add(w);
+        return w;
+      });
+      g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      e.bike = g;
+      this.scene.add(g);
+    }
+    e.bike.visible = true;
+    e.bike.position.set(e.x, 0, e.z);
+    e.bike.rotation.y = e.ry;
+    for (const w of e.wheels) w.rotation.x += e.speed * dt * 14;
+  }
+  // Drachen am Himmel über der Figur, mit Schnur
+  syncKite(e, h, dt) {
+    if (!(h > 0)) { if (e.kite) e.kite.visible = e.kline.visible = false; return; }
+    if (!e.kite) {
+      const g = new THREE.Group();
+      g.add(M.model([M.cone(0.55, 0.7, 0xff6b8a, 0, 0.35, 0, 4, 0, 0, 0), M.cone(0.55, 0.35, 0x6cb4ff, 0, -0.17, 0, 4, Math.PI, 0, 0), M.cyl(0.01, 0.01, 1.05, 0xffffff, 0, 0.1, 0.02, 4), M.box(1.1, 0.02, 0.02, 0xffffff, 0, 0.0, 0.02)], [], false));
+      g.children[0].scale.set(1, 1, 0.12);
+      g.scale.setScalar(0.62);
+      e.tail = [0, 1, 2, 3].map(i => { const b = M.model([M.box(0.14, 0.08, 0.02, [0xffd23f, 0x8ad45a, 0xff8a3a, 0xc9a8ff][i])], [], false); g.add(b); return b; });
+      e.kite = g;
+      e.kline = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
+      e.kline.frustumCulled = false;
+      this.scene.add(g, e.kline);
+      e.kh = h;
+    }
+    e.kite.visible = e.kline.visible = true;
+    e.kh += (h - e.kh) * Math.min(1, dt * 3);
+    const d = 1.8 + Math.min(0.8, e.kh * 0.008), y = 2.6 + Math.min(2.2, e.kh * 0.022), sw = 1.6 + Math.sin(this.time * 1.7) * 0.5; // schräg vor der Figur in den Wind
+    const kx = e.x + Math.sin(e.ry) * d + Math.cos(e.ry) * sw, kz = e.z + Math.cos(e.ry) * d - Math.sin(e.ry) * sw;
+    e.kite.position.set(kx, y + Math.sin(this.time * 2.3) * 0.25, kz);
+    e.kite.rotation.set(0, e.ry, Math.sin(this.time * 1.9) * 0.3);
+    e.tail.forEach((b, i) => b.position.set(Math.sin(this.time * 4 + i) * 0.12 * i, -0.75 - i * 0.3, 0));
+    const a = e.kline.geometry.attributes.position;
+    a.setXYZ(0, e.x + Math.cos(e.ry) * 0.25, 0.95 + (e.m.position.y || 0), e.z - Math.sin(e.ry) * 0.25);
+    a.setXYZ(1, kx, e.kite.position.y - 0.15, kz);
+    a.needsUpdate = true;
+  }
+
+  // Bauernhof, Sandburgen, Riffboje und Seilbahn-Haltestellen
+  syncExtras2(s) {
+    const dt = this.dt || 0.016;
+    // Riffboje schaukelt draußen im Meer
+    if (!this.buoyM) { this.buoyM = placeable('riffboje'); this.scene.add(this.buoyM); }
+    this.buoyM.position.set(REEF_BUOY[0], SEA_Y + 0.02 + Math.sin(this.time * 1.6) * 0.06, REEF_BUOY[1]);
+    this.buoyM.rotation.z = Math.sin(this.time * 1.2) * 0.08;
+    if (Math.hypot(REEF_BUOY[0] - this.target.x, REEF_BUOY[1] - this.target.z) < 9) this.tag('buoy', s.reef?.found ? '🪸 Riffboje' : '🪸 ?', REEF_BUOY[0], 1.4, REEF_BUOY[1], 'name npc');
+    if (Math.random() < 0.03) this.burst(REEF_BUOY[0] + (Math.random() - 0.5) * 1.5, REEF_BUOY[1] + (Math.random() - 0.5) * 1.5, 'bubble', SEA_Y);
+    // Hof-Tiere: drei Hühner beim Stall, eine Kuh auf der Weide
+    this.farmM ||= new Map();
+    const want = new Set();
+    for (const [k, o] of Object.entries(s.obj || {})) {
+      if (!PLACE[o?.k]?.farm) continue;
+      want.add(k);
+      let e = this.farmM.get(k);
+      if (!e || e.kind !== o.k) {
+        if (e) e.list.forEach(a => this.scene.remove(a.m));
+        const kinds = o.k === 'kuhweide' ? ['kuh'] : ['huhn', 'huhn', 'huhn'];
+        e = { kind: o.k, list: kinds.map((kind, i) => { const m = makeAnimal(kind); if (kind === 'kuh') m.scale.setScalar(0.75); this.scene.add(m); return { m, i, ry: 0, x: 0, z: 0 }; }) };
+        this.farmM.set(k, e);
+      }
+      const [x, z] = k.split(',').map(Number), ry = (o.r || 0) * Math.PI / 2, fx = Math.sin(ry), fz = Math.cos(ry), happy = farmHappy(o), fed = o.fed === s.day, petNow = o.pet === s.day;
+      for (const a of e.list) {
+        const ph = a.i * 2.1 + x, cow = e.kind === 'kuhweide';
+        const r = cow ? 0.35 : 0.55, ox = Math.sin(this.time * (cow ? 0.18 : 0.35) + ph) * r, oz = Math.cos(this.time * (cow ? 0.13 : 0.27) + ph * 1.3) * r * 0.5;
+        const tx = x + fx * (cow ? 1.05 : 0.95) + fz * ox + (cow ? 0 : (a.i - 1) * 0.12), tz = z + fz * (cow ? 1.05 : 0.95) - fx * ox + oz;
+        const px = a.x, pz = a.z;
+        if (!a.x) { a.x = tx; a.z = tz; }
+        a.x += (tx - a.x) * Math.min(1, dt * 2); a.z += (tz - a.z) * Math.min(1, dt * 2);
+        const v = Math.hypot(a.x - px, a.z - pz) / dt;
+        if (v > 0.02) a.ry = Math.atan2(a.x - px, a.z - pz);
+        a.m.position.set(a.x, 0, a.z);
+        a.m.rotation.y += angDiff(a.m.rotation.y, a.ry) * 0.15;
+        a.m.userData.update(dt, { speed: Math.min(1, v * 2), happy: petNow && happy >= 3, hungry: !fed });
+      }
+      const top = e.list[0].m.userData.headTop || 0.8, ready = o.t >= (PLACE[o.k].every || Infinity);
+      if (!ready && !fed && Math.hypot(x - this.target.x, z - this.target.z) < 12) this.tag('farm' + k, '🌾?', e.list[0].x, top + 0.35, e.list[0].z, 'bubble small hungry');
+    }
+    for (const [k, e] of this.farmM) if (!want.has(k)) { e.list.forEach(a => this.vanish(a.m)); this.farmM.delete(k); }
+    // Sandburgen (die Flut holt sie über Nacht)
+    this.castleM ||= new Map();
+    const cs = s.castles || {};
+    for (const [k, c] of Object.entries(cs)) {
+      const sig = c.lv + ':' + (c.sh || []).join(',');
+      let e = this.castleM.get(k);
+      if (e && e.sig === sig) continue;
+      if (e) this.scene.remove(e.m);
+      const [x, z] = k.split(',').map(Number), m = castleModel(c);
+      m.position.set(x, 0, z);
+      this.scene.add(m);
+      if (e) this.squish(m, 0.12, 0.4); else this.burst(x, z, 'dust');
+      this.castleM.set(k, { m, sig });
+    }
+    for (const [k, e] of this.castleM) if (!cs[k]) { this.vanish(e.m); this.castleM.delete(k); }
+    for (const [k, c] of Object.entries(cs)) { const [x, z] = k.split(',').map(Number); if (Math.hypot(x - this.target.x, z - this.target.z) < 7) this.tag('castle' + k, `🏰 ${esc(c.name)}`, x, 0.75 + c.lv * 0.22, z, 'name'); }
+    // Seilbahn: Haltestellen in den freigeschalteten Gebieten
+    const built = cableBuilt(s), csig = built ? Object.keys(AREAS).filter(id => s.areas?.[id]).join(',') : '';
+    if (this.cableSig !== csig) {
+      this.cableSig = csig;
+      if (this.cableM) this.scene.remove(this.cableM);
+      this.cableM = null;
+      if (built) {
+        const g = new THREE.Group();
+        for (const id of csig.split(',').filter(Boolean)) { const [x, z] = cableStop(id), m = placeable('seilbahn'); m.scale.setScalar(0.7); m.position.set(x, 0, z); g.add(m); }
+        this.cableM = g;
+        this.scene.add(g);
+      }
+    }
+    if (built && this.target.x < -150) for (const id of csig.split(',').filter(Boolean)) { const [x, z] = cableStop(id); if (Math.hypot(x - this.target.x, z - this.target.z) < 12) this.tag('cable' + id, '🚡 Seilbahn', x, 2.4, z, 'name npc'); }
+  }
 
   // Nachtmarkt-Stand (freitags ab 18 Uhr)
   syncExtras(s) {
@@ -1678,6 +1833,7 @@ export class World {
     } else if (!open && this.nightM) { this.vanish(this.nightM); this.nightM = null; }
     if (this.nightM) this.tag('night', '🏮 Nachtmarkt', NIGHT_AT[0], 2.3, NIGHT_AT[1], 'bubble');
     this.syncVisitors(s);
+    this.syncExtras2(s);
   }
   // Besuch vom Campingplatz und eingezogene Gäste: laufen gemütlich vor Zelt bzw. Häuschen herum
   syncVisitors(s) {

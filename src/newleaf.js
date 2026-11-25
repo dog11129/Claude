@@ -8,7 +8,7 @@ export { PROJECTS };
 // ---------- Orte außerhalb der Insel (wie das Zuhause bei x = 300 liegen sie weit weg) ----------
 export const STREET = { x: 0, z: -300, w: 13.3, d: 3.3 };   // Bummelgasse: begehbar |lx| ≤ w, |lz| ≤ d
 export const TROPIC = { x: 0, z: 300, r: 9.3 };             // Tropeninsel: runde Insel mit Steg nach Süden
-export const zoneOf = p => (p.x > 150 ? 'home' : p.x < -150 ? areaOf(p) : p.z < -150 ? 'street' : p.z > 450 ? 'trip' : p.z > 150 ? 'tropic' : 'island');
+export const zoneOf = p => (p.x > 150 ? 'home' : p.x < -150 ? areaOf(p) : p.z < -150 ? 'street' : p.z > 1000 ? 'reef' : p.z > 450 ? 'trip' : p.z > 150 ? 'tropic' : 'island');
 
 // Läden in der Bummelgasse (lokale Kacheln, Norden = Ladenreihe)
 export const STREET_SHOPS = {
@@ -39,6 +39,7 @@ export function clampPos(x, z, isl) {
   if (zone === 'home') return [c(x, 292, 308), c(z, -8, 8)];
   if (zone === 'street') return [c(x, STREET.x - 16, STREET.x + 16), c(z, STREET.z - 8, STREET.z + 8)];
   if (zone === 'tropic') return [c(x, TROPIC.x - 16, TROPIC.x + 16), c(z, TROPIC.z - 16, TROPIC.z + 16)];
+  if (zone === 'reef') return [c(x, -12, 12), c(z, 1200 - 12, 1200 + 12)];
   if (zone === 'trip') return [c(x, -14, 14), c(z, 600 - 14, 600 + 14)];
   if (AREAS[zone]) { const A = AREAS[zone]; return [c(x, A.x - A.w - 2, A.x + A.w + 2), c(z, A.z - A.d - 2, A.z + A.d + 2)]; }
   return [c(x, -isl - 6, isl + 6), c(z, -isl - 6, isl + 6)];

@@ -37,7 +37,17 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🌟 Neu: Inselleben-Update
+### 🌊 Neu: Geschichten, Hof, Riff & Strand
+- **📖 Nachbar-Geschichten:** Ab 1, 3, 5 und 7 Herzen erzählt jeder Nachbar ein Kapitel seiner eigenen Geschichte (Miras Riesenbrot, Brunos Vogelhäuschen, Pippas Riesenfisch, Lios Inselgemälde, Kalles Teemischung, Wandas Sternenrätsel). Im Gespräch auf „📖 Geschichte“ tippen, die Bitte erfüllen, mit „✨ Erledigt!“ abschließen. Nach dem vierten Kapitel gibt es ein Möbelstück, das man nirgends kaufen kann. Über dem Namen zeigt 📖, dass ein Kapitel wartet, ✨, dass es fertig ist.
+- **🐔 Bauernhof-Ecke** (Krämerladen ➜ 🐔 Hof): Hühnerstall und Kuhweide aufstellen, jeden Tag mit Weizen, Kartoffeln, Karotten oder Äpfeln füttern und streicheln. Gefütterte Tiere legen Eier und geben Milch für die Küche, glückliche Tiere geben mehr, und manchmal gibt es ein goldenes Ei oder Käse.
+- **🪸 Korallenriff:** Mit dem Neoprenanzug zur rot-weißen Boje draußen im Meer schwimmen und abtauchen. Unten jeden Tag die ✨ Fundstellen absuchen (Korallen, Seeglas, Seesterne …) und die 14 Steinplatten selbst mit Korallen, Muscheln, Seesternen und Seeglas gestalten. Je bunter, desto mehr Fische. Bei fünf Sternen schickt Wanda ihre Korallenlampe.
+- **🏰 Sandburgen-Wettbewerb:** Sommer-Samstage von 10 bis 17 Uhr. Mit der Schaufel auf den Sand tippen und die Burg höher bauen, dann mit Muscheln schmücken. Drei Nachbarn bewerten, der Sieg bringt 3.000 Taler und einen Pokal. Über Nacht holt die Flut die Burgen.
+- **🪁 Drachenfest:** Frühlings- und Herbst-Samstage. Den Drachen (Krämerladen ➜ Werkzeug) in der Leiste wählen und starten, dann immer dann ziehen, wenn die Markierung im grünen Böen-Feld ist. Der höchste Flug gewinnt. Drachen steigen lassen geht auch an jedem anderen Tag.
+- **🚲 Fahrrad** (Krämerladen ➜ Werkzeug): Fast doppelt so schnell über die Insel. In der Leiste wählen und auf- oder absteigen; im Wasser und im Haus steigt man automatisch ab.
+- **🚡 Seilbahn** (Rathaus-Projekt): Von der Talstation auf der Insel direkt zu Haltestellen im Kiefernwald, auf der Blütenwiese und in der Kristallhöhle schweben – und zurück.
+- Alles läuft im Multiplayer, alte Spielstände bekommen die neuen Sachen einfach dazu.
+
+### 🌟 Inselleben-Update
 - **Größere Hauptinsel:** Drei neue Landzungen im Osten, Süden und Südwesten mit eigenen Bäumen, Palmen und Felsen. Alte Spielstände bleiben unverändert – alle bisherigen Bäume stehen am selben Platz.
 - **🪏 Baumschaufel** (Krämerladen ➜ Werkzeug): Bäume und Palmen samt Wurzelballen ausgraben und woanders einpflanzen (Palmen auch auf Sand).
 - **📰 Inselbote (Zeitung):** Jeden Morgen neu – Wetter und Vorhersage, Rübenkurs, Inselgeflüster der Nachbarn, die Erfolge von gestern und die Wochenziele.

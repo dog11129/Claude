@@ -11,6 +11,8 @@ import { AREAS, NODES, nodeToday, nodeUses } from './areas.js';
 import { cropModel } from './nature.js';
 import { crop } from './plants.js';
 import { TRIP, TRIP_KINDS, tripLayout, tripUses, nodeThing } from './trips.js';
+import { REEF, REEF_SLOTS, REEF_SPOTS, reefScore } from './extras2.js';
+import { itemModel } from './itemmodels.js';
 
 function canvasTex(w, h, paint, rep) {
   const c = document.createElement('canvas');
@@ -300,6 +302,75 @@ function buildTrip(seed) {
   return g;
 }
 
+// ---------- Korallenriff (unter Wasser) ----------
+function buildReef() {
+  const g = new THREE.Group(), X = REEF.x, Z = REEF.z, R = REEF.r;
+  // Meeresboden: heller Sand im Riff, außen steigt er zu einem Felsenkessel an
+  const geo = new THREE.CircleGeometry(48, 72, 0, Math.PI * 2);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), cs = new THREE.Color(0xf0dcaa), cd = new THREE.Color(0x5a8aa0), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i), r = Math.hypot(x, z);
+    pos.setY(i, r > R ? Math.min(4.5, (r - R) ** 1.3 * 0.45) : 0.05 * Math.sin(x * 0.8) * Math.cos(z * 0.6));
+    c.copy(cs).lerp(cd, THREE.MathUtils.smoothstep(r, R - 1, R + 6));
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.computeVertexNormals();
+  const floor = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, map: tex('grass', 24, 24) }));
+  floor.position.set(X, 0, Z); floor.receiveShadow = true; g.add(floor);
+  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(4711);
+  const P = [], G = [];
+  // Felsen rundherum
+  for (let i = 0; i < 26; i++) {
+    const a = i / 26 * Math.PI * 2 + rnd() * 0.2, r = R + 0.4 + rnd() * 1.4, s = (0.6 + rnd() * 0.9) * (Math.sin(a) > 0.2 ? 0.45 : 1);
+    if (Math.abs(Math.cos(a) * r) < 2.2 && Math.sin(a) > 0.8) continue; // Platz am Seil zum Auftauchen
+    P.push(M.ball(s, [0x8a8098, 0x7a7088, 0x9a8a9a][i % 3], Math.cos(a) * r, s * 0.45, Math.sin(a) * r, 1.3, 0.8, 1.1, 8));
+    if (i % 3 === 0) P.push(M.ball(s * 0.35, 0xff8aa8, Math.cos(a) * r, s * 0.95, Math.sin(a) * r, 1.2, 0.5, 1.2, 7)); // Moospolster aus Korallen
+  }
+  // feste Korallenbüsche am Rand und kleine Steinplatten an den 14 Gestaltungsplätzen
+  const CC = [0xff7b8a, 0xffb36b, 0xc9a8ff, 0xff9ad8, 0x6cd4c8];
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2 + 0.25, r = R - 1.3, x = Math.cos(a) * r, z = Math.sin(a) * r, cc = CC[i % CC.length];
+    if (z > R - 3.5 && Math.abs(x) < 2.5) continue;
+    for (let j = 0; j < 4; j++) P.push(M.cyl(0.05, 0.08, 0.5 + j * 0.15, cc, x + (j - 1.5) * 0.15, 0.3 + j * 0.06, z + (j % 2) * 0.12, 6, 0, 0, (j - 1.5) * 0.3));
+  }
+  REEF_SLOTS.forEach(([x, z]) => P.push(M.cyl(0.42, 0.46, 0.06, 0xd8c8a8, x, 0.04, z, 12)));
+  // Fundstellen: Sandhügel mit Steinen
+  REEF_SPOTS.forEach(([x, z]) => P.push(M.ball(0.55, 0xe2cc98, x, 0, z, 1.3, 0.35, 1.3, 9), M.ball(0.14, 0x9a90a4, x + 0.3, 0.12, z - 0.2), M.ball(0.1, 0x8a8094, x - 0.25, 0.1, z + 0.25)));
+  // Seil zum Auftauchen mit Boje oben
+  P.push(M.cyl(0.035, 0.035, 2.4, 0xe8d6a8, 0, 1.2, R - 1.2, 6), M.cyl(0.35, 0.35, 0.12, 0x9a90a4, 0, 0.06, R - 1.2, 10), M.ball(0.16, 0xff6b6b, 0, 2.45, R - 1.2), M.cyl(0.165, 0.165, 0.06, 0xffffff, 0, 2.45, R - 1.2, 12));
+  G.push(M.ball(0.08, 0, 0, 2.62, R - 1.2));
+  g.add(put(new THREE.Group(), M.model(P, G), X, Z));
+  // Seegras, das sich in der Strömung wiegt
+  const weed = [];
+  for (let i = 0; i < 22; i++) {
+    const a = rnd() * Math.PI * 2, r = 2 + rnd() * (R - 3), x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (REEF_SLOTS.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 1) || REEF_SPOTS.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 1.2) || (z > R - 3 && Math.abs(x) < 1.8)) continue;
+    const h = 0.9 + rnd() * 1.2, S = [];
+    for (let j = 0; j < 3; j++) S.push(M.cone(0.07, h, [0x4fa156, 0x6cc06a, 0x3f8f6a][j], (j - 1) * 0.1, h / 2, (j % 2) * 0.08, 5, 0, 0, (j - 1) * 0.15));
+    const m = M.model(S);
+    m.position.set(X + x, 0, Z + z);
+    g.add(m); weed.push(m);
+  }
+  // Lichtstrahlen von oben
+  const rayMat = new THREE.MeshBasicMaterial({ color: 0xbfefff, transparent: true, opacity: 0.08, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false });
+  for (let i = 0; i < 6; i++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.2 + rnd() * 1.5, 14), rayMat);
+    m.position.set(X - 7 + i * 2.8, 6, Z - 4 + rnd() * 6); m.rotation.set(0, rnd() * 3, 0.25);
+    g.add(m);
+  }
+  g.userData = { weed, deco: new Map(), fish: [], lights: [[X - 1, Z + R - 1.2], [X + 1, Z + R - 1.2]], sig: '' };
+  return g;
+}
+const FISH_COL = [[0xff8a3a, 0xffffff], [0xffd23f, 0x6cb4ff], [0x6cb4ff, 0xffe066], [0xff6b8a, 0xffd0dc], [0x8ad45a, 0xffe066], [0xc9a8ff, 0xffffff]];
+function reefFish(i) {
+  const [a, b] = FISH_COL[i % FISH_COL.length], s = 0.7 + (i % 3) * 0.2;
+  const m = M.model([M.ball(0.16 * s, a, 0, 0, 0, 1.5, 1, 0.55), M.ball(0.08 * s, b, 0.05 * s, 0, 0, 0.3, 1.05, 0.6), M.cone(0.1 * s, 0.16 * s, a, -0.3 * s, 0, 0, 4, 0, 0, Math.PI / 2), M.ball(0.025, 0x2b2222, 0.16 * s, 0.03, 0.06 * s)], [], false);
+  m.userData = { r: 3 + (i * 1.7) % 6, y: 0.8 + (i * 0.37) % 2.4, w: (0.25 + (i % 5) * 0.06) * (i % 2 ? 1 : -1), p: i * 1.3 };
+  return m;
+}
+
 export class Zones {
   constructor(scene) {
     this.scene = scene;
@@ -348,11 +419,13 @@ export class Zones {
   update(world, s, t, night, target) {
     this.tropic.userData.u.t.value = t;
     this.tropic.userData.u.night.value = night;
-    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
+    const where = target.x < -150 ? 'area' : target.z < -150 ? 'street' : target.z > 1000 ? 'reef' : target.z > 450 ? 'trip' : target.z > 150 ? 'tropic' : null;
     this.street.visible = where === 'street';
     this.tropic.visible = where === 'tropic';
     if (this.trip) this.trip.visible = where === 'trip';
+    if (this.reef) this.reef.visible = where === 'reef';
     if (where === 'trip') { this.updateTrip(world, s, t); return; }
+    if (where === 'reef') { this.updateReef(world, s, t); return; }
     let here = null;
     if (where === 'area') { let bd = Infinity; for (const [id, A] of Object.entries(AREAS)) { const d = Math.abs(target.z - A.z); if (d < bd) { bd = d; here = id; } } }
     for (const id of Object.keys(AREAS)) if (this.areas[id]) this.areas[id].visible = id === here;
@@ -416,6 +489,40 @@ export class Zones {
       }
     }
   }
+  // Riff: selbst gesetzte Korallen & Muscheln, Fische (mehr Sterne = mehr Fische), Seegras und Blasen
+  updateReef(world, s, t) {
+    if (!this.reef) { this.reef = buildReef(); this.scene.add(this.reef); }
+    const g = this.reef, U = g.userData, X = REEF.x, Z = REEF.z, sc = reefScore(s);
+    U.weed.forEach((m, i) => { m.rotation.z = Math.sin(t * 0.9 + i) * 0.12; m.rotation.x = Math.cos(t * 0.7 + i * 1.3) * 0.08; });
+    world.tag('reefname', `🪸 Korallenriff ${'⭐'.repeat(sc.stars) || '· noch leer'}`, X, 3.2, Z - REEF.r + 1.5, 'name npc');
+    world.tag('reefexit', '🫧 Auftauchen', X, 2.4, Z + REEF.r - 1.2, 'name npc');
+    REEF_SPOTS.forEach(([x, z], i) => { if (s.reef?.got?.[i] !== s.day) world.tag('reefspot' + i, '✨', X + x, 0.9 + Math.sin(t * 2 + i) * 0.1, Z + z, 'bubble'); });
+    if (Math.random() < 0.25) world.burst(X + (Math.random() - 0.5) * 18, Z + (Math.random() - 0.5) * 18, 'bubble', 0.2 + Math.random() * 2);
+    // Fische
+    const want = Math.min(26, 4 + sc.stars * 4 + Math.floor(sc.n / 2));
+    while (U.fish.length < want) { const f = reefFish(U.fish.length); g.add(f); U.fish.push(f); }
+    while (U.fish.length > want) g.remove(U.fish.pop());
+    for (const f of U.fish) {
+      const u = f.userData, a = u.p + t * u.w;
+      f.position.set(X + Math.cos(a) * u.r, u.y + Math.sin(t * 1.3 + u.p) * 0.2, Z + Math.sin(a) * u.r);
+      f.rotation.y = -a + (u.w > 0 ? -Math.PI / 2 : Math.PI / 2);
+    }
+    // Deko auf den Plätzen
+    const sig = JSON.stringify(s.reef?.slots || {});
+    if (U.sig === sig) return;
+    U.sig = sig;
+    REEF_SLOTS.forEach(([x, z], i) => {
+      const id = s.reef?.slots?.[i] || null, e = U.deco.get(i);
+      if (e?.id === id) return;
+      if (e) { g.remove(e.m); U.deco.delete(i); }
+      if (!id) return;
+      const m = itemModel(id) || (['herzmuschel', 'jakobsmuschel', 'kauri', 'koralle', 'sanddollar'].includes(id) ? N.shell(id) : null) || M.model([M.ball(0.2, 0xff8aa8, 0, 0.2, 0)]);
+      m.scale.setScalar(1.5);
+      put(g, m, X + x, Z + z, i * 0.9);
+      U.deco.set(i, { id, m });
+      world.burst(X + x, Z + z, 'bubble', 0.3);
+    });
+  }
   updateArea(world, s, id, t) {
     const g = this.area(id), A = AREAS[id];
     world.tag('areaexit', '🏝️ Zur Insel', A.x, 2.2, A.z + A.d + 0.6, 'name npc');
@@ -436,6 +543,6 @@ export class Zones {
   }
   lights(target) {
     if (target.x < -150) { for (const [id, A] of Object.entries(AREAS)) if (Math.abs(target.z - A.z) < 35 && this.areas[id]) return this.areas[id].userData.lights.length ? this.areas[id].userData.lights : null; }
-    return target.z < -150 ? this.street.userData.lights : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
+    return target.z < -150 ? this.street.userData.lights : target.z > 1000 ? this.reef?.userData.lights || null : target.z > 450 ? this.trip?.userData.lights || null : target.z > 150 ? this.tropic.userData.lights : null;
   }
 }

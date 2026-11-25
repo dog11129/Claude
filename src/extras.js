@@ -4,6 +4,7 @@
 import { ITEMS, PLACE, NPC_IDS, NPC_DATA, WEEKDAYS, weekday, FESTS, SEASONS } from './data.js';
 import { FURNITURE } from './furni-data.js';
 import * as S from './state.js';
+import * as Y from './extras2.js';
 import { TRIP, TRIP_PRICE, TRIP_KINDS, tripLayout, tripNodeAt, onTripDock, tripWalk, SOLID_TRIP, tripUses, nodeThing, TRIP_BUGS, TRIP_FISH } from './trips.js';
 
 // Pixel-Muster prüfen (wie in patterns.js, aber ohne three.js, damit es in Node-Tests läuft)
@@ -153,6 +154,7 @@ function newWeek(s) {
   s.week = { start: s.day, goals: pool.map(i => ({ i, p: 0, done: 0 })), prize: WEEK_PRIZES[Math.floor((s.day - 1) / 7) % WEEK_PRIZES.length] };
 }
 export function weekEvent(s, ev, n, out) {
+  Y.taleEvent(s, ev, n, out); // Nachbar-Geschichten zählen mit
   const w = s.week;
   if (!w?.goals) return;
   for (const g of w.goals) {
@@ -207,6 +209,7 @@ function makePaper(s) {
   const heads = [
     A && `${A.icon} Heute: ${A.name}${A.k === 'founded' ? ` – ${A.years} Jahr${A.years === 1 ? '' : 'e'} ${s.name}!` : ''}`,
     f && `${f.icon} Heute: ${f.name}!`,
+    Y.beachKind(s) && (Y.beachKind(s) === 'sand' ? '🏰 Heute ab 10 Uhr: Sandburgen-Wettbewerb am Strand!' : '🪁 Heute ab 10 Uhr: Drachenfest am Strand!'),
     s.week?.won === y && '🤝 Alle Wochenziele geschafft – die Insel jubelt!',
     done.length >= 4 && 'Fleißige Insel: Gestern war richtig was los!',
     s.weather === 'storm' && '⛈️ Gewitterwarnung: Heute lieber mit Schirm!',
@@ -478,6 +481,7 @@ export function migrateX(s) {
   s.tmap = s.tmap && Number.isInteger(s.tmap.n) ? { n: Math.min(4, Math.max(0, s.tmap.n)), spot: typeof s.tmap.spot === 'string' && /^-?\d+,-?\d+$/.test(s.tmap.spot) ? s.tmap.spot : null } : { n: 0, spot: null };
   if (s.fw && !(Number.isInteger(s.fw.day))) s.fw = null;
   fiveStars(s);
+  Y.migrateY(s);
   s.patterns = Array.from({ length: PAT_SLOTS }, (_, i) => { const p = Array.isArray(s.patterns) ? s.patterns[i] : null; return p && validPx(p.px) ? { name: String(p.name || 'Muster').slice(0, 20), px: p.px, by: String(p.by || '').slice(0, 16) } : null; });
   if (s.melody && !(Array.isArray(s.melody.notes) && s.melody.notes.length === 16 && s.melody.notes.every(n => Number.isInteger(n) && n >= 0 && n < MEL_NOTES.length))) s.melody = null;
   for (const k of ['flagPat', 'pathPat']) if (!(Number.isInteger(s[k]) && s.patterns[s[k]])) s[k] = null;
@@ -503,6 +507,7 @@ export function morningX(s) {
   cookStart(s);
   nightStock(s);
   campMorning(s);
+  Y.morningY(s);
   makePaper(s);
 }
 // Nach jeder Aktion: Katalog, Fotobuch
@@ -516,6 +521,7 @@ export function tickX(s, dt, auth) {
   let changed = false;
   const h = 6 + s.dayTime * 18;
   if (s.cook && !s.cook.done && h >= 18) changed = cookFinish(s) || changed;
+  changed = Y.tickY(s, dt) || changed;
   s.stallT = (s.stallT || 0) + dt;
   if (s.stallT > 20) { changed = stallTick(s, s.stallT / (S.DAY_SECS / 18)) || changed; s.stallT = 0; } // alle 20 s: Kunden am Tauschstand
   const t = realToday().iso;

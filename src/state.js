@@ -9,6 +9,7 @@ import {
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
 import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import * as X from './extras.js';
+import * as Y from './extras2.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -340,6 +341,7 @@ export function blocked(s, x, z, swim) {
     const lx = x - STREET.x, lz = z - STREET.z;
     return !(streetWalk(lx, lz) || (Math.abs(lx) <= 1.1 && lz > 0 && lz <= STREET.d + 0.9));
   }
+  if (z > 1000) return Y.reefBlocked(s, x, z); // Korallenriff (unter Wasser)
   if (z > 450) return X.tripBlocked(s, x, z); // Ausflugsinsel
   if (z > 150) { // Tropeninsel
     const lx = x - TROPIC.x, lz = z - TROPIC.z, tx = Math.round(lx), tz = Math.round(lz);
@@ -352,6 +354,7 @@ export function blocked(s, x, z, swim) {
     if (areaExit(id, lx, lz) && lz <= A.d + 1.2) return false;
     if (!inArea(id, lx, lz)) return true;
     const n = nodeAt(id, Math.round(lx), Math.round(lz));
+    if (Y.cableBuilt(s)) { const [cx, cz] = Y.cableStop(id); if (Math.hypot(x - cx, z - cz) < 0.7) return true; }
     return !!(n && SOLID.includes(n.kind));
   }
   if (gateAt(Math.round(x), Math.round(z))) return true;
@@ -450,7 +453,7 @@ export function tick(s, dt, auth) {
   }
   for (const o of Object.values(s.obj)) {
     const p = PLACE[o.k];
-    if (p?.kind === 'producer' && o.t < p.every) {
+    if (p?.kind === 'producer' && o.t < p.every && (!p.farm || Y.farmFed(s, o))) { // Tiere wachsen nur gefüttert
       o.t = Math.min(p.every, o.t + dt);
       if (o.t >= p.every) changed = true;
     }
@@ -748,6 +751,8 @@ export const addInvX = (s, id, n) => addInv(s, id, n);
 export const questEventX = (s, ev, n, out) => questEvent(s, ev, n, out);
 export const DAY_SECS = DAY;
 export const collectX = (s, id, out) => collect(s, id, out);
+export const friendX = (s, id) => friend(s, id);
+export const sandX = (x, z) => sand(x, z);
 export const takeInvX = (s, id, n) => takeInv(s, id, n);
 const takeInv = (s, id, n) => {
   if ((s.inv[id] || 0) < n) return false;
@@ -833,6 +838,7 @@ const ACTIONS = {
     if (!p || p.kind !== 'producer') return false;
     if (o.t < p.every) { out.msg = `${p.name}: Das Obst ist noch nicht reif.`; return false; }
     o.t = 0;
+    if (p.farm) { const n = Y.farmHarvest(s, o, p, out); questEvent(s, 'farm', n, out); addXp(s, 2 * n, out); fx(out, a.x, a.z, `+${n} ${ITEMS[p.item].icon}`, 'leaf'); out.snd = 'harvest'; return true; }
     addInv(s, p.item, p.n);
     s.stats.fruit = (s.stats.fruit || 0) + p.n;
     questEvent(s, 'fruit', p.n, out);
@@ -1644,7 +1650,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1749,10 +1755,12 @@ export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
   if (me.x < -150) return resolveArea(s, me, sel, at);
   if (me.z < -150) return resolveStreet(s, me, sel, at);
+  if (me.z > 1000) return Y.resolveReef(s, me, sel, at);
   if (me.z > 450) return X.resolveTrip(s, me, sel, at);
   if (me.z > 150) return resolveTropic(s, me, sel, at);
   if (me.sw) { // schwimmt: tauchen
     const d = (s.dives || []).map(d => [d, Math.hypot(d.x - me.x, d.z - me.z)]).sort((a, b) => a[1] - b[1])[0];
+    if (Math.hypot(me.x - Y.REEF_BUOY[0], me.z - Y.REEF_BUOY[1]) < 1.8) return { dive: true, reef: true, label: s.reef?.found ? '🪸 Zum Korallenriff tauchen' : '🪸 Was ist unter der Boje?', tiles: [] };
     return d && d[1] < 1.5 ? { a: { t: 'dive', id: d[0].id }, dive: true, label: '🤿 Tauchen!', tiles: [] } : { dive: true, label: '🫧 Abtauchen', tiles: [] };
   }
   const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
@@ -1815,7 +1823,9 @@ export function resolve(s, me, sel, at) {
   if (o) {
     const p = PLACE[o.k];
     if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { label: '🚩 Bauplatz (im 🔨 Baumodus abbauen)', tiles: one };
+    if (o.k === 'seilbahn') return { ui: 'cable', label: '🚡 Seilbahn fahren', tiles: one };
     if (p.kind === 'project') return p.sit ? { sit: { x, z, r: o.r }, label: '🧺 Hinsetzen', tiles: one } : { label: `${p.icon} ${p.name}`, tiles: one };
+    if (p.farm) return Y.farmResolve(s, o, x, z);
     if (p.kind === 'producer') return { a: { t: 'use', x, z }, label: `${ITEMS[p.item].icon} Pflücken`, tiles: one };
     if (o.k === 'bank' || p.sit) return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
     if (o.k === 'kirschbaum') return { petals: { x, z }, label: '🌸 Schütteln', tiles: one };
@@ -1828,11 +1838,14 @@ export function resolve(s, me, sel, at) {
   if (isWater(px, pz) || (!walkable(px, pz) && isWater(px + (px - me.x) * 0.5, pz + (pz - me.z) * 0.5))) return { fish: true, label: '🎣 Angeln', tiles: [] };
 
   const t = s.tiles[k];
+  const cr = Y.castleResolve(s, x, z, sel);
+  if (cr) return cr;
   if (sel === 'shovel') {
     if (s.tmap?.spot === k) return { a: { t: 'dig', x, z }, label: '🏴‍☠️ Hier ist das Kreuz! Graben!', tiles: one };
     if (s.digs.includes(k)) return { a: { t: 'dig', x, z }, label: '✨ Ausgraben', tiles: one };
     if (t) return { a: { t: 'dig', x, z }, label: '🌱 Ausgraben', tiles: one };
     if (s.weeds?.[k]) return { a: { t: 'pick', x, z }, label: '🌿 Unkraut zupfen', tiles: one };
+    if (sand(x, z) && Y.castleOk(s, x, z) && !s.digs.includes(k)) return { a: { t: 'castle', op: 'build', x, z }, label: '🏰 Sandburg bauen', tiles: one };
     return { label: '', tiles: one };
   }
   if (sel === 'can') {
@@ -1853,6 +1866,7 @@ function resolveArea(s, me, sel, at) {
   const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
   const lx = Math.round(px - A.x), lz = Math.round(pz - A.z), tiles = [[lx + A.x, lz + A.z]];
   if (areaExit(id, px - A.x, pz - A.z) || (lz >= A.d && Math.abs(lx) <= 1)) return { go: 'island', label: '🏝️ Zurück zur Insel', tiles };
+  if (Y.cableBuilt(s)) { const [cx, cz] = Y.cableStop(id); if (Math.hypot(px - cx, pz - cz) < 1.2) return { ui: 'cable', label: '🚡 Seilbahn', tiles }; }
   const n = nodeAt(id, lx, lz);
   if (!n) return { label: '', tiles: [] };
   const today = nodeToday(id, n, s.day), st = s.anode[id + ':' + n.i], used = st?.d === s.day ? st : null, a = how => ({ t: 'aact', area: id, i: n.i, how, x: lx, z: lz });

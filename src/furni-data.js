@@ -60,6 +60,14 @@ export const FURNITURE = {
   windspiel:      { name: 'Muschel-Windspiel', icon: '🎐', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'night' },
   spieluhr:       { name: 'Spieluhr',        icon: '🎠', buy: 0, lvl: 1, cat: 'deko',   w: 1, d: 1, solid: true, rare: 'night' },
   schneekugel:    { name: 'Insel-Schneekugel', icon: '🔮', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, glow: true, rare: 'night' },
+  // Geschenke am Ende der Nachbar-Geschichten (rare: 'tale') und vom Korallenriff
+  zimtofen:       { name: 'Miras Zimtofen',   icon: '🔥', buy: 0, lvl: 1, cat: 'kueche', w: 1, d: 1, solid: true, glow: true, rare: 'tale' },
+  schnitzbank:    { name: 'Brunos Schnitzbank', icon: '🪚', buy: 0, lvl: 1, cat: 'tische', w: 2, d: 1, solid: true, rare: 'tale' },
+  gluecksboje:    { name: 'Pippas Glücksboje', icon: '🛟', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'tale' },
+  staffelei:      { name: 'Lios Staffelei',   icon: '🎨', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'tale' },
+  teetischchen:   { name: 'Kalles Teetischchen', icon: '🍵', buy: 0, lvl: 1, cat: 'tische', w: 1, d: 1, solid: true, rare: 'tale' },
+  sternteleskop:  { name: 'Wandas Teleskop',  icon: '🔭', buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'tale' },
+  korallenlampe:  { name: 'Korallenlampe',    icon: '🪸', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'reef' },
   // Zeigt ein eigenes Pixel-Muster (🎨 Muster-Editor)
   musterbild:     { name: 'Musterrahmen',    icon: '🖼️', buy: 400, lvl: 1, cat: 'wand',   w: 1, d: 1, solid: false, wall: true, pattern: true },
 };

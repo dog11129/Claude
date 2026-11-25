@@ -162,6 +162,13 @@ export const ITEMS = {
   faelschung:    { name: 'Fälschung',      icon: '🎭', sell: 10, cat: 'misc' },
   bambus:        { name: 'Bambus',         icon: '🎋', sell: 120, cat: 'mat', xp: 1 },
   bambussprosse: { name: 'Bambussprosse',  icon: '🌱', sell: 260, cat: 'veg', xp: 2 },
+  // Bauernhof-Ecke, Korallenriff, Strand
+  goldei:        { name: 'Goldenes Ei',    icon: '🥚', sell: 2500, cat: 'misc' },
+  kaese:         { name: 'Käse',           icon: '🧀', sell: 700, cat: 'misc', xp: 3 },
+  seeglas:       { name: 'Seeglas',        icon: '💠', sell: 300, cat: 'misc', xp: 2 },
+  riffkoralle:   { name: 'Riffkoralle',    icon: '🪸', sell: 650, cat: 'misc', xp: 3 },
+  drache:        { name: 'Drachen',        icon: '🪁', buy: 1800, lvl: 1, gear: true, desc: 'Steigen lassen: Böen abpassen und Höhe gewinnen' },
+  fahrrad:       { name: 'Fahrrad',        icon: '🚲', buy: 4500, lvl: 2, gear: true, desc: 'Viel schneller über die Insel flitzen' },
   // Siegerrezepte vom Kochwettbewerb
   sternentorte:  { name: 'Sternentorte',   icon: '🎂', sell: 3200, cat: 'dish', xp: 12 },
   inselcurry:    { name: 'Insel-Curry',    icon: '🍛', sell: 2600, cat: 'dish', xp: 10 },
@@ -352,6 +359,10 @@ export const PLACE = {
   fahne:      { name: 'Inselfahne',     icon: '🚩', buy: 600, lvl: 1, kind: 'deco', solid: 1, desc: 'Zeigt euer eigenes Muster (🎨 Muster-Editor)' },
   tauschstand: { name: 'Tauschstand',   icon: '🏪', buy: 2500, lvl: 2, kind: 'deco', solid: 1, desc: 'Hier bietet ihr Sachen an – Nachbarn und Besuch kaufen sie' },
   schatzkiste: { name: 'Schatzkiste',   icon: '🏴‍☠️', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Vom großen Schatz der Schatzkarte' },
+  huehnerstall: { name: 'Hühnerstall',  icon: '🐔', buy: 4800, lvl: 2, kind: 'producer', farm: 1, solid: 1, item: 'ei', n: 2, every: DAY, desc: 'Drei Hühner legen jeden Tag Eier – wenn sie gefüttert sind (🌾 Weizen, 🥔 Kartoffel)' },
+  kuhweide:   { name: 'Kuhweide',       icon: '🐄', buy: 7500, lvl: 3, kind: 'producer', farm: 1, solid: 1, item: 'milch', n: 1, every: DAY, desc: 'Eine Kuh gibt jeden Tag Milch – wenn sie gefüttert ist (🌾 Weizen, 🥕 Karotte, 🍎 Apfel)' },
+  strandpokal: { name: 'Sandburgen-Pokal', icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gewonnen beim Sandburgen-Wettbewerb' },
+  windpokal:  { name: 'Drachen-Pokal',  icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gewonnen beim Drachenfest' },
   grundstueck: { name: 'Grundstück',    icon: '🪧', lvl: 1, kind: 'deco', solid: 1, desc: 'Hier zieht am nächsten Morgen euer neuer Nachbar ein' },
   nachbarhaus: { name: 'Nachbarhaus',   icon: '🏠', lvl: 1, kind: 'deco', solid: 1, desc: 'Hier wohnt Besuch, der geblieben ist' },
 };
@@ -369,6 +380,7 @@ export const PROJECTS = {
   glockenturm:   { name: 'Glockenturm',         icon: '🔔', cost: 80000, lvl: 6 },
   leuchtturm:    { name: 'Leuchtturm',          icon: '🗼', cost: 98000, lvl: 7, glow: 1 },
   campingplatz:  { name: 'Campingplatz',        icon: '🏕️', cost: 22000, lvl: 2 },
+  seilbahn:      { name: 'Seilbahn',            icon: '🚡', cost: 48000, lvl: 4 },
 };
 for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
 for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
