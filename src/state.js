@@ -1350,6 +1350,8 @@ const ACTIONS = {
     if (layer(s, f, R)[key(a.x, a.z)]) return false;
     takeInv(s, a.item, 1);
     layer(s, f, R)[key(a.x, a.z)] = { k: a.item, r };
+    const T = s.lifted?.[s._who || 'host']; // gerade aufgehobenes Möbelstück behält beim Umstellen seine Farbe
+    if (T?.k === a.item && T.day === s.day) { if (T.c) layer(s, f, R)[key(a.x, a.z)].c = T.c; delete s.lifted[s._who || 'host']; }
     questEvent(s, 'furnish', 1, out);
     out.snd = 'place';
     return true;
@@ -1362,6 +1364,8 @@ const ACTIONS = {
     if (R.id && h.key === '-2,-1' && h.o.k === 'einzelbett' && !h.o.by) { out.msg = 'Das ist das Bett von ' + NPC_DATA[R.id].name + ' – das bleibt hier.'; return false; }
     delete layer(s, FURNITURE[h.o.k], R)[h.key];
     if (h.o.a) E6.tankEmpty(s, h.o); // Aquarium/Terrarium: Bewohner zurück in die Tasche
+    (s.lifted ||= {})[s._who || 'host'] = { k: h.o.k, c: h.o.c || 0, day: s.day }; // Farbe merken, falls es gleich woanders hinkommt
+    out.lifted = h.o.k;
     addInv(s, h.o.k, 1);
     out.snd = 'place';
     return true;
@@ -1836,12 +1840,15 @@ export function resolveBuild(s, b, x, z) {
       const h = homeAt(s, x, z, false, R) || homeAt(s, x, z, 'walls', R) || homeAt(s, x, z, true, R);
       if (!h) return { label: 'Hier steht nichts', tiles: one, bad: true };
       const f = FURNITURE[h.o.k];
-      return { a: { t: 'hpick', x, z, ...room }, label: `✋ ${f.icon} ${f.name} einpacken`, tiles: footprint(h.o.k, h.x, h.z, h.o.r).map(W) };
+      return { a: { t: 'hpick', x, z, ...room }, label: `✋ ${f.icon} ${f.name} aufheben`, tiles: footprint(h.o.k, h.x, h.z, h.o.r).map(W) };
     }
     const f = FURNITURE[b.item];
-    if (!f || !(s.inv[b.item] > 0)) return { label: 'Wähle unten ein Möbelstück', tiles: one, bad: true };
+    // Auf ein Möbelstück tippen hebt es auf (wenn das gewählte Möbel dort nicht hinpasst) – danach kann man es woanders hinstellen
+    const lift = () => { const h = homeAt(s, x, z, false, R) || homeAt(s, x, z, 'walls', R) || homeAt(s, x, z, true, R), g = h && FURNITURE[h.o.k]; return g ? { a: { t: 'hpick', x, z, ...room }, pick: { id: h.o.k, r: h.o.r | 0 }, label: `✋ ${g.icon} ${g.name} aufheben`, tiles: footprint(h.o.k, h.x, h.z, h.o.r).map(W) } : null; };
+    if (!f || !(s.inv[b.item] > 0)) return lift() || { label: 'Wähle unten ein Möbelstück', tiles: one, bad: true };
     const r = f.wall ? wallRot(s, x, z, R) : (((b.r | 0) % 4) + 4) % 4;
     const ok = r >= 0 && canFurnish(s, b.item, x, z, r, R) && !layer(s, f, R)[key(x, z)];
+    if (!ok) { const l = lift(); if (l) return l; }
     return { ...(ok ? { a: { t: 'hplace', x, z, item: b.item, r, ...room }, label: `📍 ${f.icon} ${f.name} hinstellen` } : { label: f.wall ? 'Nur an eine Wand' : 'Hier ist kein Platz', bad: true }), tiles: r >= 0 ? footprint(b.item, x, z, r).map(W) : one, r };
   }
   const k = key(x, z);
@@ -1850,7 +1857,7 @@ export function resolveBuild(s, b, x, z) {
     if (o?.k === 'nachbarhaus') return { label: `🏠 Hier wohnt jemand – nicht abbaubar`, tiles: one, bad: true };
     if (o && PLACE[o.k]) {
       const p = PLACE[o.k];
-      const label = o.k === 'baustelle' ? (o.paid ? `🚩 Baustelle abbauen (+${o.paid} Taler zurück)` : '🚩 Bauplatz abbauen') : p.kind === 'project' ? `🏗️ ${p.name} abbauen` : `✋ ${p.icon} ${p.name} einpacken`;
+      const label = o.k === 'baustelle' ? (o.paid ? `🚩 Baustelle abbauen (+${o.paid} Taler zurück)` : '🚩 Bauplatz abbauen') : p.kind === 'project' ? `🏗️ ${p.name} abbauen` : `✋ ${p.icon} ${p.name} aufheben`;
       return { a: { t: 'pickup', x, z }, label, tiles: one, project: p.kind === 'project' || o.k === 'baustelle' };
     }
     if (s.paths?.[k]) return { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one };
@@ -1863,9 +1870,12 @@ export function resolveBuild(s, b, x, z) {
     return { label: 'Hier geht kein Weg', tiles: one, bad: true };
   }
   const p = PLACE[b.item];
-  if (!p || !(s.inv[b.item] > 0)) return { label: 'Wähle unten etwas zum Aufstellen', tiles: one, bad: true };
+  // Auf Deko tippen hebt sie auf (Projekte, Baustellen und Nachbarhäuser nur über ✋ Aufheben bzw. gar nicht)
+  const o = s.obj[k], q = o && PLACE[o.k], lift = q && q.kind !== 'project' && q.kind !== 'site' && !['baustelle', 'nachbarhaus'].includes(o.k) ? { a: { t: 'pickup', x, z }, pick: { id: o.k, r: o.r | 0 }, label: `✋ ${q.icon} ${q.name} aufheben`, tiles: one } : null;
+  if (!p || !(s.inv[b.item] > 0)) return lift || { label: 'Wähle unten etwas zum Aufstellen', tiles: one, bad: true };
   const big = p.kind === 'project' || b.item === 'baustelle';
   const ok = canPlace(s, x, z) && (!big || siteFree(s, x, z)) && (b.item !== 'baustelle' || PROJECTS[s.mayor.plan]);
+  if (!ok && lift) return lift;
   const why = !canPlace(s, x, z) ? 'Hier ist kein Platz' : b.item === 'baustelle' && !PROJECTS[s.mayor.plan] ? 'Erst im Rathaus ein Projekt wählen' : 'Projekte brauchen rundherum Platz';
   return { ...(ok ? { a: { t: 'place', x, z, item: b.item, r: (((b.r | 0) % 4) + 4) % 4 }, label: `📍 ${p.icon} ${p.name} aufstellen` } : { label: why, bad: true }), tiles: big ? [-1, 0, 1].flatMap(i => [-1, 0, 1].map(j => [x + i, z + j])) : one };
 }

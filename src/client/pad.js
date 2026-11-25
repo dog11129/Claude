@@ -75,7 +75,7 @@ export function pollPad(dt) {
       if (P.joy.id == null) { P.joy.x = ax(0) + (b[15] ? 1 : 0) - (b[14] ? 1 : 0); P.joy.y = ax(1) + (b[13] ? 1 : 0) - (b[12] ? 1 : 0); }
       if (down(0)) key('e'); if (up(0)) key('e', true);
       if (down(1)) tapKey('Escape');
-      if (down(2)) tapKey('i');
+      if (down(2)) tapKey(G.build ? 'x' : 'i'); // im Baumodus: Aufheben an/aus
       if (down(3)) tapKey('h');
       if (down(4) || down(5)) { if (G.build) tapKey('r'); else P.cycle(down(4) ? -1 : 1); }
       if (down(6)) tapKey('m');

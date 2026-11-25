@@ -1375,6 +1375,7 @@ addEventListener('keydown', e => {
   if (G.photo) return;
   if (k === 'g') { if (G.build) closeBuild(); else openBuild(); return; }
   if (G.build && k === 'r') { rotateBuild(); return; }
+  if (G.build && k === 'x') { togglePick(); return; }
   if (G.build?.pend && k === 'enter') { confirmBuild(); return; }
   if (k === 'k') { toggleSky(); return; }
   if (k === 'h' || k === 'tab') { togglePanel('phone'); e.preventDefault(); return; }
@@ -1499,8 +1500,8 @@ function select(id, quiet) {
 // ---------- Baumodus ----------
 // Aufstellen, Einrichten, Wege legen und Abbauen geht nur hier: unten eine Leiste mit Kategorien und den Sachen aus der Tasche,
 // auf dem Feld eine Vorschau. Draußen auch Inselprojekte (die man jetzt wieder abbauen und versetzen kann).
-const OUT_CATS = [['deko', '🏮 Deko'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['haus', '🏠 Haus'], ['abbauen', '✋ Abbauen']];
-const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['lackieren', '🖌️ Lackieren'], ['abbauen', '✋ Abbauen']];
+const OUT_CATS = [['deko', '🏮 Deko'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['haus', '🏠 Haus']]; // ✋ Aufheben: eigener Knopf oben (#bpick)
+const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['lackieren', '🖌️ Lackieren']];
 function buildList(b) {
   const inv = G.s.inv;
   if (b.inside) return Object.keys(FURNITURE).filter(id => inv[id] > 0 && (b.cat === 'alle' || FURNITURE[id].cat === b.cat));
@@ -1526,7 +1527,8 @@ function openBuild(cat) {
   G.buildSig = null;
   renderBuild();
   play('click');
-  if (!store.get('ki.buildTip', false)) { store.set('ki.buildTip', true); toast('🔨 Baumodus: unten etwas auswählen und aufs Feld tippen – dort erscheint die Vorschau. Mit 🔄 drehen, mit ✔ hinstellen. „Abbauen“ packt Sachen wieder ein.'); }
+  if (!store.get('ki.buildTip', false)) { store.set('ki.buildTip', true); store.set('ki.pickTip', true); toast('🔨 Baumodus: unten etwas auswählen und aufs Feld tippen – dort erscheint die Vorschau. Mit 🔄 drehen, mit ✔ hinstellen. Auf Aufgestelltes tippen hebt es auf.'); }
+  else if (!store.get('ki.pickTip', false)) { store.set('ki.pickTip', true); toast('✋ Neu: Im Baumodus auf ein Möbelstück oder Deko tippen hebt es auf – dann einfach woanders hinstellen. Mit „✋ Aufheben“ oben packst du mehrere Sachen ein.', true); }
 }
 function closeBuild() {
   if (!G?.build) return;
@@ -1537,6 +1539,22 @@ function closeBuild() {
   document.body.classList.remove('building');
   $('buildbar').classList.add('hidden');
   G.hotSig = null;
+}
+// ✋ Aufheben an/aus (Knopf oben in der Leiste, Taste X)
+function togglePick() {
+  const b = G?.build;
+  if (!b) return;
+  if (b.mode === 'remove') setBuildCat(b.prevCat || (b.inside ? 'alle' : 'deko'));
+  else { b.prevCat = b.cat; setBuildCat('abbauen'); }
+  renderBuild();
+  play('click');
+}
+// Nach dem Aufheben das Stück gleich zum Woandershinstellen auswählen (sobald es in der Tasche ist)
+function liftFor(b, pick) {
+  b.want = pick.id; b.r = pick.r || 0; b.pend = null;
+  const k = PLACE[pick.id]?.kind;
+  if (b.mode === 'place') b.cat = b.inside ? 'alle' : k === 'project' || k === 'site' ? 'projekte' : k === 'producer' || PLACE[pick.id]?.garden ? 'garten' : 'deko';
+  G.buildSig = null;
 }
 function setBuildCat(cat) {
   const b = G.build;
@@ -1550,9 +1568,12 @@ function renderBuild() {
   const b = G.build;
   if (!b) return;
   const list = b.mode === 'place' ? buildList(b) : [];
+  if (b.want && list.includes(b.want)) { b.item = b.want; b.want = null; } // gerade aufgehoben: gleich wieder hinstellen
   if (b.mode === 'place' && !b.item && list.length) b.item = list[0];
   if (b.mode === 'place' && b.item && !list.includes(b.item)) b.item = list[0] || null;
   const sig = JSON.stringify([b.cat, b.item, b.path, b.mode, list.map(id => [id, G.s.inv[id]])]);
+  $('bpick').classList.toggle('on', b.mode === 'remove');
+  $('bpick').textContent = b.mode === 'remove' ? '✋ Aufheben an' : '✋ Aufheben';
   if (sig === G.buildSig) return;
   G.buildSig = sig;
   $('btitle').textContent = b.inside ? '🔨 Einrichten' : '🔨 Baumodus';
@@ -1560,15 +1581,16 @@ function renderBuild() {
   let h = '';
   if (b.mode === 'house') h = `<div class="bnote">🏠 <b>Haus umziehen:</b> Tippe auf einen freien Platz – dort erscheint euer Haus als Vorschau (mit Briefkasten). Ein Umzug kostet ${S.HOUSE_MOVE_PRICE.toLocaleString("de-DE")} Taler aus der Inselkasse, drinnen bleibt alles, wie es ist.</div>`;
   else if (b.mode === 'paint') h = `<div class="bnote">🖌️ ${G.s.inv.farbpinsel > 0 ? 'Tippe auf ein Möbelstück – jedes Antippen gibt ihm die nächste Farbe (8 Farben, die letzte ist wieder natur).' : 'Dafür braucht ihr einen <b>Farbpinsel</b> aus dem Krämerladen 🛒.'}</div>`;
-  else if (b.mode === 'remove') h = `<div class="bnote">✋ Tippe auf etwas, um es einzupacken. ${b.inside ? 'Möbel kommen in deine Tasche.' : 'Deko kommt in deine Tasche, Inselprojekte auch – so kannst du sie woanders neu aufstellen. Baustellen geben die Spenden zurück.'}</div>`;
+  else if (b.mode === 'remove') h = `<div class="bnote">✋ <b>Aufheben:</b> Tippe auf etwas, um es einzupacken – so oft du willst. Nochmal „✋ Aufheben“ drücken zum Aufstellen. ${b.inside ? 'Möbel kommen in deine Tasche.' : 'Deko kommt in deine Tasche, Inselprojekte auch – so kannst du sie woanders neu aufstellen. Baustellen geben die Spenden zurück.'}</div>`;
   else if (b.mode === 'pave') h = Object.entries(PAVE).map(([k, p]) => `<button data-path="${k}" class="${b.path === k ? 'on' : ''}"><span class="iic emo" style="color:${p.col ? '#' + p.col.toString(16).padStart(6, '0') : ''}">${p.icon}</span><small>${p.name}</small></button>`).join('') + `<button data-path="none" class="${b.path === 'none' ? 'on' : ''}"><span class="iic emo">🧹</span><small>Weg entfernen</small></button>`;
-  else if (!list.length) h = `<div class="bnote">${b.inside ? 'Keine Möbel in deiner Tasche. Kauft welche im Krämerladen 🛒 oder baut sie an der Werkbank 🔨.' : b.cat === 'projekte' ? 'Wählt im 🏛️ Rathaus ein Projekt – dann liegt hier der Bauplatz-Pflock. Abgebaute Projekte landen auch hier.' : 'Hier ist gerade nichts in deiner Tasche. Deko gibt es im Krämerladen 🛒 und an der Werkbank 🔨.'}</div>`;
+  else if (!list.length) h = `<div class="bnote">${b.inside ? 'Keine Möbel in deiner Tasche. Kauft welche im Krämerladen 🛒 oder baut sie an der Werkbank 🔨. Auf ein aufgestelltes Möbelstück tippen hebt es auf.' : b.cat === 'projekte' ? 'Wählt im 🏛️ Rathaus ein Projekt – dann liegt hier der Bauplatz-Pflock. Abgebaute Projekte landen auch hier.' : 'Hier ist gerade nichts in deiner Tasche. Deko gibt es im Krämerladen 🛒 und an der Werkbank 🔨.'}</div>`;
   else h = list.map(id => `<button data-item="${id}" class="${b.item === id ? 'on' : ''}" title="${esc(ITEMS[id].name)}">${itemIcon(id)}<small>${esc(ITEMS[id].name)}</small><span class="n">${G.s.inv[id]}</span></button>`).join('');
   $('bitems').innerHTML = h;
   fillIcons($('bitems'));
 }
 $('buildbtn').onclick = () => { if (G?.build) closeBuild(); else openBuild(); };
 $('bdone').onclick = () => closeBuild();
+$('bpick').onclick = () => togglePick();
 // Aufstellen in zwei Schritten: aufs Feld tippen = Vorschau dort festhalten, drehen, dann ✔ bestätigen
 function rotateBuild() { if (!G?.build) return; G.build.r = (G.build.r + 1) % 4; play('click'); }
 function confirmBuild() {
@@ -1625,6 +1647,7 @@ function buildTap(cx, cy) {
 // Antippen im Baumodus: Aufstellen erst merken (Vorschau), nochmal aufs selbe Feld = bestätigen; Wege & Abbauen sofort
 function pickBuild(p) {
   const b = G.build;
+  if (b.mode === 'place') { const r = buildCtx(p); if (r.pick) { buildDo(r); return; } } // auf Aufgestelltes getippt: aufheben
   if (b.mode !== 'house' && (b.mode !== 'place' || !b.item)) { buildDo(buildCtx(p)); return; }
   const [x, z] = buildTile(p);
   if (b.pend && b.pend.bx === x && b.pend.bz === z) { confirmBuild(); return; }
@@ -1642,6 +1665,7 @@ function buildDo(r) {
   }
   send(r.a);
   world.burst(r.a.x + (G.build.inside ? S.HOME_X : 0), r.a.z + (G.build.inside ? G.build.z0 : 0), 'sparkle', 0.2);
+  if (r.pick && G.build.mode === 'place') { liftFor(G.build, r.pick); toast(`✋ ${ITEMS[r.pick.id]?.name || ''} aufgehoben – tippe, wo es hin soll. Oder ✔ Fertig: dann bleibt es in der Tasche.`); }
 }
 // Pro Bild: Vorschau, Markierung und Hinweis
 function updateBuild() {
@@ -1651,16 +1675,16 @@ function updateBuild() {
   if ((b.inside && (zone !== 'home' || S.roomIdAt(me.z) !== b.room)) || (!b.inside && zone !== 'island')) { closeBuild(); return null; }
   renderBuild();
   const r = buildCtx(b.pend || (G.hover ? world.pick(G.hover.cx, G.hover.cy) : null));
-  $('bhint').textContent = b.pend ? (b.mode === 'house' ? 'Passt es? Dann ✔ bestätigen' : 'Drehen mit 🔄 (R), dann ✔ bestätigen') : (b.mode === 'place' && b.item) || b.mode === 'house' ? 'Aufs Feld tippen – dort erscheint die Vorschau' : r.label || '';
+  $('bhint').textContent = b.mode === 'remove' && !G.hover ? 'Tippe auf etwas zum Aufheben' : r.pick && !b.pend ? r.label : b.pend ? (b.mode === 'house' ? 'Passt es? Dann ✔ bestätigen' : 'Drehen mit 🔄 (R), dann ✔ bestätigen') : (b.mode === 'place' && b.item) || b.mode === 'house' ? 'Aufs Feld tippen – dort erscheint die Vorschau' : r.label || '';
   const pendOn = !!(b.pend && ((b.mode === 'place' && b.item) || b.mode === 'house'));
   $('bcrot').classList.toggle('hidden', b.mode === 'house');
   $('bconfirm').classList.toggle('hidden', !pendOn);
-  $("brot").classList.toggle("hidden", pendOn);
+  $("brot").classList.toggle("hidden", pendOn || b.mode === 'remove');
   if (pendOn) { $('bconfirm').classList.toggle('bad', !r.a); setText('bcname', r.a ? (b.mode === 'house' ? r.label : `${ITEMS[b.item]?.icon || ''} ${ITEMS[b.item]?.name || ''}`) : `⚠️ ${r.label || 'Hier geht das nicht'}`); }
   if (b.mode === 'house') {
     const [hx, hz] = S.HOUSE_HOME, B = BUILDINGS.house, [sx, sz] = S.houseShift(), dx = r.bx - hx - sx, dz = r.bz - hz - sz;
     world.setGhost({ kind: 'house', id: 'house' + G.s.up.house, lv: G.s.up.house, x: B.cx + dx, z: B.cz + dz, fx: B.ox + dx, fz: B.oz + dz, ok: !!r.a, hold: !!b.pend });
-  } else if (b.mode === 'place' && b.item) {
+  } else if (b.mode === 'place' && b.item && !r.pick) {
     const f = FURNITURE[b.item], rr = r.r ?? b.r;
     if (b.inside && f) {
       const [fw, fd] = rr % 2 ? [f.d, f.w] : [f.w, f.d];

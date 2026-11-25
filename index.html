@@ -541,6 +541,7 @@ body.skyview #skybtn { background: #7f8fd8; }
 #bconfirm { display: flex; align-items: center; gap: 6px; margin: 2px 0 6px; padding: 6px 8px; border-radius: 16px; background: #fff; box-shadow: 0 2px 0 #ecd9c3; animation: pop .2s; }
 #bconfirm.hidden { display: none; } #bcname { flex: 1; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #bconfirm.bad #bcok { opacity: .45; } #bconfirm.bad #bcname { color: #d0505a; }
+#bpick.on { background: #ffb3c8; color: #fff; box-shadow: 0 2px 0 #e88aa6; } #bhead .btn { white-space: nowrap; }
 #bhead b { font-size: 16px; white-space: nowrap; } #bhint { flex: 1; font-size: 13px; color: #8a6a58; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #bcats { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
 #bcats button { flex: 0 0 auto; border: 0; border-radius: 14px; padding: 6px 11px; background: #fff; box-shadow: 0 2px 0 #efdcc6; font: inherit; font-size: 13px; font-weight: 700; color: #6a4a3a; cursor: pointer; }
@@ -596,7 +597,7 @@ body.building #hotbar, body.building #actbtn, body.building #joyhint, body.build
   </div>
   <div id="hotbar"></div>
   <div id="buildbar" class="hidden">
-    <div id="bhead"><b id="btitle">🔨 Baumodus</b><span id="bhint">Tippe auf ein Feld</span><button class="btn small white" id="brot" title="Drehen (R)">🔄 Drehen</button><button class="btn small pink" id="bdone" title="Fertig (G / Esc)">✔ Fertig</button></div>
+    <div id="bhead"><b id="btitle">🔨 Baumodus</b><span id="bhint">Tippe auf ein Feld</span><button class="btn small white" id="bpick" title="Aufheben (X)">✋ Aufheben</button><button class="btn small white" id="brot" title="Drehen (R)">🔄 Drehen</button><button class="btn small pink" id="bdone" title="Fertig (G / Esc)">✔ Fertig</button></div>
     <div id="bconfirm" class="hidden"><span id="bcname"></span><button class="btn small white" id="bcrot" title="Drehen (R)">🔄 Drehen</button><button class="btn small pink" id="bcok" title="Hinstellen (Enter)">✔ Hier hinstellen</button><button class="btn small white" id="bcno" title="Abbrechen (Esc)">✖</button></div>
     <div id="bcats"></div>
     <div id="bitems"></div>

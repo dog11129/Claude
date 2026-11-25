@@ -28,7 +28,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | Benutzen | Auf Baum, Muschel, Haus, Nachbarn … zeigen und klicken (oder E) – nah dran sofort, sonst läuft die Figur hin | drauf tippen |
 | Aktion vor der Figur | E / Leertaste (halten = wiederholen) | großer rosa Knopf |
 | Werkzeug / Samen | 1–9 oder anklicken (Hand, Kescher, Schaufel, Axt, Gießkanne, Schleuder) | unten antippen |
-| Baumodus (aufstellen, einrichten, Wege, abbauen) | G, R = drehen, Esc = fertig | 🔨 |
+| Baumodus (aufstellen, einrichten, Wege, aufheben) | G, R = drehen, X = Aufheben, Esc = fertig | 🔨, ✋ Aufheben |
 | Kamera | Mausrad = Zoom, rechte Maustaste ziehen oder Z/C = drehen | zwei Finger = Zoom & drehen, 🔄 |
 | Chat / Emotes | Enter / Q | 💬 / 😊 |
 | Inselhandy, Karte, Taschen, Inselbuch, Freunde | H, M, I, O, F | 📱 und Knöpfe oben rechts |
@@ -37,7 +37,11 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🪷 Neu: Inselleben 7
+### ✋ Neu: Aufheben im Baumodus
+- Im Baumodus einfach auf ein aufgestelltes Möbelstück (im Haus) oder auf Deko (draußen) tippen: Es wird aufgehoben und ist gleich zum Woandershinstellen ausgewählt – lackierte Möbel behalten dabei ihre Farbe. Wer es nicht wieder hinstellt, findet es in der Tasche.
+- Der Knopf **✋ Aufheben** oben in der Bauleiste (Taste X, am Controller X) packt mehrere Sachen nacheinander ein. Inselprojekte baut man nur so ab (mit Rückfrage); Nachbarhäuser bleiben stehen.
+
+### 🪷 Inselleben 7
 - **🪷 Seerosenmoor:** Am Nordrand der Blütenwiese baut ihr gemeinsam an drei Tagen einen Steg (je 10 Holz und 5 Steine, Bruno und Kalle helfen). Dahinter: Frösche auf Seerosenblättern und Libellen über dem Wasser (Kescher, darunter der seltene Goldfrosch), Seerosen zum Pflücken, Schilf (Axt), Glühwürmchen in der Nacht und ein Floß, das einmal rund um den Teich fährt.
 - **🎋 Bambushain:** Am Nordrand des Kiefernwalds öffnet ihr das Bambustor (30.000 Taler + 20 Holz). Bambus (Axt), Bambussprossen (Schaufel, jeden Tag woanders), Steinlaternen, ein Wasserspiel, das „Klack!“ macht, und das Teehaus mit Wanda: Teezeremonie in drei Schritten (Wasser auf 80 °C, schaumig schlagen, ruhig servieren). Drei vollkommene Zeremonien = Tee-Set. Neue Baupläne: Bambuszaun, Bambuslampe; neues Gericht: Sprossenpfanne.
 - **🌈 Wetter-Abenteuer:** Am Morgen nach Regen endet der Regenbogen irgendwo auf der Insel – dort mit der Schaufel nach dem Goldtopf graben (bis 13 Uhr). Nach Gewittern liegen Blitzsteine herum (Blitzlampe), an Nebelmorgen schweben Irrlichter über die Insel (Kescher, drei werden zur Irrlicht-Laterne).
