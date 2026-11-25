@@ -7,7 +7,7 @@ import { who, note, fmt } from './util.js';
 // Extra-Zimmer liegen wie das Haus bei x = 300, aber nördlich (z < -30)
 export const XROOMS = {
   attic: { name: 'Dachboden', icon: '🪜', z0: -50, size: [7, 5], wall: 'holz', floor: 'dielen', price: 60000, lvl: 5, item: 'treppe_hoch' },
-  cellar: { name: 'Keller', icon: '🕯️', z0: -90, size: [7, 5], wall: 'stein', floor: 'stein', price: 60000, lvl: 5, item: 'treppe_runter' },
+  cellar: { name: 'Keller', icon: '🕯️', z0: -90, size: [7, 5], wall: 'ziegel', floor: 'stein', price: 60000, lvl: 5, item: 'treppe_runter' },
   tree: { name: 'Baumhaus', icon: '🌳', z0: -130, size: [5, 4], wall: 'holz', floor: 'parkett' },
 };
 export const xroomAt = z => (z > -30 ? null : Object.keys(XROOMS).reduce((b, id) => (Math.abs(XROOMS[id].z0 - z) < Math.abs(XROOMS[b].z0 - z) ? id : b), 'attic'));
@@ -41,7 +41,7 @@ export function hpaint(s, a, out) {
 export function pottery(s, a, out) {
   const f = POT_FORMS.find(x => x[0] === a.form), g = POT_GLAZES.find(x => x[0] === a.glaze);
   if (a.op !== 'make' || !f || !g || !Object.values(s.obj || {}).some(o => o?.k === 'toepferscheibe')) return false;
-  if ((s.inv.lehm || 0) < 2) { out.msg = '🏺 Dafür braucht es 2 Lehm (mit der Schaufel an Lehm-Stellen graben).'; return false; }
+  if ((s.inv.lehm || 0) < 2) { out.msg = '🏺 Dafür braucht es 2 Lehm (mit der Schaufel auf Felsen klopfen).'; return false; }
   if (s.kiln.length >= 6) { out.msg = '🏺 Der Ofen ist voll – morgen ist Platz.'; return false; }
   S.takeInvX(s, 'lehm', 2);
   s.kiln.push({ id: `topf_${f[0]}_${g[0]}`, day: s.day });

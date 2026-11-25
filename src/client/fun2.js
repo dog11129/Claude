@@ -198,7 +198,7 @@ export function updateW(dt) {
 }
 
 // ---------- Minispiel-Fenster ----------
-function openGame(title, w, h, g) {
+export function openGame(title, w, h, g) {
   const G = C.G;
   C.panels.close();
   G.mg = { w, h, ...g };
@@ -213,7 +213,7 @@ function openGame(title, w, h, g) {
   G.mg.self = G.mg;
   requestAnimationFrame(loop);
 }
-function endGame(quit) {
+export function endGame(quit) {
   const G = C.G;
   if (!G?.mg) return;
   const done = G.mg.done;

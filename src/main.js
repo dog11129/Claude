@@ -23,6 +23,9 @@ import { TRIP, TRIP_PRICE } from './trips.js';
 import { REEF, REEF_BUOY, cableBuilt, cableStop, taleState, beachOpen, beachKind } from './extras2.js';
 import { initFun2, uiW, travelW, contextW, executeW, updateW, iceMove, gameOn, setSled } from './client/fun2.js';
 import { APP_PANELS_W } from './ui-extra.js';
+import { initFun3, uiV, travelV, exitV, contextV, executeV, updateV, trainContext, endTrain } from './client/fun3.js';
+import { APP_PANELS_V } from './ui-extra2.js';
+import * as V from './extras5.js';
 import { initFun, autoQuality, startRide, updateRide, photoEntry, drawStars, setBike, startKite, kitePull, updateKite, endKite } from './client/fun.js';
 import { DEPTH, DEPTH_LV, DEPTH_UP, DEPTH_DOOR, DEPTH_STAIRS, ECHO_NOTES } from './extras3.js';
 import { WRECK, WRECK_BUOY, RIDE_SECS, ridePos, skyGiftTimes, wishNow, BRIGHT, STAR_SECTORS, PHOTO_THEMES, photoTheme } from './extras3.js';
@@ -64,6 +67,7 @@ initFun({
   applyView: () => applyView(), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), isleKey: () => isleKey(),
 });
 initFun2({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
+initFun3({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q), emote: e => sendEmote(e), listPhotos: () => photos.list(isleKey(), 'photo') });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
   world.setQuality({ scale: settings.scale, shadows: settings.shadows, bloom: settings.bloom, grass: settings.grass, lights: settings.lights, view: settings.view });
@@ -195,6 +199,8 @@ function hostData(id, d) {
     p.sw = d.sw === true;
     p.bk = d.bk === true; // Fahrrad
     p.sl = d.sl === true; // Schlitten
+    p.po = d.po === true; // Pony
+    p.tn = d.tn === true; // Bimmelbahn
     p.kh = Number.isFinite(d.kh) ? Math.max(0, Math.min(120, d.kh)) : 0; // Drachen-Höhe
     p.rh = Number.isFinite(d.rh) ? Math.max(0, Math.min(12, d.rh)) : 0; // Ballonfahrt
   }
@@ -781,7 +787,7 @@ function netTick() {
   } else {
     const me = G.players[G.me];
     if (!me || G.reconnecting || G.ended) return;
-    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, sl: !!me.sled, kh: me.kh || 0, rh: me.rh || 0 };
+    const msg = { t: 'm', x: r3(me.x), z: r3(me.z), ry: r3(me.ry), m: me.m, ak: me.ak, an: me.an, held: me.held, pose: me.pose, fishing: me.fishing, run: !!me.run, sw: !!me.sw, bk: !!me.bike, sl: !!me.sled, po: !!me.pony, tn: !!me.tn, kh: me.kh || 0, rh: me.rh || 0 };
     const sig = JSON.stringify(msg);
     if (sig !== G.lastMove || now - (G.lastMoveT || 0) > 1000) { G.conn?.send(msg); G.lastMove = sig; G.lastMoveT = now; }
     if (now - G.lastHost > 9000) lostConnection();
@@ -1130,6 +1136,7 @@ const panels = new Panels({
   act: a => send(a),
   async ui(kind, d) {
     if (kind.startsWith('w:')) { uiW(kind.slice(2), d); return; } // Inselleben 4 (client/fun2.js)
+    if (kind.startsWith('v:')) { uiV(kind.slice(2), d); return; } // Inselleben 5 (client/fun3.js)
     if (kind === 'app') openApp(d.app);
     if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
     if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
@@ -1252,6 +1259,7 @@ const panels = new Panels({
 // Laufende Aktionen (Angeln, Laufziel) abbrechen, wenn etwas anderes beginnt
 function interrupt() {
   if (!G?.ready) return;
+  if (G.train) endTrain();
   if (G.fishing) stopFishing();
   G.goal = null;
 }
@@ -1259,7 +1267,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W, ...APP_PANELS_V }[app];
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -1472,7 +1480,7 @@ function select(id, quiet) {
 // Aufstellen, Einrichten, Wege legen und Abbauen geht nur hier: unten eine Leiste mit Kategorien und den Sachen aus der Tasche,
 // auf dem Feld eine Vorschau. Draußen auch Inselprojekte (die man jetzt wieder abbauen und versetzen kann).
 const OUT_CATS = [['deko', '🏮 Deko'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['haus', '🏠 Haus'], ['abbauen', '✋ Abbauen']];
-const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['abbauen', '✋ Abbauen']];
+const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['lackieren', '🖌️ Lackieren'], ['abbauen', '✋ Abbauen']];
 function buildList(b) {
   const inv = G.s.inv;
   if (b.inside) return Object.keys(FURNITURE).filter(id => inv[id] > 0 && (b.cat === 'alle' || FURNITURE[id].cat === b.cat));
@@ -1490,8 +1498,8 @@ function openBuild(cat) {
   panels.close();
   if (me.pose) standUp(me);
   const inside = zone === 'home', room = inside ? S.roomIdAt(me.z) : null;
-  if (room && S.hearts(G.s, room) < 3) { toast('🔨 Hier darfst du erst ab 3 Herzen einrichten.'); return; }
-  G.build = { inside, room, z0: room ? S.nroomZ(room) : 0, cat: cat || (inside ? 'alle' : 'deko'), item: null, r: 0, mode: 'place', path: G.pathType || 'erde', zoom: world.zoom };
+  if (room && !V.XROOMS[room] && S.hearts(G.s, room) < 3) { toast('🔨 Hier darfst du erst ab 3 Herzen einrichten.'); return; }
+  G.build = { inside, room, z0: room ? S.roomOf(G.s, room).z0 : 0, cat: cat || (inside ? 'alle' : 'deko'), item: null, r: 0, mode: 'place', path: G.pathType || 'erde', zoom: world.zoom };
   world.zoom = Math.max(world.zoom, inside ? 1.15 : 1.45);
   document.body.classList.add('building');
   $('buildbar').classList.remove('hidden');
@@ -1513,7 +1521,7 @@ function closeBuild() {
 function setBuildCat(cat) {
   const b = G.build;
   b.cat = cat;
-  b.mode = cat === 'abbauen' ? 'remove' : cat === 'wege' ? 'pave' : cat === 'haus' ? 'house' : 'place';
+  b.mode = cat === 'abbauen' ? 'remove' : cat === 'lackieren' ? 'paint' : cat === 'wege' ? 'pave' : cat === 'haus' ? 'house' : 'place';
   b.pend = null;
   if (b.mode === 'place' && !buildList(b).includes(b.item)) b.item = null;
   G.buildSig = null;
@@ -1531,6 +1539,7 @@ function renderBuild() {
   $('bcats').innerHTML = (b.inside ? IN_CATS : OUT_CATS).map(([id, l]) => `<button data-cat="${id}" class="${id === b.cat ? 'on' : ''}">${l}</button>`).join('');
   let h = '';
   if (b.mode === 'house') h = `<div class="bnote">🏠 <b>Haus umziehen:</b> Tippe auf einen freien Platz – dort erscheint euer Haus als Vorschau (mit Briefkasten). Ein Umzug kostet ${S.HOUSE_MOVE_PRICE.toLocaleString("de-DE")} Taler aus der Inselkasse, drinnen bleibt alles, wie es ist.</div>`;
+  else if (b.mode === 'paint') h = `<div class="bnote">🖌️ ${G.s.inv.farbpinsel > 0 ? 'Tippe auf ein Möbelstück – jedes Antippen gibt ihm die nächste Farbe (8 Farben, die letzte ist wieder natur).' : 'Dafür braucht ihr einen <b>Farbpinsel</b> aus dem Krämerladen 🛒.'}</div>`;
   else if (b.mode === 'remove') h = `<div class="bnote">✋ Tippe auf etwas, um es einzupacken. ${b.inside ? 'Möbel kommen in deine Tasche.' : 'Deko kommt in deine Tasche, Inselprojekte auch – so kannst du sie woanders neu aufstellen. Baustellen geben die Spenden zurück.'}</div>`;
   else if (b.mode === 'pave') h = Object.entries(PAVE).map(([k, p]) => `<button data-path="${k}" class="${b.path === k ? 'on' : ''}"><span class="iic emo" style="color:${p.col ? '#' + p.col.toString(16).padStart(6, '0') : ''}">${p.icon}</span><small>${p.name}</small></button>`).join('') + `<button data-path="none" class="${b.path === 'none' ? 'on' : ''}"><span class="iic emo">🧹</span><small>Weg entfernen</small></button>`;
   else if (!list.length) h = `<div class="bnote">${b.inside ? 'Keine Möbel in deiner Tasche. Kauft welche im Krämerladen 🛒 oder baut sie an der Werkbank 🔨.' : b.cat === 'projekte' ? 'Wählt im 🏛️ Rathaus ein Projekt – dann liegt hier der Bauplatz-Pflock. Abgebaute Projekte landen auch hier.' : 'Hier ist gerade nichts in deiner Tasche. Deko gibt es im Krämerladen 🛒 und an der Werkbank 🔨.'}</div>`;
@@ -1578,6 +1587,13 @@ function buildCtx(at) {
     const f = S.houseFit(G.s, x, z), money = G.s.money >= S.HOUSE_MOVE_PRICE;
     return { a: f.ok && money ? { t: 'movehouse', x, z } : null, label: !f.ok ? f.why : money ? `🏠 Haus hierher · ${S.HOUSE_MOVE_PRICE.toLocaleString("de-DE")} Taler` : `🏠 Zu wenig Taler in der Inselkasse (${S.HOUSE_MOVE_PRICE.toLocaleString("de-DE")})`, tiles: f.tiles || [[x, z]], bx: x, bz: z, house: f };
   }
+  if (b.mode === 'paint') { // Möbel lackieren (Farbpinsel)
+    const R = S.roomOf(G.s, b.room || null), h = S.homeAt(G.s, x, z, false, R) || S.homeAt(G.s, x, z, true, R), one = [[x + S.HOME_X, z + R.z0]];
+    if (!(G.s.inv.farbpinsel > 0)) return { label: '🖌️ Erst einen Farbpinsel kaufen', tiles: one, bx: x, bz: z };
+    if (!h) return { label: '🖌️ Auf ein Möbelstück tippen', tiles: one, bx: x, bz: z };
+    const c = ((h.o.c || 0) + 1) % V.TINTS.length;
+    return { a: { t: 'hpaint', x, z, c, ...(b.room ? { room: b.room } : {}) }, label: `🖌️ ${FURNITURE[h.o.k]?.name || ''} lackieren`, tiles: S.footprint(h.o.k, h.x, h.z, h.o.r).map(([i, j]) => [i + S.HOME_X, j + R.z0]), bx: x, bz: z };
+  }
   const r = S.resolveBuild(G.s, b, x, z);
   return { ...r, bx: x, bz: z };
 }
@@ -1605,7 +1621,7 @@ function buildDo(r) {
     G.build.confirm = null;
   }
   send(r.a);
-  world.burst(r.a.x + (G.build.inside ? S.HOME_X : 0), r.a.z, 'sparkle', 0.2);
+  world.burst(r.a.x + (G.build.inside ? S.HOME_X : 0), r.a.z + (G.build.inside ? G.build.z0 : 0), 'sparkle', 0.2);
 }
 // Pro Bild: Vorschau, Markierung und Hinweis
 function updateBuild() {
@@ -1642,6 +1658,8 @@ function context(me, at) {
     return stars ? (world.starActive() ? { wish: true, label: '🌠 Wünschen!', tiles: [] } : { label: '✨ Warte auf eine Sternschnuppe …', tiles: [] }) : { label: '🔭 Himmel', tiles: [] };
   }
   if (!at && G.sel === 'kite' && !S.inside(me)) return { kite: true, label: '🪁 Drachen steigen lassen', tiles: [] };
+  if (G.train) return trainContext();
+  if (!at) { const pv = contextV(me); if (pv) return pv; } // Pony
   if (!at && G.sel === 'bike') return { bike: true, label: me.bike ? '🚲 Absteigen' : '🚲 Aufs Fahrrad', tiles: [] };
   if (!at && (G.sel === 'bino' || G.sel === 'sled')) { const c = contextW(me, null); if (c) return c; }
   const p = at || { x: me.x + Math.sin(me.ry) * 0.9, z: me.z + Math.cos(me.ry) * 0.9 };
@@ -1659,6 +1677,7 @@ function context(me, at) {
 function pressAction() {
   if (G?.build) { if (G.build.pend) confirmBuild(); else pickBuild(G.hover ? world.pick(G.hover.cx, G.hover.cy) || buildFront() : buildFront()); return; }
   if (G?.kite) { kitePull(); return; }
+  if (G?.train) { endTrain(); return; }
   if (busy()) return;
   actHeld = true;
   nextAct = performance.now() + 380;
@@ -1674,6 +1693,7 @@ function pressAction() {
 function execute(r, fresh) {
   if (!r) return;
   if (executeW(r, fresh)) return;
+  if (executeV(r, fresh)) return;
   const me = G.players[G.me];
   if (r.npc === 'hoppel') { if (fresh) { interrupt(); panels.show('turnip'); world.npcSay('hoppel', 'happy'); world.npcBubble('hoppel', 'Rüben! Frische Rüben!'); play('chat'); } return; }
   if (r.npc) { if (fresh) openTalk(r.npc); return; }
@@ -1744,6 +1764,7 @@ function execute(r, fresh) {
     play('door');
     const [, d] = S.roomSize(G.s);
     if (r.enter) Object.assign(me, { x: S.HOME_X, z: d / 2 - 0.7, ry: Math.PI, pose: null });
+    else if (r.room && V.XROOMS[r.room]) { const e = exitV(r.room), ok = e && freeAt(e[0], e[1]); Object.assign(me, ok ? { x: e[0], z: e[1], ry: 0 } : r.room === 'tree' ? { x: BUILDINGS.house.cx, z: BUILDINGS.house.z1 + 1.4, ry: 0 } : { x: S.HOME_X, z: d / 2 - 1.2, ry: Math.PI }, { pose: null }); }
     else if (r.room && BUILDINGS['vh_' + r.room]) { const B = BUILDINGS['vh_' + r.room]; Object.assign(me, { x: B.cx, z: B.z1 + 1.3, ry: 0, pose: null }); }
     else Object.assign(me, { x: BUILDINGS.house.cx, z: BUILDINGS.house.z1 + 1.4, ry: 0, pose: null });
   } else if (r.sleep) {
@@ -1779,7 +1800,7 @@ function standUp(me) {
 function tapAt(cx, cy) {
   if (G?.build) { buildTap(cx, cy); return; }
   if (G?.kite) { kitePull(); return; }
-  if (busy()) return;
+  if (busy() || G.train) return;
   const me = G.players[G.me];
   if (G.fishing) { reelIn(); return; }
   const t = aimAt(cx, cy);
@@ -1800,7 +1821,7 @@ function tapAt(cx, cy) {
 }
 
 // Was zeigen Maus oder Finger an – und kann die Figur es von hier aus benutzen?
-const usable = r => !!r && !!(r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
+const usable = r => !!r && !!(r.bigfish || r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
 const reachOf = r => r.npc ? 1.9 : r.hug ? 1.5 : r.ui || r.go || r.enter || r.exit || r.visit ? 2.2 : r.fish ? 1.8 : r.net ? 2 : 1.6;
 function aimAt(cx, cy) {
   const me = G.players[G.me];
@@ -1862,7 +1883,7 @@ function travel(where) {
   interrupt();
   panels.close();
   fade();
-  const to = travelW(where) || (where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
+  const to = travelV(where) || travelW(where) || (where.startsWith('depth') ? depthTravel(where) : where.startsWith('nroom:') ? nroomTravel(where.slice(6)) : where.startsWith('cable:') ? cableTravel(where.slice(6)) : me.x < -150 && where === 'island' ? areaTravel(where, me) : {
     street: [STREET.x, STREET.z + STREET.d - 0.4, Math.PI, '🛍️ Willkommen in der Bummelgasse!', 'door'],
     island: [BUILDINGS.gate.cx, BUILDINGS.gate.z1 + 1.3, 0, '', 'door'],
     tropic: [TROPIC.x, TROPIC.z + 11.6, Math.PI, '🏝️ Willkommen auf der Tropeninsel! Kiki in der Hütte hat Touren für euch.', 'splash'],
@@ -2363,7 +2384,7 @@ function gameFrame(dt, now) {
   if (spin && !editor.isOpen && !G.talk) { world.rotate(spin * dt * 2.2 * settings.camSpeed * (settings.invert ? -1 : 1)); world.yaw = world.yawT; }
   // Laufen (Tastatur/Joystick relativ zur Kamera, sonst zum Tipp-Ziel)
   let vx = 0, vz = 0;
-  if (!busy()) {
+  if (!busy() && !G.train) {
     if (keys.has('a') || keys.has('arrowleft')) vx--;
     if (keys.has('d') || keys.has('arrowright')) vx++;
     if (keys.has('w') || keys.has('arrowup')) vz--;
@@ -2391,7 +2412,7 @@ function gameFrame(dt, now) {
     if (me.pose) standUp(me);
     const swim = (s.inv.neopren || 0) > 0 && !S.inside(me);
     me.run = !me.sw && (keys.has('shift') || Math.hypot(joy.x, joy.y) > 0.92);
-    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike ? 1.75 : me.sled ? 1.55 : me.run ? 1.6 : 1);
+    const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike ? 1.75 : me.pony ? 1.7 : me.sled ? 1.55 : me.run ? 1.6 : 1);
     const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b, swim));
     const stuck = !free(me.x, me.z);
     if (!iceMove(me, wx * sp, wz * sp, free)) { // auf dem Eis rutscht man (client/fun2.js)
@@ -2440,6 +2461,7 @@ function gameFrame(dt, now) {
   updateFishing(dt);
   updateKite(dt);
   updateW(dt);
+  updateV(dt);
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)

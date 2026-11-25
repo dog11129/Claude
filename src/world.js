@@ -30,6 +30,7 @@ import { bridgeParts } from './bridges.js';
 import { makeAvatar, makePet, lookKey } from './avatar.js';
 import { makeNpc, NPCS, chatLine } from './npc.js';
 import { updateIslandW, syncSled } from './world-extra.js';
+import { syncPony, syncTrain, tintFurniture, updateIslandV } from './world-extra2.js';
 import { npcStep } from './npc-walk.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
@@ -1120,20 +1121,23 @@ export class World {
       this.nfurnM = new Map();
       this.nroom = this.nroomNpc = null;
       if (id) {
-        const [w, d] = NROOM_SIZE, g = new THREE.Group(), base = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
+        const [w, d] = R.size || NROOM_SIZE, g = new THREE.Group(), base = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ color: 0x2b2238 }));
         base.rotation.x = -Math.PI / 2; base.position.y = -0.02;
         g.add(makeRoom(w, d, R.wall, R.floor), base);
         g.position.set(HOME_X, 0, R.z0);
         g.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
         this.scene.add(g);
         this.nroom = g;
-        const m = makeNpc(id);
-        this.scene.add(m);
-        this.nroomNpc = { id, m, x: HOME_X + 1.6, z: R.z0 - 0.6, ry: 0, speed: 0, awake: true, host: true };
+        if (NPCS[id]) { // Dachboden, Keller & Baumhaus haben keinen Bewohner
+          const m = makeNpc(id);
+          this.scene.add(m);
+          this.nroomNpc = { id, m, x: HOME_X + 1.6, z: R.z0 - 0.6, ry: 0, speed: 0, awake: true, host: true };
+        }
       }
     }
     if (!id) return;
     this.furnSync(s, this.nfurnM, R, R.z0);
+    if (!this.nroomNpc) return;
     const e = this.nroomNpc, spot = [[1, 0], [-1, 0], [2, 0], [1, 1], [-1, 1], [0, -1], [2, 1], [-2, 1], [0, 0]].find(([x, z]) => !homeAt(s, x, z, false, R)) || [0, 0];
     const talk = this.npcTalk?.id === id, me = this.target;
     e.x += (HOME_X + spot[0] - e.x) * 0.2; e.z += (R.z0 + spot[1] - e.z) * 0.2; // freier Platz im Zimmer
@@ -1147,7 +1151,7 @@ export class World {
   furnSync(s, store, h, z0) {
     const seen = new Set();
     for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r'], [h.walls || {}, 'w']]) for (const [k, o] of Object.entries(map)) {
-      const f = FURNITURE[o.k], px = f?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px;
+      const f = FURNITURE[o.k], px = f?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px + (o.c ? 'c' + o.c : '');
       if (!f) continue;
       seen.add(id);
       if (store.has(id)) continue;
@@ -1162,6 +1166,7 @@ export class World {
         pic.position.set(0, 1.45, -0.425);
         m.add(pic);
       }
+      tintFurniture(m, o.c); // lackiert (Farbpinsel)
       m.position.set(HOME_X + x + (fw - 1) / 2, f.rug ? 0.005 : 0, z0 + z + (fd - 1) / 2);
       m.rotation.y = o.r * Math.PI / 2;
       m.traverse(c => { if (c.isMesh) { c.castShadow = !f.rug; c.receiveShadow = true; } });
@@ -1671,16 +1676,18 @@ export class World {
       if (e.held !== p.held) { e.held = p.held; e.m.userData.setHeld(p.held || null); }
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
-      const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000 && e.z < 1900;
-      e.m.position.set(e.x, (p.cn ? -0.12 : bridgeY(e.x, e.z)) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : p.sl && !p.sw ? 0.22 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
+      const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000 && e.z < 1900, po = !!p.po && !p.sw && !p.pose && !bk, tn = !!p.tn; // Fahrrad, Pony, Bimmelbahn
+      e.m.position.set(e.x, (p.cn ? -0.12 : bridgeY(e.x, e.z)) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk ? 0.34 : po ? 0.55 : tn ? 0.32 : p.sl && !p.sw ? 0.22 : 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
       if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
       if (deep && Math.random() < 0.05) this.burst(e.x + Math.sin(e.ry) * 0.15, e.z + Math.cos(e.ry) * 0.15, 'bubble', 1.4);
       const emote = p.emoteUntil > now ? p.emote : null;
-      e.m.userData.update(dt, { speed: p.pose || bk ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: bk || (p.sl && !p.sw) ? 'sit' : p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
+      e.m.userData.update(dt, { speed: p.pose || bk || po ? 0 : e.speed, run: p.run && !p.sw, swim: !!p.sw, act: e.actT < 1 || fishing ? e.ak : null, actT: e.actT, pose: bk || po || (p.sl && !p.sw) ? 'sit' : p.pose === 'dive' ? null : p.pose || null, emote, time: this.time });
       this.syncBike(e, bk, dt);
       syncSled(this, e, !!p.sl && !p.sw);
+      syncPony(this, e, po);
+      syncTrain(this, e, tn);
       this.syncKite(e, p.kh || 0, dt);
       this.syncRide(e, p.rh || 0);
 
@@ -1704,12 +1711,12 @@ export class World {
         } else if (e.trickT !== undefined) { e.pet.position.y = 0; e.pet.rotation.x = 0; e.trickT = undefined; }
       }
 
-      const top = (HAT_TOP[p.look.hat] || 1.45) - (p.pose ? 0.35 : 0) - (p.sw ? 0.75 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0) + (p.bk && !p.sw ? 0.34 : 0); // Kopf-/Hutoberkante der Figur
+      const top = (HAT_TOP[p.look.hat] || 1.45) - (p.pose ? 0.35 : 0) - (p.sw ? 0.75 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0) + (p.bk && !p.sw ? 0.34 : p.po && !p.sw && !p.pose ? 0.55 : p.tn ? 0.32 : 0); // Kopf-/Hutoberkante der Figur
       if (showNames) this.tag('pn' + p.id, esc(p.name), e.x, top + 0.22, e.z, 'name' + (local ? ' me' : ''));
       if (p.chatUntil > now) this.tag('pc' + p.id, esc(p.chat), e.x, top + 0.6, e.z, 'chat');
       if (emote) this.tag('pe' + p.id, emote, e.x, top + (p.chatUntil > now ? 1.35 : 0.75), e.z, 'emote');
     }
-    for (const [id, e] of this.players) if (!seen.has(id)) { this.scene.remove(e.m); if (e.pet) this.scene.remove(e.pet); if (e.bike) this.scene.remove(e.bike); if (e.kite) this.scene.remove(e.kite, e.kline); if (e.balloon) this.scene.remove(e.balloon); this.players.delete(id); }
+    for (const [id, e] of this.players) if (!seen.has(id)) { this.scene.remove(e.m); if (e.pet) this.scene.remove(e.pet); if (e.bike) this.scene.remove(e.bike); if (e.ponyM) this.scene.remove(e.ponyM); if (e.trainM) this.scene.remove(e.trainM); if (e.sledM) this.scene.remove(e.sledM); if (e.kite) this.scene.remove(e.kite, e.kline); if (e.balloon) this.scene.remove(e.balloon); this.players.delete(id); }
   }
 
   light(s) {
@@ -2051,6 +2058,7 @@ export class World {
     this.syncAurora(s, info.night || 0);
     this.zones.update(this, s, this.time, info.night || 0, this.target);
     updateIslandW(this, s, this.time); // Gezeiten-Tümpel, Stempelpfosten, Zeitkapseln
+    updateIslandV(this, s, [...this.players.values()].some(e => e.ponyM?.visible)); // Pony am Stall
     this.syncConsts(s, info.night || 0, !!opt.sky);
     this.syncSkyGifts(opt.skyGifts);
     if (this.animations !== false) tickAssets(dt);

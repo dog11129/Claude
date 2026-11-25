@@ -5,6 +5,7 @@ import * as M from './models.js';
 import { makeNpc } from './npc.js';
 import { GLOW_VC } from './assets.js';
 import * as W from './extras4.js';
+import { zonesV, lightsV } from './world-extra2.js';
 
 const glowModel = (p, g) => { const m = M.model(p, g); if (m.children[1]) m.children[1].material = GLOW_VC; return m; };
 const put = (g, m, x, z, ry = 0) => { m.position.set(x, 0, z); m.rotation.y = ry; g.add(m); return m; };
@@ -131,13 +132,15 @@ function updateGrotto(zones, world, s, t) {
 }
 // Aus zones.update: true, wenn die Kamera bei Grotte oder Vulkan ist (dann sind die anderen fernen Orte aus)
 export function zonesW(zones, world, s, t, target) {
-  const where = W.zoneW(target.z);
+  const deep = zonesV(zones, world, s, t, target); // Hochsee (world-extra2.js)
+  const where = deep ? null : W.zoneW(target.z);
   if (zones.grottoW) zones.grottoW.visible = where === 'grotto';
   if (zones.volcanoW) zones.volcanoW.visible = where === 'volcano';
-  if (!where) return false;
+  if (!where && !deep) return false;
   for (const k of ['street', 'tropic', 'trip', 'reef', 'wreck', 'depths']) if (zones[k]) zones[k].visible = false;
+  if (deep) return true;
   if (where === 'grotto') { if (!zones.grottoW) { zones.grottoW = buildGrotto(); zones.scene.add(zones.grottoW); } updateGrotto(zones, world, s, t); }
   else { if (!zones.volcanoW) { zones.volcanoW = buildVolcano(); zones.scene.add(zones.volcanoW); } updateVolcano(zones, world, s, t); }
   return true;
 }
-export const lightsW = (zones, target) => (target.z > 3000 ? zones.volcanoW?.userData.lights : target.z > 2600 ? zones.grottoW?.userData.lights : undefined);
+export const lightsW = (zones, target) => (target.z > 3600 ? lightsV(zones, target) : target.z > 3000 ? zones.volcanoW?.userData.lights : target.z > 2600 ? zones.grottoW?.userData.lights : undefined);

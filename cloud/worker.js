@@ -3,7 +3,7 @@
 //  • /vault/<KEY>  – Cloud-Spielstand: Inseln (gzip) unter einem geheimen Cloud-Schlüssel, mit Vorversion als Sicherung
 import { DurableObject } from 'cloudflare:workers';
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,PUT,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' };
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 const CODE = /^[A-Z0-9]{5}$/, KEY = /^[A-Z2-9]{20}$/, ISLE = /^[A-Za-z0-9_-]{1,40}$/, PEER = /^[A-Za-z0-9_-]{4,40}$/;
 const MAX_SAVE = 1_800_000, MAX_ISLES = 40, MAX_MSG = 1_000_000;
@@ -17,6 +17,7 @@ export default {
       if (req.headers.get('Upgrade') !== 'websocket') return json({ error: 'websocket' }, 426);
       return env.ROOM.get(env.ROOM.idFromName(id)).fetch(req);
     }
+    if (kind === 'post' && CODE.test(id || '')) return env.VAULT.get(env.VAULT.idFromName('post:' + id)).fetch(req); // Brieffreunde: Postfach je Insel-Code
     if (kind === 'vault' && KEY.test(id || '') && (!isle || ISLE.test(isle))) return env.VAULT.get(env.VAULT.idFromName(id)).fetch(req);
     return json({ error: 'not found' }, 404);
   },
@@ -89,8 +90,26 @@ export class Vault extends DurableObject {
     this.sql = ctx.storage.sql;
     this.sql.exec('CREATE TABLE IF NOT EXISTS isl (id TEXT PRIMARY KEY, name TEXT, t INTEGER, n INTEGER, data BLOB, pt INTEGER, prev BLOB)');
   }
+  // Brieffreunde: Postfach einer Insel (GET = lesen, POST = einwerfen, DELETE ?ids= = abgeholt)
+  async post(req, url) {
+    this.sql.exec('CREATE TABLE IF NOT EXISTS post (id TEXT PRIMARY KEY, t INTEGER, body TEXT)');
+    if (req.method === 'GET') return json({ letters: this.sql.exec('SELECT body FROM post ORDER BY t').toArray().map(r => JSON.parse(r.body)) });
+    if (req.method === 'POST') {
+      const b = await req.text();
+      if (b.length > 2000) return json({ error: 'size' }, 413);
+      let l;
+      try { l = JSON.parse(b); } catch { return json({ error: 'json' }, 400); }
+      if (typeof l?.id !== 'string' || typeof l.text !== 'string') return json({ error: 'bad' }, 400);
+      if (this.sql.exec('SELECT COUNT(*) AS c FROM post').one().c >= 50) return json({ error: 'full' }, 409);
+      this.sql.exec('INSERT OR IGNORE INTO post (id, t, body) VALUES (?, ?, ?)', l.id.slice(0, 40), Date.now(), b);
+      return json({ ok: true });
+    }
+    if (req.method === 'DELETE') { for (const id of (url.searchParams.get('ids') || '').split(',').slice(0, 50)) this.sql.exec('DELETE FROM post WHERE id = ?', id); return json({ ok: true }); }
+    return json({ error: 'method' }, 405);
+  }
   async fetch(req) {
     const url = new URL(req.url), [, , , isle] = url.pathname.split('/');
+    if (url.pathname.startsWith('/post/')) return this.post(req, url);
     if (!isle) {
       if (req.method !== 'GET') return json({ error: 'method' }, 405);
       return json({ islands: this.sql.exec('SELECT id, name, t, n, pt FROM isl ORDER BY t DESC').toArray() });

@@ -4,16 +4,22 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
-| place | 115 | 49 | 66 |
-| furniture | 90 | 41 | 49 |
+| place | 125 | 49 | 76 |
+| furniture | 109 | 41 | 68 |
 | items | 142 | 0 | 142 |
 | crops | 102 | 42 | 60 |
-| Icons | 429 | 0 eigene Bilder | 429 gerendert |
+| Icons | 473 | 0 eigene Bilder | 473 gerendert |
 
-## place – noch Platzhalter (66)
+## place – noch Platzhalter (76)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
+| Komposter | `komposter` | 0.92 × 0.64 × 0.72 | 444 |
+| Töpferscheibe | `toepferscheibe` | 0.92 × 0.69 × 0.64 | 256 |
+| Ponystall | `ponystall` | 1.8 × 1.75 × 1.83 | 92 |
+| Glühwürmchen-Laterne | `gluehlaterne` | 0.34 × 1.44 × 0.36 | 1064 |
+| Olympia-Pokal | `olympiapokal` | 0.48 × 0.8 × 0.44 | 2112 |
+| Theater-Pokal | `theaterpokal` | 0.48 × 0.81 × 0.44 | 1280 |
 | Bienenstock | `bienenstock` | 0.7 × 1.07 × 0.74 | 3502 |
 | Blaubeerstrauch | `beerenstrauch` | 1.02 × 0.86 × 0.96 | 960 |
 | Kristallfels | `kristallfels` | 1.14 × 1.17 × 0.95 | 324 |
@@ -80,8 +86,12 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Minigolfplatz | `minigolf` | 2.7 × 0.86 × 2.7 | 452 |
 | Inselcafé | `inselcafe` | 2.5 × 1.61 × 2.4 | 824 |
 | Bibliothek | `bibliothek` | 2.4 × 2.55 × 2.33 | 264 |
+| Baumhaus | `baumhaus` | 2.8 × 3.84 × 2.88 | 936 |
+| Freiluftkino | `freiluftkino` | 2.7 × 2.26 × 1.62 | 164 |
+| Inselbühne | `buehne` | 2.42 × 2.13 × 2.07 | 132 |
+| Bimmelbahn | `bahnhof` | 2.6 × 1.76 × 1.63 | 148 |
 
-## furniture – noch Platzhalter (49)
+## furniture – noch Platzhalter (68)
 
 | Name im Spiel | Wurzel-Objekt | Größe (B×H×T) | Dreiecke |
 |---|---|---|---|
@@ -109,6 +119,9 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Wandas Teleskop | `sternteleskop` | 0.5 × 1.44 × 0.88 | 468 |
 | Korallenlampe | `korallenlampe` | 0.45 × 0.52 × 0.4 | 920 |
 | Spieltisch | `spieltisch` | 0.84 × 0.79 × 0.84 | 520 |
+| Treppe zum Dachboden | `treppe_hoch` | 0.89 × 1.76 × 0.9 | 96 |
+| Treppe in den Keller | `treppe_runter` | 0.96 × 0.58 × 0.9 | 84 |
+| Vorratsregal | `vorratsregal` | 0.8 × 1.4 × 0.33 | 1008 |
 | Inselradio | `inselradio` | 0.56 × 0.74 × 0.28 | 536 |
 | Ohrensessel | `ohrensessel` | 0.78 × 1.13 × 0.66 | 1272 |
 | Schaukelstuhl | `schaukelstuhl` | 1.15 × 1.12 × 1.12 | 816 |
@@ -134,6 +147,22 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 | Traumlampe | `traumlampe` | 0.4 × 0.92 × 0.36 | 444 |
 | Kristall-Leuchte | `kristallleuchte` | 0.46 × 0.66 × 0.48 | 178 |
 | Musterrahmen | `musterbild` | 0.74 × 0.74 × 0.06 | 180 |
+| Vase (rosa) | `topf_vase_rosa` | 0.32 × 0.51 × 0.31 | 740 |
+| Vase (blau) | `topf_vase_blau` | 0.32 × 0.51 × 0.31 | 740 |
+| Vase (grün) | `topf_vase_gruen` | 0.32 × 0.51 × 0.31 | 740 |
+| Vase (gelb) | `topf_vase_gelb` | 0.32 × 0.51 × 0.31 | 740 |
+| Schale (rosa) | `topf_schale_rosa` | 0.44 × 0.22 × 0.44 | 352 |
+| Schale (blau) | `topf_schale_blau` | 0.44 × 0.22 × 0.44 | 352 |
+| Schale (grün) | `topf_schale_gruen` | 0.44 × 0.22 × 0.44 | 352 |
+| Schale (gelb) | `topf_schale_gelb` | 0.44 × 0.22 × 0.44 | 352 |
+| Tasse (rosa) | `topf_tasse_rosa` | 0.2 × 0.16 × 0.18 | 496 |
+| Tasse (blau) | `topf_tasse_blau` | 0.2 × 0.16 × 0.18 | 496 |
+| Tasse (grün) | `topf_tasse_gruen` | 0.2 × 0.16 × 0.18 | 496 |
+| Tasse (gelb) | `topf_tasse_gelb` | 0.2 × 0.16 × 0.18 | 496 |
+| Krug (rosa) | `topf_krug_rosa` | 0.32 × 0.43 × 0.29 | 700 |
+| Krug (blau) | `topf_krug_blau` | 0.32 × 0.43 × 0.29 | 700 |
+| Krug (grün) | `topf_krug_gruen` | 0.32 × 0.43 × 0.29 | 700 |
+| Krug (gelb) | `topf_krug_gelb` | 0.32 × 0.43 × 0.29 | 700 |
 
 ## items – noch Platzhalter (142)
 

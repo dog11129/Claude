@@ -1249,6 +1249,7 @@ const ACTIONS = {
     addInv(s, r.out, r.n);
     if (r.st === 'cook') s.stats.cooked = (s.stats.cooked || 0) + 1; else s.stats.crafted = (s.stats.crafted || 0) + 1;
     questEvent(s, r.st === 'cook' ? 'cook' : 'craft', 1, out);
+    if (ITEMS[r.out]?.jar) questEvent(s, 'jar', 1, out); // Einmachküche
     addXp(s, 3 + (ITEMS[r.out].xp || 2), out);
     out.msg = `${r.st === 'cook' ? '🍳' : '🔨'} ${r.n > 1 ? r.n + '× ' : ''}${ITEMS[r.out].name} fertig!`;
     out.snd = 'level';

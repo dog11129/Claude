@@ -37,7 +37,30 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 
 ## Was es gibt
 
-### 🌋 Neu: Inselleben 4
+### 🐴 Neu: Inselleben 5
+- **🚶 Nachbarn laufen nicht mehr durch Häuser und Deko:** Sie suchen sich ihren Weg außen herum (Wegsuche auf dem Kachelraster), auch um neu aufgestellte Sachen.
+- **🪜 Dachboden & Keller:** Ab Haus-Ausbaustufe 3 im Handy ➜ Zimmer (je 60.000 Taler). Die Treppe kommt in die Tasche – im Haus aufstellen, dann geht es hinauf bzw. hinunter. Beide Zimmer lassen sich wie das Haus einrichten.
+- **🖌️ Möbel lackieren:** Farbpinsel aus dem Krämerladen, dann im Baumodus ➜ 🖌️ Lackieren. Jedes Antippen gibt die nächste von 8 Farben.
+- **🌳 Baumhaus** (Rathaus-Projekt): hinaufklettern, ein eigenes kleines Zimmer zum Einrichten.
+- **🏺 Töpferei:** Töpferscheibe aufstellen, aus 2 Lehm Vase, Schale, Tasse oder Krug formen, Glasur wählen – über Nacht im Ofen, morgens im Briefkasten.
+- **🟫 Kompost & Regenwürmer:** Unkraut, Äste, Obst und Gemüse in den Komposter, morgens Kompost (lässt Beete schneller wachsen) und Regenwürmer (Köder: Goldfische beißen öfter).
+- **🫙 Einmachküche:** Erdbeermarmelade, Apfelmus, Traubensaft, Kirschkompott und eingelegte Möhren in der Gartenküche – mehr wert als frisch. Dazu ein Vorratsregal fürs Haus.
+- **💐 Blumenladen:** Handy ➜ Blumen. Jeden Tag zwei Bestellungen der Nachbarn – Sträuße in den gewünschten Farben binden.
+- **✨ Glühwürmchen-Nächte:** Im Sommer nachts Glühwürmchen fangen; mit einem Edelstein wird daraus an der Werkbank eine Glühlaterne.
+- **🐴 Ponyhof:** Ponystall (ab Level 3) – taufen, füttern, striegeln, dann in der Leiste das Pony wählen und über die Insel reiten (schneller als zu Fuß, die anderen sehen es).
+- **🐾 Haustierschule:** Fünf Tricks, jeden Tag einmal üben – nach drei Tagen sitzt einer. Ab drei Tricks gibt es eine Show für die Nachbarn.
+- **🏅 Inselolympiade:** Sackhüpfen (im Takt), Eierlauf (balancieren) und Weitwurf (Kraft & Winkel) – Bronze, Silber, Gold und ein Pokal.
+- **🔍 Schnitzeljagd:** Etwas aus der Tasche auf der Insel verstecken und einen Hinweis schreiben. Die anderen suchen – wer es findet, bekommt es.
+- **🎬 Freiluftkino** (Rathaus-Projekt): abends eure Fotos als Diashow mit Musik, die Nachbarn kommen mit Popcorn.
+- **🎭 Inseltheater** (Rathaus-Projekt Bühne): drei Stücke – die Sätze in der richtigen Reihenfolge antippen, Sterne und Applaus.
+- **🚂 Bimmelbahn** (Rathaus-Projekt Bahnhof): einmal rund um die ganze Insel; aussteigen jederzeit mit der Aktionstaste.
+- **🎣 Hochsee-Angeln** mit Käpt'n Flossi (ab Level 3): auf dem Boot an die Reling, die Leine in der grünen Spannung halten – Thunfisch, Schwertfisch, Mondfisch, Segelfisch, Goldmakrele.
+- **🗼 Leuchtturm-Nächte:** Nachts mit dem Lichtstrahl Schiffe in den Hafen lotsen. Am nächsten Tag kommt ein dankbarer Händler mit seltenen Sachen.
+- **📮 Brieffreunde:** Handy ➜ Post – Briefe (mit Geschenk) an andere Inseln per Insel-Code. Der Host verschickt und holt die Post über den eigenen Server.
+- **🎉 Geburtstagsparty:** Für den nächsten Nachbarn-Geburtstag Deko, Kuchen und bis zu drei Gäste planen – am Tag selbst die Überraschung starten.
+- Neue Kapitel der Insel-Geschichte (Kleine Gärtner, Gläser für den Winter, Blumengrüße) und Tagesaufgaben (Strauß, Ausritt, großer Fisch, Medaille, Schiff gelotst).
+
+### 🌋 Inselleben 4
 - **🔨 Baumodus mit Vorschau:** Aufs Feld tippen = die Vorschau bleibt dort stehen. Mit 🔄 (oder R) drehen, mit ✔ „Hier hinstellen“ (oder Enter, oder nochmal aufs selbe Feld) bestätigen, mit ✖/Esc abbrechen – draußen und im Haus.
 - **🏠 Haus umziehen:** Baumodus ➜ 🏠 Haus. Vorschau des Hauses samt Briefkasten, Platzprüfung, 5.000 Taler aus der Inselkasse. Drinnen bleibt alles, wie es ist.
 - **Bessere Kollision:** Möbel blockieren nach ihrer echten Form statt nach ganzen Kacheln, Wände sind knapper. Auf den Brücken läuft man oben auf den gewölbten Bohlen, das Geländer und die Blumenkästen sind fest.
@@ -205,6 +228,7 @@ und können die Insel später auch selbst hosten. Der Code bleibt pro Insel glei
 | `src/cloud.js`, `cloud/worker.js`, `cloud/dev-server.mjs` | Cloud-Spielstand & Verbindungsserver (Browser-Seite, Cloudflare Worker, lokaler Nachbau für Tests) |
 | `src/extras2.js`, `src/extras3.js`, `src/features/*.js` | Neuere Inhalte, je Thema eine Datei (Geschichten, Hof, Riff, Strand, Seilbahn, Ballon, Schmetterlinge, Wrack, Spiele, Fotowettbewerb, Grill, Sterne, Nachbarzimmer, Höhlen-Tiefen) |
 | `src/extras4.js`, `src/client/fun2.js`, `src/ui-extra.js`, `src/world-extra.js` | Inselleben 4: Logik, Minispiele & Fahrten im Browser, Fenster, 3D (Grotte, Vulkan, Tümpel, Stempel) |
+| `src/extras5.js` + `src/features/*.js`, `src/client/fun3.js`, `src/ui-extra2.js`, `src/world-extra2.js`, `src/npc-walk.js` | Inselleben 5: Logik (aufgeteilt nach Themen), Minispiele & Fahrten, Fenster, 3D (Pony, Bahn, Hochsee-Boot, Lack); Wegsuche der Nachbarn |
 | `src/client/fun.js`, `src/guide.js` | Ballonfahrt, Fotowettbewerb-Knopf, Sternbild-Editor, Fahrrad, Drachen · Inselführer |
 | `src/models-extra.js` | Modelle der neuen Deko und Möbel |
 | `src/assets.js`, `src/nature.js`, `src/bridges.js` | Blender-Modelle und -Texturen laden, umfärben, aufstellen |

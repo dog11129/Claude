@@ -211,7 +211,7 @@ export const ITEMS = {
   feuerfalter:   { name: 'Feuerfalter',    icon: '🦋', sell: 2600, cat: 'bug', xp: 8 },
   glutkaefer:    { name: 'Glutkäfer',      icon: '🪲', sell: 1900, cat: 'bug', xp: 6 },
   // Inselleben 5 (src/extras5.js)
-  farbpinsel:    { name: 'Farbpinsel',     icon: '🖌️', buy: 600, lvl: 1, gear: true, desc: 'Im Baumodus (🎨 Lackieren) Möbel umfärben' },
+  farbpinsel:    { name: 'Farbpinsel',     icon: '🖌️', buy: 600, lvl: 1, gear: true, desc: 'Im Baumodus (🖌️ Lackieren) Möbel umfärben' },
   kompost:       { name: 'Kompost',        icon: '🟫', sell: 60, cat: 'mat', desc: 'In der Leiste wählen und auf ein wachsendes Beet: halber Weg zur Blüte' },
   regenwurm:     { name: 'Regenwurm',      icon: '🪱', sell: 30, cat: 'mat', desc: 'Köder: beim Angeln beißen seltene Fische öfter (wird verbraucht)' },
   erdbeermarmelade: { name: 'Erdbeermarmelade', icon: '🍓', sell: 520, cat: 'dish', xp: 3, jar: 1 },
