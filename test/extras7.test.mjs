@@ -270,3 +270,15 @@ test('Modelle, Fenster und Kalender-Termine sind vollständig', async () => {
   assert.match(PANELS_7.market(s, g), /Auf dem Stand/);
   assert.ok(E.eventsOn(s, dayOf('winter', 7)).some(e => e[1] === 'Silvesternacht'));
 });
+
+test('Blitzsteine und Goldtopf verdecken nichts (Ostereier, Muscheln, Grabstellen)', () => {
+  for (let run = 0; run < 30; run++) {
+    const s = fresh();
+    s.eggs = {};
+    for (let x = -20; x <= 20; x++) for (let z = -20; z <= 20; z++) if ((x + z) % 2 === 0) s.eggs[`${x},${z}`] = 1;
+    s.wx7.w = 'storm'; s.weather = 'sun'; s.rainbowDay = s.day;
+    E.morningWeather(s);
+    for (const [k, g] of Object.entries(s.ground)) if (g.id === 'blitzstein') { assert.ok(!s.eggs[k] && !s.shells[k] && !s.digs.includes(k), k); }
+    if (s.rbpot) assert.ok(!s.eggs[s.rbpot.at.join()] && !s.shells[s.rbpot.at.join()], 'Goldtopf');
+  }
+});
