@@ -44,6 +44,15 @@ Alles im Spiel hat schon ein Modell und ein Bild. Wo noch kein Blender-Modell ex
 
 Obstbäume teilen sich ein Modell (`ptree`), die Bananenstaude heißt `banana` – die Galerie zählt sie deshalb als vorhanden.
 
+## Alles Neue auf einmal in Blender nachbauen
+
+Für neue Dinge, die erst einmal nur als Platzhalter im Code stehen, gibt es einen Automatik-Weg:
+
+1. `node tools/dump-models.mjs` – schreibt `art/remaster/plan.json`: jedes Platzhalter-Modell als Liste von Grundformen (Klotz, Kugel, Polster, Zylinder, Ring …) mit Maßen, Lage und Farbe; Formen, die sich nicht erkennen lassen (gebogene Stängel, Sterne), als Dreiecke. Dazu, welches Modell welches Icon zeigt.
+2. In Blender `kit.py` laufen lassen, `PLAN = r"…\plan.json"` setzen und `blender/remaster.py` ausführen. Es baut alles in schön nach (runde Kanten, feinere Rundungen, weiche Schatten in Ritzen und am Boden), dünnt sehr dichte Modelle aus und schreibt `place2.glb`, `furniture2.glb`, `items2.glb`, `crops2.glb`. Erzeuger (Beerenstrauch, Bienenstock …) bekommen ein zweites Modell `<name>_ready` mit Ernte.
+3. Die vier Dateien nach `assets/models/` und in `packs.json` eintragen (stehen schon drin).
+4. Icons: `PACKDIR` (Ordner mit allen `.glb`) und `ICONDIR` setzen, `blender/icons2.py` ausführen, dann `python3 tools/import-icons.py --rand ordner`.
+
 ## Ein Icon ersetzen
 
 1. In der Galerie **Alle Icons als ZIP** laden – darin `<id>.png` für jedes Ding.

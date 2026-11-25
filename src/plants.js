@@ -21,7 +21,7 @@ function put(g, c, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
   return { g, c };
 }
 // ohne "parameters" behält merge() unsere glatten Normalen, auch bei wenigen Segmenten
-const plain = g => new THREE.BufferGeometry().copy(g);
+const plain = g => { const p = new THREE.BufferGeometry().copy(g); p.userData = { ...g.userData, src: [g.type, g.parameters] }; return p; }; // src: für den Blender-Nachbau
 function bend(g, fn) {
   const a = g.attributes.position, v = new THREE.Vector3();
   for (let i = 0; i < a.count; i++) { fn(v.fromBufferAttribute(a, i)); a.setXYZ(i, v.x, v.y, v.z); }
@@ -42,6 +42,7 @@ const ring = (R, t, c, x, y, z, rx = H, arc = TAU, ts = 16, rs = 5, ry = 0, rz =
 function soft(w, h, d, c, x = 0, y = 0, z = 0, e = 0.3, ry = 0, rx = 0, rz = 0, seg = 12) {
   const g = new THREE.SphereGeometry(1, seg, Math.round(seg * 2 / 3)), a = g.attributes.position.array;
   for (let i = 0; i < a.length; i++) a[i] = Math.sign(a[i]) * Math.abs(a[i]) ** e;
+  g.userData.soft = e; // für den Blender-Nachbau
   g.scale(w / 2, h / 2, d / 2);
   return put(g, c, x, y, z, rx, ry, rz);
 }

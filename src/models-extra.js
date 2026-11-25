@@ -10,7 +10,7 @@ function put(g, c, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
   g.translate(x, y, z);
   return { g, c };
 }
-const plain = g => new THREE.BufferGeometry().copy(g);
+const plain = g => { const p = new THREE.BufferGeometry().copy(g); p.userData = { ...g.userData, src: [g.type, g.parameters] }; return p; }; // src: für den Blender-Nachbau
 const B = (r, c, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1, w = 12, h = 9) => put(plain(new THREE.SphereGeometry(r, w, h).scale(sx, sy, sz)), c, x, y, z);
 const C = (rt, rb, h, c, x = 0, y = 0, z = 0, seg = 14, rx = 0, ry = 0, rz = 0) => put(plain(new THREE.CylinderGeometry(rt, rb, h, seg)), c, x, y, z, rx, ry, rz);
 const K = (r, h, c, x = 0, y = 0, z = 0, seg = 12, rx = 0, ry = 0, rz = 0) => put(plain(new THREE.ConeGeometry(r, h, seg)), c, x, y, z, rx, ry, rz);
@@ -19,6 +19,7 @@ const T = (R, t, c, x, y, z, rx = H, ry = 0, arc = TAU) => put(plain(new THREE.T
 function soft(w, h, d, c, x = 0, y = 0, z = 0, e = 0.3, ry = 0) {
   const g = new THREE.SphereGeometry(1, 12, 8), a = g.attributes.position.array;
   for (let i = 0; i < a.length; i++) a[i] = Math.sign(a[i]) * Math.abs(a[i]) ** e;
+  g.userData.soft = e; // für den Blender-Nachbau
   g.scale(w / 2, h / 2, d / 2);
   return put(g, c, x, y, z, 0, ry);
 }

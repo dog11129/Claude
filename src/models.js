@@ -80,6 +80,7 @@ export function merge(parts) {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  if (globalThis.KUSCHEL_KEEP_PARTS) geo.userData.parts = parts.filter(Boolean); // für tools/dump-models.mjs (Blender-Nachbau)
   return geo;
 }
 

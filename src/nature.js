@@ -83,7 +83,8 @@ export function placeable(k, ready, fruit) {
     return g;
   }
   const alias = { kuerbislaterne: 'lantern_pumpkin', schneemann: 'snowman', herzballon: 'heart_balloon', torte: 'cake', angelpokal: 'pokal', kaeferpokal: 'pokal', lichterbaum: 'lichterbaum' }[k];
-  return model(alias || k) || oldPlaceable(k, ready);
+  // Erzeuger (Beerenstrauch, Bienenstock …) haben aus Blender zwei Modelle: <name> und <name>_ready (mit Ernte)
+  return (ready && model((alias || k) + '_ready')) || model(alias || k) || oldPlaceable(k, ready);
 }
 
 // Landschaft: Wald auf den Klippen, Grasbüschel, Wildblumen, Teichsteine – gleiche Verteilung wie vorher,
