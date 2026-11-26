@@ -14,7 +14,10 @@ const glb = f => {
 };
 const roots = j => j.scenes[j.scene || 0].nodes.map(i => j.nodes[i].name);
 // Inselleben 8: diese Modelle kommen (noch) aus dem Code (models-extra.js, avatar.js) – ohne Blender-Fassung gebaut
-const CODE_ONLY = new Set(['klippenbank', 'duellpokal', 'kapelle', 'traumfaenger', 'traummobile', 'wolkenlampe', 'mondteppich', 'traumschaf', 'abendrotbild', 'veil']);
+const CODE_ONLY = new Set(['klippenbank', 'duellpokal', 'kapelle', 'traumfaenger', 'traummobile', 'wolkenlampe', 'mondteppich', 'traumschaf', 'abendrotbild', 'veil',
+  // Inselleben 9 (Gebiete): Möbel und Deko der Bewohner, Fundstücke
+  'eulenuhr', 'baumstumpfhocker', 'geweihleuchter', 'pusteblumenlampe', 'kleeteppich', 'hummelkissen', 'leuchtmoosglas', 'kristallspiegel', 'geodentisch', 'mooslaterne', 'wiesenschaukel', 'kristallsaeule',
+  'waldmoos', 'harzperle', 'eulenfeder', 'geweihstange', 'pusteblume', 'gluecksklee', 'morgentau', 'goldstaub', 'leuchtmoos', 'tropfstein', 'geode', 'kristallblume']);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));
@@ -35,7 +38,7 @@ test('jedes Möbelstück, jede Deko, jedes Beet hat ein Blender-Modell', () => {
   assert.deepEqual(missC, [], 'Beete ohne Modell');
   const missS = Object.keys(D.CROPS).filter(k => D.ITEMS['s_' + k] && !all.has('item_s_' + k));
   assert.deepEqual(missS, [], 'Samentüten ohne Modell');
-  const missI = IM.ITEM_MODEL_IDS.filter(id => D.ITEMS[id] && !['ehering', 'traumstern'].includes(id) && !all.has('item_' + id));
+  const missI = IM.ITEM_MODEL_IDS.filter(id => D.ITEMS[id] && !['ehering', 'traumstern'].includes(id) && !CODE_ONLY.has(id) && !all.has('item_' + id));
   assert.deepEqual(missI, [], 'Gegenstände ohne Modell');
   for (const id of ['laubfrosch', 'azurjungfer', 'rosenhonig', 'thunfisch', 'tandem', 'papierlaterne', 'riesenkuerbis']) assert.ok(all.has('item_' + id), id);
 });

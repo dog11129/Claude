@@ -35,6 +35,7 @@ import { syncPony, syncTrain, tintFurniture, updateIslandV } from './world-extra
 import { syncTandem, decorFurniture, updateIsland6, npcOverride6 } from './world-extra3.js';
 import { updateIsland7, npcOverride7, npcUp7, syncCarry7, burstShape } from './world-extra4.js';
 import { npcOverride8, npcUp8, syncSurf8, dreamSky } from './world-extra5.js';
+import { npcOverride9 } from './world-extra6.js';
 import { npcStep } from './npc-walk.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
@@ -1388,7 +1389,7 @@ export class World {
     const visit = (id, t) => ({ x: 2.6 + Math.sin(t * 0.07) * 0.6, z: 4.3 + Math.sin(t * 0.05) * 0.25, walking: Math.abs(Math.cos(t * 0.07)) > 0.6 });
     const party = grillParty(s), gp = party ? party.split(',').map(Number) : null;
     const partyPos = (id, t) => { const a = NPC_IDS.indexOf(id) / NPC_IDS.length * Math.PI * 2 + 0.3, r = 2 + Math.sin(t * 0.2 + a) * 0.15; return { x: gp[0] + Math.cos(a) * r, z: gp[1] + Math.sin(a) * r, walking: false }; };
-    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : gp ? partyPos(id, t) : npcOverride8(this, s, id) || npcOverride6(this, s, id, t) || npcOverride7(this, s, id) || npcPos(id, t, d); // Picknick, Band, Einstieg, Gymnastik, Laternenumzug
+    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : gp ? partyPos(id, t) : npcOverride8(this, s, id) || npcOverride6(this, s, id, t) || npcOverride7(this, s, id) || npcOverride9(this, s, id) || npcPos(id, t, d); // Picknick, Band, Einstieg, Gymnastik, Laternenumzug
     if (gp && this.time > (this.singT || 0)) {
       this.singT = this.time + 4 + Math.random() * 4;
       const id = NPC_IDS[Math.floor(Math.random() * NPC_IDS.length)];
@@ -1430,6 +1431,7 @@ export class World {
         e.speed += (0 - e.speed) * Math.min(1, dt * 8);
       } else {
         const p = posOf(id, s.time, s.dayTime), q = posOf(id, s.time + 0.3, s.dayTime + 0.0008), k = Math.min(1, dt * 5);
+        if (Math.hypot(p.x - e.x, p.z - e.z) > 60) { e.x = p.x; e.z = p.z; e.way = null; } // in ein Gebiet (weit weg) und zurück: gleich dort
         const way = npcStep(s, e, p.x, p.z, dt, k, this.time); // um Gebäude & Dinge herum (npc-walk.js)
         if (way != null) e.ry = way; else if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
         e.speed += ((p.walking || way != null ? 0.7 : 0) - e.speed) * Math.min(1, dt * 6);

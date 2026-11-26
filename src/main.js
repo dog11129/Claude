@@ -30,6 +30,7 @@ import { initFun4, uiE, travel6, contextE, executeE, updateE, busy6 } from './cl
 import { APP_PANELS_6 } from './ui-extra3.js';
 import { initFun5, uiF, travel7, context7, execute7, updateF, busy7 } from './client/fun5.js';
 import { initFun6, uiG, travel8, context8, execute8, updateG, busy8 } from './client/fun6.js';
+import { initFun7, execute9, update9, usable9 } from './client/fun7.js';
 import { duelName } from './extras8.js';
 import { APP_PANELS_7 } from './ui-extra4.js';
 import { APP_PANELS_8 } from './ui-extra5.js';
@@ -81,6 +82,7 @@ initFun2({ get G() { return G; }, world, profile, get panels() { return panels; 
 initFun3({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q), emote: e => sendEmote(e), listPhotos: () => photos.list(isleKey(), 'photo') });
 initFun4({ get G() { return G; }, world, profile, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
 initFun6({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), fade: () => fade() });
+initFun7({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n) });
 initFun5({ get G() { return G; }, world, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), listPhotos: async () => [...await photos.list(isleKey(), 'photo'), ...await photos.list(isleKey(), 'moment')] });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
@@ -1995,6 +1997,7 @@ function pressAction() {
 
 function execute(r, fresh) {
   if (!r) return;
+  if (execute9(r, fresh)) return;
   if (execute8(r, fresh)) return;
   if (executeW(r, fresh)) return;
   if (executeV(r, fresh)) return;
@@ -2128,7 +2131,7 @@ function tapAt(cx, cy) {
 }
 
 // Was zeigen Maus oder Finger an – und kann die Figur es von hier aus benutzen?
-const usable = r => !!r && !!(r.dreamIn || r.wedYes || r.surf || r.raft || r.paradeEnd || r.bigfish || r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
+const usable = r => !!r && !!(usable9(r) || r.dreamIn || r.wedYes || r.surf || r.raft || r.paradeEnd || r.bigfish || r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
 const reachOf = r => r.npc ? 1.9 : r.hug ? 1.5 : r.ui || r.go || r.enter || r.exit || r.visit ? 2.2 : r.fish ? 1.8 : r.net ? 2 : 1.6;
 function aimAt(cx, cy) {
   const me = G.players[G.me];
@@ -2774,6 +2777,7 @@ function gameFrame(dt, now) {
   updateE(dt);
   updateF(dt);
   updateG(dt);
+  update9();
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)

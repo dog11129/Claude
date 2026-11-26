@@ -101,6 +101,10 @@ export const GUIDE = [
   ['Feste & Spiele', '🏆', 'Duell der Woche', 'Handy ➜ Duell: jede Woche eine andere Disziplin (Fische, Krabbeltiere, Obst …). Wer am Sonntag vorne liegt, bekommt den Duell-Pokal.', s => Object.keys(s.duel?.wins || {}).length > 0],
   ['Unterwegs', '🌙', 'Traumwelt', 'Ab 18 Uhr im Bett ✋ drücken: Wolkeninseln mit Traumsternen, Mondschaf Luna tauscht sie gegen Traum-Möbel, das Kissen weckt euch wieder.', s => (s.dream?.total || 0) > 0],
   ['Feste & Spiele', '🏄', 'Surfen', 'Surfbrett in die Hand nehmen (oder aufstellen), am Strand aufs Meer schauen und ✋: halten = hoch, loslassen = runter, in der Luft tippen = Dreher.', s => !!s.surf?.rec],
+  ['Unterwegs', '🦉', 'Gebiets-Bewohner', 'In jedem Gebiet liegen täglich Fundstücke, die es nur dort gibt (Waldmoos, Pusteblumen, Leuchtmoos …). Eule Oskar, Hummel Hilde und Maulwurf Grubi tauschen sie gegen eigene Möbel und Deko.', s => Object.keys(s.area9?.done || {}).length > 0],
+  ['Unterwegs', '🦌', 'Weißer Hirsch & Pilzkreis', 'Kiefernwald: an manchen Morgen (6–9:30 Uhr) steht ein weißer Hirsch auf der Lichtung – langsam hingehen, nicht rennen! An manchen Abenden leuchtet ein Pilzkreis.', s => (s.book || []).some(p => p.k === 'stag' || p.k === 'ring')],
+  ['Unterwegs', '🦋', 'Schmetterlingstanz', 'Blütenwiese: an sonnigen Tagen tanzen von 10 bis 16 Uhr Schmetterlinge – mit dem Kescher goldenen Blütenstaub fangen.', s => (s.book || []).some(p => p.k === 'swarm')],
+  ['Unterwegs', '🎵', 'Kristallklang', 'Kristallhöhle: den Klangstein anschlagen, zuhören und die drei Kristalle in derselben Reihenfolge anschlagen – einmal am Tag blüht eine Kristallblume.', s => (s.book || []).some(p => p.k === 'chime')],
 ];
 export function guideList(s) {
   return GUIDE.map(([area, icon, name, how, test]) => { let done = false; try { done = !!test(s); } catch { /* fehlt im Spielstand */ } return { area, icon, name, how, done }; });

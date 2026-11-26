@@ -142,6 +142,16 @@ Object.assign(FURNITURE, {
   mondteppich:    { name: 'Mondteppich',     icon: '🌙', buy: 0, lvl: 1, cat: 'teppiche', w: 2, d: 2, solid: false, rug: true, rare: 'dream' },
   traumschaf:     { name: 'Kuschelschaf Luna', icon: '🐑', buy: 0, lvl: 1, cat: 'deko',   w: 1, d: 1, solid: true, rare: 'dream' },
   abendrotbild:   { name: 'Abendrot-Bild',   icon: '🌅', buy: 0, lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true, rare: 'sunset' },
+  // nur bei den Gebiets-Bewohnern (Eule Oskar, Hummel Hilde, Maulwurf Grubi)
+  eulenuhr:       { name: 'Eulen-Wanduhr',   icon: '🦉', buy: 0, lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true, rare: 'wald' },
+  baumstumpfhocker: { name: 'Baumstumpf-Hocker', icon: '🪵', buy: 0, lvl: 1, cat: 'sitzen', w: 1, d: 1, solid: true, sit: true, rare: 'wald' },
+  geweihleuchter: { name: 'Geweih-Leuchter', icon: '🦌', buy: 0, lvl: 1, cat: 'licht',    w: 1, d: 1, solid: true, glow: true, rare: 'wald' },
+  pusteblumenlampe: { name: 'Pusteblumen-Lampe', icon: '🌼', buy: 0, lvl: 1, cat: 'licht', w: 1, d: 1, solid: true, glow: true, rare: 'wiese' },
+  kleeteppich:    { name: 'Kleeblatt-Teppich', icon: '🍀', buy: 0, lvl: 1, cat: 'teppiche', w: 2, d: 2, solid: false, rug: true, rare: 'wiese' },
+  hummelkissen:   { name: 'Hummel-Kissen',   icon: '🐝', buy: 0, lvl: 1, cat: 'deko',     w: 1, d: 1, solid: true, rare: 'wiese' },
+  leuchtmoosglas: { name: 'Leuchtmoos-Glas', icon: '💚', buy: 0, lvl: 1, cat: 'licht',    w: 1, d: 1, solid: true, glow: true, rare: 'hoehle' },
+  kristallspiegel: { name: 'Kristall-Spiegel', icon: '🪞', buy: 0, lvl: 1, cat: 'wand',   w: 1, d: 1, solid: false, wall: true, rare: 'hoehle' },
+  geodentisch:    { name: 'Geoden-Tisch',    icon: '💎', buy: 0, lvl: 1, cat: 'tische',   w: 1, d: 1, solid: true, rare: 'hoehle' },
 });
 FURNITURE.aquarium.tank = 'fish'; // das bekannte Aquarium bekommt Bewohner (Größe bleibt, alte Spielstände unverändert)
 for (const [c, cn] of WOOL_COLORS) {

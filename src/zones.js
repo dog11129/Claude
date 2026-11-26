@@ -18,6 +18,7 @@ import { itemModel } from './itemmodels.js';
 import { zonesW, lightsW } from './world-extra.js';
 import { BAMBUS, CLUMPS } from './features/bamboo.js';
 import { MOOR, REEDS } from './features/moor.js';
+import { decorateArea9, updateArea9, picks9 } from './world-extra6.js';
 
 function canvasTex(w, h, paint, rep) {
   const c = document.createElement('canvas');
@@ -176,7 +177,7 @@ function buildArea(id) {
   // Weg vom Eingang (Süden) in die Mitte
   const path = new THREE.Mesh(M.flat(2.2, D + 1.4, 0.75), new THREE.MeshLambertMaterial(A.cave ? { color: 0x7a7088 } : { color: 0xf2deb0, map: tex('path', 1.2, (D + 1.4) / 2) }));
   path.rotation.x = -Math.PI / 2; path.position.set(X, 0.01, Z + D / 2 + 0.7); path.receiveShadow = true; g.add(path);
-  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(id.length * 999 + 7);
+  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(id.length * 999 + 7), occ = g.userData.occ = []; // Bäume, die durchsichtig werden, wenn sie die Figur verdecken
   if (A.cave) {
     // Felswände rundherum, leuchtende Kristalle, ein kleiner See
     const parts = [], glow = [];
@@ -216,7 +217,7 @@ function buildArea(id) {
       const m = id === 'wald' ? (model('pine') || N.wild('tree', 'summer', 3)) : N.wild('tree', 'spring', 3);
       if (id !== 'wald' && i % 2) { put(g, placeable('hortensie'), X + rx * 0.9, Z + rz * 0.9); continue; }
       m.scale.setScalar(1 + rnd() * 0.4);
-      put(g, m, X + rx, Z + rz, rnd() * 6);
+      occ.push(put(g, m, X + rx, Z + rz, rnd() * 6));
     }
     if (id === 'wiese') for (let i = 0; i < 60; i++) { const m = model('wildflower_' + (i % 4)); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
     if (id === 'wald') for (let i = 0; i < 30; i++) { const m = model('tuft'); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
@@ -225,7 +226,7 @@ function buildArea(id) {
   const dyn = [];
   for (const n of NODES[id]) {
     const x = X + n.x, z = Z + n.z;
-    if (n.kind === 'pine') { const m = model('pine') || N.wild('tree', 'summer', 3); m.scale.setScalar(1.15); put(g, m, x, z, n.i); }
+    if (n.kind === 'pine') { const m = model('pine') || N.wild('tree', 'summer', 3); m.scale.setScalar(1.15); occ.push(put(g, m, x, z, n.i)); }
     else if (n.kind === 'ore') put(g, oreRock(n.i), x, z, n.i * 0.7);
     else if (n.kind === 'hive') put(g, hive(), x, z, n.i);
     else if (n.kind === 'berry') { const [b, fr] = berryBush(id === 'wiese' ? 0xe8304a : 0x4a5aff); put(g, b, x, z, n.i); put(g, fr, x, z, n.i); dyn.push({ n, m: fr }); }
@@ -233,6 +234,7 @@ function buildArea(id) {
   }
   g.userData.dyn = dyn;
   g.userData.lights = A.cave ? NODES[id].filter((n, i) => i % 3 === 0).map(n => [X + n.x, Z + n.z]) : [];
+  decorateArea9(g, id); // Inselleben 9: Natur, Tiere, Bewohner, Ereignisse
   return g;
 }
 
@@ -692,6 +694,7 @@ export class Zones {
   updateArea(world, s, id, t) {
     const g = this.area(id), A = AREAS[id];
     world.tag('areaexit', '🏝️ Zur Insel', A.x, 2.2, A.z + A.d + 0.6, 'name npc');
+    updateArea9(world, s, id, t, g);
     const sig = s.day + '|' + JSON.stringify(Object.entries(s.anode || {}).filter(([k]) => k.startsWith(id + ':')));
     if (g.userData.sig === sig) return;
     g.userData.sig = sig;
@@ -716,6 +719,7 @@ export class Zones {
       for (const [k, A] of Object.entries(AREAS)) { const d = Math.abs(target.z - A.z); if (d < bd) { bd = d; id = k; } }
       const A = AREAS[id], H = { pine: [0.6, 3.6], ore: [0.62, 1.3], hive: [0.55, 1.3], berry: [0.5, 0.95], mush: [0.42, 0.6], bloom: [0.42, 0.75] };
       for (const n of NODES[id]) out.push([A.x + n.x, A.z + n.z, ...H[n.kind]]);
+      out.push(...picks9(id));
     } else if (target.z < -1050) for (const [x, z] of CLUMPS) out.push([BAMBUS.x + x, BAMBUS.z + z, 0.95, 3.4]);
     else if (target.z < -750) for (const [x, z] of REEDS) out.push([MOOR.x + x, MOOR.z + z, 0.7, 1.5]);
     else if (target.z > 150 && target.z < 450) for (const [x, z] of TROPIC_TREES) out.push([TROPIC.x + x, TROPIC.z + z, 0.6, 3.2]);

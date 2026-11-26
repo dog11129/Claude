@@ -17,6 +17,7 @@ import * as V from './extras5.js';
 import * as E6 from './extras6.js';
 import * as E7 from './extras7.js';
 import * as E8 from './extras8.js';
+import * as E9 from './extras9.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -444,6 +445,7 @@ export function blocked(s, x, z, swim) {
     if (!inArea(id, lx, lz)) return true;
     const n = nodeAt(id, Math.round(lx), Math.round(lz));
     if (Y.cableBuilt(s)) { const [cx, cz] = Y.cableStop(id); if (Math.hypot(x - cx, z - cz) < 0.7) return true; }
+    if (E9.blockedArea9(id, Math.round(lx), Math.round(lz))) return true; // Bewohner, Kristalle
     return !!(n && SOLID.includes(n.kind));
   }
   if (gateAt(Math.round(x), Math.round(z))) return true;
@@ -1770,7 +1772,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -2023,6 +2025,8 @@ function resolveArea(s, me, sel, at) {
   if (id === 'hoehle' && Math.hypot(px - Z.DEPTH_STAIRS[0], pz - Z.DEPTH_STAIRS[1]) < 1.3) { // Treppe in die Höhlen-Tiefen
     return s.inv.grubenlaterne > 0 ? { go: 'depth:0', label: '🏮 In die Höhlen-Tiefen hinabsteigen', tiles } : { label: '🌑 Eine Treppe ins Dunkle … ohne Grubenlaterne (Werkbank) geht es nicht hinab', tiles };
   }
+  const r9 = E9.resolveArea9(s, id, sel, px, pz, me); // Bewohner, Fundstücke, Hirsch, Pilzkreis, Schmetterlinge, Kristallklang
+  if (r9) return r9;
   const n = nodeAt(id, lx, lz);
   if (!n) return { label: '', tiles: [] };
   const today = nodeToday(id, n, s.day), st = s.anode[id + ':' + n.i], used = st?.d === s.day ? st : null, a = how => ({ t: 'aact', area: id, i: n.i, how, x: lx, z: lz });
