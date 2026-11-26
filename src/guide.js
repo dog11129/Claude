@@ -96,6 +96,11 @@ export const GUIDE = [
   ['Garten', '🩷', 'Pfingstrosen in allen Farben', 'Gärtnerei: Weiß, Zartrosa, Rot, Gelb, Creme. Nebeneinander pflanzen und gießen ergibt neue Farben – Gelb + Rot = Koralle, Weiß + Kornblume = Blau, Blau + Gelb = Regenbogen.', s => Object.values(s.tiles || {}).some(t => t?.c?.k?.startsWith('pfingstrose_'))],
   ['Kreativ', '🛋️', 'Möbel-Serien', 'Krämerladen ➜ Möbel ➜ eine Serie wählen (z. B. Pilzwald oder Retro-Diner): vier verschiedene Stücke im Haus bringen Extrapunkte beim Wohnwert.', s => (s.hha?.best || 0) > 0 && Object.values(s.home?.items || {}).some(o => o?.k && ['landbuffet', 'pilztisch', 'dinertisch', 'bistrotisch', 'zeichentisch', 'bauerntisch'].includes(o.k))],
   ['Insel', '📅', 'Insel-Kalender & Rückblick', 'Handy ➜ Kalender zeigt alle Termine (mit Echtzeit auch als Datei für den Handy-Kalender), Handy ➜ Rückblick eine Diashow des Jahres.', s => !!s.lastYear],
+  ['Insel', '🌅', 'Klippenbank', 'Mira schickt euch eine Bank: an die Ostküste stellen und zwischen 17:30 und 20:30 Uhr zu zweit hinsetzen – Herzen, Kamerafahrt und eine Seite im Fotobuch.', s => (s.bench8?.n || 0) > 0],
+  ['Insel', '💒', 'Inselhochzeit', 'Im Rathaus die Inselkapelle bauen lassen, dann zu zweit davor „Hochzeit feiern“: Alle Nachbarn kommen, Mira hält die Rede, ihr sagt beide ✋ „Ja, ich will!“.', s => !!s.married],
+  ['Feste & Spiele', '🏆', 'Duell der Woche', 'Handy ➜ Duell: jede Woche eine andere Disziplin (Fische, Krabbeltiere, Obst …). Wer am Sonntag vorne liegt, bekommt den Duell-Pokal.', s => Object.keys(s.duel?.wins || {}).length > 0],
+  ['Unterwegs', '🌙', 'Traumwelt', 'Ab 18 Uhr im Bett ✋ drücken: Wolkeninseln mit Traumsternen, Mondschaf Luna tauscht sie gegen Traum-Möbel, das Kissen weckt euch wieder.', s => (s.dream?.total || 0) > 0],
+  ['Feste & Spiele', '🏄', 'Surfen', 'Surfbrett in die Hand nehmen (oder aufstellen), am Strand aufs Meer schauen und ✋: halten = hoch, loslassen = runter, in der Luft tippen = Dreher.', s => !!s.surf?.rec],
 ];
 export function guideList(s) {
   return GUIDE.map(([area, icon, name, how, test]) => { let done = false; try { done = !!test(s); } catch { /* fehlt im Spielstand */ } return { area, icon, name, how, done }; });

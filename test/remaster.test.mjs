@@ -13,6 +13,8 @@ const glb = f => {
   return JSON.parse(b.subarray(20, 20 + len).toString('utf8'));
 };
 const roots = j => j.scenes[j.scene || 0].nodes.map(i => j.nodes[i].name);
+// Inselleben 8: diese Modelle kommen (noch) aus dem Code (models-extra.js, avatar.js) – ohne Blender-Fassung gebaut
+const CODE_ONLY = new Set(['klippenbank', 'duellpokal', 'kapelle', 'traumfaenger', 'traummobile', 'wolkenlampe', 'mondteppich', 'traumschaf', 'abendrotbild', 'veil']);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));
@@ -23,17 +25,17 @@ test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen
 test('jedes Möbelstück, jede Deko, jedes Beet hat ein Blender-Modell', () => {
   const all = new Set();
   for (const f of JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'))) for (const n of roots(glb(f))) all.add(n);
-  const missF = Object.keys(FURNITURE).filter(k => !all.has(k));
+  const missF = Object.keys(FURNITURE).filter(k => !all.has(k) && !CODE_ONLY.has(k));
   assert.deepEqual(missF, [], 'Möbel ohne Modell');
   const alias = { kuerbislaterne: 'lantern_pumpkin', schneemann: 'snowman', herzballon: 'heart_balloon', torte: 'cake', angelpokal: 'pokal', kaeferpokal: 'pokal' };
   const garden = ['apfelbaum', 'orangenbaum', 'pfirsichbaum', 'kirschenbaum', 'birnbaum', 'mangobaum', 'bananenbaum', 'eiernest'];
-  const missP = Object.keys(D.PLACE).filter(k => !garden.includes(k) && !all.has(alias[k] || k));
+  const missP = Object.keys(D.PLACE).filter(k => !garden.includes(k) && !CODE_ONLY.has(k) && !all.has(alias[k] || k));
   assert.deepEqual(missP, [], 'Deko ohne Modell');
   const missC = Object.keys(D.CROPS).flatMap(k => [1, 2, 3].map(st => `crop_${k}_${st}`)).filter(n => !all.has(n));
   assert.deepEqual(missC, [], 'Beete ohne Modell');
   const missS = Object.keys(D.CROPS).filter(k => D.ITEMS['s_' + k] && !all.has('item_s_' + k));
   assert.deepEqual(missS, [], 'Samentüten ohne Modell');
-  const missI = IM.ITEM_MODEL_IDS.filter(id => D.ITEMS[id] && !all.has('item_' + id));
+  const missI = IM.ITEM_MODEL_IDS.filter(id => D.ITEMS[id] && !['ehering', 'traumstern'].includes(id) && !all.has('item_' + id));
   assert.deepEqual(missI, [], 'Gegenstände ohne Modell');
   for (const id of ['laubfrosch', 'azurjungfer', 'rosenhonig', 'thunfisch', 'tandem', 'papierlaterne', 'riesenkuerbis']) assert.ok(all.has('item_' + id), id);
 });
@@ -82,6 +84,6 @@ test('Figuren: alle Nachbarn, Besucher und Hüte haben Blender-Teile', async () 
   const N = await import('../src/npc.js'), A = await import('../src/avatar.js');
   const names = new Set(roots(glb('characters')));
   for (const id of Object.keys(N.NPCS)) assert.ok(names.has(`npc_${id}_body`), id);
-  for (const h of A.LOOKS.hat.map(o => (Array.isArray(o) ? o[0] : o)).filter(h => h !== 'none')) assert.ok(names.has('av_hat_' + h), h);
+  for (const h of A.LOOKS.hat.map(o => (Array.isArray(o) ? o[0] : o)).filter(h => h !== 'none' && !CODE_ONLY.has(h))) assert.ok(names.has('av_hat_' + h), h);
 });
 

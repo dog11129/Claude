@@ -30,7 +30,7 @@ export function resolveIslandV(s, me, sel, at, x, z) {
   if (h) return { a: { t: 'hunt', op: 'find', id: h.id }, label: '🔍 Hier ist etwas versteckt!', tiles: [] };
   return null;
 }
-export const zoneV = z => (z > 3600 ? 'deepsea' : null);
+export const zoneV = z => (z > 3600 && z < 4500 ? 'deepsea' : null);
 export { deepBlocked as blockedV, resolveDeep as resolveV };
 
 // Extra-Zimmer: wie die Nachbarzimmer, aber eigene

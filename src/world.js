@@ -34,6 +34,7 @@ import { updateIslandW, syncSled } from './world-extra.js';
 import { syncPony, syncTrain, tintFurniture, updateIslandV } from './world-extra2.js';
 import { syncTandem, decorFurniture, updateIsland6, npcOverride6 } from './world-extra3.js';
 import { updateIsland7, npcOverride7, npcUp7, syncCarry7, burstShape } from './world-extra4.js';
+import { npcOverride8, npcUp8, syncSurf8, dreamSky } from './world-extra5.js';
 import { npcStep } from './npc-walk.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
@@ -1387,7 +1388,7 @@ export class World {
     const visit = (id, t) => ({ x: 2.6 + Math.sin(t * 0.07) * 0.6, z: 4.3 + Math.sin(t * 0.05) * 0.25, walking: Math.abs(Math.cos(t * 0.07)) > 0.6 });
     const party = grillParty(s), gp = party ? party.split(',').map(Number) : null;
     const partyPos = (id, t) => { const a = NPC_IDS.indexOf(id) / NPC_IDS.length * Math.PI * 2 + 0.3, r = 2 + Math.sin(t * 0.2 + a) * 0.15; return { x: gp[0] + Math.cos(a) * r, z: gp[1] + Math.sin(a) * r, walking: false }; };
-    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : gp ? partyPos(id, t) : npcOverride6(this, s, id, t) || npcOverride7(this, s, id) || npcPos(id, t, d); // Picknick, Band, Einstieg, Gymnastik, Laternenumzug
+    const posOf = (id, t, d) => id === 'hoppel' ? visit(id, t) : gp ? partyPos(id, t) : npcOverride8(this, s, id) || npcOverride6(this, s, id, t) || npcOverride7(this, s, id) || npcPos(id, t, d); // Picknick, Band, Einstieg, Gymnastik, Laternenumzug
     if (gp && this.time > (this.singT || 0)) {
       this.singT = this.time + 4 + Math.random() * 4;
       const id = NPC_IDS[Math.floor(Math.random() * NPC_IDS.length)];
@@ -1401,7 +1402,7 @@ export class World {
     for (const [, e] of list) e.face = null;
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const [a, ea] = list[i], [b, eb] = list[j];
-      if (Math.hypot(ea.x - eb.x, ea.z - eb.z) > 2 || ea.speed > 0.3 || eb.speed > 0.3 || this.npcTalk?.id === a || this.npcTalk?.id === b) continue;
+      if (s.wedding || Math.hypot(ea.x - eb.x, ea.z - eb.z) > 2 || ea.speed > 0.3 || eb.speed > 0.3 || this.npcTalk?.id === a || this.npcTalk?.id === b) continue;
       ea.face = Math.atan2(eb.x - ea.x, eb.z - ea.z); eb.face = Math.atan2(ea.x - eb.x, ea.z - eb.z);
       const pk = a + b, pr = this.npcPairs.get(pk) || { next: this.time + 1 + Math.random() * 2, turn: 0 };
       if (this.time > pr.next) {
@@ -1421,7 +1422,7 @@ export class World {
         this.scene.add(e.m);
         this.npcM.set(id, e);
       }
-      e.m.visible = e.awake = id === 'hoppel' ? hoppel : awake || npcUp7(this, s); // früh zur Gymnastik, spät beim Laternenumzug
+      e.m.visible = e.awake = id === 'hoppel' ? hoppel : awake || npcUp7(this, s) || npcUp8(s); // Hochzeit, früh zur Gymnastik, spät beim Laternenumzug
       if (!e.awake) continue;
       const talk = this.npcTalk?.id === id;
       if (talk) {
@@ -1433,6 +1434,7 @@ export class World {
         if (way != null) e.ry = way; else if (Math.hypot(q.x - p.x, q.z - p.z) > 0.01) e.ry = Math.atan2(q.x - p.x, q.z - p.z);
         e.speed += ((p.walking || way != null ? 0.7 : 0) - e.speed) * Math.min(1, dt * 6);
         if (e.face != null) { e.ry = e.face; e.speed *= 0.5; }
+        if (p.face != null && way == null && Math.hypot(e.x - p.x, e.z - p.z) < 0.4) e.ry = p.face; // Hochzeit: nach vorne schauen
         if (gp && Math.hypot(e.x - gp[0], e.z - gp[1]) < 2.6) e.ry = Math.atan2(gp[0] - e.x, gp[1] - e.z); // zum Grill schauen
       }
       // Accessoires: Partyhut am Geburtstag, Schirm bei Regen, Schal im Winter
@@ -1689,7 +1691,7 @@ export class World {
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
       const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000 && e.z < 1900, po = !!p.po && !p.sw && !p.pose && !bk, tn = !!p.tn, td = !!p.td && !p.sw && !p.pose && !bk, tp = !!p.tp && !p.sw; // Fahrrad, Pony, Bimmelbahn, Tandem
-      e.m.position.set(e.x, (p.cn ? -0.12 : bridgeY(e.x, e.z)) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk || td || tp ? 0.34 : po ? 0.55 : tn ? 0.32 : p.sl && !p.sw ? 0.22 : 0) + (p.fh || 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0), e.z);
+      e.m.position.set(e.x, (p.cn ? -0.12 : bridgeY(e.x, e.z)) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk || td || tp ? 0.34 : po ? 0.55 : tn ? 0.32 : p.sl && !p.sw ? 0.22 : 0) + (p.fh || 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0) + (p.sf ? 0.06 + Math.sin(this.time * 2.2) * 0.05 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
       if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
@@ -1702,6 +1704,7 @@ export class World {
       syncTrain(this, e, tn);
       syncTandem(this, e, td, dt);
       syncCarry7(this, e, !!p.hb && !p.sw, !!p.rf);
+      syncSurf8(this, e, !!p.sf);
       this.syncKite(e, p.kh || 0, dt);
       this.syncRide(e, p.rh || 0);
 
@@ -1779,7 +1782,8 @@ export class World {
       this.hemi.intensity = 0.55;
       this.lamp.intensity = 22;
       for (const k of ['skysun', 'skymoon']) if (this[k]) this[k].visible = false;
-    } else if (this.target.z > 1000 && this.target.z < 1900) { // Korallenriff: türkises Dämmerlicht, kurze Sicht, kein Himmel
+    } else if (this.target.z > 4500) dreamSky(this, top, hor); // Traumwelt
+    else if (this.target.z > 1000 && this.target.z < 1900) { // Korallenriff: türkises Dämmerlicht, kurze Sicht, kein Himmel
       top.setRGB(0.04, 0.26, 0.4).lerp(this.fogCol.setRGB(0.02, 0.05, 0.13), night * 0.8);
       hor.setRGB(0.1, 0.52, 0.64).lerp(this.fogCol.setRGB(0.03, 0.09, 0.2), night * 0.8);
       this.scene.fog.color.copy(hor);

@@ -26,10 +26,10 @@ def serve():
 INIT = ("localStorage.setItem('kh.settings', JSON.stringify({quality:'low',sound:0,music:0,fullscreen:false}));"
         "localStorage.setItem('kh.profile', JSON.stringify({name:'Test'}));localStorage.setItem('ki.tutorial','true');localStorage.setItem('ki.buildTip','true')")
 # Fenster, die nur mit Zusammenhang (Gesprächspartner, Ort …) sinnvoll sind, werden über ihren echten Weg getestet
-PANELS = ['moorsteg', 'bambusgate', 'teahouse', 'parade', 'fireworks', 'fwedit', 'gym', 'housing', 'market', 'calendar', 'review', 'fair', 'fairinfo', 'resto', 'tank', 'pirate', 'loom', 'picnic', 'band', 'nature6', 'xbuild', 'compost', 'pottery', 'florist', 'pony', 'petschool', 'olympia', 'hunt', 'cinema', 'theater', 'train', 'lighthouse', 'penpal', 'party', 'nature', 'stamps', 'capsule', 'golf', 'dancegame', 'cafe', 'library', 'radio', 'guestbook', 'fashion', 'gardenc', 'depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
+PANELS = ['wedding', 'duel', 'dreamshop', 'moorsteg', 'bambusgate', 'teahouse', 'parade', 'fireworks', 'fwedit', 'gym', 'housing', 'market', 'calendar', 'review', 'fair', 'fairinfo', 'resto', 'tank', 'pirate', 'loom', 'picnic', 'band', 'nature6', 'xbuild', 'compost', 'pottery', 'florist', 'pony', 'petschool', 'olympia', 'hunt', 'cinema', 'theater', 'train', 'lighthouse', 'penpal', 'party', 'nature', 'stamps', 'capsule', 'golf', 'dancegame', 'cafe', 'library', 'radio', 'guestbook', 'fashion', 'gardenc', 'depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
           'chest', 'mayor', 'boat', 'tailor', 'garden', 'club', 'hut', 'phone', 'map', 'turnip', 'designer', 'recipes', 'shop', 'sell', 'orders', 'museum',
           'friends', 'emotes', 'settings', 'craft', 'cook', 'together', 'mail', 'contest', 'diary', 'fests']
-PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'volcano', 'pier', 'grotto', 'grottoup', 'nroom:mira', 'xroom:attic', 'xroom:tree', 'deepsea', 'pier', 'street', 'fair', 'fairback', 'island', 'wiese', 'moor', 'moorback', 'island', 'wald', 'bambus', 'bambusback', 'island']
+PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'volcano', 'pier', 'grotto', 'grottoup', 'nroom:mira', 'xroom:attic', 'xroom:tree', 'deepsea', 'pier', 'street', 'fair', 'fairback', 'island', 'wiese', 'moor', 'moorback', 'island', 'wald', 'bambus', 'bambusback', 'island', 'dream', 'island']
 
 def chrome():
     for p in (os.environ.get('CHROME'), '/usr/bin/google-chrome', '/usr/bin/chromium'):
@@ -101,6 +101,19 @@ async def main():
             on = await pg.evaluate("!document.getElementById('mgame').classList.contains('hidden')")
             await pg.click('#mgquit')
             ok(on and len(errs) == n0, f'Minispiel {btn[2:]}')
+        # 4c) Inselleben 8: Surfen, Hochzeit vor der Kapelle (Gast sagt über S.act Ja)
+        n0 = len(errs)
+        await pg.evaluate("window.__game.G.s.inv.surfbrett = 1; window.__game.panels.show('duel')"); await frames(pg, 2)
+        await pg.evaluate("""document.querySelector(`[data-act*='"g:surf"']`)?.click()"""); await frames(pg, 30)
+        on = await pg.evaluate("!document.getElementById('mgame').classList.contains('hidden') && window.__game.G.players[window.__game.G.me].sf")
+        await pg.click('#mgquit'); await frames(pg, 3)
+        ok(on and not await pg.evaluate('!!window.__game.G.surf8') and len(errs) == n0, 'Minispiel Surfen')
+        n0 = len(errs)
+        r = await pg.evaluate("""(async () => { const {G, S, send} = window.__game, f = n => new Promise(r => { let i = 0; const g = () => ++i >= n ? r() : requestAnimationFrame(g); requestAnimationFrame(g); });
+          G.s.obj['4,-2'] = { k: 'kapelle', r: 0 }; G.s.time = 1000; send({ t: 'wed', op: 'start', x: 4, z: -2 }); await f(20);
+          G.s.time += 30; await f(10); const yes = G.ctx?.wedYes; send({ t: 'wed', op: 'yes' }); S.act(G.s, { t: 'wed', op: 'yes', name: 'Schatz' }, 'u_testgast1'); S.bindInv(G.s, 'host'); await f(60);
+          const r = [!!yes, G.s.married?.names?.length === 2, document.getElementById('wed8').textContent.includes('verheiratet')]; delete G.s.obj['4,-2']; G.s.wedding = null; return r })()""")
+        ok(all(r) and len(errs) == n0, f'Hochzeit {r}')
         await pg.screenshot(path=shot('smoke-pc.png'))
         # 5) Handy: Fenster passen in die Breite, Spiele & Sterne lassen sich antippen
         ph = await open_game(b, url, errs, 'Handy', viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2)

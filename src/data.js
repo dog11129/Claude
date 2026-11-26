@@ -189,6 +189,8 @@ export const ITEMS = {
   bambussprosse: { name: 'Bambussprosse',  icon: '🌱', sell: 260, cat: 'veg', xp: 2 },
   // Bauernhof-Ecke, Korallenriff, Strand
   goldei:        { name: 'Goldenes Ei',    icon: '🥚', sell: 2500, cat: 'misc' },
+  ehering:       { name: 'Ehering',        icon: '💍', sell: 0, cat: 'misc', keep: 1 },
+  traumstern:    { name: 'Traumstern',     icon: '🌠', sell: 120, cat: 'misc' },
   kaese:         { name: 'Käse',           icon: '🧀', sell: 700, cat: 'misc', xp: 3 },
   seeglas:       { name: 'Seeglas',        icon: '💠', sell: 300, cat: 'misc', xp: 2 },
   riffkoralle:   { name: 'Riffkoralle',    icon: '🪸', sell: 650, cat: 'misc', xp: 3 },
@@ -437,6 +439,8 @@ export const PLACE = {
   pilz:       { name: 'Fliegenpilz',   icon: '🍄', buy: 200,  lvl: 1, kind: 'deco' },
   laterne:    { name: 'Laterne',       icon: '🏮', buy: 400,  lvl: 2, kind: 'deco', solid: 1, glow: 1 },
   nistkasten: { name: 'Nistkasten',    icon: '🐦', buy: 900, lvl: 1, kind: 'deco', solid: 1, desc: 'In die Nähe von Bäumen stellen – Vögel ziehen ein und brüten' },
+  klippenbank: { name: 'Klippenbank',  icon: '🌅', buy: 3200, lvl: 1, kind: 'deco', solid: 1, desc: 'Am besten an die Küste im Osten stellen – zu zweit bei Sonnenuntergang hinsetzen' },
+  duellpokal: { name: 'Duell-Pokal',    icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Für den Sieg im Duell der Woche' },
   marktstand: { name: 'Marktstand',    icon: '🧺', buy: 2500, lvl: 2, kind: 'deco', solid: 1, desc: 'Samstags Bauernmarkt: die Nachbarn kaufen eure Ernte' },
   bambuszaun: { name: 'Bambuszaun',    icon: '🎋', lvl: 1, kind: 'deco', solid: 1, desc: 'Aus dem Bambushain' },
   irrlichtlaterne: { name: 'Irrlicht-Laterne', icon: '💫', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Drei Irrlichter in einem Glas' },
@@ -574,6 +578,7 @@ export const PROJECTS = {
   buehne:        { name: 'Inselbühne',          icon: '🎭', cost: 44000, lvl: 4 },
   bahnhof:       { name: 'Bimmelbahn',          icon: '🚂', cost: 56000, lvl: 4 },
   restaurant:    { name: 'Inselrestaurant',     icon: '🍽️', cost: 52000, lvl: 4 },
+  kapelle:       { name: 'Inselkapelle',        icon: '💒', cost: 48000, lvl: 4 },
 };
 for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
 for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };

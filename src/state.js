@@ -16,6 +16,7 @@ import * as W4 from './extras4.js';
 import * as V from './extras5.js';
 import * as E6 from './extras6.js';
 import * as E7 from './extras7.js';
+import * as E8 from './extras8.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -419,6 +420,7 @@ export const swimmable = (x, z) => isSea(x, z) && !onPier(x, z) && coast(x, z) <
 export function blocked(s, x, z, swim) {
   if (x > HOME_X / 2) return homeBlocked(s, x, z);
   if (z < -750) return E7.blocked7(s, x, z); // Seerosenmoor, Bambushain
+  if (z > E8.DREAM_Z) return E8.blocked8(s, x, z); // Traumwelt
   if (z < -450) return E6.blocked6(s, x, z); // Jahrmarkt
   if (z < -150) { // Bummelgasse (nach Süden geht's durchs Tor zurück)
     const lx = x - STREET.x, lz = z - STREET.z;
@@ -1768,12 +1770,13 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
     bindInv(s, who);
-    try { return act(s, a); } finally { s._who = before; }
+    const d0 = E8.duelStat(s); // Duell der Woche: wer hat wie viel geschafft?
+    try { const out = act(s, a); if (out.ok) E8.duelCount(s, who, d0, out); return out; } finally { s._who = before; }
   }
   const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'uproot', 'replant', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave', 'fund'].includes(a.t);
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
@@ -1883,7 +1886,8 @@ export function resolveBuild(s, b, x, z) {
 
 export function resolve(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
-  const r6 = me.sw ? null : E6.resolve6(s, me, sel, at) || E7.resolve7(s, me, sel, at); // Schatzkarte, Wildtiere, Konzert, Veredeln, Moor-/Bambusweg, Kartons, Wetter, Feste
+  if (me.z > E8.DREAM_Z) return E8.resolveZone8(s, me, sel, at); // Traumwelt
+  const r6 = me.sw ? null : E6.resolve6(s, me, sel, at) || E7.resolve7(s, me, sel, at) || E8.resolve8(s, me, sel, at); // Schatzkarte, Wildtiere, Konzert, Veredeln, Moor-/Bambusweg, Kartons, Wetter, Feste
   if (r6) return r6;
   if (me.x < -150) return resolveArea(s, me, sel, at);
   if (me.z < -750) return E7.resolveZone7(s, me, sel, at);
@@ -1965,7 +1969,7 @@ export function resolve(s, me, sel, at) {
     const p = PLACE[o.k];
     if (o.k === 'baustelle') return PROJECTS[o.p] ? { ui: 'fund', label: (o.paid || 0) >= PROJECTS[o.p].cost ? `🏗️ ${PROJECTS[o.p].name}: bezahlt!` : `💰 Für ${PROJECTS[o.p].name} spenden`, tiles: one } : { label: '🚩 Bauplatz (im 🔨 Baumodus abbauen)', tiles: one };
     if (o.k === 'seilbahn') return { ui: 'cable', label: '🚡 Seilbahn fahren', tiles: one };
-    const o6 = E6.resolveObj6(s, o, k, x, z) || E7.resolveObj7(s, o, k, x, z);
+    const o6 = E6.resolveObj6(s, o, k, x, z) || E7.resolveObj7(s, o, k, x, z) || E8.resolveObj8(s, o, k, x, z, me);
     if (o6) return o6;
     if (V.OBJ_GO5[o.k]) return { go: V.OBJ_GO5[o.k][0], label: V.OBJ_GO5[o.k][1], tiles: one };
     if (V.OBJ_UI5[o.k]) return { ui: V.OBJ_UI5[o.k][0], label: V.OBJ_UI5[o.k][1], tiles: one };
