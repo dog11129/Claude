@@ -66,6 +66,12 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 - Im Baumodus einfach auf ein aufgestelltes Möbelstück (im Haus) oder auf Deko (draußen) tippen: Es wird aufgehoben und ist gleich zum Woandershinstellen ausgewählt – lackierte Möbel behalten dabei ihre Farbe. Wer es nicht wieder hinstellt, findet es in der Tasche.
 - Der Knopf **✋ Aufheben** oben in der Bauleiste (Taste X, am Controller X) packt mehrere Sachen nacheinander ein. Inselprojekte baut man nur so ab (mit Rückfrage); Nachbarhäuser bleiben stehen.
 
+### 🌳 Neu: alle Bäume an den Ausflugsorten
+- **Jeder Baum reagiert:** Auch die Randbäume in Kiefernwald und Blütenwiese, die Birken im Seerosenmoor, die Kokospalmen der Tropeninsel und der Ausflugsinseln lassen sich schütteln (Äste, Kiefernzapfen, Kokosnüsse, Blütenregen) und mit der Axt hacken (Holz, manchmal Harz) – je Baum einmal am Tag. Die Kirschbäumchen der Bummelgasse lassen Blüten rieseln.
+- **Sichtbar:** Bäume und Büsche an allen Ausflugsorten wackeln beim Schütteln und Hacken; antippen klappt auch an Krone und Spitze (auch auf den Ausflugsinseln).
+- **Klarere Hinweise:** schon geschüttelt, abgeerntet, für heute genug gehackt – statt einfach nichts.
+- **Repariert:** Durch einen Rechenfehler standen manche Randbäume mitten in Wald und Wiese, ohne dass man etwas mit ihnen machen konnte. Jetzt stehen sie am Rand; die in den Ecken sind fest (man läuft nicht mehr hindurch). Ein neuer Test prüft jeden Baum, jedes Erz, jeden Strauch und jedes Fundstück an allen Ausflugsorten.
+
 ### 🧾 Neu: übersichtlichere Fenster
 - **Besser lesbar:** Fenster haben einen ruhigen, klaren Hintergrund, die Spielwelt dahinter wird abgedunkelt und weichgezeichnet, Schrift und Hinweise sind kräftiger. Unter ⚙️ → 📖 Anzeige einstellbar (Klar / Weiß / Papier, wie stark abdunkeln, Weichzeichnen an/aus).
 - **Läden als Karten:** Krämerladen und Gärtnerei zeigen Bild, Name, kurze Infos (✓ Saison, Wachstum, Verkaufspreis, leuchtet, Sitzen …) und Kaufknöpfe auf einer Karte; die Anleitung steckt eingeklappt unter „💡 So geht's“.

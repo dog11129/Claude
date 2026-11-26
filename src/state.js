@@ -19,6 +19,7 @@ import * as E7 from './extras7.js';
 import * as E8 from './extras8.js';
 import * as E9 from './extras9.js';
 import { groupOf, GROUP_IDS } from './groups.js';
+import { decoTrees, DECO_LABEL, areaTreeBlock } from './decotrees.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -447,6 +448,7 @@ export function blocked(s, x, z, swim) {
     const n = nodeAt(id, Math.round(lx), Math.round(lz));
     if (Y.cableBuilt(s)) { const [cx, cz] = Y.cableStop(id); if (Math.hypot(x - cx, z - cz) < 0.7) return true; }
     if (E9.blockedArea9(id, Math.round(lx), Math.round(lz))) return true; // Bewohner, Kristalle
+    if (areaTreeBlock(id, lx, lz)) return true; // Randbäume in den Ecken
     return !!(n && SOLID.includes(n.kind));
   }
   if (gateAt(Math.round(x), Math.round(z))) return true;
@@ -1466,6 +1468,34 @@ const ACTIONS = {
     out.snd = 'love';
     return true;
   },
+  // Randbäume an den Ausflugsorten (decotrees.js): schütteln oder Holz hacken, je Baum einmal am Tag
+  dtree(s, a, out) {
+    if (!['shake', 'chop'].includes(a.how) || typeof a.z !== 'string' || !Number.isInteger(a.i)) return false;
+    const T = decoTrees(a.z, s)[a.i];
+    if (!T || T.k === 'cherry') return false;
+    if ((a.z === 'wald' || a.z === 'wiese') && !s.areas?.[a.z]) return false;
+    if (a.z === 'moor' && !s.moor?.open) return false;
+    const D = s.dtree?.day === s.day ? s.dtree : (s.dtree = { day: s.day, got: {} }), key = `${a.z}:${a.i}:${a.how}`;
+    if (D.got[key]) { out.msg = a.how === 'chop' ? '🪓 Hier ist für heute genug gehackt.' : '🌳 Heute fällt hier nichts mehr herunter.'; return false; }
+    D.got[key] = 1;
+    const got = (id, n = 1) => { addInv(s, id, n); fx(out, T.x, T.z, `+${n} ${ITEMS[id].icon}`, 'leaf'); out.got = id; };
+    if (a.how === 'chop') {
+      got('holz');
+      if (T.k === 'pine' && Math.random() < 0.25) got('harz');
+      s.stats.wood = (s.stats.wood || 0) + 1;
+      questEvent(s, 'chop', 1, out);
+      out.snd = 'chop';
+    } else {
+      if (T.k === 'palmfruit') { got('kokosnuss', 1 + (Math.random() < 0.4 ? 1 : 0)); s.stats.fruit = (s.stats.fruit || 0) + 1; }
+      else if (T.k === 'pine') got(Math.random() < 0.6 ? 'kiefernzapfen' : 'ast');
+      else if (Math.random() < 0.7) got('ast');
+      else { out.msg = T.k === 'blossom' ? '🌸 Ein kleiner Blütenregen!' : '🍃 Nur ein paar Blätter fallen herunter.'; fx(out, T.x, T.z, '', 'leaf'); }
+      if (T.k === 'blossom') fx(out, T.x, T.z, '', 'petal');
+      questEvent(s, 'forage', 1, out);
+      out.snd = 'shake';
+    }
+    return true;
+  },
   // Lagerkiste im Haus: Platz = 40 Sorten je aufgestellter Kiste
   stash(s, a, out) {
     const n = Math.floor(a.n), cap = boxCap(s);
@@ -1918,7 +1948,27 @@ export function resolveBuild(s, b, x, z) {
   return { ...(ok ? { a: { t: 'place', x, z, item: b.item, r: (((b.r | 0) % 4) + 4) % 4 }, label: `📍 ${p.icon} ${p.name} aufstellen` } : { label: why, bad: true }), tiles: big ? [-1, 0, 1].flatMap(i => [-1, 0, 1].map(j => [x + i, z + j])) : one };
 }
 
+// Was passiert vor der Figur? Ist am Ausflugsort sonst nichts da, kommen die Randbäume dran (schütteln, hacken).
 export function resolve(s, me, sel, at) {
+  const r = resolveBase(s, me, sel, at);
+  if (r && !r.a && !r.ui && !r.go && !r.label && !r.net && !r.petals && !r.sit) return resolveDeco(s, me, sel, at) || r;
+  return r;
+}
+function resolveDeco(s, me, sel, at) {
+  if (inside(me)) return null;
+  const zone = zoneOf(me), list = decoTrees(zone, s);
+  if (!list.length) return null;
+  const px = at ? at.x : me.x + Math.sin(me.ry) * 0.9, pz = at ? at.z : me.z + Math.cos(me.ry) * 0.9;
+  let i = -1, bd = Infinity;
+  list.forEach((t, k) => { const d = Math.hypot(t.x - px, t.z - pz); if (d < (t.k === 'cherry' ? 2 : 1.35) && d < bd) { bd = d; i = k; } }); // Kübelbäumchen hinter dem Gassenrand: etwas weiter
+  if (i < 0) return null;
+  const T = list[i], got = s.dtree?.day === s.day ? s.dtree.got : {}, key = `${zone}:${i}:`, base = { tiles: [], reach: 1.9, shake: [T.x, T.z] }, lbl = DECO_LABEL[T.k];
+  if (T.k === 'cherry') return { ...base, petals: { x: T.x, z: T.z }, label: '🌸 Schütteln' };
+  if (sel === 'axe') return got[key + 'chop'] ? { label: `${lbl} · für heute genug gehackt`, tiles: [] } : { ...base, a: { t: 'dtree', z: zone, i, how: 'chop' }, label: '🪓 Holz hacken' };
+  if (got[key + 'shake']) return { label: `${lbl} · heute schon geschüttelt – mit der Axt gibt es Holz`, tiles: [] };
+  return { ...base, a: { t: 'dtree', z: zone, i, how: 'shake' }, label: T.k === 'palmfruit' ? '🥥 Schütteln' : T.k === 'pine' ? '🌰 Schütteln' : T.k === 'blossom' ? '🌸 Schütteln' : '🍃 Schütteln' };
+}
+function resolveBase(s, me, sel, at) {
   if (inside(me)) return resolveHome(s, me, sel, at);
   if (me.z > E8.DREAM_Z) return E8.resolveZone8(s, me, sel, at); // Traumwelt
   const r6 = me.sw ? null : E6.resolve6(s, me, sel, at) || E7.resolve7(s, me, sel, at) || E8.resolve8(s, me, sel, at); // Schatzkarte, Wildtiere, Konzert, Veredeln, Moor-/Bambusweg, Kartons, Wetter, Feste
@@ -2061,16 +2111,17 @@ function resolveArea(s, me, sel, at) {
   if (r9) return r9;
   const n = nodeAt(id, lx, lz);
   if (!n) return { label: '', tiles: [] };
-  const today = nodeToday(id, n, s.day), st = s.anode[id + ':' + n.i], used = st?.d === s.day ? st : null, a = how => ({ t: 'aact', area: id, i: n.i, how, x: lx, z: lz });
+  const today = nodeToday(id, n, s.day), st = s.anode[id + ':' + n.i], used = st?.d === s.day ? st : null, a = how => ({ t: 'aact', area: id, i: n.i, how, x: lx, z: lz }), shake = [A.x + n.x, A.z + n.z];
   if (n.kind === 'pine') {
-    if (sel === 'axe') return (used?.u || 0) < nodeUses(n) ? { a: a('chop'), label: '🪓 Holz hacken', tiles } : { label: '🌲 Morgen wieder', tiles };
-    return used?.shook ? { label: '🌲 Kiefer', tiles } : { a: a('shake'), label: '🌰 Schütteln', tiles };
+    if (sel === 'axe') return (used?.u || 0) < nodeUses(n) ? { a: a('chop'), label: '🪓 Holz hacken', tiles, shake } : { label: '🌲 Für heute genug gehackt – morgen wieder', tiles };
+    return used?.shook ? { label: (used?.u || 0) < nodeUses(n) ? '🌲 Heute schon geschüttelt – mit der Axt gibt es Holz' : '🌲 Morgen wieder', tiles } : { a: a('shake'), label: '🌰 Schütteln', tiles, shake };
   }
   if (n.kind === 'ore') return sel === 'shovel' ? ((used?.u || 0) < nodeUses(n) ? { a: a('mine'), label: '⛏️ Auf die Erzader hauen', tiles } : { label: '💎 Morgen wieder', tiles }) : { label: '💎 Erzader · mit der Schaufel draufhauen', tiles };
-  if (!today || used) return { label: '', tiles: [] };
+  if (used) return { label: { hive: '🍯 Heute schon geerntet – morgen gibt es neuen Honig', berry: '🫐 Abgeerntet – morgen wachsen neue Beeren' }[n.kind] || '✔ Heute schon gepflückt – morgen wächst Neues', tiles };
+  if (!today) return { label: '', tiles: [] }; // heute wächst hier nichts
   const it = typeof today === 'string' ? ITEMS[today] : null; // Bienenstock: today = true (kein Gegenstand)
   const lbl = n.kind === 'mush' ? `${it?.icon || '🍄'} ${it?.name || 'Pilz'} pflücken` : n.kind === 'berry' ? `${it?.icon || '🫐'} Beeren pflücken` : n.kind === 'hive' ? '🍯 Honig ernten' : `🌸 ${CROPS[today]?.name || 'Blume'} pflücken (Samen!)`;
-  return { a: a('pick'), label: lbl, tiles };
+  return { a: a('pick'), label: lbl, tiles, shake: n.kind === 'berry' || n.kind === 'hive' ? shake : undefined };
 }
 
 // Bummelgasse: Läden im Norden, Tor im Süden
@@ -2080,7 +2131,7 @@ function resolveStreet(s, me, sel, at) {
   const b = streetShopAt(lx, lz);
   if (b) { const B = STREET_SHOPS[b]; return { ui: B.use, label: `${B.who.split(' ')[0]} ${B.name}`, tiles }; }
   if (lz >= 4 && Math.abs(lx) <= 1) return { go: 'island', label: '🏝️ Zurück zur Insel', tiles };
-  if (lx >= STREET.w - 0.6) return E6.fairOpen(s) ? { go: 'fair', label: '🎡 Zum Jahrmarkt!', tiles } : { label: `🎡 Jahrmarkt: ${E6.nextFair(s) === s.day ? 'heute ab 10 Uhr' : `in ${E6.nextFair(s) - s.day} Tag${E6.nextFair(s) - s.day > 1 ? 'en' : ''}`}`, tiles };
+  if (lx >= STREET.w - 0.6 && lz > -STREET.d - 0.5) return E6.fairOpen(s) ? { go: 'fair', label: '🎡 Zum Jahrmarkt!', tiles } : { label: `🎡 Jahrmarkt: ${E6.nextFair(s) === s.day ? 'heute ab 10 Uhr' : `in ${E6.nextFair(s) - s.day} Tag${E6.nextFair(s) - s.day > 1 ? 'en' : ''}`}`, tiles };
   return { label: '', tiles: [] };
 }
 // Tropeninsel: Tauschhütte, Obstbäume, Tour-Ziele, Kescher, Boot zurück
@@ -2100,7 +2151,7 @@ function resolveTropic(s, me, sel, at) {
     }
   }
   const ti = tropicTree(lx, lz);
-  if (ti >= 0) return { a: { t: 'tpick', i: ti }, label: s.tropic?.picked?.[ti] === s.day ? '🌴 Morgen wieder' : `${ITEMS[TROPIC_TREES[ti][2]].icon} Pflücken`, tiles };
+  if (ti >= 0) return { a: { t: 'tpick', i: ti }, label: s.tropic?.picked?.[ti] === s.day ? '🌴 Heute schon gepflückt – morgen wieder' : `${ITEMS[TROPIC_TREES[ti][2]].icon} Pflücken`, tiles, shake: [TROPIC.x + lx, TROPIC.z + lz] };
   if (sel === 'net') return { net: { x: px, z: pz }, tropic: true, label: '🦋 Kescher schwingen', tiles: [] };
   return { label: '', tiles: [] };
 }

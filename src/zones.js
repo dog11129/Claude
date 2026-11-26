@@ -19,6 +19,7 @@ import { zonesW, lightsW } from './world-extra.js';
 import { BAMBUS, CLUMPS } from './features/bamboo.js';
 import { MOOR, REEDS } from './features/moor.js';
 import { decorateArea9, updateArea9, picks9 } from './world-extra6.js';
+import { areaEdge, tripEdge, TROPIC_PALMS, STREET_TREES, decoTrees } from './decotrees.js';
 
 function canvasTex(w, h, paint, rep) {
   const c = document.createElement('canvas');
@@ -61,7 +62,7 @@ function buildStreet() {
   // Läden (Fronten zeigen nach Süden zur Straße)
   for (const [id, B] of Object.entries(STREET_SHOPS)) put(g, building(id, 1, 'summer'), X + (B.x0 + B.x1) / 2, Z + (B.z0 + B.z1) / 2 - 0.2);
   // Lücken zwischen den Läden: Hecken und Bäume
-  for (const x of [-13.2, -4, 4, 13.2]) {
+  for (const [x] of STREET_TREES) {
     put(g, placeable('buchsbaum'), X + x, Z - 4.4);
     const tub = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.52, 0.42, 18), new THREE.MeshLambertMaterial({ color: 0xc9946a }));
     tub.position.set(X + x, 0.21, Z - 5.9); tub.castShadow = tub.receiveShadow = true; g.add(tub);
@@ -126,7 +127,7 @@ function buildTropic() {
   // Hütte, Steg mit Boot, Palmen, Fackeln
   put(g, building('hut', 1, 'summer'), X + (TROPIC_HUT.x0 + TROPIC_HUT.x1) / 2, Z + (TROPIC_HUT.z0 + TROPIC_HUT.z1) / 2);
   put(g, building('dock', 1, 'summer'), X, Z);
-  for (const [x, z] of [[-8, -3], [8, -4], [-7.4, 5.5], [7.6, 5], [-3, -8.3], [4.5, -7.8], [-8.6, 1.5], [8.7, 0.5]]) {
+  for (const [x, z] of TROPIC_PALMS) {
     const m = N.wild('palm', 'summer', 3, 'kokosnuss', true);
     put(g, m, X + x, Z + z, x * 0.7);
   }
@@ -211,13 +212,11 @@ function buildArea(id) {
     lake.rotation.x = -Math.PI / 2; lake.position.set(X - W + 2.2, 0.02, Z - D + 2); g.add(lake);
   } else {
     // Rand: dichter Wald bzw. Hecken mit Blumen
-    for (let i = 0; i < 70; i++) {
-      const a = i / 70 * Math.PI * 2, r = 1 + rnd() * 0.6, rx = (W + 1.5) * r * Math.cos(a), rz = (D + 1.5) * r * Math.sin(a);
-      if (rz > D && Math.abs(rx) < 2.4) continue;
+    for (const e of areaEdge(id)) { // Baumring (decotrees.js) – die nahen Bäume kann man schütteln und hacken
+      if (e.k === 'bush') { put(g, placeable('hortensie'), X + e.x, Z + e.z); continue; }
       const m = id === 'wald' ? (model('pine') || N.wild('tree', 'summer', 3)) : N.wild('tree', 'spring', 3);
-      if (id !== 'wald' && i % 2) { put(g, placeable('hortensie'), X + rx * 0.9, Z + rz * 0.9); continue; }
-      m.scale.setScalar(1 + rnd() * 0.4);
-      occ.push(put(g, m, X + rx, Z + rz, rnd() * 6));
+      m.scale.setScalar(e.s);
+      occ.push(put(g, m, X + e.x, Z + e.z, e.ry));
     }
     if (id === 'wiese') for (let i = 0; i < 60; i++) { const m = model('wildflower_' + (i % 4)); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
     if (id === 'wald') for (let i = 0; i < 30; i++) { const m = model('tuft'); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
@@ -355,12 +354,9 @@ function buildTrip(seed) {
   P.push(M.box(1.1, 0.4, 2.2, 0xff8fab, 1.6, -0.05, R + 2.6), M.box(0.9, 0.08, 1.9, 0xfff3e4, 1.6, 0.18, R + 2.6), M.cyl(0.04, 0.04, 1.6, 0xfff3e4, 1.6, 0.9, R + 2.5, 6), M.cone(0.55, 1.1, 0xffffff, 1.95, 1.1, R + 2.5, 3, 0, 0, -0.2));
   g.add(put(new THREE.Group(), M.model(P), X, Z));
   // Rand: Palmen, Sträucher, Bambus (je nach Insel-Art)
-  const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(seed % 2147483646 + 1);
-  for (let i = 0; i < 14; i++) {
-    const a = i / 14 * Math.PI * 2 + rnd() * 0.3, r = R - 0.6 - rnd() * 0.6, x = Math.cos(a) * r, z = Math.sin(a) * r;
-    if (z > R - 3 && Math.abs(x) < 2.6) continue;
-    const m = L.kind === 'bambus' && i % 2 ? bamboo(i * 31) : i % 3 === 2 ? placeable('hortensie') : N.wild('palm', 'summer', 3, 'kokosnuss', rnd() < 0.5);
-    put(g, m, X + x, Z + z, rnd() * 6);
+  for (const e of tripEdge(seed, L.kind)) { // gleiche Liste wie decotrees.js (Palmen kann man schütteln & hacken)
+    const m = e.k === 'bamboo' ? bamboo(e.i * 31) : e.k === 'bush' ? placeable('hortensie') : N.wild('palm', 'summer', 3, 'kokosnuss', e.fruit);
+    put(g, m, X + e.x, Z + e.z, e.ry);
   }
   if (L.kind === 'wasserfall') { // Felsklippe mit Wasserfall und Becken
     const F = [M.ball(2.2, 0x8a8094, 0, 1.2, -6.2, 1.6, 1.3, 0.8, 9), M.ball(1.4, 0x9a90a4, -2.2, 0.8, -5.6, 1, 1, 1, 8), M.ball(1.3, 0x7e748a, 2.3, 0.7, -5.7, 1, 1, 1, 8), M.ball(0.5, 0x6cc04a, -1.2, 2.6, -6, 1.4, 0.4, 1, 7)];
@@ -712,14 +708,20 @@ export class Zones {
   }
   // Antippen: hohe Dinge (Kiefern, Erzfelsen, Bienenstöcke, Bambus, Schilf, Obstbäume) als Säulen [x, z, Radius, Höhe],
   // damit man auch Krone oder Spitze treffen kann – sonst landet der Finger auf dem Boden dahinter
-  picks(target) {
-    const out = [];
+  picks(target, s) {
+    const out = [], zone = target.x < -150 ? null : target.z < -1050 ? 'bambus' : target.z < -750 ? 'moor' : target.z < -150 ? 'street' : target.z > 450 && target.z < 1000 ? 'trip' : target.z > 150 && target.z < 450 ? 'tropic' : null;
+    if (zone === 'trip' && s?.trip) { // Ausflugsinsel: Bäume, Bambus, Felsen
+      const PH = { bamboo: [0.8, 3.2], fruit: [0.6, 3.2], ore: [0.62, 1.3], bloom: [0.42, 0.75], mush: [0.42, 0.6], bugs: [0.5, 1], pool: [0.8, 0.4] };
+      for (const n of tripLayout(s.trip.seed).nodes) out.push([TRIP.x + n.x, TRIP.z + n.z, ...(PH[n.kind] || [0.5, 1])]);
+    }
+    if (zone) for (const t of decoTrees(zone, s)) out.push([t.x, t.z, 0.7, t.k === 'cherry' ? 2.4 : 3.4]); // Randbäume (decotrees.js)
     if (target.x < -150) {
       let id = null, bd = Infinity;
       for (const [k, A] of Object.entries(AREAS)) { const d = Math.abs(target.z - A.z); if (d < bd) { bd = d; id = k; } }
       const A = AREAS[id], H = { pine: [0.6, 3.6], ore: [0.62, 1.3], hive: [0.55, 1.3], berry: [0.5, 0.95], mush: [0.42, 0.6], bloom: [0.42, 0.75] };
       for (const n of NODES[id]) out.push([A.x + n.x, A.z + n.z, ...H[n.kind]]);
       out.push(...picks9(id));
+      for (const t of decoTrees(id, s)) out.push([t.x, t.z, 0.8, 3.4]);
     } else if (target.z < -1050) for (const [x, z] of CLUMPS) out.push([BAMBUS.x + x, BAMBUS.z + z, 0.95, 3.4]);
     else if (target.z < -750) for (const [x, z] of REEDS) out.push([MOOR.x + x, MOOR.z + z, 0.7, 1.5]);
     else if (target.z > 150 && target.z < 450) for (const [x, z] of TROPIC_TREES) out.push([TROPIC.x + x, TROPIC.z + z, 0.6, 3.2]);

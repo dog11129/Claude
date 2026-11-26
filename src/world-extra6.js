@@ -72,7 +72,7 @@ export function decorateArea9(g, id) {
   if (id === 'wald') {
     // Farne und Moossteine am Rand, zwei umgefallene Stämme, Pilzkreis (nachts), Lichtstrahlen
     for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2, x = Math.cos(a) * (W - 0.4 - rnd() * 1.5), z = Math.sin(a) * (D - 0.4 - rnd() * 1.2); if (!free(id, x, z, 1.2) || (z > D - 2 && Math.abs(x) < 3)) continue; const f = placeable('farnbusch'); f.scale.setScalar(0.7 + rnd() * 0.5); put(g, f, X + x, Z + z, rnd() * 6); }
-    for (const [x, z, ry] of [[-W + 0.8, 2.5, 0.3], [W - 0.9, -3.2, -0.5]]) parts.push(M.cyl(0.28, 0.3, 2.6, 0x8a5a36, x, 0.26, z, 10, 0, ry, Math.PI / 2), M.cyl(0.22, 0.22, 0.02, 0xd9a86c, x + Math.cos(ry) * 1.31, 0.26, z - Math.sin(ry) * 1.31, 10, 0, ry, Math.PI / 2), M.ball(0.3, 0x5fa84a, x, 0.5, z, 2.4, 0.4, 0.8));
+    for (const [x, z, ry] of E.LOGS9) parts.push(M.cyl(0.28, 0.3, 2.6, 0x8a5a36, x, 0.26, z, 10, 0, ry, Math.PI / 2), M.cyl(0.22, 0.22, 0.02, 0xd9a86c, x + Math.cos(ry) * 1.31, 0.26, z - Math.sin(ry) * 1.31, 10, 0, ry, Math.PI / 2), M.ball(0.3, 0x5fa84a, x, 0.5, z, 2.4, 0.4, 0.8));
     for (let i = 0; i < 9; i++) { const x = (rnd() * 2 - 1) * (W - 1), z = (rnd() * 2 - 1) * (D - 1); if (!free(id, x, z)) continue; parts.push(M.ball(0.3 + rnd() * 0.2, 0x8a8e88, x, 0.12, z, 1.3, 0.6, 1, 7), M.ball(0.22, 0x6cb04a, x, 0.26, z - 0.05, 1.3, 0.35, 1, 7)); }
     U.ring = bmv('zone9_ring', [...Array.from({ length: 10 }, (_, i) => { const a = i / 10 * Math.PI * 2; return M.cyl(0.04, 0.05, 0.16, 0xfff2e0, Math.cos(a) * 1.15, 0.08, Math.sin(a) * 1.15, 6); })],
       Array.from({ length: 10 }, (_, i) => { const a = i / 10 * Math.PI * 2; return M.ball(0.13, i % 2 ? 0x9ff0ff : 0xc9a8ff, Math.cos(a) * 1.15, 0.2, Math.sin(a) * 1.15, 1, 0.55, 1); }));
@@ -85,7 +85,7 @@ export function decorateArea9(g, id) {
     // Blumeninseln, Fliederbüsche, alter Baum mit Schaukel, Zaun im Süden, Hasen, Bienen, Schmetterlinge
     for (const [x, z] of [[-W + 1.2, -D + 1.6], [W - 1.2, -D + 1.8], [-W + 1, D - 2.2], [W - 1.4, 0.5], [-W + 1.2, -1.2]]) { const f = placeable(rnd() < 0.5 ? 'fliederbusch' : 'rosenstrauch'); put(g, f, X + x, Z + z, rnd() * 6); }
     for (let i = 0; i < 40; i++) { const x = (rnd() * 2 - 1) * (W - 0.6), z = (rnd() * 2 - 1) * (D - 0.6); if (!free(id, x, z, 0.8)) continue; const c = [0xff8fab, 0xffe066, 0xffffff, 0xb39cff, 0x6cb4ff][i % 5]; for (let k = 0; k < 3; k++) parts.push(M.ball(0.06, c, x + (k - 1) * 0.12, 0.2 + (k % 2) * 0.05, z + (k % 2) * 0.1), M.cyl(0.01, 0.01, 0.2, 0x6ab83a, x + (k - 1) * 0.12, 0.1, z + (k % 2) * 0.1, 4)); }
-    const tx = -W - 1.6, tz = -D + 4;
+    const tx = E.SWING9[0] - 1.35, tz = E.SWING9[1];
     parts.push(M.cyl(0.35, 0.5, 2.6, 0x8a5a36, tx, 1.3, tz, 10), M.cyl(0.12, 0.16, 1.6, 0x8a5a36, tx + 0.6, 2.6, tz, 8, 0, 0, -0.9), M.ball(1.6, 0x5fb84a, tx, 3.4, tz, 1.3, 0.9, 1.2, 10), M.ball(1.1, 0x6cc85a, tx + 1.2, 3.0, tz + 0.4, 1, 0.9, 1, 9),
       ...[-0.3, 0.3].map(z => M.cyl(0.012, 0.012, 1.9, 0xd9c08a, tx + 1.35, 1.55, tz + z, 4)), M.box(0.35, 0.05, 0.75, 0xd9a86c, tx + 1.35, 0.6, tz));
     for (let x = -W; x <= W; x += 1.2) if (Math.abs(x) > 2.4) parts.push(M.box(0.08, 0.6, 0.08, 0xfff3e0, x, 0.3, D + 0.6), M.box(1.2, 0.06, 0.05, 0xfff3e0, x + 0.6, 0.45, D + 0.6));

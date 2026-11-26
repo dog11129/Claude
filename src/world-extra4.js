@@ -8,6 +8,7 @@ import * as E from './extras7.js';
 import { ITEMS, NPC_IDS } from './data.js';
 import { AREAS } from './areas.js';
 import { zoneOf, seasonOf } from './state.js';
+import { MOOR_BIRCHES } from './decotrees.js';
 
 const at = (q, X, Z) => (q.g.translate(X, 0, Z), q);
 const hour = s => 6 + s.dayTime * 18;
@@ -33,7 +34,7 @@ function buildMoor() {
   // Schilf, Steine, Birken am Rand
   E.REEDS.forEach(([x, z]) => { for (let i = 0; i < 7; i++) { const a = i * 2.4, r = 0.15 + (i % 3) * 0.12; parts.push(M.cyl(0.02, 0.025, 1.1 + (i % 3) * 0.2, 0x8a9a4a, x + Math.cos(a) * r, 0.55, z + Math.sin(a) * r, 4)); if (i % 2) parts.push(M.cyl(0.045, 0.045, 0.22, 0x7a4a2a, x + Math.cos(a) * r, 1.15 + (i % 3) * 0.2, z + Math.sin(a) * r, 6)); } });
   for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, x = Math.cos(a) * (E.MOOR.w + 1.4), z = Math.sin(a) * (E.MOOR.d + 1.4); if (z > E.MOOR.d - 1 && Math.abs(x) < 3) continue; parts.push(i % 3 ? M.ball(0.6 + (i % 4) * 0.15, 0x5f8a44, x, 0.4, z, 1, 0.7, 1) : M.ball(0.4, 0x9a9a8a, x, 0.2, z, 1.2, 0.6, 1)); }
-  for (const [x, z] of [[-10.5, -7], [10.4, -7.4], [-11, 2], [11, 3.5], [-6, 8], [6.4, 8]]) parts.push(M.cyl(0.11, 0.14, 3, 0xf2efe6, x, 1.5, z, 7), M.box(0.12, 0.04, 0.02, 0x333333, x, 1.1, z + 0.12), M.ball(1.1, 0x8fbf5a, x, 3.4, z, 1, 1.2, 1));
+  for (const [x, z] of MOOR_BIRCHES) parts.push(M.cyl(0.11, 0.14, 3, 0xf2efe6, x, 1.5, z, 7), M.box(0.12, 0.04, 0.02, 0x333333, x, 1.1, z + 0.12), M.ball(1.1, 0x8fbf5a, x, 3.4, z, 1, 1.2, 1));
   // Tor im Süden
   parts.push(...[-1.4, 1.4].map(x => M.cyl(0.1, 0.12, 2.2, 0x7a5432, x, 1.1, E.MOOR.d + 0.6, 6)), M.box(3.1, 0.4, 0.12, 0xa07448, 0, 2.15, E.MOOR.d + 0.6));
   // Laternen am Steg

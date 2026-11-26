@@ -5,6 +5,7 @@ import { ITEMS } from '../data.js';
 import { AREAS, NODES, nodeAt } from '../areas.js';
 import * as X from '../extras.js';
 import { hour } from './util.js';
+import { areaTreesInside } from '../decotrees.js';
 
 const h32 = (a, b) => { let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x632be5ab, 0xc2b2ae35); h ^= h >>> 13; return ((Math.imul(h, 0x27d4eb2f) ^ (h >>> 16)) >>> 0) / 4294967296; };
 const code = s => [...s].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) | 0;
@@ -32,6 +33,9 @@ export const FINDS = {
 export const STAG_AT = [1.6, -1.4], RING_AT = [-7, -1], SWARM_AT = [4, -4.6];
 export const CHIME_STONE = [-5, 2], CHIME_CRYSTALS = [[-7, 3], [-5, 5], [-3, 3]];
 export const CHIME_LEN = 4;
+// Sitzplätze: umgefallene Baumstämme im Wald, die Schaukel am alten Baum auf der Wiese
+export const LOGS9 = [[-AREAS.wald.w + 0.8, 2.5, 0.3], [AREAS.wald.w - 0.9, -3.2, -0.5]];
+export const SWING9 = [-AREAS.wiese.w - 0.25, -AREAS.wiese.d + 4];
 // feste Dinge, an denen man nicht durchlaufen kann
 const SOLID9 = { wald: [CREATURES.wald.at], wiese: [CREATURES.wiese.at], hoehle: [CREATURES.hoehle.at, CHIME_STONE, ...CHIME_CRYSTALS] };
 export const blockedArea9 = (id, tx, tz) => !!SOLID9[id]?.some(([x, z]) => x === tx && z === tz);
@@ -49,7 +53,7 @@ function cableAt(id) {
 // Freie Kacheln für Fundstücke (keine Knoten, kein Weg, nicht am Ausgang, nicht bei Bewohnern & Ereignissen)
 export const SPOTS9 = {};
 for (const [id, A] of Object.entries(AREAS)) {
-  const busy = [...(SOLID9[id] || []), cableAt(id), ...(id === 'wald' ? [STAG_AT, RING_AT] : id === 'wiese' ? [SWARM_AT] : [[0, -6], [-7.8, -5]])];
+  const busy = [...(SOLID9[id] || []), cableAt(id), ...areaTreesInside(id), ...(id === 'wald' ? [STAG_AT, RING_AT] : id === 'wiese' ? [SWARM_AT] : [[0, -6], [-7.8, -5]])];
   const out = [];
   for (let z = -A.d + 1; z <= A.d - 2; z++) for (let x = -A.w + 1; x <= A.w - 1; x++) {
     if (Math.abs(x) <= 1 || NODES[id].some(n => Math.abs(n.x - x) <= 1 && Math.abs(n.z - z) <= 1 && (n.x === x && n.z === z || ['pine', 'ore', 'hive'].includes(n.kind)))) continue;
@@ -96,6 +100,8 @@ export function resolveArea9(s, id, sel, px, pz, me) {
   const A = AREAS[id], lx = px - A.x, lz = pz - A.z, mx = me.x - A.x, mz = me.z - A.z, tiles = [[Math.round(px), Math.round(pz)]];
   const C = CREATURES[id], d = (p, x = lx, z = lz) => Math.hypot(p[0] - x, p[1] - z);
   if (C && d(C.at) < 1.2) return { ui: C.panel, label: `${C.icon} ${C.name}`, tiles };
+  if (id === 'wald') for (const [x, z] of LOGS9) if (d([x, z]) < 1.1) return { sit: { x: A.x + x, z: A.z + z, r: 0 }, label: '🪵 Auf den Baumstamm setzen', tiles };
+  if (id === 'wiese' && d(SWING9) < 1.0) return { sit: { x: A.x + SWING9[0], z: A.z + SWING9[1], r: 0 }, label: '🌼 Schaukeln', tiles };
   if (id === 'hoehle') {
     if (d(CHIME_STONE) < 1.1) return { chime9: 'start', label: A9(s).ev['chime:' + who(s)] ? '🎵 Klangstein (heute schon gelöst)' : '🎵 Den Klangstein anschlagen', tiles };
     const c = CHIME_CRYSTALS.findIndex(p => d(p) < 1.1);

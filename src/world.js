@@ -955,7 +955,7 @@ export class World {
       if (!e.m.visible || !e.m.parent) continue;
       col(e.x, e.z, r, height(e), { x: e.x, z: e.z, kind: 'thing', m: e.m });
     }
-    for (const [x, z, r, h] of this.zones?.picks(this.target) || []) col(x, z, r, h, { x, z, kind: 'thing' }); // Kiefern, Bambus & Co. in den anderen Gebieten
+    for (const [x, z, r, h] of this.zones?.picks(this.target, this.lastS) || []) col(x, z, r, h, { x, z, kind: 'thing' }); // Kiefern, Bambus & Co. in den anderen Gebieten
     for (const m of this.festG?.children || []) { // Fest-Deko und Turnierstand
       if (!m.userData.hh) { B.setFromObject(m); m.userData.hh = Math.max(0.5, Math.min(4, B.max.y)); }
       col(m.position.x, m.position.z, 0.55, m.userData.hh, { x: m.position.x, z: m.position.z, kind: 'thing', m });
@@ -1303,6 +1303,14 @@ export class World {
     this.auroraU.t.value = this.time;
     this.auroraU.k.value += ((want ? 1 : 0) - this.auroraU.k.value) * Math.min(1, (this.dt || 0) * 0.5);
     this.aurora.visible = this.auroraU.k.value > 0.01;
+  }
+  // Baum/Busch an den Ausflugsorten wackeln lassen (Gebiete, Moor, Tropeninsel, Ausflugsinsel, Gasse)
+  shakeNear(x, z, r = 1.4) {
+    const Z = this.zones, groups = [...Object.values(Z?.areas || {}), Z?.tropic, Z?.trip, Z?.street, Z?.moor7, Z?.bambus7].filter(g => g?.visible);
+    let best = null, bd = r;
+    for (const g of groups) for (const m of g.children) { if (m.isMesh) continue; const d = Math.hypot(m.position.x - x, m.position.z - z); if (d < bd) { bd = d; best = m; } }
+    if (best) this.squish(best, 0.12, 0.6);
+    this.burst(x, z, this.season === 'winter' ? 'snowball' : 'leaf', 1.8);
   }
   shakeTree(x, z) { const e = this.wildM?.get(x + ',' + z); if (e) { e.shake = 1; this.squish(e.m, 0.12, 0.6); this.burst(x, z, this.season === 'winter' ? 'snowball' : 'leaf', 1.8); } }
 
@@ -2054,6 +2062,7 @@ export class World {
 
   render(s, players, me, dt, opt = {}) {
     this.time += dt;
+    this.lastS = s; // fürs Antippen (Ausflugsinsel, Randbäume)
     this.dt = dt;
     windTime.value = this.time;
     this.waterU.t.value = this.time;

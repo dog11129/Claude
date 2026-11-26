@@ -376,12 +376,13 @@ export function resolveTrip(s, me, sel, at) {
   if (!n) return sel === 'net' ? { label: '🦋 Hier flattert nichts – such die Blütenbüsche!', tiles: [] } : { label: '', tiles: [] };
   const used = (s.trip.used?.[n.i] || 0) >= tripUses(n), a = how => ({ a: { t: 'tact', i: n.i, how }, tiles });
   if (used) return { label: { bamboo: '🎋 Genug Bambus für heute', ore: '💎 Leer', pool: '🎣 Hier beißt nichts mehr' }[n.kind] || 'Schon eingesammelt', tiles };
-  if (n.kind === 'bamboo') return sel === 'axe' ? { ...a('chop'), label: '🪓 Bambus hacken' } : { ...a('shake'), label: '🌱 Sprossen suchen' };
+  const shake = [TRIP.x + n.x, TRIP.z + n.z];
+  if (n.kind === 'bamboo') return sel === 'axe' ? { ...a('chop'), label: '🪓 Bambus hacken', shake } : { ...a('shake'), label: '🌱 Sprossen suchen', shake };
   if (n.kind === 'ore') return sel === 'shovel' ? { ...a('mine'), label: '💎 Draufhauen' } : { label: '💎 Mit der Schaufel draufhauen!', tiles };
   if (n.kind === 'bugs') return sel === 'net' ? { ...a('net'), label: '🦋 Keschern!' } : { label: '🦋 Nimm den Kescher!', tiles };
   if (n.kind === 'pool') return { ...a('fish'), label: '🎣 Im Becken angeln' };
   const thing = nodeThing(n);
-  return { ...a('pick'), label: `${ITEMS[thing]?.icon || '✋'} ${n.kind === 'fruit' ? 'Pflücken' : 'Einsammeln'}` };
+  return { ...a('pick'), label: `${ITEMS[thing]?.icon || '✋'} ${n.kind === 'fruit' ? 'Pflücken' : 'Einsammeln'}`, shake: n.kind === 'fruit' ? shake : undefined };
 }
 function tact(s, a, out) {
   if (!s.trip || !Number.isInteger(a.i)) return false;

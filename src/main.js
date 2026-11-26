@@ -2060,7 +2060,7 @@ function execute(r, fresh) {
     if (fresh) { const n = NPCS[r.visit], away = world.npcM?.get(r.visit)?.awake; toast(away ? `🚪 Klopf, klopf … ${n.icon} ${n.name} ist gerade draußen auf der Insel unterwegs.` : `🌙 ${n.icon} ${n.name} schläft schon. Pssst!`); play('door'); }
     return;
   }
-  if (r.petals) { if (fresh) { animate('shake'); for (let i = 0; i < 6; i++) world.burst(r.petals.x, r.petals.z, 'petal', 2.2); play('water'); } return; }
+  if (r.petals) { if (fresh) { animate('shake'); if (r.shake) world.shakeNear(r.shake[0], r.shake[1]); for (let i = 0; i < 6; i++) world.burst(r.petals.x, r.petals.z, 'petal', 2.2); play('water'); } return; }
   if (r.ui) {
     if (!fresh) return;
     interrupt();
@@ -2093,8 +2093,9 @@ function execute(r, fresh) {
     if (fresh) startFishing(me);
   } else if (r.a && (fresh || r.a.t !== 'pickup')) {
     send(r.a);
-    animate(ANIM_OF[r.a.t] || 'use');
-    if (r.a.t === 'shake' || r.a.t === 'chop') world.shakeTree(r.a.x, r.a.z);
+    animate(ANIM_OF[r.a.t] || ANIM_OF[r.a.how] || 'use'); // Gebiete & Ausflüge: how = chop/shake/mine/pick
+    if (r.shake) world.shakeNear(r.shake[0], r.shake[1]); // Bäume & Büsche an den Ausflugsorten
+    else if (r.a.t === 'shake' || r.a.t === 'chop') world.shakeTree(r.a.x, r.a.z);
     else if (r.a.x !== undefined) world.squishAt(r.a.x, r.a.z, r.a.t === 'mine' ? 0.1 : 0.2);
     if (r.a.t === 'pop') { world.popBalloon(); play('splash'); }
   }
@@ -2284,7 +2285,7 @@ function followGoal(me, now) {
     at = { x: g.x, z: g.z };
     const r = context(me, at);
     g.r = r;
-    range = r.hug ? 0.95 : r.a || r.sit ? 1.05 : r.ui || r.go ? 1.6 : r.fish ? 1.2 : 0.15;
+    range = r.reach || (r.hug ? 0.95 : r.a || r.sit ? 1.05 : r.ui || r.go ? 1.6 : r.fish ? 1.2 : 0.15);
     if (r.a?.t === 'place' || r.a?.t === 'till' || r.a?.t === 'water' || r.a?.t === 'plant') range = 1.05;
   }
   if (g.x !== undefined && g.path === undefined && Math.hypot(at.x - me.x, at.z - me.z) > 2) g.path = findPath(me.x, me.z, at.x, at.z) || [];
