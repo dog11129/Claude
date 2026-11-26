@@ -7,7 +7,7 @@ import * as E from './extras8.js';
 import { NPC_IDS } from './data.js';
 
 const X0 = E.DREAM.x, Z0 = E.DREAM.z;
-const PASTEL = [0xc9b8ff, 0xffc8e0, 0xb8e8ff, 0xd8ffc8, 0xffe8b8];
+const PASTEL = [0xc9b8ff, 0xffc8e0, 0xb8e8ff, 0xd8ffc8, 0xe4d4ff];
 const lam = (c, o) => new THREE.MeshLambertMaterial({ color: c, ...(o || {}) });
 
 // ---------- Traumwelt ----------

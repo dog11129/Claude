@@ -6,6 +6,7 @@ import { zoneOf } from '../newleaf.js';
 import { openGame, endGame } from './fun2.js';
 import { rocket7 } from '../world-extra4.js';
 import { pianoNote } from '../audio.js';
+import { coast } from '../island.js';
 
 let C = null;
 const $ = id => document.getElementById(id);
@@ -141,7 +142,9 @@ function startSurf() {
   if (G.surf8 || G.mg) return;
   if (!(G.s.inv?.surfbrett > 0) && !Object.values(G.s.obj || {}).some(o => o?.k === 'surfbrett')) { C.toast('🏄 Dafür braucht ihr ein Surfbrett.'); return; }
   C.interrupt();
-  const sp = E.surfSpot(m), back = [m.x, m.z, m.ry];
+  const back = [m.x, m.z, m.ry];
+  let sp = E.surfSpot(m);
+  if (!sp) { const b = beachSpot(); if (b) { C.fade(); Object.assign(m, b, { pose: null }); sp = E.surfSpot(m); } } // vom Handy oder Brett im Garten: ab an den Strand
   if (sp) Object.assign(m, { x: sp[0], z: sp[1], pose: null });
   m.sf = true;
   const W = 420, H = 300, TROUGH = 248, LIP = 112, FACE = TROUGH - LIP;
@@ -215,6 +218,21 @@ function startSurf() {
       if (t > E.SURF_SECS - 4) { x.font = '600 14px Fredoka, system-ui'; x.fillStyle = '#1f4f7a'; x.fillText('Halten = hoch · Loslassen = runter · in der Luft tippen = Dreher', W / 2, H - 14); }
     },
   });
+}
+// Ein Strandplatz mit Blick aufs Meer (einmal gesucht, dann gemerkt)
+let beach = null;
+function beachSpot() {
+  if (beach) return beach;
+  for (let i = 0; i < 48 && !beach; i++) {
+    const a = i / 48 * Math.PI * 2, dx = Math.sin(a), dz = Math.cos(a);
+    for (let r = 8; r < 45; r += 0.5) {
+      const x = dx * r, z = dz * r;
+      if (coast(x, z) < -2.6 || coast(x, z) > -1.2 || S.blocked(C.G.s, x, z)) continue;
+      const p = { x, z, ry: a };
+      if (E.surfSpot(p)) { beach = p; break; }
+    }
+  }
+  return beach;
 }
 function endSurf() {
   const G = C.G, m = me(), R = G.surf8;
