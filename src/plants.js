@@ -5,6 +5,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, cyl, cone } from './models.js';
 import { PLACE_X } from './models-extra.js';
+import { PLACE_12 } from './models-12.js';
 import { CROPS } from './data.js';
 
 const PI = Math.PI, H = PI / 2, TAU = PI * 2;
@@ -209,6 +210,48 @@ const CROP = {
     }
     return p;
   },
+  // Inselleben 12: Radieschen, Gurke, Paprika, Aubergine
+  radieschen(st) {
+    const p = [], s = [0, 0.6, 0.85, 1][st], n = [0, 4, 6, 7][st];
+    for (let i = 0; i < n; i++) p.push(leaf(0.2 * s, 0.1 * s, i % 2 ? LEAF : LEAFL, 0, 0.03, 0, i * TAU / n + 0.3, 1.0, 0.3, 0.3, 4, 6));
+    if (st >= 2) for (const [x, z, r] of st === 3 ? [[0, 0, 0.07], [0.13, 0.06, 0.055], [-0.11, 0.08, 0.05], [0.02, -0.13, 0.05]] : [[0, 0, 0.045]])
+      p.push(B(r, st === 3 ? 0xe8324a : 0xf08a9a, x, 0.02, z, 1, 0.9, 1, 8, 6), B(r * 0.5, 0xfff0f2, x, -0.005, z, 1, 0.5, 1, 6, 3), ...(x || z ? [leaf(0.1, 0.05, LEAF, x, 0.06, z, x * 9, 1.1, 0.3, 0.3, 4, 5), leaf(0.09, 0.05, LEAFL, x, 0.06, z, x * 9 + 2.4, 1.0, 0.3, 0.3, 4, 5)] : []));
+    return p;
+  },
+  gurke(st) {
+    const p = vine(st === 1 ? 3 : 5, st === 1 ? 0.18 : 0.3, st === 1 ? 0.13 : 0.17);
+    if (st >= 2) p.push(C(0.014, 0.018, 0.5, WOODD, 0, 0.25, -0.02, 5), tube([[0.05, 0.02, 0], [0.06, 0.2, 0.03], [-0.03, 0.35, -0.02], [0.02, 0.48, 0]], 0.012, STEM, 6, 4),
+      leaf(0.15, 0.15, LEAF, 0.04, 0.22, 0.02, 0.6, 0.5, 0.3, 0.3), leaf(0.14, 0.14, LEAFD, -0.02, 0.36, 0, 3.4, 0.5, 0.3, 0.3), leaf(0.12, 0.12, LEAF, 0.02, 0.46, 0, 1.9, 0.5, 0.3, 0.3));
+    if (st === 2) p.push(bloom(0.035, YEL, 0.08, 0.3, 0.06, 5, 0.4), bloom(0.03, YEL, -0.12, 0.08, 0.1, 5, 0.4), curl(0.1, 0.3, -0.04, 0.035));
+    if (st === 3) {
+      for (const [x, y, z, rz, len] of [[0.1, 0.2, 0.08, 0.15, 0.2], [-0.07, 0.3, 0.07, -0.2, 0.17], [0.16, 0.05, -0.08, 1.4, 0.19], [-0.17, 0.05, 0.1, 1.2, 0.16]])
+        p.push(put(plain(new THREE.CapsuleGeometry(0.032, len, 3, 7)), 0x4f9a3c, x, y, z, 0, x * 5, rz), B(0.012, YEL, x - Math.sin(rz) * (len / 2 + 0.035), y + Math.cos(rz) * -(len / 2 + 0.035) * (rz > 1 ? 0 : 1), z, 1, 1, 1, 4, 3));
+      p.push(bloom(0.03, YEL, -0.02, 0.44, 0.06, 5, 0.4), curl(0.1, 0.3, -0.04, 0.035));
+    }
+    return p;
+  },
+  paprika(st) {
+    const p = [], h = [0, 0.22, 0.42, 0.52][st], n = [0, 5, 8, 9][st];
+    p.push(tube([[0, 0, 0], [0.02, h * 0.5, 0.01], [0, h, 0]], 0.018, STEM, 6, 3));
+    for (let i = 0; i < n; i++) { const t = (i + 1) / (n + 1), a = i * 2.4; p.push(leaf(0.2 * (1.15 - t * 0.35), 0.11 * (1.15 - t * 0.35), i % 2 ? LEAF : LEAFD, 0, h * (0.25 + t * 0.75), 0, a, 0.5, 0.3, 0.3)); }
+    if (st === 2) for (const [x, y, z] of [[0.1, 0.3, 0.06], [-0.09, 0.36, 0.05]]) p.push(bloom(0.028, WHITE, x, y, z, 5, 0.3), B(0.03, 0x8fc85a, x, y - 0.06, z, 0.9, 1.2, 0.9, 6, 4));
+    if (st === 3) for (const [x, y, z, c] of [[0.12, 0.26, 0.09, 0xe8322c], [-0.11, 0.3, 0.08, 0xf2b01e], [0.03, 0.2, 0.16, 0xe8322c], [-0.04, 0.34, -0.12, 0x5fae3c]]) {
+      const g = bend(plain(new THREE.SphereGeometry(0.062, 8, 6)), v => { const k = 1 - 0.3 * Math.max(0, -v.y / 0.062); v.x *= k; v.z *= k; v.y *= 1.35; });
+      p.push({ g: g.translate(x, y, z), c }, C(0.012, 0.014, 0.05, LEAFD, x, y + 0.1, z, 5), B(0.03, LEAFD, x, y + 0.078, z, 1, 0.35, 1, 6, 3));
+    }
+    return p;
+  },
+  aubergine(st) {
+    const p = [], h = [0, 0.22, 0.44, 0.56][st], n = [0, 5, 8, 9][st];
+    p.push(tube([[0, 0, 0], [-0.02, h * 0.5, 0.01], [0.01, h, 0]], 0.02, 0x6a5a7a, 6, 3));
+    for (let i = 0; i < n; i++) { const t = (i + 1) / (n + 1), a = i * 2.4 + 0.5; p.push(leaf(0.24 * (1.15 - t * 0.35), 0.17 * (1.15 - t * 0.35), i % 2 ? 0x6aa860 : 0x5a9a58, 0, h * (0.2 + t * 0.8), 0, a, 0.5, 0.3, 0.25)); }
+    if (st === 2) for (const [x, y, z] of [[0.11, 0.32, 0.06], [-0.1, 0.38, 0.06]]) p.push(bloom(0.038, 0xc8a0f0, x, y, z, 5, 0.3), B(0.014, YEL, x, y + 0.01, z + 0.005, 1, 1, 1, 5, 3));
+    if (st === 3) for (const [x, y, z, s] of [[0.13, 0.2, 0.1, 1], [-0.12, 0.24, 0.09, 0.9], [0.02, 0.17, 0.18, 0.8]]) {
+      const g = bend(plain(new THREE.SphereGeometry(0.07 * s, 9, 7)), v => { const k = 1 - 0.35 * Math.max(0, v.y / (0.07 * s)); v.x *= k; v.z *= k; v.y *= 1.7; });
+      p.push({ g: g.translate(x, y, z), c: 0x5a2a7a }, B(0.02 * s, 0xa070c8, x + 0.03 * s, y - 0.04 * s, z + 0.04 * s, 1, 1.6, 0.5, 5, 3), put(plain(new THREE.ConeGeometry(0.045 * s, 0.05 * s, 5)), LEAFD, x, y + 0.12 * s, z), C(0.01, 0.012, 0.05, LEAFD, x, y + 0.16 * s, z, 5));
+    }
+    return p;
+  },
   melone(st) {
     if (st < 3) {
       const p = vine(st === 1 ? 3 : 5, st === 1 ? 0.2 : 0.34, st === 1 ? 0.15 : 0.2);
@@ -305,6 +348,7 @@ const CROP = {
 
 // ---------- Blumen (Tulpe, Kosmee, Stiefmütterchen, Rose, Hyazinthe) ----------
 const FCOL = { tulpe: 0xff5d7a, kosmee: 0xffd23f, stiefmuetterchen: 0xb48cff, rose: 0xe8283c, hyazinthe: 0x8f7bff, lilie: 0xfff0f4, mohn: 0xff3b2f, kornblume: 0x4f7dff, lavendel: 0xa98bff, pfingstrose: 0xff9ac4, glockenblume: 0x6f8cff, orchidee: 0xf2a0ff,
+  veilchen: 0x8a5cf0, anemone: 0xe8384c, iris: 0x7a6cf0, ranunkel: 0xffa24a, sonnenhut: 0xf070a8, aster: 0xb070e0, lupine: 0x5f7cf0, chrysantheme: 0xf2b83a,
   gaensebluemchen: 0xffffff, ringelblume: 0xff9a2a, vergissmeinnicht: 0x6fa8ff, narzisse: 0xffe14a, nelke: 0xff7fa8, margerite: 0xfffbea, krokus: 0xb07bff, dahlie: 0xe0408a, schneegloeckchen: 0xffffff, christrose: 0xf8e2ec };
 for (const [k, c] of Object.entries(CROPS)) if (c.peony && c.flower !== undefined) FCOL[k] = c.flower; // Pfingstrosen in allen Farben
 // Pfingstrose: große, runde, gefüllte Blüte aus mehreren gewölbten Blütenblatt-Lagen
@@ -327,6 +371,15 @@ function newBloom(k, c, x, y, z) {
   if (k === 'nelke') return [B(0.045, c, x, y + 0.03, z, 1, 0.7, 1, 9, 6), bloom(0.06, shade(c, 0.06), x, y + 0.02, z, 12, 0.5, 0.012), B(0.03, LEAF, x, y - 0.01, z, 0.8, 1.3, 0.8, 6, 4)];
   if (k === 'krokus') return [B(0.04, c, x, y - 0.12, z, 1, 1.5, 1, 8, 6), ...[0, 1, 2].map(j => leaf(0.07, 0.04, shade(c, 0.05), x, y - 0.13, z, j * 2.1, 1.2, -0.1, 0.45, 4, 5)), B(0.012, 0xff9a2a, x, y - 0.06, z)];
   if (k === 'dahlie') return [bloom(0.11, shade(c, -0.05), x, y, z, 12, 0.25, 0.014, -0.35, x * 9), bloom(0.08, c, x, y + 0.012, z, 10, 0.4, 0.014, -0.35, x * 7), bloom(0.05, shade(c, 0.1), x, y + 0.024, z, 8, 0.55, 0.012, -0.35, x * 5), B(0.02, shade(c, 0.15), x, y + 0.03, z, 1, 0.7, 1, 6, 4)];
+  // Inselleben 12
+  if (k === 'veilchen') return [[0, 0, 0], [0.05, -0.02, 0.04], [-0.05, -0.03, 0.03]].flatMap(([dx, dy, dz], j) => [bloom(0.04, j ? shade(c, 0.06) : c, x + dx, y - 0.1 + dy, z + dz, 5, 0.25, 0.01, -0.5, x * 9 + j), B(0.011, Y, x + dx, y - 0.094 + dy, z + dz + 0.006, 1, 0.7, 1, 5, 3)]);
+  if (k === 'anemone') return [bloom(0.088, c, x, y, z, 6, 0.3, 0.014, -0.4, x * 9), bloom(0.036, 0xfff3c0, x, y + 0.008, z, 10, 0.1, 0.006, -0.4, x * 5), B(0.027, 0x2b2030, x, y + 0.014, z + 0.006, 1, 0.6, 1, 7, 5)];
+  if (k === 'iris') return [...[0, 1, 2].map(j => leaf(0.1, 0.06, shade(c, 0.06), x, y, z, j * 2.094, 1.35, -0.15, 0.45, 4, 5)), ...[0, 1, 2].flatMap(j => [leaf(0.115, 0.075, shade(c, -0.05), x, y, z, j * 2.094 + 1.047, 0.25, 0.9, 0.2, 4, 6), B(0.014, Y, x + Math.sin(j * 2.094 + 1.047) * 0.04, y + 0.012, z + Math.cos(j * 2.094 + 1.047) * 0.04, 1, 0.6, 1.6, 5, 3)]), B(0.02, LEAF, x, y - 0.01, z, 0.9, 1.4, 0.9, 6, 4)];
+  if (k === 'ranunkel') return [bloom(0.085, shade(c, -0.06), x, y, z, 9, 0.6, 0.016, -0.25, x * 9), bloom(0.07, c, x, y + 0.016, z, 8, 0.85, 0.016, -0.25, x * 7 + 0.4), bloom(0.052, shade(c, 0.06), x, y + 0.03, z, 7, 1.0, 0.014, -0.25, x * 5 + 0.9), B(0.03, shade(c, 0.12), x, y + 0.044, z, 1, 0.75, 1, 8, 6)];
+  if (k === 'sonnenhut') return [...Array.from({ length: 10 }, (_, j) => leaf(0.085, 0.032, j % 2 ? c : shade(c, 0.05), x, y + 0.005, z, j * 0.628 + x * 9, 0.05, 0.85, 0.15, 3, 5)), B(0.04, 0xc8641a, x, y + 0.03, z, 1, 1.05, 1, 8, 6), B(0.022, 0x8a4418, x, y + 0.06, z, 1, 0.8, 1, 6, 4)];
+  if (k === 'aster') return [bloom(0.082, c, x, y, z, 12, 0.12, 0.01, -0.35, x * 9), bloom(0.06, shade(c, 0.07), x, y + 0.008, z, 9, 0.22, 0.01, -0.35, x * 7 + 0.3), B(0.024, Y, x, y + 0.016, z + 0.004, 1, 0.6, 1, 7, 5)];
+  if (k === 'lupine') return Array.from({ length: 10 }, (_, j) => { const a = j * 2.4, r = 0.042 * (1 - j / 13); return B(0.032 - j * 0.0018, j % 3 === 0 ? shade(c, 0.14) : j % 3 === 1 ? c : shade(c, -0.05), x + Math.cos(a) * r, y - 0.09 + j * 0.027, z + Math.sin(a) * r, 1, 0.9, 1, 5, 4); });
+  if (k === 'chrysantheme') return [bloom(0.092, shade(c, -0.07), x, y, z, 12, 0.35, 0.014, -0.3, x * 9), bloom(0.076, c, x, y + 0.014, z, 10, 0.6, 0.014, -0.3, x * 7 + 0.2), bloom(0.056, shade(c, 0.07), x, y + 0.028, z, 8, 0.85, 0.012, -0.3, x * 5 + 0.5), B(0.03, shade(c, 0.13), x, y + 0.042, z, 1, 0.7, 1, 8, 6)];
   if (k === 'schneegloeckchen') return [B(0.035, c, x + 0.03, y - 0.04, z, 0.9, 1.35, 0.9, 8, 6), B(0.015, LEAF, x + 0.03, y + 0.005, z, 1, 1, 1, 5, 3), stick([x, y, z], [x + 0.03, y + 0.01, z], 0.006, STEM, 3)];
   if (k === 'christrose') return [bloom(0.085, c, x, y, z, 5, 0.25, 0.014, -0.4, x * 9), bloom(0.05, 0xfff8fb, x, y + 0.01, z, 5, 0.3, 0.012, -0.4, x * 9 + 0.6), B(0.025, Y, x, y + 0.02, z, 1, 0.5, 1, 7, 4)];
   return null;
@@ -808,6 +861,7 @@ export function crop(k, st) {
   return make('c' + k + st, () => { seed = 7; return st === 0 ? sprout(k) : CROP[k] ? CROP[k](st) : missing(); });
 }
 Object.assign(PLACE, PLACE_X); // Gewächshaus, Sprinkler, Sternenrakete, Fahne, Tauschstand … (models-extra.js)
+Object.assign(PLACE, PLACE_12); // Inselleben 12: Garten-Deko (models-12.js)
 export function placeable(k, ready) {
   return make('p' + k + (ready ? 1 : 0), () => (PLACE[k] ? PLACE[k](!!ready) : missing()));
 }

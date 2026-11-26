@@ -14,6 +14,7 @@ import * as E8 from './extras8.js';
 import * as E9 from './extras9.js';
 import * as E10 from './extras10.js';
 import * as E11 from './extras11.js';
+import * as E12 from './extras12.js';
 import { TRIP, TRIP_PRICE, TRIP_KINDS, tripLayout, tripNodeAt, onTripDock, tripWalk, SOLID_TRIP, tripUses, nodeThing, TRIP_BUGS, TRIP_FISH } from './trips.js';
 
 // Pixel-Muster prüfen (wie in patterns.js, aber ohne three.js, damit es in Node-Tests läuft)
@@ -501,6 +502,7 @@ export function migrateX(s) {
   E9.migrate9(s);
   E10.migrate10(s);
   E11.migrate11(s);
+  E12.migrate12(s);
   s.patterns = Array.from({ length: PAT_SLOTS }, (_, i) => { const p = Array.isArray(s.patterns) ? s.patterns[i] : null; return p && validPx(p.px) ? { name: String(p.name || 'Muster').slice(0, 20), px: p.px, by: String(p.by || '').slice(0, 16) } : null; });
   if (s.melody && !(Array.isArray(s.melody.notes) && s.melody.notes.length === 16 && s.melody.notes.every(n => Number.isInteger(n) && n >= 0 && n < MEL_NOTES.length))) s.melody = null;
   for (const k of ['flagPat', 'pathPat']) if (!(Number.isInteger(s[k]) && s.patterns[s[k]])) s[k] = null;
@@ -514,6 +516,7 @@ export function migrateX(s) {
   if (weekday(s.day) === 5 && s.night?.day !== s.day) nightStock(s);
   if (!s.paper || s.paper.day !== s.day) makePaper(s);
   E9.paper9(s);
+  E12.paper12(s);
   return s;
 }
 // Jeden Morgen (nach dem alten Morgen-Code)
@@ -535,8 +538,10 @@ export function morningX(s) {
   E7.morning7(s);
   E8.morning8(s);
   E10.morning10(s);
+  E12.morning12(s);
   makePaper(s);
   E9.paper9(s);
+  E12.paper12(s);
 }
 // Nach jeder Aktion: Katalog, Fotobuch
 export function afterAct(s, a, out) {

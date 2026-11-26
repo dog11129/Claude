@@ -75,3 +75,10 @@ Eigene Icons haben Vorrang vor gerenderten; alle anderen werden weiter automatis
 ## Ohne PC-Blender
 
 Die Platzhalter-GLBs aus `art/export/` lassen sich in jedem Programm öffnen, das glTF kann (z. B. Blender, aber auch Web-Editoren auf dem Tablet). Wichtig sind nur die Regeln oben: Name, Maßstab, Ursprung, Vertex-Farben.
+
+## Schwere Modelle verschlanken (Inselleben 12)
+
+`blender/slim.py` (nach `kit.py`) lädt `nature.glb` und `crops.glb`, dünnt sehr dichte Netze aus (Palmwedel 6.888 → 2.600 Dreiecke,
+Baumkronen → 1.700, Felsen → 650, reife Beete → 1.000) und schreibt die Pakete zurück; Namen, Gelenke, Animationen und Vertex-Farben
+bleiben gleich, die Originale liegen als `*_orig.glb` daneben. Zusammen mit den Schatten, die nur noch jedes zweite Bild neu
+berechnet werden, sind es im Schnitt rund 58 % weniger Zeichenaufrufe und 43 % weniger Dreiecke pro Bild.

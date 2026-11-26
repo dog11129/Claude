@@ -36,6 +36,9 @@ import { syncTandem, decorFurniture, updateIsland6, npcOverride6 } from './world
 import { updateIsland7, npcOverride7, npcUp7, syncCarry7, burstShape } from './world-extra4.js';
 import { npcOverride8, npcUp8, syncSurf8, dreamSky } from './world-extra5.js';
 import { npcOverride9 } from './world-extra6.js';
+import { sleepInBed, clearSleep } from './world-extra8.js';
+import { updateAmbient } from './world-extra9.js';
+import { nhomeState } from './extras12.js';
 import { npcStep } from './npc-walk.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
@@ -245,6 +248,8 @@ export class World {
     r.setPixelRatio(Q.exact ? Q.ratio : Math.min(devicePixelRatio, Q.ratio));
     if (typeof q === 'object') { this.fogNear = this.scene.fog.near = 34 * (q.view || 1); this.fogFar = this.scene.fog.far = 80 * (q.view || 1); }
     r.shadowMap.enabled = !!Q.shadows;
+    r.shadowMap.autoUpdate = false; // wird in render() jedes zweite Bild angestoßen
+    r.shadowMap.needsUpdate = true;
     this.sun.castShadow = !!Q.shadows;
     if (Q.shadows) {
       this.sun.shadow.mapSize.set(Q.shadows, Q.shadows);
@@ -1039,6 +1044,7 @@ export class World {
         const [x, z] = k.split(',').map(Number);
         const m = N.cropModel(t.c.k, st, crop);
         N.windify(m, WIND_CROP);
+        m.traverse(o => { if (o.isMesh) o.castShadow = false; }); // Beete werfen keinen eigenen Schatten: spart bei großen Gärten die halbe Schattenarbeit
         m.position.set(x, 0.04, z);
         m.rotation.y = ((x * 7 + z * 13) % 4) * 0.4;
         this.scene.add(m);
@@ -1122,11 +1128,12 @@ export class World {
   }
   // Zimmer eines Nachbarn (nur das, in dem gerade jemand steht)
   syncNroom(s) {
-    const id = this.target.x > HOME_X / 2 ? roomIdAt(this.target.z) : null, R = id ? roomOf(s, id) : null, sig = id ? `${id}|${R.wall}|${R.floor}` : '';
+    const id = this.target.x > HOME_X / 2 ? roomIdAt(this.target.z) : null, R = id ? roomOf(s, id) : null, hs = id && NPCS[id] ? nhomeState(s, id) : '', sig = id ? `${id}|${R.wall}|${R.floor}|${hs}` : '';
     if (this.nroomSig !== sig) {
       this.nroomSig = sig;
       if (this.nroom) this.scene.remove(this.nroom);
       if (this.nroomNpc) this.scene.remove(this.nroomNpc.m);
+      clearSleep(this);
       for (const e of this.nfurnM?.values() || []) this.scene.remove(e.m);
       this.nfurnM = new Map();
       this.nroom = this.nroomNpc = null;
@@ -1138,16 +1145,17 @@ export class World {
         g.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
         this.scene.add(g);
         this.nroom = g;
-        if (NPCS[id]) { // Dachboden, Keller & Baumhaus haben keinen Bewohner
+        if (NPCS[id] && hs !== 'away') { // Dachboden, Keller & Baumhaus haben keinen Bewohner; Nachbarn sind auch mal unterwegs
           const m = makeNpc(id);
           this.scene.add(m);
-          this.nroomNpc = { id, m, x: HOME_X + 1.6, z: R.z0 - 0.6, ry: 0, speed: 0, awake: true, host: true };
+          this.nroomNpc = { id, m, x: HOME_X + 1.6, z: R.z0 - 0.6, ry: 0, speed: 0, awake: hs !== 'sleep', sleep: hs === 'sleep', host: true };
         }
       }
     }
     if (!id) return;
     this.furnSync(s, this.nfurnM, R, R.z0);
-    if (!this.nroomNpc) return;
+    if (!this.nroomNpc) { if (NPCS[id]) this.tag('nroomnpc', `📝 ${NPCS[id].name} ist unterwegs`, HOME_X, 1.5, R.z0 + R.size[1] / 2 - 0.4, 'name npc'); return; }
+    if (this.nroomNpc.sleep) { sleepInBed(this, s, R, this.nroomNpc); return; }
     const e = this.nroomNpc, spot = [[1, 0], [-1, 0], [2, 0], [1, 1], [-1, 1], [0, -1], [2, 1], [-2, 1], [0, 0]].find(([x, z]) => !homeAt(s, x, z, false, R)) || [0, 0];
     const talk = this.npcTalk?.id === id, me = this.target;
     e.x += (HOME_X + spot[0] - e.x) * 0.2; e.z += (R.z0 + spot[1] - e.z) * 0.2; // freier Platz im Zimmer
@@ -2154,8 +2162,16 @@ export class World {
       const u = c.userData, a = u.a + this.time * 0.004;
       c.position.set(Math.cos(a) * u.r, u.y, Math.sin(a) * u.r);
     }
-    this.sun.position.copy(this.target).addScaledVector(this.sunDir, 35);
-    this.sun.target.position.copy(this.target);
+    // Schatten nur jedes zweite Bild neu berechnen (die teuerste Arbeit pro Bild). Die Sonne bleibt dazwischen stehen,
+    // damit nichts flimmert; bei Ortswechseln sofort neu.
+    const jump = !this.sunAt || Math.abs(this.sunAt.x - this.target.x) > 6 || Math.abs(this.sunAt.z - this.target.z) > 6;
+    this.shadowTick = (this.shadowTick || 0) + 1;
+    if (this.shadowTick % 2 === 0 || jump || !this.Q?.shadows) {
+      this.sun.position.copy(this.target).addScaledVector(this.sunDir, 35);
+      this.sun.target.position.copy(this.target);
+      (this.sunAt ||= new THREE.Vector3()).copy(this.target);
+      this.renderer.shadowMap.needsUpdate = true;
+    }
     this.lamp.position.set(this.target.x, 3.2, this.target.z + 1.2);
     const indoor = this.target.x > HOME_X / 2;
     this.roomLight.intensity = indoor ? 3 + info.night * 9 : 0;
@@ -2190,6 +2206,8 @@ export class World {
     this.updateCritters(info, rain);
     this.updateFish();
     this.updateSkyFx(s, info, rain);
+    this.lastPlayers = players; this.lowFx = !this.Q?.shadows;
+    updateAmbient(this, s, info, dt, rain, indoors); // Wolkenschatten, Vogelschwarm, Spatzen, Möwen (world-extra9.js)
 
     // Schnee
     this.snow.visible = snowing;

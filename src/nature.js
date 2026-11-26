@@ -14,6 +14,7 @@ function hang(parent, kind, x, y, z, s = 1) {
   f.position.set(x, y, z);
   f.rotation.y = x * 3 + z;
   f.scale.setScalar(s);
+  f.traverse(o => { if (o.isMesh) o.castShadow = false; }); // die Krone wirft den Schatten, einzelne Früchte nicht
   parent.add(f);
 }
 

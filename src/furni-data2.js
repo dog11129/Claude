@@ -6,7 +6,7 @@ export const FURN_SETS = {
   landhaus: ['🏡', 'Landhaus'], strand: ['🏖️', 'Strandhaus'], pilz: ['🍄', 'Pilzwald'], retro: ['🎵', 'Retro-Diner'],
   sterne: ['🚀', 'Sternenreise'], kinder: ['🧸', 'Kinderzimmer'], musik: ['🎻', 'Musikzimmer'], atelier: ['🎨', 'Atelier & Büro'],
   bad: ['🛁', 'Badezimmer'], winter: ['❄️', 'Winterhütte'], cafe: ['☕', 'Café & Bäckerei'], garten: ['🌻', 'Gartenzimmer'],
-  herzchen: ['💗', 'Herzchen & Wolken'],
+  herzchen: ['💗', 'Herzchen & Wolken'], wintergarten: ['🪴', 'Wintergarten'],
 };
 export const SET_MIN = 4, SET_BONUS = 1500;
 // [id, Name, Icon, Preis, Level, Kategorie, Breite, Tiefe, Extras]
@@ -138,6 +138,16 @@ export const KUSCHEL = {
 };
 for (const [id, [name, icon]] of Object.entries(KUSCHEL)) RARE10[id] = { name, icon, buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'plush' };
 RARE10.jahrestagsbild = { name: 'Jahrestags-Bild', icon: '💍', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'love' };
+// 🪴 Wintergarten (Inselleben 12): Rattan, Jute und ganz viel Grün
+const WINTERGARTEN = [
+  ['rattansessel', 'Rattansessel', '🪑', 1300, 2, 'sitzen', 1, 1, { sit: true }], ['rattansofa', 'Rattansofa', '🛋️', 2300, 3, 'sitzen', 2, 1, { sit: true }],
+  ['rattantisch', 'Rattantisch', '🧺', 900, 2, 'tische'], ['rattanlampe', 'Rattan-Bogenlampe', '💡', 800, 2, 'licht', 1, 1, { glow: true }],
+  ['juteteppich', 'Jute-Teppich', '🟤', 900, 1, 'teppiche', 2, 2, { rug: true }], ['makramee', 'Makramee-Ampel', '🧶', 600, 1, 'wand', 1, 1, { wall: true }],
+  ['blumenfenster', 'Blumenfenster', '🪟', 1200, 2, 'wand', 1, 1, { wall: true }], ['geigenfeige', 'Geigenfeige', '🌿', 700, 1, 'pflanzen'],
+  ['strelitzie', 'Strelitzie', '🌴', 900, 2, 'pflanzen'], ['gummibaum', 'Gummibaum', '🪴', 600, 1, 'pflanzen'], ['pampasvase', 'Pampas-Vase', '🌾', 500, 1, 'pflanzen'],
+  ['kakteenregal', 'Kakteenregal', '🌵', 1000, 2, 'pflanzen'], ['pflanzenregal', 'Pflanzentreppe', '🪜', 1200, 3, 'pflanzen'],
+];
+for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of WINTERGARTEN) FURN2[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, set: 'wintergarten', ...x };
 // Serien-Bonus: wie viele Serien sind mit mindestens vier verschiedenen Stücken vertreten?
 export function setsIn(keys, FURN) {
   const by = {};

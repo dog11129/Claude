@@ -18,7 +18,7 @@ export const NWISH = {
 };
 export function roomStuff(s, id) {
   const R = S.roomOf(s, id), all = [...Object.entries(R.items), ...Object.entries(R.rugs), ...Object.entries(R.walls)];
-  return all.filter(([k, o]) => FURNITURE[o?.k] && !(k === '-2,-1' && o.k === 'einzelbett' && !o.by)).map(([, o]) => o.k);
+  return all.filter(([k, o]) => FURNITURE[o?.k] && !o.npc && !(k === '-2,-1' && o.k === 'einzelbett' && !o.by)).map(([, o]) => o.k); // nur, was ihr hingestellt habt
 }
 export function wishOk(s, id, w) {
   const W = NWISH[id]?.[w], list = roomStuff(s, id);

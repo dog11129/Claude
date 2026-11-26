@@ -607,6 +607,99 @@ details.help { background: #fff; border: 2px solid var(--line); border-radius: 1
 /* Zeilen: wird es eng, rutschen die Knöpfe unter den Text, statt ihn zu quetschen */
 .row { flex-wrap: wrap; } .row .tx { flex: 1 1 150px; } .row .bt { margin-left: auto; }
 @media (max-width: 520px) { .sumbar { flex-wrap: wrap; } .sumbar .btn { flex: 1 1 100%; } .menugrid { grid-template-columns: 1fr; } }
+
+/* ============ Insel-Look 2 (Inselleben 12): Fenster wie aus Bastelpapier – Wellenkante, Sprechblasen, runde Knöpfe ============ */
+:root { --paper: #fffaee; --edge: #f1e0c2; --edged: #e2cda6; --band: #ffd97a; --bandl: #ffe7a6; --bandd: #edb948; --bandink: #6b4a22; }
+#panel[data-k="love"] { --band: #ffb7cc; --bandl: #ffd3df; --bandd: #f08aa8; --bandink: #8a2f4f; }
+#panel[data-k="green"] { --band: #bfe494; --bandl: #d8f0b8; --bandd: #93c765; --bandink: #3d6520; }
+#panel[data-k="blue"] { --band: #aadcf6; --bandl: #cdebfb; --bandd: #78bfe6; --bandink: #2b5674; }
+#panel[data-k="lilac"] { --band: #cdbdf7; --bandl: #e0d6fb; --bandd: #a892ea; --bandink: #4a3a86; }
+#panel { background: radial-gradient(120% 95% at 50% 42%, rgba(60,44,32,calc(var(--dim) * .75)), rgba(40,28,20,calc(var(--dim) * 1.25))); }
+#panel:not(.phone) .card { padding: 0 0 12px; border: 0; outline: 0; overflow: hidden; background: var(--paper);
+  border-radius: 36px 32px 34px 30px / 32px 36px 30px 34px; box-shadow: 0 0 0 5px #fff, 0 0 0 8px var(--edge), 0 12px 0 5px rgba(100,74,50,.2), 0 28px 54px rgba(50,34,22,.42); }
+body.pbg-papier #panel:not(.phone) .card { background: radial-gradient(circle at 8px 8px, #f6ead0 2px, transparent 2.6px) 0 0 / 30px 30px, radial-gradient(circle at 23px 23px, #f6ead0 2px, transparent 2.6px) 0 0 / 30px 30px, var(--paper); }
+body.pbg-weiss #panel:not(.phone) .card { background: #fff; }
+#panel:not(.phone) header { position: relative; margin: 0 0 14px; padding: 11px 12px 12px 18px; gap: 10px; background: linear-gradient(180deg, var(--bandl), var(--band)); }
+#panel:not(.phone) header::after { content: ''; position: absolute; left: 0; right: 0; top: calc(100% - 1px); height: 10px; pointer-events: none; z-index: 1;
+  background: radial-gradient(circle at 10px 0, var(--band) 9.4px, transparent 10px) 0 0 / 20px 10px repeat-x; }
+#panel:not(.phone) h2 { background: none; border: 0; box-shadow: none; padding: 0 2px; rotate: 0deg; animation: none; font-size: 23px; line-height: 1.15; color: var(--bandink); text-shadow: 0 2px 0 rgba(255,255,255,.6); overflow-wrap: anywhere; }
+#panel:not(.phone) header .pill { border-width: 2px; box-shadow: 0 3px 0 var(--bandd); background: #fffdf6; }
+#pclose { width: 44px; height: 44px; font-size: 17px; flex: 0 0 auto; box-shadow: 0 3px 0 var(--bandd), 0 6px 14px rgba(90,70,54,.14); }
+#pclose:hover { transform: rotate(90deg) scale(1.06); }
+#panel:not(.phone) #ptabs { padding: 2px 14px 10px; gap: 7px; }
+#panel:not(.phone) #pbody { padding: 2px 14px 6px; scrollbar-width: thin; scrollbar-color: var(--edged) transparent; }
+#pbody::-webkit-scrollbar { width: 10px; } #pbody::-webkit-scrollbar-thumb { background: var(--edged); border-radius: 10px; border: 3px solid var(--paper); }
+#ptabs button { border-radius: 999px; padding: 7px 14px; border: 2px solid var(--edge); background: #fffdf6; box-shadow: 0 3px 0 var(--edge); font-weight: 700; color: #8a725c; transition: transform .16s cubic-bezier(.3,1.6,.5,1); }
+#ptabs button:hover { transform: translateY(-1px); }
+#ptabs button.on { background: linear-gradient(180deg, var(--bandl), var(--band)); border-color: var(--bandd); color: var(--bandink); box-shadow: 0 3px 0 var(--bandd); transform: translateY(-1px) rotate(-1.5deg); }
+#panel.phone #ptabs button.on { background: var(--pink); border-color: var(--pinkd); color: #fff; box-shadow: 0 3px 0 var(--pinkd); }
+/* Zwischenüberschriften mit gestickter Linie */
+#pbody h3 { display: flex; align-items: center; gap: 10px; font-size: 17px; margin: 16px 2px 8px; color: #6b5440; }
+#pbody h3::after { content: ''; flex: 1; height: 3px; border-radius: 3px; background: repeating-linear-gradient(90deg, var(--edge) 0 9px, transparent 9px 15px); }
+#pbody .quest-hero h3, #pbody .paper h3, #pbody .letter h3, #pbody .setbox h3 { display: block; } #pbody .quest-hero h3::after, #pbody .paper h3::after, #pbody .letter h3::after, #pbody .setbox h3::after { display: none; }
+/* Zeilen und Karten: weiche Kanten, kleine Teller für die Bilder */
+.row { border-radius: 20px; border: 2px solid #f3e6cc; background: #fffdf8; box-shadow: 0 3px 0 #f0e2c8; padding: 9px 10px; }
+.row .ic { width: 48px; height: 48px; display: grid; place-items: center; font-size: 27px; background: #fff2d8; border-radius: 16px; }
+.row.done { background: #f4fbee; border-color: #d3ebc4; box-shadow: 0 3px 0 #d3ebc4; } .row.done .ic { background: #e3f4d6; }
+.pcard { border-radius: 22px; border-color: #f3e6cc; background: #fffdf8; box-shadow: 0 4px 0 #f0e2c8; transition: transform .16s cubic-bezier(.3,1.6,.5,1); }
+.pcard:hover { transform: translateY(-2px) rotate(-.5deg); }
+.pc-ic { width: 76px; min-height: 70px; border-radius: 50%; background: radial-gradient(circle at 50% 62%, #fff0d2 0 58%, transparent 60%); }
+.pcard.have, .pcard.owned { border-color: #d3ebc4; box-shadow: 0 4px 0 #d3ebc4; } .pcard.have .pc-ic, .pcard.owned .pc-ic { background: radial-gradient(circle at 50% 62%, #e6f5d8 0 58%, transparent 60%); }
+.chip { background: #fff1d6; color: #77593f; padding: 2px 9px; } .chip.ok { background: #e1f4d5; }
+.icell { border-radius: 18px; }
+/* Knöpfe: rund wie Kieselsteine, mit kleinem Hüpfer */
+.btn { border-radius: 999px; padding: 10px 18px; font-weight: 700; letter-spacing: .1px; }
+.btn.small { border-radius: 999px; padding: 6px 13px; }
+.btn:active:not(:disabled) { transform: translateY(3px) scale(1.03, .95); }
+.btn.white { background: #fffdf6; border: 2px solid var(--edge); box-shadow: 0 4px 0 var(--edge); color: #6b5440; }
+.btn.white:active:not(:disabled) { box-shadow: 0 1px 0 var(--edge); }
+.seg { border-radius: 999px; } .seg button { border-radius: 999px; }
+/* Wer spricht? Sprechblase mit Namensschild */
+.quest-hero { position: relative; background: #fff; border: 3px solid var(--edge); border-radius: 26px 26px 26px 10px; box-shadow: 0 4px 0 var(--edge); margin: 16px 0 14px; padding: 18px 16px 12px; }
+.quest-hero .qh-top { color: #6b5440; font-size: 17px; }
+.quest-hero .qh-chap { position: absolute; top: -14px; left: 14px; background: linear-gradient(180deg, var(--bandl), var(--band)); color: var(--bandink); border: 2px solid #fff; box-shadow: 0 3px 0 var(--bandd); rotate: -2deg; padding: 2px 13px; font-size: 13.5px; font-weight: 700; }
+.quest-hero p { margin: 4px 0 6px; line-height: 1.45; }
+.sumbar { background: #fff; border: 2px solid var(--edge); border-radius: 22px; box-shadow: 0 3px 0 var(--edge); }
+.tip { background: #fff6e2; border-color: var(--edge); border-radius: 18px; } .setbox, details.help { border-color: var(--edge); border-radius: 22px; box-shadow: 0 3px 0 var(--edge); background: #fffdf8; }
+.note { background: rgba(255,244,220,.6); border-radius: 14px; padding: 7px 11px; margin: 6px 0 10px; }
+.ghead { border-bottom: 0; background: repeating-linear-gradient(90deg, var(--edge) 0 9px, transparent 9px 15px) left bottom / 100% 3px no-repeat; padding-bottom: 7px; }
+/* Gespräche: große Sprechblase, schiefes Namensschild */
+.dlg { background: var(--paper); border: 0; padding: 30px 24px 16px; border-radius: 40px 44px 38px 46px / 42px 38px 46px 40px;
+  box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--edge), 0 10px 0 5px rgba(100,74,50,.18), 0 24px 46px rgba(50,34,22,.34); }
+.dlgname { top: -21px; left: 28px; font-size: 18px; padding: 6px 18px; border: 3px solid #fff; transform: rotate(-3deg); box-shadow: 0 4px 0 rgba(90,70,54,.22); text-shadow: 0 1px 0 rgba(0,0,0,.15); }
+#dlgtext { font-size: 19px; line-height: 1.5; color: #6b5440; }
+.dlg.done #dlgtext::after { color: var(--pink); font-size: 15px; }
+#dlggifts button { border-radius: 18px; border-color: var(--edge); background: #fffdf8; box-shadow: 0 3px 0 var(--edge); }
+/* Meldungen: kleine Papierfähnchen */
+#toasts div { background: var(--paper); border: 3px solid #fff; border-radius: 24px; padding: 9px 20px; box-shadow: 0 0 0 2px var(--edge), 0 5px 0 1px var(--edged), 0 14px 26px rgba(50,34,22,.22); color: #6b5440; }
+#toasts div.big { background: linear-gradient(180deg, #fff1b8, #ffdf85); box-shadow: 0 0 0 2px #f0c860, 0 5px 0 1px #e3b548, 0 14px 26px rgba(50,34,22,.22); }
+#toasts div.ach { background: linear-gradient(180deg, #ffe6ee, #ffd0e2); box-shadow: 0 0 0 2px #f6a8c2, 0 5px 0 1px #ee8fb0, 0 14px 26px rgba(50,34,22,.22); }
+/* Handy: richtiges Gehäuse mit Hörmuschel und Wischbalken, Apps hüpfen beim Antippen */
+#panel.phone .card { overflow: hidden; position: relative; width: min(388px, 100%); padding: 30px 12px 22px; border: 9px solid #ffc4d6; border-radius: 48px;
+  background: radial-gradient(circle at 20% 12%, rgba(255,255,255,.75) 0 12%, transparent 30%), linear-gradient(168deg, #fff3da 0%, #ffe1ea 52%, #d9f0ff 100%);
+  box-shadow: 0 0 0 4px #fff, 0 0 0 7px #f6a8c2, 0 14px 0 5px rgba(100,74,50,.2), 0 30px 60px rgba(50,34,22,.45), inset 0 0 0 3px rgba(255,255,255,.9); }
+#panel.phone .card::before { content: ''; position: absolute; top: 9px; left: 50%; width: 84px; height: 11px; margin-left: -42px; border-radius: 11px; background: #f6a8c2; box-shadow: inset 0 2px 0 rgba(90,40,60,.15); }
+#panel.phone .card::after { content: ''; position: absolute; bottom: 8px; left: 50%; width: 116px; height: 5px; margin-left: -58px; border-radius: 5px; background: rgba(90,70,54,.22); }
+#panel.phone h2 { font-size: 17px; rotate: 0deg; white-space: nowrap; padding: 3px 14px; animation: none; background: rgba(255,255,255,.85); box-shadow: 0 3px 0 rgba(240,200,210,.9); }
+#panel.phone #pclose { box-shadow: 0 3px 0 #f6a8c2, 0 6px 14px rgba(90,70,54,.14); }
+.phone-top b { font-size: 40px; text-shadow: 0 2px 0 rgba(255,255,255,.7); }
+.apps .ai { border-radius: 24px; border: 3px solid rgba(255,255,255,.75); box-shadow: 0 5px 0 rgba(90,70,54,.16), inset 0 -8px 12px rgba(0,0,0,.05), inset 0 3px 0 rgba(255,255,255,.6); transition: transform .18s cubic-bezier(.3,1.6,.5,1); }
+.apps button:hover .ai { transform: translateY(-3px) rotate(-3deg); } .apps button:active .ai { transform: scale(.9); }
+.apps small { background: rgba(255,255,255,.6); border-radius: 999px; padding: 1px 8px; }
+/* Aussehen-Fenster, Menü-Karten, Leiste unten: derselbe Papier-Look */
+#editor .ed, #menu .screen.card, #cover .card { background: var(--paper); border-radius: 34px 30px 32px 28px / 30px 34px 28px 32px; box-shadow: 0 0 0 5px #fff, 0 0 0 8px var(--edge), 0 12px 0 5px rgba(100,74,50,.18), 0 26px 50px rgba(50,34,22,.36); }
+#editor .ed { margin: 8px; }
+.edtabs { padding: 2px 2px 6px; } .edtabs button { border-radius: 999px; padding: 7px 13px; border-color: var(--edge); background: #fffdf6; box-shadow: 0 3px 0 var(--edge); font-weight: 700; color: #8a725c; }
+.edtabs button.on { background: linear-gradient(180deg, #ffc9d8, var(--pink)); border-color: var(--pinkd); color: #fff; box-shadow: 0 3px 0 var(--pinkd); transform: rotate(-1.5deg); }
+.thumbs button { border-radius: 22px; border-color: var(--edge); background: #fffdf8; box-shadow: 0 3px 0 var(--edge); } .thumbs button.on { box-shadow: 0 3px 0 var(--pinkd), 0 0 0 3px rgba(255,143,171,.25); }
+.edbody h4 { display: flex; align-items: center; gap: 10px; color: #6b5440; } .edbody h4::after { content: ''; flex: 1; height: 3px; background: repeating-linear-gradient(90deg, var(--edge) 0 9px, transparent 9px 15px); }
+#hotbar { background: rgba(255,250,238,.92); border-radius: 30px; box-shadow: 0 0 0 2px var(--edge), 0 5px 0 2px var(--edged), 0 12px 26px rgba(50,34,22,.22); }
+.slot { border-radius: 20px; }
+.pill { box-shadow: 0 0 0 2px var(--edge), 0 4px 0 1px var(--edged), 0 9px 20px rgba(50,34,22,.16); }
+#panel header .pill { box-shadow: 0 3px 0 var(--bandd); }
+.tag.prompt, .tag.bubble { border-radius: 18px; }
+@media (max-width: 520px) { #panel:not(.phone) h2 { font-size: 20px; } #panel:not(.phone) header { padding-left: 14px; } #panel:not(.phone) #pbody, #panel:not(.phone) #ptabs { padding-left: 10px; padding-right: 10px; } }
+@media (prefers-reduced-motion: reduce) { .pcard, #ptabs button, .btn { transition: none; } }
 </style>
 </head>
 <body>

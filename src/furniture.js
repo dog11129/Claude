@@ -8,6 +8,7 @@ import { FURNITURE, WALLS, FLOORS } from './furni-data.js';
 import { tex, model } from './assets.js';
 import { FURN_X } from './models-extra.js';
 import { FURN_2 } from './models-furn2.js';
+import { FURN_12 } from './models-12.js';
 export { FURNITURE, WALLS, FLOORS };
 
 const PI = Math.PI, H = PI / 2;
@@ -430,6 +431,7 @@ const MAKE = {
 
 Object.assign(MAKE, FURN_X); // seltene Möbel (models-extra.js)
 for (const [k, fn] of Object.entries(FURN_2)) MAKE[k] ||= fn; // 120 Möbel in Serien (models-furn2.js)
+for (const [k, fn] of Object.entries(FURN_12)) MAKE[k] ||= fn; // Wintergarten (models-12.js)
 const cache = new Map();
 function built(k, fn) {
   if (!cache.has(k)) {

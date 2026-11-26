@@ -1,6 +1,6 @@
 // Geräusche, Umgebungsklänge und sanfte Musik – alles direkt im Browser erzeugt (keine Audiodateien).
-let ctx, master, sfxGain, musicGain, ambGain, rainGain, musicTimer, nextBird = 0, nextCricket = 0, nextStep = 0;
-export const audio = { sound: 0.8, music: 0.6 };
+let ctx, master, sfxGain, musicGain, ambGain, rainGain, wxGain, wxSfx, musicTimer, nextBird = 0, nextCricket = 0, nextStep = 0;
+export const audio = { sound: 0.8, music: 0.6, weather: 1 }; // weather: eigener Regler nur für Regen und Donner (0–1)
 
 export function unlock() {
   if (!ctx) {
@@ -25,7 +25,10 @@ export function unlock() {
     f.frequency.value = 1400;
     rainGain = ctx.createGain();
     rainGain.gain.value = 0;
-    src.connect(f).connect(rainGain).connect(ambGain);
+    wxGain = ctx.createGain(); // Wetter-Lautstärke: Regenrauschen …
+    wxSfx = ctx.createGain();  // … und Donner
+    wxGain.connect(ambGain); wxSfx.connect(sfxGain);
+    src.connect(f).connect(rainGain).connect(wxGain);
     src.start();
     setVolumes();
     setMusic(audio.music);
@@ -38,6 +41,8 @@ export function setVolumes() {
   if (!ctx) return;
   sfxGain.gain.value = audio.sound * 0.6;
   ambGain.gain.value = audio.sound * 0.5;
+  const wx = Math.max(0, Math.min(1, audio.weather ?? 1));
+  wxGain.gain.value = wx; wxSfx.gain.value = wx;
   musicGain.gain.value = audio.music * (musicBuf.day ? 0.35 : 0.5);
 }
 
@@ -96,7 +101,7 @@ const SFX = {
   puddle: t => { noise(t, 0.12, 1600, 0.3, sfxGain, 3); tone(520, t, 0.08, 'sine', 0.08, sfxGain, 900); },
   plopp: t => tone(380, t, 0.09, 'sine', 0.18, sfxGain, 760),
   party: t => [784, 880, 784, 1047, 988].forEach((f, i) => tone(f, t + i * 0.13, 0.2, 'triangle', 0.12)),
-  thunder: t => { noise(t, 2.2, 90, 0.9, sfxGain, 0.5); noise(t + 0.04, 0.5, 500, 0.35, sfxGain, 0.7); noise(t + 0.4, 1.6, 140, 0.5, sfxGain, 0.6); },
+  thunder: t => { noise(t, 2.2, 90, 0.9, wxSfx, 0.5); noise(t + 0.04, 0.5, 500, 0.35, wxSfx, 0.7); noise(t + 0.4, 1.6, 140, 0.5, wxSfx, 0.6); },
   burner: t => { noise(t, 0.9, 700, 0.35, sfxGain, 0.9); noise(t + 0.05, 0.7, 2400, 0.08, sfxGain, 2); }, // Ballon-Brenner
   crackle: t => { for (let i = 0; i < 7; i++) noise(t + Math.random() * 0.6, 0.02, 2500 + Math.random() * 2500, 0.12, sfxGain, 5); noise(t, 0.6, 400, 0.05, sfxGain, 0.7); }, // Grill & Lagerfeuer
   bubble: t => { for (let i = 0; i < 4; i++) tone(500 + i * 180 + Math.random() * 80, t + i * 0.07, 0.07, 'sine', 0.08, sfxGain, 1100 + i * 200); },

@@ -20,6 +20,7 @@ import * as E8 from './extras8.js';
 import * as E9 from './extras9.js';
 import * as E10 from './extras10.js';
 import * as E11 from './extras11.js';
+import * as E12 from './extras12.js';
 import { groupOf, GROUP_IDS } from './groups.js';
 import { decoTrees, DECO_LABEL, areaTreeBlock } from './decotrees.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
@@ -1373,6 +1374,7 @@ const ACTIONS = {
     const h = homeAt(s, a.x, a.z, false, R) || homeAt(s, a.x, a.z, 'walls', R) || homeAt(s, a.x, a.z, true, R);
     if (!h) return false;
     if (R.id && h.key === '-2,-1' && h.o.k === 'einzelbett' && !h.o.by) { out.msg = 'Das ist das Bett von ' + NPC_DATA[R.id].name + ' – das bleibt hier.'; return false; }
+    if (R.id && h.o.npc && NPC_DATA[R.id]) { out.msg = `${FURNITURE[h.o.k].icon} Das hat sich ${NPC_DATA[R.id].name} selbst ausgesucht – das bleibt hier.`; return false; }
     delete layer(s, FURNITURE[h.o.k], R)[h.key];
     if (h.o.a) E6.tankEmpty(s, h.o); // Aquarium/Terrarium: Bewohner zurück in die Tasche
     (s.lifted ||= {})[s._who || 'host'] = { k: h.o.k, c: h.o.c || 0, day: s.day }; // Farbe merken, falls es gleich woanders hinkommt
@@ -1838,7 +1840,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS, E12.E12_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;

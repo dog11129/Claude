@@ -13,19 +13,8 @@ const glb = f => {
   return JSON.parse(b.subarray(20, 20 + len).toString('utf8'));
 };
 const roots = j => j.scenes[j.scene || 0].nodes.map(i => j.nodes[i].name);
-// Inselleben 8: diese Modelle kommen (noch) aus dem Code (models-extra.js, avatar.js) – ohne Blender-Fassung gebaut
-const CODE_ONLY = new Set(['klippenbank', 'duellpokal', 'kapelle', 'traumfaenger', 'traummobile', 'wolkenlampe', 'mondteppich', 'traumschaf', 'abendrotbild', 'veil',
-  // Inselleben 9 (Gebiete): Möbel und Deko der Bewohner, Fundstücke
-  'eulenuhr', 'baumstumpfhocker', 'geweihleuchter', 'pusteblumenlampe', 'kleeteppich', 'hummelkissen', 'leuchtmoosglas', 'kristallspiegel', 'geodentisch', 'mooslaterne', 'wiesenschaukel', 'kristallsaeule',
-  'waldmoos', 'harzperle', 'eulenfeder', 'geweihstange', 'pusteblume', 'gluecksklee', 'morgentau', 'goldstaub', 'leuchtmoos', 'tropfstein', 'geode', 'kristallblume',
-  // Inselleben 10 (Herzstücke): Herzchen-Serie, Kätzchen-Ecke, Herzensbuch, Sträuße, Süßes, Haarschmuck
-  'herzbett', 'herzsofa', 'herzsessel', 'zuckerwattelampe', 'herzspiegel', 'herzregal', 'zuckerwattebaum', 'wolkenteppich', 'herzlichterkette', 'herzfrisiertisch', 'toertchenetagere',
-  'kratzbaum', 'wollkorb', 'blumentisch', 'herzkissen', 'liebesschaukel', 'sternennachtlicht', 'herzbogen', 'baldachinbett', 'herzbrunnen',
-  'rosenstrauss', 'tulpenstrauss', 'wiesenstrauss', 'lavendelstrauss', 'pfingstrosenstrauss', 'regenbogenstrauss', 'sonnenblumenstrauss', 'vergissmeinnichtstrauss',
-  'herzkekse', 'cupcake', 'macarons', 'herzchentorte', 'rosenkranz', 'bluetenspange', 'herzreif', 'blumenkrone', 'herzkrone',
-  // Inselleben 11 (Für zwei): Greifautomat, Kuscheltiere, Dinnertisch, Jahrestags-Bild
-  'greifautomat', 'dinnertisch', 'jahrestagsbild', 'kuscheltier_teddy', 'kuscheltier_katze', 'kuscheltier_pinguin', 'kuscheltier_kueken', 'kuscheltier_frosch',
-  'kuscheltier_panda', 'kuscheltier_wal', 'kuscheltier_fuchs', 'kuscheltier_einhorn', 'kuscheltier_gold']);
+// Modelle, die es (noch) nur im Code gibt. Seit Inselleben 12 ist die Liste leer: alles kommt aus Blender.
+const CODE_ONLY = new Set([]);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));

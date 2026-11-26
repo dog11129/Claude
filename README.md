@@ -40,6 +40,18 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 
 ## Was es gibt
 
+### 🌸 Neu: Blütenzeit (Inselleben 12)
+- **Nachbarn richten sich selbst ein:** Jeder Nachbar hat einen eigenen Geschmack und kauft sich nach und nach Möbel, Tapeten und Böden dazu – und räumt gern mal um. Was neu ist, erzählen sie euch beim Besuch (und in der Inselzeitung). Eure Geschenke und erfüllten Wünsche bleiben natürlich stehen; was sich ein Nachbar selbst ausgesucht hat, bleibt bei ihm.
+- **Türen stehen immer offen:** Ihr könnt jedes Haus besuchen – auch wenn niemand da ist (dann liegt ein Zettel an der Tür, wo der Nachbar gerade steckt) oder wenn er schon schläft (dann liegt er unter der Decke im Bett, pssst).
+- **Zwölf neue Pflanzen:** Veilchen, Anemone, Schwertlilie, Ranunkel, Sonnenhut, Aster, Lupine und Chrysantheme für den Garten, dazu Radieschen, Gurke, Paprika und Aubergine fürs Beet – mit vier neuen Gerichten (Gurkensalat, Paprikapfanne, Ofengemüse, Blaubeermuffin).
+- **Garten-Deko:** Lavendelbusch, Pampasgras, Hochbeet, Blumen-Schubkarre, Herzhecke, Blumenfahrrad, leuchtendes Feenhaus, Gießkannen-Brunnen, Magnolie, Japan-Ahorn, Vogelvilla, Entenhaus, Lichterbogen und eine Hollywoodschaukel zum Hinsetzen.
+- **Wintergarten-Serie:** 13 neue Möbel aus Rattan und ganz viel Grün – Sessel, Sofa, Tisch, Bogenlampe, Jute-Teppich, Makramee, Blumenfenster, Geigenfeige, Strelitzie, Gummibaum, Pampas-Vase, Kakteenregal und Pflanzentreppe.
+- **Mehr Leben auf der Insel:** Wolkenschatten ziehen übers Gras, Vogelschwärme fliegen vorbei, Spatzen und Rotkehlchen picken am Boden (und flattern weg, wenn ihr zu nah kommt), Möwen kreisen am Strand, Krabben buddeln sich ein, Libellen schwirren am Moor – und manchmal springt draußen ein Delfin.
+- **Neue Fenster im Insel-Look:** Alle Fenster, Sprechblasen, Hinweise und das Inselhandy sehen jetzt aus wie aus Papier und Stoff – mit farbigem Kopfband, runden Reitern, Nähten und großen, gut tippbaren Knöpfen. Jeder Bereich hat seine Farbe (Herz = rosa, Garten = grün, Meer = blau …).
+- **Wetter leiser stellen:** In den Einstellungen gibt es unter „Ton“ einen eigenen Regler nur für Regen und Donner.
+- **Flüssiger:** Schatten werden nur noch jedes zweite Bild neu berechnet, Beete und Früchte werfen keine eigenen Schatten mehr, schwere Modelle wurden in Blender verschlankt – spürbar ruhiger auf dem Handy.
+- **Alles aus Blender:** Sämtliche Möbel, Deko, Pflanzen, Gegenstände, Hüte und Frisuren der letzten Updates haben jetzt ihr Blender-Modell und ein gerendertes Icon.
+
 ### 💞 Neu: Für zwei (Inselleben 11)
 - **Unser Tag** (im Herzensbuch): Datum eintragen, seit wann ihr zusammen seid – das Handy zählt eure Tage. Jeden Monatstag gibt es Post von Rosi mit einer Überraschung, 5 Herzpunkte und Herzchenregen; am Jahrestag ein eigenes Jahrestags-Bild, 10 Herzpunkte und abends ein Feuerwerk.
 - **Greifautomat** im Möbelkatalog: im richtigen Moment antippen, der Greifer schnappt sich ein Kuscheltier (100 Taler pro Versuch). Zehn Kuscheltiere zum Sammeln – Teddy, Kätzchen, Pinguin, Küken, Frosch, Panda, Wal, Fuchs, Einhorn und der ganz seltene goldene Teddy. Verschenkt gibt es 2 Herzpunkte.

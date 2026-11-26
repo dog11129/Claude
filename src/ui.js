@@ -50,6 +50,13 @@ export const TABS = {
 };
 const TITLES = { depthdoor: '🎵 Die singende Tür', guide: '📘 Inselführer', balloon: '🎈 Ballonplatz', grill: '🔥 Strandgrill', butterfly: '🦋 Schmetterlingshaus', wrecklock: '🔒 Kapitänskajüte', games: '🎲 Spieleabend', stars: '✨ Sternbilder', cable: '🚡 Seilbahn', reef: '🪸 Korallenriff', castle: '🏰 Sandburg', visitor: '💬 Besuch', piano: '🎹 Klavier & Inselmelodie', patterns: '🎨 Muster-Editor', night: '🏮 Nachtmarkt', stall: '🏪 Tauschstand', news: '📰 Inselbote', book: '📸 Fotobuch', catalog: '📦 Möbelkatalog', chest: '🧰 Lagerkiste', give: '🎁 Etwas schenken', mayor: '🏛️ Rathaus', fund: '🏗️ Baustelle', boat: '⛵ Käpt\'n Flossis Boot', boatback: '⛵ Käpt\'n Flossis Boot', tailor: '🧵 Schneiderei Wollknäuel', garden: '🌱 Gärtnerei Knolle', club: '🌙 Mondschein-Club', hut: '🦜 Kikis Tauschhütte', phone: '📱 Inselhandy', map: '🗺️ Inselkarte', turnip: '📈 Rübenbörse', designer: '🧱 Insel-Designer', recipes: '🔨 Rezepte', shop: '🛒 Krämerladen', sell: '🎒 Taschen & Verkauf', orders: '📋 Inselbuch', museum: '🏛️ Museum', friends: '👥 Freunde', emotes: '😊 Emotes', settings: '⚙️ Menü', craft: '🔨 Werkbank', cook: '🍳 Gartenküche', together: '💞 Zusammen', mail: '💌 Briefkasten', contest: '🏆 Turnierstand', diary: '📔 Kuschel-Tagebuch', fests: '🎉 Festkalender', letter: '✍️ Brief schreiben' };
 
+// Kopfleisten-Farbe je Fenster: Rosa für alles zu zweit, Grün für Garten & Natur, Blau fürs Meer und die Technik, Flieder für Abend & Musik
+const PANEL_KIND = Object.fromEntries(Object.entries({
+  love: ['herz', 'bind10', 'wedding', 'give', 'mail', 'letter', 'friends', 'claw11', 'visitor', 'social', 'diary', 'book'],
+  green: ['garden', 'butterfly', 'guide', 'farm', 'seeds', 'animals', 'oskar', 'hilde', 'collection', 'museum', 'balloon', 'grill'],
+  blue: ['boat', 'boatback', 'reef', 'cable', 'wrecklock', 'depthdoor', 'settings', 'map', 'fish', 'castle', 'hut', 'weather'],
+  lilac: ['club', 'night', 'piano', 'patterns', 'games', 'stars', 'dreamshop', 'grubi', 'tailor', 'duel'],
+}).flatMap(([k, list]) => list.map(n => [n, k])));
 function row(icon, title, sub, buttons, locked) {
   return `<div class="row${locked ? ' locked' : ''}"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${buttons}</div></div>`;
 }
@@ -882,6 +889,7 @@ export class Panels {
     this.sig = null;
     $('panel').classList.remove('hidden');
     $('panel').classList.toggle('phone', kind === 'phone');
+    $('panel').dataset.k = PANEL_KIND[kind] || 'sun'; // Farbe der Kopfleiste (index.html: Insel-Look 2)
     $('ptitle').textContent = TITLES[kind];
     $('ptabs').innerHTML = (TABS[kind] || []).map(([id, l]) => `<button data-tab="${id}">${l}</button>`).join('');
     $('ptabs').classList.toggle('hidden', !TABS[kind]);

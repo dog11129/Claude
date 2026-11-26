@@ -432,11 +432,14 @@ export function makeNpc(id) {
       case 'sad':
         t.hx = 0.42; t.tx += 0.12; t.aLx = t.aRx = 0.12; t.aLz = t.aRz = 0.04; t.ear = -0.5; t.y -= 0.015; t.tail = 0; t.tailX = -0.5; t.eye = 0.6;
         break;
+      case 'sleep': // liegt im Bett: Augen zu, alles entspannt, ruhiger Atem
+        t.eye = 0.06; t.aLx = t.aRx = 0; t.aLz = t.aRz = 0.3; t.ear = -0.25; t.tail = 0; t.hx = 0; t.hz = Math.sin(T * 0.7) * 0.04; t.y = 0; t.rz = 0; t.lL = t.lR = 0;
+        break;
       case 'surprised':
         t.y += Math.max(0, Math.sin(Math.min(Math.PI, moodT * 7))) * 0.2; t.hx = -0.15; t.aLx = t.aRx = -0.3; t.aLz = t.aRz = 1.1; t.ear = 0.35; t.eye = 1.3;
         break;
     }
-    if (T > blinkAt) { if (T > blinkAt + 0.13) blinkAt = T + 2 + Math.random() * 3; else if (mood !== 'surprised') t.eye = 0.1; }
+    if (T > blinkAt && mood !== 'sleep') { if (T > blinkAt + 0.13) blinkAt = T + 2 + Math.random() * 3; else if (mood !== 'surprised') t.eye = 0.1; }
 
     const k = 1 - Math.exp(-dt * 16);
     for (const n in c) c[n] += (t[n] - c[n]) * k;

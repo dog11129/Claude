@@ -117,7 +117,7 @@ export const PRESETS = {
   high:  { scale: 1.0, shadows: 2048, bloom: true, grass: 9, lights: true, view: 1.2, fps: 0 },
   ultra: { scale: 1.25, shadows: 4096, bloom: true, grass: 12, lights: true, view: 1.5, fps: 0 },
 };
-export const SETTING_DEFAULTS = { camSpeed: 1, mouseSens: 1, zoomSpeed: 1, invert: false, camAngle: 0.74, camSmooth: 1, uiScale: 1, anim: true, textScale: 1, cbMode: false, lefty: false, contrast: false, panelBg: 'klar', panelDim: 0.45, panelBlur: true, confirmSell: true };
+export const SETTING_DEFAULTS = { camSpeed: 1, mouseSens: 1, zoomSpeed: 1, invert: false, camAngle: 0.74, camSmooth: 1, uiScale: 1, anim: true, textScale: 1, cbMode: false, lefty: false, contrast: false, panelBg: 'klar', panelDim: 0.45, panelBlur: true, confirmSell: true, weather: 1 };
 // tab: 'look' (Anzeige & Lesbarkeit), 'gfx' (Grafik), 'ctrl' (Steuerung), 'sound' (Klang) oder 'all' (Hauptmenü: alles)
 export function settingsHtml(st, touch, tab = 'all') {
   const seg = (k, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-set="${k}" data-v="${v}" class="${String(st[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
@@ -162,6 +162,6 @@ export function settingsHtml(st, touch, tab = 'all') {
     ${touch ? row('Linkshänder', tog('lefty'), 'Steuerkreuz rechts, Aktionsknopf links') : ''}
     ${row('⛶ Vollbild', touch ? tog('fullscreen') : '<button class="btn small white" data-ui="fullscreen">Umschalten</button>')}
     ${row('🎮 Controller', '<small>einfach anschließen</small>', 'Linker Stick laufen · rechter Stick drehen · A Aktion · B zurück · X Tasche · Y Handy · LB/RB Werkzeug · Start Menü')}`);
-  const sound = box('🎵 Klang', `${row('Musik', vol('music'))}${row('Geräusche', vol('sound'))}`);
+  const sound = box('🎵 Klang', `${row('Musik', vol('music'))}${row('Geräusche', vol('sound'))}${row('🌧️ Wetter', vol('weather'), 'Nur Regen und Donner leiser stellen – alles andere bleibt, wie es ist')}`);
   return { look, gfx, ctrl, sound }[tab] || gfx + look + ctrl + sound;
 }

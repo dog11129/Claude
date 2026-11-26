@@ -34,6 +34,7 @@ import { initFun7, execute9, update9, usable9 } from './client/fun7.js';
 import { initFun8, execute10, update10, usable10 } from './client/fun8.js';
 import { initFun9, uiH, update11 } from './client/fun9.js';
 import { loveSocial } from './extras10.js';
+import { nhomeState, doorNote, nhomeNews } from './extras12.js';
 import { duelName } from './extras8.js';
 import { APP_PANELS_7 } from './ui-extra4.js';
 import { APP_PANELS_8 } from './ui-extra5.js';
@@ -68,6 +69,7 @@ if (!PRESETS[settings.quality]) settings.quality = 'mid';
 for (const [k, v] of Object.entries({ ...PRESETS[settings.quality], ...SETTING_DEFAULTS })) if (settings[k] === undefined) settings[k] = v;
 audio.sound = settings.sound;
 audio.music = settings.music;
+audio.weather = typeof settings.weather === 'number' ? settings.weather : 1;
 
 // Blender-Modelle laden (der Ladebildschirm zeigt den Fortschritt)
 // Modell-Pakete: Liste in assets/models/packs.json (dort neue Pakete eintragen, z. B. "custom"), sonst die eingebauten
@@ -1363,6 +1365,7 @@ document.addEventListener('change', e => { if (e.target.dataset?.rng) applySetti
 function applySettings(k, redraw) {
   store.set('kh.settings', settings);
   audio.sound = settings.sound;
+  audio.weather = typeof settings.weather === 'number' ? settings.weather : 1;
   setVolumes();
   if (k === 'music') setMusic(settings.music);
   if (k === 'quality') Object.assign(settings, PRESETS[settings.quality]);
@@ -2075,9 +2078,7 @@ function execute(r, fresh) {
   }
   if ((r.ui || r.enter || r.visit) && fresh) world.boingNear(me.x, me.z);
   if (r.visit) {
-    if (fresh && world.npcM?.get(r.visit)?.awake !== false && S.hearts(G.s, r.visit) >= 3 && S.npcAwake(G.s)) { interrupt(); travel('nroom:' + r.visit); return; }
-    if (fresh && S.hearts(G.s, r.visit) < 3) { toast(`🚪 Klopf, klopf … Ab 3 Herzen lädt ${NPCS[r.visit].icon} ${NPCS[r.visit].name} dich zu sich nach Hause ein.`); play('door'); return; }
-    if (fresh) { const n = NPCS[r.visit], away = world.npcM?.get(r.visit)?.awake; toast(away ? `🚪 Klopf, klopf … ${n.icon} ${n.name} ist gerade draußen auf der Insel unterwegs.` : `🌙 ${n.icon} ${n.name} schläft schon. Pssst!`); play('door'); }
+    if (fresh) { interrupt(); travel('nroom:' + r.visit); } // die Tür steht immer offen – auch wenn niemand da ist oder schon geschlafen wird
     return;
   }
   if (r.petals) { if (fresh) { animate('shake'); if (r.shake) world.shakeNear(r.shake[0], r.shake[1]); for (let i = 0; i < 6; i++) world.burst(r.petals.x, r.petals.z, 'petal', 2.2); play('water'); } return; }
@@ -2176,8 +2177,9 @@ function aimAt(cx, cy) {
 // Zu Besuch im Zimmer eines Nachbarn
 function nroomTravel(id) {
   if (!NPCS[id]) return null;
-  const z0 = S.nroomZ(id), w = wishNow(G.s, id);
-  return [S.HOME_X, z0 + S.NROOM_SIZE[1] / 2 - 0.7, Math.PI, `🏠 ${NPCS[id].icon} ${NPCS[id].name}: „Komm rein!“${w ? ' – sprich mich an, ich hab einen Einrichtungswunsch.' : ''}`, 'door'];
+  const z0 = S.nroomZ(id), w = wishNow(G.s, id), st = nhomeState(G.s, id), n = NPCS[id], N = nhomeNews(G.s, id), h3 = S.hearts(G.s, id) >= 3;
+  const hello = st === 'home' ? `🏠 ${n.icon} ${n.name}: „Komm rein!“${w && h3 ? ' – sprich mich an, ich hab einen Einrichtungswunsch.' : N && !N.told ? ' – ich muss dir was zeigen!' : ''}` : doorNote(G.s, id);
+  return [S.HOME_X, z0 + S.NROOM_SIZE[1] / 2 - 0.7, Math.PI, hello, 'door'];
 }
 // Höhlen-Tiefen: hinab (depth:N) oder hinauf (depthup:N)
 function depthTravel(where) {
@@ -2341,6 +2343,7 @@ function talkCtx(id) {
   const s = G.s, partner = Object.values(G.players).find(p => p.id !== G.me);
   return { hearts: S.hearts(s, id), season: S.seasonOf(s.day), weather: s.weather, hour: 6 + s.dayTime * 18, player: profile.name, partner: partner?.name || null, day: s.day, fest: S.festOf(s.day), bday: S.birthdayOf(s.day) };
 }
+const anyOf = a => a[Math.floor(Math.random() * a.length)];
 function openTalk(id) {
   if (!G?.ready || !NPCS[id]) return;
   interrupt();
@@ -2358,8 +2361,13 @@ function openTalk(id) {
   $('dlgname').innerHTML = `${N.icon} ${N.name}<small>${'❤️'.repeat(Math.ceil(h / 2)) || '🤍'}</small>`;
   const ctx = talkCtx(id), tale = taleState(G.s, id), home = S.inside(me) && S.roomIdAt(me.z) === id, wish = home ? wishNow(G.s, id) : null;
   updTale(id);
-  $('dlgwish').classList.toggle('hidden', !home);
-  if (home) { say2(wish ? `Schön, dass du mich besuchst! Ich hätte da einen Wunsch: ${wish.t}` : 'Mein Zimmer ist ein Traum – dank dir! Setz dich doch!'); world.npcSay(id, 'happy'); play('chat'); return; }
+  const h3 = h >= 3, news = home ? nhomeNews(G.s, id) : null;
+  $('dlgwish').classList.toggle('hidden', !home || !h3);
+  if (home) {
+    if (news && !news.told) { say2(news.say); send({ t: 'nhome12', op: 'told', id }); }
+    else say2(!h3 ? anyOf(['Oh, Besuch! Schau dich ruhig um – ich richte mich gerade erst ein.', 'Schön, dass du vorbeischaust! Wenn wir uns besser kennen, darfst du mir beim Einrichten helfen.', 'Mach es dir bequem! Wie gefällt dir mein Zuhause?']) : wish ? `Schön, dass du mich besuchst! Ich hätte da einen Wunsch: ${wish.t}` : 'Mein Zimmer ist ein Traum – dank dir! Setz dich doch!');
+    world.npcSay(id, 'happy'); play('chat'); return;
+  }
   say2(festLine(id, ctx) || (tale.ready ? (tale.t.ch ? `Du, ${profile.name || 'du'} … erinnerst du dich an „${tale.T.title}“? Ich hätte da noch eine Idee! (📖)` : `Du, ${profile.name || 'du'} … darf ich dir etwas erzählen? Ich hab da so einen Traum. (📖)`) : npcLine(id, ctx)));
   world.npcSay(id, 'happy');
   play(ctx.bday === id ? 'party' : 'chat');

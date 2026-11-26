@@ -47,6 +47,19 @@ export const CROPS = {
   brokkoli:    { name: 'Brokkoli',       icon: '🥦', seed: 35,  sell: 85,  grow: 140, lvl: 4, cat: 'veg',   xp: 3, sea: ['autumn', 'winter'] },
   traube:      { name: 'Weintrauben',    icon: '🍇', seed: 90,  sell: 160, grow: 260, lvl: 5, cat: 'veg',   xp: 5, regrow: 120, sea: ['autumn'] },
   melone:      { name: 'Melone',         icon: '🍉', seed: 150, sell: 420, grow: 320, lvl: 6, cat: 'veg',   xp: 10, sea: ['summer'] },
+  // Inselleben 12: acht neue Blumen aus der Gärtnerei Knolle und vier Gemüsesorten
+  veilchen:    { name: 'Veilchen',       icon: '💜', seed: 50,  sell: 110, grow: 120, lvl: 1, cat: 'fruit', xp: 2, flower: 0x8a5cf0, regrow: 100, sea: ['spring', 'autumn', 'winter'], garden: 1 },
+  anemone:     { name: 'Anemone',        icon: '🌺', seed: 60,  sell: 130, grow: 150, lvl: 2, cat: 'fruit', xp: 2, flower: 0xe8384c, regrow: 110, sea: ['spring', 'autumn'], garden: 1 },
+  iris:        { name: 'Schwertlilie',   icon: '🪻', seed: 70,  sell: 150, grow: 160, lvl: 2, cat: 'fruit', xp: 3, flower: 0x7a6cf0, regrow: 120, sea: ['spring', 'summer'], garden: 1 },
+  ranunkel:    { name: 'Ranunkel',       icon: '🏵️', seed: 80,  sell: 170, grow: 170, lvl: 3, cat: 'fruit', xp: 3, flower: 0xffa24a, regrow: 130, sea: ['spring'], garden: 1 },
+  sonnenhut:   { name: 'Sonnenhut',      icon: '🌼', seed: 70,  sell: 150, grow: 170, lvl: 3, cat: 'fruit', xp: 3, flower: 0xf070a8, regrow: 130, sea: ['summer', 'autumn'], garden: 1 },
+  aster:       { name: 'Aster',          icon: '🌸', seed: 70,  sell: 150, grow: 160, lvl: 3, cat: 'fruit', xp: 3, flower: 0xb070e0, regrow: 120, sea: ['autumn'], garden: 1 },
+  lupine:      { name: 'Lupine',         icon: '🪻', seed: 90,  sell: 190, grow: 190, lvl: 4, cat: 'fruit', xp: 4, flower: 0x5f7cf0, regrow: 140, sea: ['summer'], garden: 1 },
+  chrysantheme: { name: 'Chrysantheme',  icon: '🌼', seed: 90,  sell: 190, grow: 190, lvl: 4, cat: 'fruit', xp: 4, flower: 0xf2b83a, regrow: 140, sea: ['autumn', 'winter'], garden: 1 },
+  radieschen:  { name: 'Radieschen',     icon: '🔴', seed: 15,  sell: 45,  grow: 70,  lvl: 1, cat: 'veg',   xp: 1, sea: ['spring', 'autumn'] },
+  gurke:       { name: 'Gurke',          icon: '🥒', seed: 30,  sell: 75,  grow: 130, lvl: 2, cat: 'veg',   xp: 2, regrow: 100, sea: ['summer'] },
+  paprika:     { name: 'Paprika',        icon: '🫑', seed: 45,  sell: 110, grow: 170, lvl: 4, cat: 'veg',   xp: 3, regrow: 110, sea: ['summer', 'autumn'] },
+  aubergine:   { name: 'Aubergine',      icon: '🍆', seed: 50,  sell: 125, grow: 190, lvl: 5, cat: 'veg',   xp: 4, regrow: 120, sea: ['summer', 'autumn'] },
 };
 // Pfingstrosen in vielen Farben: fünf gibt es in der Gärtnerei Knolle, die anderen nur durch Kreuzen (siehe HYBRIDS)
 const PEONY = ['spring', 'summer', 'autumn'];
@@ -332,6 +345,11 @@ export const ITEMS = {
   cupcake:     { name: 'Erdbeer-Cupcake',    icon: '🧁', sell: 560,  cat: 'dish', xp: 5 },
   macarons:    { name: 'Rosen-Macarons',     icon: '🌸', sell: 680,  cat: 'dish', xp: 6 },
   herzchentorte: { name: 'Herzchentorte',    icon: '🎂', sell: 1900, cat: 'dish', xp: 10 },
+  // Inselleben 12: Küche mit dem neuen Gemüse
+  gurkensalat:   { name: 'Gurkensalat',      icon: '🥗', sell: 300,  cat: 'dish', xp: 3 },
+  paprikapfanne: { name: 'Paprikapfanne',    icon: '🍲', sell: 620,  cat: 'dish', xp: 6 },
+  ofengemuese:   { name: 'Ofengemüse',       icon: '🍆', sell: 700,  cat: 'dish', xp: 6 },
+  blaubeermuffin: { name: 'Blaubeermuffin',  icon: '🧁', sell: 540,  cat: 'dish', xp: 5 },
   saft:      { name: 'Orangensaft',  icon: '🧃', sell: 420, cat: 'dish', xp: 4 },
   sorbet:    { name: 'Pfirsich-Sorbet', icon: '🍧', sell: 480, cat: 'dish', xp: 5 },
   kokosmilch:{ name: 'Kokos-Shake',  icon: '🥤', sell: 700, cat: 'dish', xp: 6 },
@@ -574,6 +592,21 @@ export const PLACE = {
   windpokal:  { name: 'Drachen-Pokal',  icon: '🏆', lvl: 1, kind: 'deco', solid: 1, desc: 'Gewonnen beim Drachenfest' },
   grundstueck: { name: 'Grundstück',    icon: '🪧', lvl: 1, kind: 'deco', solid: 1, desc: 'Hier zieht am nächsten Morgen euer neuer Nachbar ein' },
   nachbarhaus: { name: 'Nachbarhaus',   icon: '🏠', lvl: 1, kind: 'deco', solid: 1, desc: 'Hier wohnt Besuch, der geblieben ist' },
+  // Inselleben 12: mehr für den Garten (Gärtnerei Knolle) und zum Verweilen
+  lavendelbusch: { name: 'Lavendelbusch', icon: '💜', buy: 500,  lvl: 1, kind: 'deco', solid: 1, garden: 1 },
+  pampasgras:  { name: 'Pampasgras',      icon: '🌾', buy: 600,  lvl: 1, kind: 'deco', solid: 1, garden: 1 },
+  hochbeet:    { name: 'Hochbeet',        icon: '🥬', buy: 900,  lvl: 1, kind: 'deco', solid: 1, garden: 1 },
+  blumenschubkarre: { name: 'Blumen-Schubkarre', icon: '🌼', buy: 1100, lvl: 1, kind: 'deco', solid: 1, garden: 1 },
+  herzhecke:   { name: 'Herz-Hecke',      icon: '💚', buy: 1500, lvl: 2, kind: 'deco', solid: 1, garden: 1 },
+  blumenfahrrad: { name: 'Blumenfahrrad', icon: '🚲', buy: 1800, lvl: 2, kind: 'deco', solid: 1, garden: 1 },
+  feenhaus:    { name: 'Feenhäuschen',    icon: '🍄', buy: 2200, lvl: 3, kind: 'deco', solid: 1, glow: 1, garden: 1 },
+  giesskannenbrunnen: { name: 'Gießkannen-Brunnen', icon: '⛲', buy: 2600, lvl: 3, kind: 'deco', solid: 1, garden: 1 },
+  magnolie:    { name: 'Magnolie',        icon: '🌸', buy: 3400, lvl: 4, kind: 'deco', solid: 1, garden: 1 },
+  japanahorn:  { name: 'Japanischer Ahorn', icon: '🍁', buy: 3400, lvl: 4, kind: 'deco', solid: 1, garden: 1 },
+  vogelvilla:  { name: 'Vogelvilla',      icon: '🐦', buy: 1400, lvl: 2, kind: 'deco', solid: 1 },
+  entenhaus:   { name: 'Entenhäuschen',   icon: '🦆', buy: 1600, lvl: 2, kind: 'deco', solid: 1 },
+  lichterbogen: { name: 'Lichterbogen',   icon: '✨', buy: 2800, lvl: 3, kind: 'deco', glow: 1 },
+  hollywoodschaukel: { name: 'Hollywoodschaukel', icon: '🛋️', buy: 3200, lvl: 3, kind: 'deco', solid: 1, sit: 1 },
 };
 // Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
 export const PROJECTS = {
@@ -778,6 +811,10 @@ export const RECIPES = {
   cupcake: { st: 'cook', out: 'cupcake', n: 1, in: { mehl: 1, zucker: 1, ei: 1, erdbeere: 2 } },
   macarons: { st: 'cook', out: 'macarons', n: 1, in: { zucker: 2, ei: 2, rose: 1 } },
   herzchentorte: { st: 'cook', out: 'herzchentorte', n: 1, in: { mehl: 2, zucker: 2, ei: 2, erdbeere: 3, milch: 1 } },
+  gurkensalat: { st: 'cook', out: 'gurkensalat', n: 1, in: { gurke: 2, salatkopf: 1 } },
+  paprikapfanne: { st: 'cook', out: 'paprikapfanne', n: 1, in: { paprika: 2, tomate: 1, kartoffel: 1 } },
+  ofengemuese: { st: 'cook', out: 'ofengemuese', n: 1, in: { aubergine: 1, paprika: 1, kartoffel: 2 } },
+  blaubeermuffin: { st: 'cook', out: 'blaubeermuffin', n: 2, in: { mehl: 1, zucker: 1, ei: 1, blaubeere: 2 } },
   apfelmus: { st: 'cook', out: 'apfelmus', n: 1, in: { apfel: 3, zucker: 1 } },
   traubensaft: { st: 'cook', out: 'traubensaft', n: 1, in: { traube: 3 } },
   kirschkompott: { st: 'cook', out: 'kirschkompott', n: 1, in: { kirsche: 3, zucker: 1 } },

@@ -18,7 +18,8 @@ test('Alter Spielstand: neue Felder, eigenes Haus bleibt wie es war', () => {
   assert.equal(s.wreck.code.length, 4);
   assert.deepEqual([...s.wreck.code].sort(), [...Z.WRECK_SYMS].sort());
   assert.deepEqual(s.consts, []);
-  assert.deepEqual(s.nhome, {});
+  // Nachbarn richten sich seit Inselleben 12 selbst ein: nur ihr Bett und eigene Stücke (npc), nichts vom Spieler erfunden
+  for (const h of Object.values(s.nhome)) for (const o of Object.values(h.items)) assert.ok(o.npc || o.k === 'einzelbett', o.k);
   assert.equal(s.photoc.theme, Z.photoTheme(s));
   assert.deepEqual(s.home.items, o.home?.items || s.home.items);
   // der Code bleibt beim erneuten Laden gleich
@@ -27,7 +28,8 @@ test('Alter Spielstand: neue Felder, eigenes Haus bleibt wie es war', () => {
   const b = migrate({ ...old(), wreck: { code: ['x'] }, consts: [{ n: 1 }], nhome: { mira: { items: 5, w: 9 }, niemand: {} }, game: { k: 'c4' } });
   assert.equal(b.wreck.code.length, 4);
   assert.deepEqual(b.consts, []);
-  assert.deepEqual(b.nhome.mira.items, {});
+  assert.equal(typeof b.nhome.mira.items, 'object');
+  for (const o of Object.values(b.nhome.mira.items)) assert.ok(o.npc || o.k === 'einzelbett', o.k);
   assert.equal(b.nhome.mira.w, 3);
   assert.ok(!b.nhome.niemand);
   assert.equal(b.game, null);
