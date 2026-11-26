@@ -97,6 +97,10 @@ function applyView() {
   document.body.classList.toggle('cb', !!settings.cbMode);
   document.body.classList.toggle('hc', !!settings.contrast);
   document.body.classList.toggle('lefty', !!settings.lefty);
+  // Fenster: Hintergrund (klar / weiß / Papier), Abdunkeln & Weichzeichnen der Spielwelt dahinter
+  for (const k of ['klar', 'weiss', 'papier']) document.body.classList.toggle('pbg-' + k, (settings.panelBg || 'klar') === k);
+  document.documentElement.style.setProperty('--dim', settings.panelDim ?? 0.45);
+  document.body.classList.toggle('noblur', settings.panelBlur === false);
 }
 applyView();
 addEventListener('resize', () => world.resize());
@@ -1344,7 +1348,7 @@ function applySettings(k, redraw) {
   setVolumes();
   if (k === 'music') setMusic(settings.music);
   if (k === 'quality') Object.assign(settings, PRESETS[settings.quality]);
-  if (['quality', 'scale', 'shadows', 'bloom', 'grass', 'lights', 'view', 'camSmooth', 'camAngle', 'anim', 'uiScale', 'textScale', 'cbMode', 'contrast', 'lefty'].includes(k)) { store.set('kh.settings', settings); applyView(); }
+  if (['quality', 'scale', 'shadows', 'bloom', 'grass', 'lights', 'view', 'camSmooth', 'camAngle', 'anim', 'uiScale', 'textScale', 'cbMode', 'contrast', 'lefty', 'panelBg', 'panelDim', 'panelBlur'].includes(k)) { store.set('kh.settings', settings); applyView(); }
   if (k === 'landscape') applyLandscape();
   if (k === 'fullscreen' && settings.fullscreen !== isFs()) toggleFullscreen();
   if (redraw && menuScreen === 'settings' && !$('menu').classList.contains('hidden')) $('msettings').innerHTML = settingsHtml(settings, touch);

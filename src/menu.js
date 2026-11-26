@@ -116,16 +116,32 @@ export const PRESETS = {
   high:  { scale: 1.0, shadows: 2048, bloom: true, grass: 9, lights: true, view: 1.2, fps: 0 },
   ultra: { scale: 1.25, shadows: 4096, bloom: true, grass: 12, lights: true, view: 1.5, fps: 0 },
 };
-export const SETTING_DEFAULTS = { camSpeed: 1, mouseSens: 1, zoomSpeed: 1, invert: false, camAngle: 0.74, camSmooth: 1, uiScale: 1, anim: true, textScale: 1, cbMode: false, lefty: false, contrast: false };
+export const SETTING_DEFAULTS = { camSpeed: 1, mouseSens: 1, zoomSpeed: 1, invert: false, camAngle: 0.74, camSmooth: 1, uiScale: 1, anim: true, textScale: 1, cbMode: false, lefty: false, contrast: false, panelBg: 'klar', panelDim: 0.45, panelBlur: true, confirmSell: true };
+// tab: 'look' (Anzeige & Lesbarkeit), 'gfx' (Grafik), 'ctrl' (Steuerung), 'sound' (Klang) oder 'all' (Hauptmenü: alles)
 export function settingsHtml(st, touch, tab = 'all') {
   const seg = (k, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-set="${k}" data-v="${v}" class="${String(st[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   const tog = k => `<button class="toggle ${st[k] ? 'on' : ''}" data-tog="${k}" aria-label="${k}"><i></i></button>`;
   const vol = k => `<input type="range" min="0" max="100" value="${Math.round(st[k] * 100)}" data-vol="${k}">`;
   const rng = (k, min, max, step, fmt) => `<span class="rng"><input type="range" min="${min}" max="${max}" step="${step}" value="${st[k]}" data-rng="${k}"><output>${fmt(st[k])}</output></span>`;
   const pct = v => Math.round(v * 100) + ' %';
-  const row = (label, ctl, hint) => `<div class="set"><b>${label}${hint ? `<br><small style="font-weight:400;color:var(--soft)">${hint}</small>` : ''}</b>${ctl}</div>`;
+  const row = (label, ctl, hint) => `<div class="set"><b>${label}${hint ? `<br><small>${hint}</small>` : ''}</b>${ctl}</div>`;
+  const box = (title, body) => `<section class="setbox"><h3 class="sethead">${title}</h3>${body}</section>`;
   const preset = Object.keys(PRESETS).find(p => Object.entries(PRESETS[p]).every(([k, v]) => st[k] === v)) || 'custom';
-  return `<h3 class="sethead">🎨 Grafik</h3>
+  const look = box('📖 Lesbarkeit', `
+    ${row('Fenster-Hintergrund', seg('panelBg', [['klar', 'Klar'], ['weiss', 'Weiß'], ['papier', 'Papier']]), 'Klar & Weiß: ruhiger Hintergrund, gut lesbar · Papier: mit Notizbuch-Punkten')}
+    ${row('Spielwelt hinter Fenstern', seg('panelDim', [[0.2, 'Hell'], [0.45, 'Abgedunkelt'], [0.7, 'Dunkel']]), 'Je dunkler, desto ruhiger wirkt das Fenster')}
+    ${row('Weichzeichnen', tog('panelBlur'), 'Die Spielwelt hinter Fenstern unscharf machen')}
+    ${row('Textgröße', seg('textScale', [[1, 'Normal'], [1.15, 'Groß'], [1.3, 'Sehr groß']]), 'Fenster, Gespräche und Hinweise')}
+    ${row('Hoher Kontrast', tog('contrast'), 'Dunklere Schrift, deutlichere Ränder')}
+    ${row('Farbenblind-Hilfe', tog('cbMode'), 'Zeichen ✔ ✖ statt nur Rot/Grün, kräftigere Farben')}`)
+    + box('🖥️ Anzeige', `
+    ${row('Größe der Knöpfe', seg('uiScale', [[0.85, 'Klein'], [1, 'Normal'], [1.15, 'Groß'], [1.3, 'Riesig']]))}
+    ${row('🏷️ Namen anzeigen', tog('names'), 'Namen über Figuren und Nachbarn')}
+    ${row('Animationen', tog('anim'), 'Wippen, Fahnen, Windräder, Hüpfer')}
+    ${touch ? row('📱 Querformat', tog('landscape')) : ''}
+    ${row('🕰️ Echte Uhrzeit', tog('realtime'), 'Tag & Nacht wie draußen (gilt für die Insel des Hosts)')}
+    ${row('💰 Vor dem Verkaufen nachfragen', tog('confirmSell'), 'Bei wertvollen Sachen und „Alles verkaufen“')}`);
+  const gfx = box('🎨 Grafik', `
     <div class="set"><b>Voreinstellung</b><div class="seg">${[['low', 'Niedrig'], ['mid', 'Mittel'], ['high', 'Hoch'], ['ultra', 'Ultra']].map(([v, l]) => `<button data-set="quality" data-v="${v}" class="${preset === v ? 'on' : ''}">${l}</button>`).join('')}${preset === 'custom' ? '<button class="on" disabled>Eigene</button>' : ''}</div></div>
     ${row('Auflösung', rng('scale', 0.5, 1.5, 0.05, pct), 'Weniger = flüssiger auf schwachen Geräten')}
     ${row('Schatten', seg('shadows', [[0, 'Aus'], [1024, 'Weich'], [2048, 'Schön'], [4096, 'Scharf']]))}
@@ -133,28 +149,18 @@ export function settingsHtml(st, touch, tab = 'all') {
     ${row('Laternenlicht', tog('lights'), 'Laternen beleuchten nachts ihre Umgebung')}
     ${row('Grashalme', rng('grass', 0, 12, 1, v => v ? v : 'Aus'))}
     ${row('Sichtweite', rng('view', 0.6, 1.8, 0.1, pct))}
-    ${row('Bilder pro Sekunde', seg('fps', [[30, '30'], [60, '60'], [0, 'Max']]), 'Begrenzen spart Akku')}
-    ${row('Animationen', tog('anim'), 'Wippen, Fahnen, Windräder, Hüpfer')}
-    <h3 class="sethead">🎥 Kamera & Steuerung</h3>
+    ${row('Bilder pro Sekunde', seg('fps', [[30, '30'], [60, '60'], [0, 'Max']]), 'Begrenzen spart Akku')}`);
+  const ctrl = box('🎥 Kamera', `
     ${row('Drehtempo (Tasten Z/C)', rng('camSpeed', 0.3, 2.5, 0.1, pct))}
     ${row(touch ? 'Wisch-Empfindlichkeit' : 'Maus-Empfindlichkeit', rng('mouseSens', 0.2, 3, 0.1, pct), touch ? 'Drehen mit zwei Fingern' : 'Drehen mit gedrückter rechter Maustaste')}
     ${row('Zoom-Tempo', rng('zoomSpeed', 0.3, 3, 0.1, pct))}
     ${row('Kamera folgt', rng('camSmooth', 0.3, 2, 0.1, v => v < 0.8 ? 'weich' : v > 1.3 ? 'direkt' : 'normal'))}
     ${row('Blickwinkel', seg('camAngle', [[0.55, 'Flach'], [0.74, 'Normal'], [0.95, 'Steil']]))}
-    ${row('Drehrichtung umkehren', tog('invert'))}
-    <h3 class="sethead">🖥️ Anzeige</h3>
-    ${row('Größe der Knöpfe', seg('uiScale', [[0.85, 'Klein'], [1, 'Normal'], [1.15, 'Groß'], [1.3, 'Riesig']]))}
-    ${row('🏷️ Namen anzeigen', tog('names'))}
-    ${touch ? row('📱 Querformat', tog('landscape')) : ''}
-    ${row('🕰️ Echte Uhrzeit', tog('realtime'), 'Tag & Nacht wie draußen (gilt für die Insel des Hosts)')}
-    <h3 class="sethead">♿ Barrierefreiheit</h3>
-    ${row('Textgröße', seg('textScale', [[1, 'Normal'], [1.15, 'Groß'], [1.3, 'Sehr groß']]), 'Fenster, Gespräche und Hinweise')}
-    ${row('Farbenblind-Hilfe', tog('cbMode'), 'Zeichen ✔ ✖ statt nur Rot/Grün, kräftigere Farben')}
-    ${row('Hoher Kontrast', tog('contrast'), 'Dunklere Schrift, deutlichere Ränder')}
+    ${row('Drehrichtung umkehren', tog('invert'))}`)
+    + box('🎮 Bedienung', `
     ${touch ? row('Linkshänder', tog('lefty'), 'Steuerkreuz rechts, Aktionsknopf links') : ''}
-    ${row('🎮 Controller', '<small style="color:var(--soft)">einfach anschließen</small>', 'Linker Stick laufen · rechter Stick drehen · A Aktion · B zurück · X Tasche · Y Handy · LB/RB Werkzeug · Start Menü')}
     ${row('⛶ Vollbild', touch ? tog('fullscreen') : '<button class="btn small white" data-ui="fullscreen">Umschalten</button>')}
-    <h3 class="sethead">🎵 Klang</h3>
-    ${row('Musik', vol('music'))}
-    ${row('Geräusche', vol('sound'))}`;
+    ${row('🎮 Controller', '<small>einfach anschließen</small>', 'Linker Stick laufen · rechter Stick drehen · A Aktion · B zurück · X Tasche · Y Handy · LB/RB Werkzeug · Start Menü')}`);
+  const sound = box('🎵 Klang', `${row('Musik', vol('music'))}${row('Geräusche', vol('sound'))}`);
+  return { look, gfx, ctrl, sound }[tab] || gfx + look + ctrl + sound;
 }

@@ -102,3 +102,20 @@ test('Klippenbank: Sonnenuntergang zu zweit zählt einmal am Tag, nur abends', (
   const r = E.resolveObj8(s, s.obj['5,5'], '5,5', 5, 5, { x: 5, z: 4.5 });
   assert.ok(r.sit && r.sit.z < 5, 'nimmt den näheren Platz');
 });
+
+test('Taschen-Gruppen: Gruppe verkaufen, ganze Gruppe ein- und auslagern', async () => {
+  const { groupOf } = await import('../src/groups.js');
+  assert.equal(groupOf('barsch'), 'fish'); assert.equal(groupOf('apfel'), 'food'); assert.equal(groupOf('holz'), 'mat'); assert.equal(groupOf('ammonit'), 'finds'); assert.equal(groupOf('s_tulpe'), 'seed'); assert.equal(groupOf('stuhl'), 'home');
+  const s = farm();
+  Object.assign(s.inv, { barsch: 2, apfel: 5, holz: 10 });
+  const m0 = s.money;
+  assert.ok(S.act(s, { t: 'sellAll', g: 'fish' }, 'host').ok);
+  assert.equal(s.inv.barsch, undefined); assert.equal(s.inv.apfel, 5); assert.ok(s.money > m0);
+  assert.equal(S.act(s, { t: 'sellAll', g: 'quatsch' }, 'host').ok, false);
+  s.home.items['0,0'] = { k: 'kiste', r: 0 };
+  assert.ok(S.act(s, { t: 'stashAll', g: 'mat' }, 'host').ok);
+  assert.equal(s.box.holz, 10); assert.equal(s.inv.holz, undefined); assert.equal(s.inv.apfel, 5);
+  assert.equal(S.act(s, { t: 'stashAll', g: 'gear' }, 'host').ok, false, 'Werkzeug bleibt in der Tasche');
+  assert.ok(S.act(s, { t: 'unstashAll', g: 'mat' }, 'host').ok);
+  assert.equal(s.inv.holz, 10); assert.equal(s.box.holz, undefined);
+});

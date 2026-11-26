@@ -66,6 +66,14 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 - Im Baumodus einfach auf ein aufgestelltes Möbelstück (im Haus) oder auf Deko (draußen) tippen: Es wird aufgehoben und ist gleich zum Woandershinstellen ausgewählt – lackierte Möbel behalten dabei ihre Farbe. Wer es nicht wieder hinstellt, findet es in der Tasche.
 - Der Knopf **✋ Aufheben** oben in der Bauleiste (Taste X, am Controller X) packt mehrere Sachen nacheinander ein. Inselprojekte baut man nur so ab (mit Rückfrage); Nachbarhäuser bleiben stehen.
 
+### 🧾 Neu: übersichtlichere Fenster
+- **Besser lesbar:** Fenster haben einen ruhigen, klaren Hintergrund, die Spielwelt dahinter wird abgedunkelt und weichgezeichnet, Schrift und Hinweise sind kräftiger. Unter ⚙️ → 📖 Anzeige einstellbar (Klar / Weiß / Papier, wie stark abdunkeln, Weichzeichnen an/aus).
+- **Läden als Karten:** Krämerladen und Gärtnerei zeigen Bild, Name, kurze Infos (✓ Saison, Wachstum, Verkaufspreis, leuchtet, Sitzen …) und Kaufknöpfe auf einer Karte; die Anleitung steckt eingeklappt unter „💡 So geht's“.
+- **Taschen & Verkauf:** oben der Gesamtwert und „Alles verkaufen“, darunter nach Gruppen sortiert (Fische, Insekten, Funde, Essen, Material, Samen, Möbel …) – jede Gruppe lässt sich auf einmal verkaufen. Vor wertvollen Verkäufen fragt das Spiel nach (abschaltbar).
+- **Lagerkiste:** zwei Reiter „📤 Aus der Kiste“ und „📥 Einlagern“, Füllstand oben, ganze Gruppen mit einem Tipp ein- oder auslagern.
+- **Schenken:** klar, für wen das Geschenk ist, Sachen nach Gruppen, Mengen 1 / 5 / Alle.
+- **Menü & Einstellungen:** Inselinfo oben, Reiter für Anzeige, Grafik, Steuerung und Klang; die Hilfe ist in aufklappbare Themen gegliedert.
+
 ### 🌲 Inselleben 9: lebendige Gebiete
 - **Schöner:** Kiefernwald mit Farnen, Moossteinen, umgefallenen Stämmen, Lichtstrahlen und Morgennebel; Blütenwiese mit Blumeninseln, Fliederbüschen, einem alten Baum mit Schaukel und Zaun; Kristallhöhle mit Wasserfall in den See, Leuchtmoos-Flecken und Glühwurm-Punkten an den Wänden.
 - **Lebendiger:** Rehe grasen im Wald, Hasen hoppeln über die Wiese (wer rennt, verscheucht sie), Bienen summen um die Stöcke, Schmetterlinge flattern, nachts leuchten Glühwürmchen, Fledermäuse kreisen in der Höhle, Tropfen fallen, Nadeln und Blüten wehen.

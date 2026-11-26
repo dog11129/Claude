@@ -19,6 +19,7 @@ import { DEEPSEA_PRICE, DEEPSEA_LVL, ponyHappy } from './extras5.js';
 import { VOLCANO_PRICE, VOLCANO_LVL } from './extras4.js';
 import { TRIP_KINDS, TRIP_PRICE, tripLayout } from './trips.js';
 import { guideList } from './guide.js';
+import { grouped } from './groups.js';
 import { RIDE_PRICE, SKY_GIFTS, GARDEN_BUGS, GRILL_OF, grillParty, C4_W, C4_H, PHOTO_THEMES, photoTheme, BRIGHT, NWISH, ECHO_SYMS } from './extras3.js';
 import { REEF_DECO, reefScore, castleScore, CASTLE_MAX, SHELL_IDS, beachKind, beachOpen, cableBuilt, TALES } from './extras2.js';
 import { VISITORS, vhearts, MEL_NOTES, MEL_DEFAULT, WEATHER, WEEK_GOALS, catalogPrice, annivToday, cookDay, cookOpen, nightOpen, STALL_MAX } from './extras.js';
@@ -39,7 +40,8 @@ export const TABS = {
   orders: [['quests', '📜 Quests'], ['orders', '💬 Wünsche'], ['friends', '🏘️ Nachbarn'], ['album', '📖 Sammelbuch'], ['goals', '🏆 Erfolge'], ['stats', '📊 Insel']],
   mayor: [['projects', '🏗️ Projekte'], ['areas', '🗺️ Erweiterungen'], ['ords', '📜 Verordnungen'], ['house', '🏡 Haus & Kredit'], ['hha', '🛋️ Wohnwert'], ['stars', '⭐ Inselbewertung']],
   garden: [['seeds', '🌱 Samen'], ['plants', '🌳 Pflanzen']],
-  settings: [['menu', '⚙️ Menü'], ['options', '🎨 Optionen'], ['help', '❓ Hilfe']],
+  settings: [['menu', '⚙️ Menü'], ['look', '📖 Anzeige'], ['options', '🎨 Grafik'], ['ctrl', '🎮 Steuerung'], ['sound', '🎵 Klang'], ['help', '❓ Hilfe']],
+  chest: [['out', '📤 Aus der Kiste'], ['in', '📥 Einlagern']],
   piano: [['keys', '🎹 Klavier'], ['song', '🎶 Inselmelodie']],
   news: [['paper', '📰 Zeitung'], ['week', '🤝 Wochenziele']],
   book: [['pages', '📸 Momente'], ['photos', '🖼️ Fotos'], ['contest', '🏆 Wettbewerb'], ['anniv', '🎂 Jahrestage']],
@@ -52,7 +54,17 @@ function row(icon, title, sub, buttons, locked) {
 // Gegenstand als Kachel mit eigenem Bild (wird von icons.js nachgeladen)
 const itemCell = (id, n, buttons) => `<div class="icell" title="${esc(ITEMS[id].name)}">${itemIcon(id)}<b>${esc(ITEMS[id].name)}</b><span class="icn">${n}×</span><div class="ib">${buttons}</div></div>`;
 const mi = id => itemIcon(id, 'mini'); // kleines Bild im Text (Zutaten, Wünsche)
-const btn = (label, data, cls = '', dis = false) => `<button class="btn small ${cls}" data-act='${JSON.stringify(data)}' ${dis ? 'disabled' : ''}>${label}</button>`;
+const btn = (label, data, cls = '', dis = false, ask = '') => `<button class="btn small ${cls}" data-act='${JSON.stringify(data)}'${ask ? ` data-confirm="${esc(ask)}"` : ''} ${dis ? 'disabled' : ''}>${label}</button>`;
+// Laden-Karte: Bild, Name, ein paar Infos als Chips, Knöpfe unten (übersichtlicher als lange Zeilen)
+const chip = (txt, cls = '') => `<span class="chip ${cls}">${txt}</span>`;
+function pcard(icon, name, info, buttons, o = {}) {
+  return `<div class="pcard${o.locked ? ' locked' : ''}${o.have ? ' owned' : ''}">${o.have ? `<span class="pc-have">${o.have}×</span>` : ''}<div class="pc-ic">${icon}</div><b class="pc-name">${name}</b>${o.locked ? `<span class="lv">🔒 ab Level ${o.lvl}</span>` : ''}<div class="pc-info">${info}</div><div class="pc-bt">${buttons}</div></div>`;
+}
+const grid = cards => `<div class="pgrid">${cards.join('')}</div>`;
+const tip = txt => `<details class="tip"><summary>💡 So geht's</summary><p>${txt}</p></details>`;
+// Gegenstand mit Preis-/Mengenzeile (Verkauf, Kiste, Schenken)
+const cellX = (id, n, sub, buttons) => `<div class="icell">${itemIcon(id)}<b>${esc(ITEMS[id].name)}</b><span class="icn">${n}×</span>${sub ? `<small class="isub">${sub}</small>` : ''}<div class="ib">${buttons}</div></div>`;
+const groupHead = (title, extra = '', button = '') => `<div class="ghead"><b>${title}</b>${extra ? `<span>${extra}</span>` : ''}${button}</div>`;
 
 function upgradeRow(s, id) {
   const u = UPGRADES[id], i = upgradeInfo(s, id);
@@ -64,45 +76,40 @@ function upgradeRow(s, id) {
 
 function placeRow(s, id) {
   const p = PLACE[id], locked = p.lvl > s.level, have = s.inv[id] || 0;
-  let sub = p.desc || '';
-  if (p.kind === 'deco') sub = 'Zum Dekorieren eurer Insel';
-  sub += have ? ` · <b>${have}× im Lager</b>` : '';
-  return row(ITEMS[id] ? itemIcon(id) : p.icon, p.name + (locked ? lvTag(p.lvl) : ''), sub, btn(`🪙 ${p.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < p.buy), locked);
+  const info = [p.glow ? chip('✨ leuchtet nachts') : '', p.sit ? chip('🪑 zum Sitzen') : '', p.kind === 'producer' ? chip('🍎 trägt Obst') : '', p.farm ? chip('🐾 Tiere') : ''].join('');
+  return pcard(ITEMS[id] ? itemIcon(id) : p.icon, p.name, info || (p.desc ? `<small>${p.desc}</small>` : ''), btn(`🪙 ${p.buy.toLocaleString('de-DE')}`, { t: 'buy', id, n: 1 }, 'pink', locked || s.money < p.buy), { have, locked, lvl: p.lvl });
 }
 
 const SHOP = {
   seeds(s) {
     const sea = seasonOf(s.day);
-    let h = `<div class="note">Samen kaufen ➜ unten in der Leiste wählen ➜ irgendwo auf den Rasen pflanzen ➜ gießen 💧 (gegossen wachsen sie dreimal so schnell). Blumen blühen nach dem Pflücken immer wieder nach. Jetzt ist ${SEASONS[sea][1]} ${SEASONS[sea][0]}.</div>`;
+    let h = tip(`Samen kaufen ➜ unten in der Leiste wählen ➜ irgendwo auf den Rasen pflanzen ➜ gießen 💧 (gegossen wachsen sie dreimal so schnell). Blumen blühen nach dem Pflücken immer wieder nach.`);
+    h += `<div class="note">Jetzt ist ${SEASONS[sea][1]} <b>${SEASONS[sea][0]}</b> – Samen mit <b style="color:#4a9a3a">✓ Saison</b> wachsen jetzt am besten.</div>`;
+    const cards = { flower: [], veg: [] };
     for (const [k, c] of Object.entries(CROPS)) {
       if (c.garden || c.wild || c.rare) continue;
-      if (k === 'weizen') h += '<h3>🥕 Gemüse</h3>';
       const id = 's_' + k, locked = c.lvl > s.level, have = s.inv[id] || 0, ok = c.sea.includes(sea);
-      const sub = `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · Wächst in ${time(c.grow)}${c.regrow ? (isFlower(k) ? ' · blüht immer wieder' : ' · trägt immer wieder') : ''}${c.yield ? ` · ${c.yield}× Ernte` : ''} · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`;
-      h += row(ITEMS[k] ? itemIcon(k) : c.icon, c.name + (locked ? lvTag(c.lvl) : ''), sub,
-        btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, '', locked || s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, '', locked || s.money < c.seed * 10), locked);
+      const info = (ok ? chip('✓ Saison', 'ok') : chip(c.sea.map(x => SEASONS[x][1]).join(''))) + chip(`⏱ ${time(c.grow)}`) + (c.regrow ? chip(isFlower(k) ? '🔁 blüht wieder' : '🔁 trägt wieder') : '') + chip(`💰 ${price(s, k)}`);
+      (isFlower(k) ? cards.flower : cards.veg).push(pcard(ITEMS[k] ? itemIcon(k) : c.icon, c.name, info,
+        btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, 'white', locked || s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, 'pink', locked || s.money < c.seed * 10), { have, locked, lvl: c.lvl }));
     }
+    h += '<h3>🌷 Blumen</h3>' + grid(cards.flower) + (cards.veg.length ? '<h3>🥕 Gemüse</h3>' + grid(cards.veg) : '');
     return h;
   },
   trees(s) {
-    let h = '<div class="note">Obstbäume tragen alle zwei Tage frisches Obst 🍎 – einfach davorstellen und pflücken. Kaufen ➜ in der Leiste wählen ➜ auf den Rasen setzen.</div>';
-    for (const [id, p] of Object.entries(PLACE)) if (p.kind === 'producer' && p.buy && !p.farm) h += placeRow(s, id);
-    return h;
+    return tip('Obstbäume tragen alle zwei Tage frisches Obst 🍎 – einfach davorstellen und pflücken. Kaufen ➜ in der Leiste wählen ➜ auf den Rasen setzen.')
+      + grid(Object.entries(PLACE).filter(([, p]) => p.kind === 'producer' && p.buy && !p.farm).map(([id]) => placeRow(s, id)));
   },
   hof(s) { // Bauernhof-Ecke
-    let h = '<div class="note">🐔 Hühnerstall und 🐄 Kuhweide aufstellen ➜ jeden Tag füttern (Weizen, Kartoffeln, Karotten oder Äpfel aus eurem Garten) ➜ streicheln. Gefütterte Tiere legen Eier und geben Milch für die Küche – glückliche Tiere (💗💗💗) geben sogar mehr, und manchmal gibt es eine Überraschung!</div>';
-    for (const [id, p] of Object.entries(PLACE)) if (p.farm) h += placeRow(s, id);
+    let h = tip('🐔 Hühnerstall und 🐄 Kuhweide aufstellen ➜ jeden Tag füttern (Weizen, Kartoffeln, Karotten oder Äpfel aus eurem Garten) ➜ streicheln. Gefütterte Tiere legen Eier und geben Milch für die Küche – glückliche Tiere (💗💗💗) geben sogar mehr, und manchmal gibt es eine Überraschung!');
+    h += grid(Object.entries(PLACE).filter(([, p]) => p.farm).map(([id]) => placeRow(s, id)));
     const farms = Object.values(s.obj || {}).filter(o => PLACE[o?.k]?.farm);
     if (farms.length) h += '<h3>🏡 Eure Tiere</h3>' + farms.map(o => row(ITEMS[o.k] ? itemIcon(o.k) : PLACE[o.k].icon, PLACE[o.k].name, `${o.fed === s.day ? '🌾 heute gefüttert' : '😋 hat Hunger'} · ${o.pet === s.day ? '🤗 gestreichelt' : 'möchte gestreichelt werden'} · ${'💗'.repeat(Math.ceil(Math.min(10, o.h || 0) / 2)) || '🤍'}`, '')).join('');
     return h;
   },
   food(s) {
-    let h = '<div class="note">Zutaten für die Gartenküche 🍳 – zusammen mit eurem Obst, Gemüse und Fisch werden daraus leckere Gerichte.</div>';
-    for (const id of ['mehl', 'zucker', 'milch', 'ei']) {
-      const it = ITEMS[id];
-      h += row(itemIcon(id), it.name, `${s.inv[id] || 0} in der Tasche`, btn(`1× 🪙${it.buy}`, { t: 'buy', id, n: 1 }, '', s.money < it.buy) + btn(`5× 🪙${it.buy * 5}`, { t: 'buy', id, n: 5 }, '', s.money < it.buy * 5));
-    }
-    return h;
+    return tip('Zutaten für die Gartenküche 🍳 – zusammen mit eurem Obst, Gemüse und Fisch werden daraus leckere Gerichte.')
+      + grid(['mehl', 'zucker', 'milch', 'ei'].map(id => { const it = ITEMS[id]; return pcard(itemIcon(id), it.name, chip('🍳 Zutat'), btn(`1× 🪙${it.buy}`, { t: 'buy', id, n: 1 }, 'white', s.money < it.buy) + btn(`5× 🪙${it.buy * 5}`, { t: 'buy', id, n: 5 }, 'pink', s.money < it.buy * 5), { have: s.inv[id] || 0 }); }));
   },
   farm(s) {
     const i = upgradeInfo(s, 'house');
@@ -130,7 +137,7 @@ const SHOP = {
   furn(s, g) {
     const cats = { sitzen: '🪑 Sitzen', tische: '🍽️ Tische', betten: '🛏️ Schlafen & Schränke', licht: '💡 Licht', kueche: '🍳 Küche', bad: '🛁 Bad', teppiche: '🟫 Teppiche', pflanzen: '🪴 Pflanzen', deko: '🧸 Deko', wand: '🖼️ Wand' };
     const flt = g?.furnCat || '', chip = (v, l) => `<button class="btn small ${flt === v ? 'pink' : 'white'}" data-act='${JSON.stringify({ ui: 'f:furncat', c: v })}'>${l}</button>`;
-    let h = '<div class="note">Möbel fürs Haus: kaufen ➜ ins Haus gehen 🚪 ➜ 🔨 Baumodus öffnen ➜ Möbel wählen ➜ aufs Feld tippen. Antippen im Baumodus hebt sie wieder auf. Manche Möbel gibt es nur an der Werkbank.</div>';
+    let h = tip('Möbel fürs Haus: kaufen ➜ ins Haus gehen 🚪 ➜ 🔨 Baumodus öffnen ➜ Möbel wählen ➜ aufs Feld tippen. Antippen im Baumodus hebt sie wieder auf. Manche Möbel gibt es nur an der Werkbank.');
     const sw = (kind, list) => `<div class="swatches">${list.map(([id, l, c]) => `<button title="${l}" style="background:${c};width:44px;height:44px;border-radius:12px" data-act='${JSON.stringify({ t: 'hstyle', kind, id })}' class="${s.home[kind] === id ? 'on' : ''}"></button>`).join('')}</div>`;
     h += `<div class="pattools chips">${chip('', '✨ Alle')}${Object.entries(cats).map(([k, l]) => chip('cat:' + k, l)).join('')}</div>`;
     h += `<div class="note" style="margin-bottom:2px">Serien: vier verschiedene Stücke im Haus = +${SET_BONUS.toLocaleString('de-DE')} Wohnwert-Punkte</div><div class="pattools chips">${Object.entries(FURN_SETS).map(([k, [ic, n]]) => chip('set:' + k, `${ic} ${n}`)).join('')}</div>`;
@@ -147,36 +154,37 @@ const SHOP = {
       if (only && c !== only) continue;
       const list = Object.entries(FURNITURE).filter(([, f]) => f.cat === c && !f.rare && (!set || f.set === set));
       if (!list.length) continue;
-      h += `<h3>${label}</h3>`;
-      for (const [id, f] of list) {
+      h += `<h3>${label}</h3>` + grid(list.map(([id, f]) => {
         const locked = f.lvl > s.level, have = s.inv[id] || 0;
-        h += row(itemIcon(id), f.name + (locked ? lvTag(f.lvl) : ''), `${f.w}×${f.d}${f.set && !set ? ` · ${FURN_SETS[f.set][0]} ${FURN_SETS[f.set][1]}` : ''}${f.sit ? ' · zum Sitzen' : ''}${f.bed ? ' · zum Schlafen' : ''}${f.store ? ' · Lagerkiste für alle' : ''}${f.craft ? (f.buy ? ' · auch an der Werkbank' : ' · nur an der Werkbank') : ''}${have ? ` · <b>${have}× in der Tasche</b>` : ''}`,
-          f.buy ? btn(`🪙 ${f.buy}`, { t: 'buy', id, n: 1 }, '', locked || s.money < f.buy) : '<span class="lv">🔨</span>', locked);
-      }
+        const info = chip(`${f.w}×${f.d}`) + (f.set && !set ? chip(`${FURN_SETS[f.set][0]} ${FURN_SETS[f.set][1]}`) : '') + (f.sit ? chip('🪑 Sitzen') : '') + (f.bed ? chip('😴 Schlafen') : '') + (f.store ? chip('🧰 Lager') : '') + (f.glow ? chip('✨ Licht') : '');
+        return pcard(itemIcon(id), f.name, info, f.buy ? btn(`🪙 ${f.buy.toLocaleString('de-DE')}`, { t: 'buy', id, n: 1 }, 'pink', locked || s.money < f.buy) : `<span class="lv">🔨 ${f.craft ? 'Werkbank' : 'nicht im Laden'}</span>`, { have, locked, lvl: f.lvl });
+      }));
     }
     return h;
   },
   deco(s) {
-    let h = '<div class="note">Macht eure Insel schön! Kaufen ➜ in der Leiste wählen ➜ aufstellen. Drehen: in die gewünschte Richtung schauen. Aufheben mit der Hand ✋.</div>';
-    for (const [id, p] of Object.entries(PLACE)) if (p.kind === 'deco' && p.buy && !p.garden) h += placeRow(s, id);
-    return h;
+    return tip('Macht eure Insel schön! Kaufen ➜ 🔨 Baumodus ➜ aufstellen. Drehen: R oder im Baumodus den Dreh-Knopf. Aufheben im Baumodus mit ✋.')
+      + grid(Object.entries(PLACE).filter(([, p]) => p.kind === 'deco' && p.buy && !p.garden).map(([id]) => placeRow(s, id)));
   },
 };
 
 const PANELS = {
   shop: (s, g, tab) => SHOP[tab](s, g),
-  sell(s) {
-    const sellable = Object.entries(s.inv).filter(([id, n]) => n > 0 && price(s, id) > 0);
-    const total = sellable.filter(([id]) => !ITEMS[id].turnip).reduce((t, [id, n]) => t + price(s, id) * n, 0);
-    let h = sellable.length ? `<div class="row"><div class="ic">💰</div><div class="tx"><b>Alles verkaufen</b><small>${sellable.length} Sorten</small></div><div class="bt">${btn(`+🪙 ${total}`, { t: 'sellAll' }, 'pink')}</div></div>` : '<div class="note">Noch nichts zu verkaufen. Schüttelt Bäume, sammelt Muscheln, angelt! 🍎🐚🎣</div>';
-    for (const [id, n] of sellable) {
-      const p = price(s, id);
-      h += row(itemIcon(id), `${ITEMS[id].name} <span class="lv">${n}×</span>`, `je ${money(p)}`, btn('1', { t: 'sell', id, n: 1 }, 'white') + btn(`Alle +${p * n}`, { t: 'sell', id, n }));
+  sell(s, g) {
+    const ask = g.settings?.confirmSell !== false, fmtN = n => n.toLocaleString('de-DE');
+    const all = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id]);
+    const sellable = all.filter(([id]) => price(s, id) > 0), keep = all.filter(([id]) => !(price(s, id) > 0));
+    const worth = list => list.filter(([id]) => !ITEMS[id].turnip).reduce((t, [id, n]) => t + price(s, id) * n, 0), total = worth(sellable);
+    let h = `<div class="sumbar"><div class="sb-tx"><b>🎒 ${all.reduce((t, [, n]) => t + n, 0)} Sachen in deiner Tasche</b><small>Verkaufswert: <b>🪙 ${fmtN(total)}</b></small></div>${btn(`Alles verkaufen<br><b>+🪙 ${fmtN(total)}</b>`, { t: 'sellAll' }, 'pink', !total, ask && total >= 3000 ? `Wirklich ALLES für ${fmtN(total)} Taler verkaufen – auch Material, Edelsteine und Möbel?` : '')}</div>`;
+    if (!sellable.length) h += '<div class="note">Noch nichts zu verkaufen. Schüttelt Bäume, sammelt Muscheln, angelt! 🍎🐚🎣</div>';
+    for (const [k, title, list] of grouped(sellable)) {
+      const sum = worth(list);
+      h += groupHead(title, `🪙 ${fmtN(sum)}`, sum ? btn('Alle verkaufen', { t: 'sellAll', g: k }, 'white', false, ask && sum >= 3000 ? `${title.split(' ').slice(1).join(' ')} für ${fmtN(sum)} Taler verkaufen?` : '') : '');
+      h += `<div class="itemgrid">${list.map(([id, n]) => { const p = price(s, id); return cellX(id, n, `je 🪙 ${fmtN(p)}${n > 1 ? ` · alle 🪙 ${fmtN(p * n)}` : ''}`, btn('1', { t: 'sell', id, n: 1 }, 'white', false, ask && p >= 5000 ? `${ITEMS[id].name} für ${fmtN(p)} Taler verkaufen?` : '') + (n > 1 ? btn('Alle', { t: 'sell', id, n }, 'pink', false, ask && p * n >= 5000 ? `${n}× ${ITEMS[id].name} für ${fmtN(p * n)} Taler verkaufen?` : '') : '')); }).join('')}</div>`;
     }
-    const rest = Object.entries(s.inv).filter(([id, n]) => n > 0 && !(price(s, id) > 0) && ITEMS[id]);
-    if (rest.length) {
-      h += '<h3>Behalten</h3>';
-      for (const [id, n] of rest) h += row(itemIcon(id), `${ITEMS[id].name} <span class="lv">${n}×</span>`, ITEMS[id].seed ? 'Samen' : ITEMS[id].place ? 'Zum Aufstellen' : ITEMS[id].furn ? 'Möbel fürs Haus' : ITEMS[id].turnip ? 'Heute kauft der Laden keine Rüben (sonntags nie)' : id === 'faule_ruebe' ? 'Leider verfault …' : 'Zutat', '');
+    if (keep.length) {
+      const why = id => ITEMS[id].seed ? 'Samen' : ITEMS[id].place ? 'zum Aufstellen' : ITEMS[id].furn ? 'Möbel' : ITEMS[id].turnip ? 'heute nicht' : id === 'faule_ruebe' ? 'verfault' : ITEMS[id].gear ? 'Werkzeug' : 'behalten';
+      h += `<details class="keep"><summary>🔒 Nicht verkäuflich (${keep.length} Sorten)</summary><div class="itemgrid">${keep.map(([id, n]) => cellX(id, n, why(id), '')).join('')}</div></details>`;
     }
     return h;
   },
@@ -258,23 +266,38 @@ const PANELS = {
     h += '<div class="note">Jede/r hat eine eigene Tasche – mit „🎁 Geben“ schenkt ihr euch Sachen, oder ihr legt sie in die 🧰 Lagerkiste im Haus. Geteilt sind Taler, Museum und Fortschritt. Jede/r bekommt eine Sicherheitskopie und kann die Insel später auch selbst hosten.</div>';
     return h;
   },
-  chest(s) {
-    const cap = boxCap(s), used = Object.keys(s.box || {}).length;
-    let h = `<div class="note">🧰 Die Kiste gehört allen auf der Insel – praktisch zum Tauschen. Platz: <b>${used}/${cap}</b> Sorten (jede weitere Kiste im Haus = 40 mehr).</div>`;
+  chest(s, g, tab) {
+    const cap = boxCap(s), used = Object.keys(s.box || {}).length, fmtN = n => n.toLocaleString('de-DE');
+    let h = `<div class="sumbar"><div class="sb-tx"><b>🧰 ${used} von ${cap} Sorten belegt</b><div class="bar"><i style="width:${cap ? Math.min(100, used / cap * 100) : 0}%"></i></div><small>Die Kiste gehört allen auf der Insel – jede weitere Kiste im Haus = 40 Sorten mehr.</small></div></div>`;
+    if (!cap) return h + '<div class="note">Stellt erst eine Lagerkiste ins Haus (Krämerladen ➜ Möbel ➜ 🧰).</div>';
+    if (tab === 'in') {
+      const mine = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id]);
+      if (!mine.length) return h + '<div class="note">Deine Tasche ist leer.</div>';
+      for (const [k, title, list] of grouped(mine)) {
+        h += groupHead(title, `${list.length} ${list.length === 1 ? 'Sorte' : 'Sorten'}`, k === 'gear' ? '' : btn('📥 Alle einlagern', { t: 'stashAll', g: k }, 'white'));
+        h += `<div class="itemgrid">${list.map(([id, n]) => cellX(id, n, s.box?.[id] ? `${fmtN(s.box[id])}× schon in der Kiste` : '', btn('1', { t: 'stash', item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'stash', item: id, n }, 'pink') : ''))).join('')}</div>`;
+      }
+      return h;
+    }
     const inBox = Object.entries(s.box || {}).filter(([id, n]) => n > 0 && ITEMS[id]);
-    h += '<h3>In der Kiste</h3>';
-    h += inBox.length ? `<div class="itemgrid">${inBox.map(([id, n]) => itemCell(id, n, btn('1', { t: 'unstash', item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'unstash', item: id, n }) : ''))).join('')}</div>` : '<div class="note">Noch leer.</div>';
-    const mine = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id]);
-    h += '<h3>Deine Tasche</h3>';
-    h += mine.length ? `<div class="itemgrid">${mine.map(([id, n]) => itemCell(id, n, btn('1', { t: 'stash', item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'stash', item: id, n }) : ''))).join('')}</div>` : '<div class="note">Deine Tasche ist leer.</div>';
+    if (!inBox.length) return h + '<div class="note">Die Kiste ist noch leer. Oben bei „📥 Einlagern“ legst du Sachen hinein.</div>';
+    for (const [k, title, list] of grouped(inBox)) {
+      h += groupHead(title, `${list.length} ${list.length === 1 ? 'Sorte' : 'Sorten'}`, btn('📤 Alle nehmen', { t: 'unstashAll', g: k }, 'white'));
+      h += `<div class="itemgrid">${list.map(([id, n]) => cellX(id, n, s.inv[id] ? `${fmtN(s.inv[id])}× in deiner Tasche` : '', btn('1', { t: 'unstash', item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'unstash', item: id, n }, 'pink') : ''))).join('')}</div>`;
+    }
     return h;
   },
   give(s, g) {
-    const p = g.players[g.giveTo];
+    const p = g.players[g.giveTo], others = Object.values(g.players).filter(q => q.id !== g.me);
     if (!p) return '<div class="note">Dein Lieblingsmensch ist gerade nicht auf der Insel.</div>';
+    let h = `<div class="sumbar giveto"><span class="av" style="background:${esc(p.look?.topColor || '#ffb7c8')};border-color:${esc(p.look?.hairColor || '#fff')}"></span><div class="sb-tx"><b>Geschenk für ${esc(p.name)}</b><small>Landet sofort in ihrer/seiner Tasche – tippe auf die Menge.</small></div></div>`;
+    if (others.length > 1) h += `<div class="pattools chips">${others.map(q => `<button class="btn small ${q.id === p.id ? 'pink' : 'white'}" data-act='${JSON.stringify({ ui: 'give', id: q.id })}'>${esc(q.name)}</button>`).join('')}</div>`;
     const mine = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id]);
-    let h = `<div class="note">Was möchtest du <b>${esc(p.name)}</b> schenken? Es landet sofort in ihrer/seiner Tasche.</div>`;
-    h += mine.length ? `<div class="itemgrid">${mine.map(([id, n]) => itemCell(id, n, btn('1', { t: 'give', to: p.id, item: id, n: 1 }, 'white') + (n > 1 ? btn('Alle', { t: 'give', to: p.id, item: id, n }, 'pink') : ''))).join('')}</div>` : '<div class="note">Deine Tasche ist leer.</div>';
+    if (!mine.length) return h + '<div class="note">Deine Tasche ist leer.</div>';
+    for (const [, title, list] of grouped(mine)) {
+      h += groupHead(title);
+      h += `<div class="itemgrid">${list.map(([id, n]) => cellX(id, n, '', btn('1', { t: 'give', to: p.id, item: id, n: 1 }, 'white') + (n >= 5 ? btn('5', { t: 'give', to: p.id, item: id, n: 5 }, 'white') : '') + (n > 1 ? btn('Alle', { t: 'give', to: p.id, item: id, n }, 'pink') : ''))).join('')}</div>`;
+    }
     return h;
   },
   emotes() {
@@ -633,33 +656,27 @@ const PANELS = {
     return h;
   },
   settings(s, g, tab) {
-    if (tab === 'options') return settingsHtml(g.settings, g.touch);
+    if (['look', 'options', 'ctrl', 'sound'].includes(tab)) return settingsHtml(g.settings, g.touch, tab === 'options' ? 'gfx' : tab);
     if (tab === 'help') {
-      return `<div class="note">💻 <b>PC:</b> WASD/Pfeiltasten laufen · Klick = hinlaufen & benutzen · E/Leertaste = Aktion · 1–9 Werkzeug · Mausrad Zoom · rechte Maustaste ziehen oder Z/C = Kamera drehen · Enter Chat · B Laden · I Taschen · O Inselbuch · Q Emotes · P Fotomodus<br><br>
-      🎮 <b>Controller:</b> linker Stick laufen · rechter Stick Kamera · A Aktion · B zurück · X Tasche · Y Handy · LB/RB Werkzeug · RT rennen · LT Karte · Back Baumodus · Start Menü · in Fenstern Steuerkreuz + A<br>
-      📱 <b>Handy:</b> links wischen = laufen · auf etwas tippen = benutzen (nah dran) oder hinlaufen & benutzen · großer Knopf = Aktion · zwei Finger = zoomen & drehen · 🔄 Kamera drehen<br>
-      🖱️ <b>Maus:</b> Zeig auf etwas – E oder ein Klick benutzt genau das. Ist es weiter weg, läuft deine Figur hin.<br><br>
-      🍎 Bäume schütteln: Obst fällt herunter (wächst in 3 Tagen nach). Mit der Axt 🪓 gibt's Holz.<br>
-      🌷 Samen auf den Rasen pflanzen ➜ Gießkanne 💧 ➜ pflücken. Blumen blühen immer wieder.<br>
-      🐚 Muscheln am Strand aufheben, 🌿 Unkraut zupfen, ✨ Stern-Risse mit der Schaufel ausgraben.<br>
-      🌟 <b>Neu:</b> 📰 Zeitung · 📸 Fotobuch & Postkarten · 🎂 Jahrestage · 📦 Katalog · 🎨 Muster · 🎹 Klavier & Inselmelodie (alles im Inselhandy) · 🪏 Baumschaufel · 🏆 Kochwettbewerb sonntags in der Gartenküche · 🏮 Nachtmarkt freitags ab 18 Uhr · 🏪 Tauschstand · ⛵ Ausflüge zu Zufallsinseln · 🏕️ Campingplatz (Rathaus) · ☁️ Cloud-Spielstand unter „Meine Inseln“.<br>
-      🎣 Am Fluss, Teich, Meer oder vom Steg angeln: warten bis ❗ erscheint, dann schnell nochmal drücken.<br>
-      🏛️ Fische, Insekten und Fossilien im Museum ausstellen.<br>
-      🪑 Auf Bänke kannst du dich setzen, und deinen Lieblingsmenschen kannst du umarmen 🤗.<br>
-      💰 An der Ankaufkiste vor dem Krämerladen oder in den 🎒 Taschen verkaufen. 💬 Wünsche der Nachbarn & 🏆 Erfolge geben Extra-Taler.<br>
-      ⭐ Mit Erfahrung steigt eure Insel im Level und schaltet Neues frei.<br><br>
-      🏛️ <b>Rathaus:</b> Ihr seid Bürgermeister! Inselprojekte bauen, Verordnungen erlassen, Haus auf Kredit ausbauen, Wohnwert & Inselbewertung ansehen.<br>
-      🛍️ <b>Bummelgasse:</b> Durchs Tor im Norden – Schneiderei (Hüte), Gärtnerei (seltene Blumen) und abends der Mondschein-Club (samstags Livemusik).<br>
-      ⛵ <b>Tropeninsel:</b> Am Ende des Stegs wartet Käpt'n Flossi. Drüben: Tropenfrüchte, seltene Käfer und Touren für Medaillen.<br><br>
-      🎉 <b>Feste:</b> Eiersuche, Sommerfeuerwerk, Kürbisfest, Lichterfest, Angel- und Krabbeltier-Turniere und die Geburtstage der Nachbarn – alles im 🎉 Festkalender im Inselhandy. Geburtstagsgeschenke zählen doppelt!<br>
-      💞 <b>Zu zweit:</b> Tippt euch an für 🤝 Händchen halten (wer stehen bleibt, läuft mit) oder 🙈 Verstecken. Im Fotomodus schickt 🧩 ein Foto-Rätsel. Am Briefkasten ✍️ Briefe schreiben – sie kommen am nächsten Morgen an. Schöne Momente landen im 📔 Tagebuch.<br>
-      🌱 <b>Blumen-Kreuzungen:</b> Verschiedene Blumen nebeneinander pflanzen und gießen – manchmal keimt über Nacht eine seltene Sorte.<br>
-      🐾 <b>Haustier:</b> Unter 😊 Gefühle gibt es den Haustier-Trick.<br>
-      💾 <b>Sichern:</b> Im Menü die Insel als Datei speichern – und im Hauptmenü wieder laden (auch auf einem anderen Gerät).</div>`;
+      const sec = (title, body, open) => `<details class="help"${open ? ' open' : ''}><summary>${title}</summary><div>${body}</div></details>`;
+      return sec('🎮 Steuerung', `💻 <b>PC:</b> WASD/Pfeiltasten laufen · Klick = hinlaufen & benutzen · E/Leertaste = Aktion · 1–9 Werkzeug · Mausrad Zoom · rechte Maustaste ziehen oder Z/C = Kamera drehen · Enter Chat · B Laden · I Taschen · O Inselbuch · Q Emotes · P Fotomodus<br><br>
+        📱 <b>Handy:</b> links wischen = laufen · auf etwas tippen = benutzen (nah dran) oder hinlaufen & benutzen · großer Knopf = Aktion · zwei Finger = zoomen & drehen · 🔄 Kamera drehen<br><br>
+        🎮 <b>Controller:</b> linker Stick laufen · rechter Stick Kamera · A Aktion · B zurück · X Tasche · Y Handy · LB/RB Werkzeug · RT rennen · LT Karte · Back Baumodus · Start Menü · in Fenstern Steuerkreuz + A`, true)
+        + sec('🌱 Grundlagen', `🍎 Bäume schütteln: Obst fällt herunter (wächst in 3 Tagen nach). Mit der Axt 🪓 gibt's Holz.<br>🌷 Samen auf den Rasen pflanzen ➜ Gießkanne 💧 ➜ pflücken. Blumen blühen immer wieder.<br>🐚 Muscheln am Strand aufheben, 🌿 Unkraut zupfen, ✨ Stern-Risse mit der Schaufel ausgraben.<br>🎣 Am Fluss, Teich, Meer oder vom Steg angeln: warten bis ❗ erscheint, dann schnell nochmal drücken.<br>🏛️ Fische, Insekten und Fossilien im Museum ausstellen.<br>⭐ Mit Erfahrung steigt eure Insel im Level und schaltet Neues frei.`)
+        + sec('💰 Kaufen, Verkaufen & Teilen', `🛒 Im Krämerladen (oder 📱 Bestellen) gibt es Samen, Bäume, Möbel, Deko und Werkzeug – Karten mit 🔒 gibt es erst ab einem höheren Level.<br>🎒 In den Taschen verkaufst du einzeln, eine ganze Gruppe (z. B. alle Fische) oder alles auf einmal. Bei wertvollen Sachen fragt das Spiel vorher nach (abschaltbar unter 📖 Anzeige).<br>🧰 Die Lagerkiste im Haus gehört allen: „📥 Einlagern“ und „📤 Aus der Kiste“, auch gleich ganze Gruppen.<br>🎁 Unter 👥 Freunde ➜ „Geben“ schenkst du deinem Lieblingsmenschen Sachen direkt in die Tasche.`)
+        + sec('🗺️ Orte', `🏛️ <b>Rathaus:</b> Inselprojekte, Verordnungen, Hauskredit, Wohnwert, Inselbewertung, Erweiterungen.<br>🌲🌼💎 <b>Gebiete:</b> Kiefernwald, Blütenwiese, Kristallhöhle – mit Fundstücken, Bewohnern und Ereignissen.<br>🛍️ <b>Bummelgasse:</b> Durchs Tor im Norden – Schneiderei, Gärtnerei, Mondschein-Club.<br>⛵ <b>Käpt'n Flossi:</b> Tropeninsel, Ausflüge, Hochsee-Angeln, Vulkaninsel.`)
+        + sec('🎉 Feste & zu zweit', `🎉 Eiersuche, Sommerfeuerwerk, Kürbisfest, Lichterfest, Turniere und Geburtstage – alles im 🎉 Festkalender im Inselhandy.<br>💞 Tippt euch an für 🤝 Händchen halten oder 🙈 Verstecken. Am Briefkasten ✍️ Briefe schreiben. Schöne Momente landen im 📔 Tagebuch und 📸 Fotobuch.<br>🌅 Klippenbank, 💒 Hochzeit, 🏆 Duell der Woche, 🌙 Traumwelt und 🏄 Surfen – siehe 📘 Inselführer.`)
+        + sec('💾 Speichern', `Die Insel speichert sich laufend. Im ⚙️ Menü: „Insel als Datei sichern“ – im Hauptmenü wieder ladbar (auch auf einem anderen Gerät). Mit der 🌍 Serverwelt liegt eure Insel auf dem Server.`);
     }
-    return `<button class="big" data-ui="editlook"><span class="i">👗</span><span>Aussehen ändern<small>Frisur, Outfit, Haustier …</small></span></button><br>
-      <button class="big" data-ui="photo"><span class="i">📷</span><span>Fotomodus<small>Schöne Erinnerungsfotos von eurer Insel</small></span></button><br>
-      <button class="big" data-ui="backup"><span class="i">💾</span><span>Insel als Datei sichern<small>Zum Aufheben – im Hauptmenü wieder ladbar</small></span></button><br>
+    const n = Object.keys(g.players || {}).length, where = g.server ? '🌍 Serverwelt' : g.role === 'host' ? '🏠 auf diesem Gerät' : '💞 zu Besuch';
+    return `<div class="sumbar"><div class="sb-tx"><b>🏝️ ${esc(s.name)}</b><small>Tag ${s.day} · Level ${s.level} · ${n} ${n === 1 ? 'Person' : 'Personen'} auf der Insel · ${where}</small></div></div>
+      <div class="menugrid">
+      <button class="big" data-ui="editlook"><span class="i">👗</span><span>Aussehen ändern<small>Frisur, Outfit, Hut, Haustier</small></span></button>
+      <button class="big" data-ui="photo"><span class="i">📷</span><span>Fotomodus<small>Erinnerungsfotos</small></span></button>
+      <button class="big" data-ui="app" data-app="guide"><span class="i">📘</span><span>Inselführer<small>Was gibt es noch zu entdecken?</small></span></button>
+      <button class="big" data-ui="backup"><span class="i">💾</span><span>Insel als Datei sichern<small>Im Hauptmenü wieder ladbar</small></span></button>
+      </div>
+      <div class="note">Einstellungen findest du oben in den Reitern: 📖 Anzeige & Lesbarkeit · 🎨 Grafik · 🎮 Steuerung · 🎵 Klang.</div>
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Insel wird gespeichert</small></span></button>`;
   },
 };
@@ -774,16 +791,13 @@ Object.assign(PANELS, {
     let h = hero(STREET_SHOPS.garden.who, 'Gärtnerei Knolle', 'Grüß dich! Bei mir gibt\'s Blumen, die der Krämerladen nicht hat, und schöne Büsche. Gieß sie gut!');
     if (!shopOpen(s, 'garden')) return h + closed(s, 'garden');
     if (tab === 'plants') {
-      for (const [id, p] of Object.entries(PLACE)) if (p.garden) h += placeRow(s, id);
-      return h;
+      return h + grid(Object.entries(PLACE).filter(([, p]) => p.garden).map(([id]) => placeRow(s, id)));
     }
-    for (const [k, c] of Object.entries(CROPS)) {
-      if (!c.garden) continue;
-      const id = 's_' + k, have = s.inv[id] || 0, ok = c.sea.includes(seasonOf(s.day));
-      h += row(ITEMS[k] ? itemIcon(k) : c.icon, c.name, `${ok ? '<b style="color:#5aa84a">✓ Saison</b> · ' : ''}${c.sea.map(x => SEASONS[x][1]).join('')} · blüht immer wieder · Verkauf ${money(price(s, k))}${have ? ` · <b>${have} Samen</b>` : ''}`,
-        btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, '', s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, '', s.money < c.seed * 10));
-    }
-    return h;
+    return h + grid(Object.entries(CROPS).filter(([, c]) => c.garden).map(([k, c]) => {
+      const id = 's_' + k, ok = c.sea.includes(seasonOf(s.day));
+      return pcard(ITEMS[k] ? itemIcon(k) : c.icon, c.name, (ok ? chip('✓ Saison', 'ok') : chip(c.sea.map(x => SEASONS[x][1]).join(''))) + chip('🔁 blüht wieder') + chip(`💰 ${price(s, k)}`),
+        btn(`1× 🪙${c.seed}`, { t: 'buy', id, n: 1 }, 'white', s.money < c.seed) + btn(`10× 🪙${c.seed * 10}`, { t: 'buy', id, n: 10 }, 'pink', s.money < c.seed * 10), { have: s.inv[id] || 0 });
+    }));
   },
   club(s) {
     let h = hero(STREET_SHOPS.club.who, 'Mondschein-Club', 'Quak! Abends ab 18 Uhr legt DJ Quak auf. Und jeden <b>Samstag ab 20 Uhr</b> spielt Lotte Laute live – dann dürft ihr euch ein Lied wünschen!');
@@ -845,6 +859,7 @@ export class Panels {
     $('pbody').addEventListener('click', e => {
       const b = e.target.closest('button');
       if (!b || b.disabled) return;
+      if (b.dataset.confirm && !confirm(b.dataset.confirm)) return; // z. B. wertvolle Sachen verkaufen
       if (b.dataset.act) {
         const a = JSON.parse(b.dataset.act);
         if (a.ui) cb.ui(a.ui, a); else cb.act(a);

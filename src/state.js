@@ -18,6 +18,7 @@ import * as E6 from './extras6.js';
 import * as E7 from './extras7.js';
 import * as E8 from './extras8.js';
 import * as E9 from './extras9.js';
+import { groupOf, GROUP_IDS } from './groups.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
@@ -1476,6 +1477,35 @@ const ACTIONS = {
     out.snd = 'place';
     return true;
   },
+  // Ganze Gruppe ein- oder auslagern (Werkzeug bleibt in der Tasche)
+  stashAll(s, a, out) {
+    const cap = boxCap(s);
+    if (!GROUP_IDS.includes(a.g) || a.g === 'gear') return false;
+    if (!cap) { out.msg = 'Stellt erst eine Kiste ins Haus.'; return false; }
+    let n = 0, full = 0;
+    for (const [id, c] of Object.entries(s.inv)) {
+      if (!(c > 0) || !ITEMS[id] || groupOf(id) !== a.g) continue;
+      if (!s.box[id] && Object.keys(s.box).length >= cap) { full++; continue; }
+      if (!takeInv(s, id, c)) continue;
+      s.box[id] = (s.box[id] || 0) + c; n += c;
+    }
+    if (!n) { if (full) out.msg = `Die Kiste ist voll (${cap} Sorten).`; return false; }
+    out.msg = `🧰 ${n} Sachen eingelagert${full ? ` – ${full} Sorten passten nicht mehr hinein` : ''}`;
+    out.snd = 'place';
+    return true;
+  },
+  unstashAll(s, a, out) {
+    if (!GROUP_IDS.includes(a.g)) return false;
+    let n = 0;
+    for (const [id, c] of Object.entries(s.box || {})) {
+      if (!(c > 0) || !ITEMS[id] || groupOf(id) !== a.g) continue;
+      delete s.box[id]; addInv(s, id, c); n += c;
+    }
+    if (!n) return false;
+    out.msg = `🎒 ${n} Sachen in die Tasche genommen`;
+    out.snd = 'place';
+    return true;
+  },
   unstash(s, a, out) {
     const n = Math.floor(a.n);
     if (!has(ITEMS, a.item) || !(n >= 1 && n <= 9999) || !((s.box[a.item] || 0) >= n)) return false;
@@ -1547,17 +1577,19 @@ const ACTIONS = {
     out.snd = 'coin';
     return true;
   },
-  sellAll(s, a, out) {
+  sellAll(s, a, out) { // a.g: nur eine Gruppe (Fische, Insekten …)
     let m = 0;
+    const g = a.g == null ? null : GROUP_IDS.includes(a.g) ? a.g : false;
+    if (g === false) return false;
     for (const [id, n] of Object.entries(s.inv)) {
-      if (!ITEMS[id]?.sell || ITEMS[id].turnip || !n) continue;
+      if (!ITEMS[id]?.sell || ITEMS[id].turnip || !n || (g && groupOf(id) !== g)) continue;
       m += price(s, id) * n;
       delete s.inv[id];
     }
     if (!m) return false;
     s.money += m;
     s.stats.earned += m;
-    out.msg = `Alles verkauft: +${m} Taler`;
+    out.msg = `${g ? 'Gruppe' : 'Alles'} verkauft: +${m.toLocaleString('de-DE')} Taler`;
     questEvent(s, 'sell', m, out);
     out.snd = 'coin';
     return true;
