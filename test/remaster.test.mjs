@@ -17,7 +17,12 @@ const roots = j => j.scenes[j.scene || 0].nodes.map(i => j.nodes[i].name);
 const CODE_ONLY = new Set(['klippenbank', 'duellpokal', 'kapelle', 'traumfaenger', 'traummobile', 'wolkenlampe', 'mondteppich', 'traumschaf', 'abendrotbild', 'veil',
   // Inselleben 9 (Gebiete): Möbel und Deko der Bewohner, Fundstücke
   'eulenuhr', 'baumstumpfhocker', 'geweihleuchter', 'pusteblumenlampe', 'kleeteppich', 'hummelkissen', 'leuchtmoosglas', 'kristallspiegel', 'geodentisch', 'mooslaterne', 'wiesenschaukel', 'kristallsaeule',
-  'waldmoos', 'harzperle', 'eulenfeder', 'geweihstange', 'pusteblume', 'gluecksklee', 'morgentau', 'goldstaub', 'leuchtmoos', 'tropfstein', 'geode', 'kristallblume']);
+  'waldmoos', 'harzperle', 'eulenfeder', 'geweihstange', 'pusteblume', 'gluecksklee', 'morgentau', 'goldstaub', 'leuchtmoos', 'tropfstein', 'geode', 'kristallblume',
+  // Inselleben 10 (Herzstücke): Herzchen-Serie, Kätzchen-Ecke, Herzensbuch, Sträuße, Süßes, Haarschmuck
+  'herzbett', 'herzsofa', 'herzsessel', 'zuckerwattelampe', 'herzspiegel', 'herzregal', 'zuckerwattebaum', 'wolkenteppich', 'herzlichterkette', 'herzfrisiertisch', 'toertchenetagere',
+  'kratzbaum', 'wollkorb', 'blumentisch', 'herzkissen', 'liebesschaukel', 'sternennachtlicht', 'herzbogen', 'baldachinbett', 'herzbrunnen',
+  'rosenstrauss', 'tulpenstrauss', 'wiesenstrauss', 'lavendelstrauss', 'pfingstrosenstrauss', 'regenbogenstrauss', 'sonnenblumenstrauss', 'vergissmeinnichtstrauss',
+  'herzkekse', 'cupcake', 'macarons', 'herzchentorte', 'rosenkranz', 'bluetenspange', 'herzreif', 'blumenkrone', 'herzkrone']);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));

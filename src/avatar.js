@@ -15,8 +15,14 @@ export const LOOKS = {
   bottomColor: ['#4a6fa5', '#2f3e5c', '#8a5a3a', '#c9b48a', '#3b3b4a', '#ff8fab', '#8fd694', '#b39cff'],
   shoes: ['#6b4a32', '#3b3b4a', '#f5f5f5', '#ff6b6b', '#ffd23f', '#6cc4ff'],
   hat: [['none', 'Ohne'], ['straw', 'Strohhut'], ['cap', 'Mütze'], ['flowers', 'Blumenkranz'], ['bunny', 'Hasenohren'], ['crown', 'Krone'], ['beanie', 'Strickmütze'], ['cat', 'Katzenohren'], ['bow', 'Schleife'], ['cowboy', 'Cowboyhut'], ['wizard', 'Zauberhut'],
-    ['beret', 'Baskenmütze'], ['tophat', 'Zylinder'], ['pirate', 'Piratenhut'], ['tiara', 'Diadem'], ['sunhat', 'Sonnenhut'], ['bommel', 'Bommelmütze'], ['zipfel', 'Zipfelmütze'], ['veil', 'Brautschleier']],
+    ['beret', 'Baskenmütze'], ['tophat', 'Zylinder'], ['pirate', 'Piratenhut'], ['tiara', 'Diadem'], ['sunhat', 'Sonnenhut'], ['bommel', 'Bommelmütze'], ['zipfel', 'Zipfelmütze'], ['veil', 'Brautschleier'],
+    ['rosenkranz', 'Rosenkranz'], ['bluetenspange', 'Blüten-Haarspange'], ['herzreif', 'Herz-Haarreif'], ['blumenkrone', 'Blütenkrone'], ['herzkrone', 'Herzkrone']],
   glasses: [['none', 'Ohne'], ['round', 'Rund'], ['sun', 'Sonnenbrille'], ['heart', 'Herzbrille']],
+  // Make-up (Schminktisch / Spiegel): liegt als eigene dünne Schicht auf dem Gesicht
+  blush: [['none', 'Natürlich'], ['rosa', 'Rosa'], ['pfirsich', 'Pfirsich'], ['beere', 'Beere'], ['herz', 'Herzchen']],
+  lips: [['none', 'Natürlich'], ['rose', 'Rosé'], ['rot', 'Rot'], ['beere', 'Beere'], ['koralle', 'Koralle'], ['glanz', 'Glitzer']],
+  lid: [['none', 'Ohne'], ['rosa', 'Rosa'], ['flieder', 'Flieder'], ['gold', 'Gold'], ['mint', 'Mint']],
+  mark: [['none', 'Ohne'], ['sommersprossen', 'Sommersprossen'], ['herz', 'Herz-Sticker'], ['stern', 'Stern-Sticker'], ['punkt', 'Schönheitsfleck']],
   pet: [['none', 'Kein Haustier'], ['cat', 'Katze'], ['dog', 'Hund'], ['bunny', 'Hase'], ['chick', 'Küken'], ['fox', 'Fuchs'], ['pig', 'Schwein']],
   petColor: ['#e8a35c', '#f5f0e6', '#8a8a92', '#6b4a32', '#3b3b40', '#ffd966'],
 };
@@ -24,13 +30,16 @@ const KEYS = Object.keys(LOOKS);
 const ids = k => LOOKS[k].map(o => (Array.isArray(o) ? o[0] : o));
 
 export function defaultLook() {
-  return { skin: '#ffd8b8', hairStyle: 'short', hairColor: '#6b4428', eyes: 'round', top: 'overalls', topColor: '#ff8fab', bottomColor: '#4a6fa5', shoes: '#6b4a32', hat: 'straw', glasses: 'none', pet: 'none', petColor: '#e8a35c' };
+  return { skin: '#ffd8b8', hairStyle: 'short', hairColor: '#6b4428', eyes: 'round', top: 'overalls', topColor: '#ff8fab', bottomColor: '#4a6fa5', shoes: '#6b4a32', hat: 'straw', glasses: 'none', blush: 'none', lips: 'none', lid: 'none', mark: 'none', pet: 'none', petColor: '#e8a35c' };
 }
 // Diese Hüte gibt es nur in der Schneiderei bzw. der Tauschhütte
-export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat', 'bommel', 'zipfel', 'veil'];
+export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat', 'bommel', 'zipfel', 'veil', 'rosenkranz', 'bluetenspange', 'herzreif', 'blumenkrone', 'herzkrone'];
+// Woher die besonderen Stücke kommen (Hinweis im Editor)
+export const HAT_FROM = { rosenkranz: 'am Blumenbinde-Tisch', bluetenspange: 'am Blumenbinde-Tisch', herzreif: 'im Herzensbuch (Handy)', blumenkrone: 'im Herzensbuch (Handy)', herzkrone: 'im Herzensbuch (Handy)', veil: 'bei der Inselhochzeit' };
+const MAKEUP = ['blush', 'lips', 'lid', 'mark'];
 export function randomLook() {
   const l = {};
-  for (const k of KEYS) { const a = ids(k).filter(v => k !== 'hat' || !PREMIUM_HATS.includes(v)); l[k] = a[Math.floor(Math.random() * a.length)]; }
+  for (const k of KEYS) { const a = ids(k).filter(v => k !== 'hat' || !PREMIUM_HATS.includes(v)); l[k] = MAKEUP.includes(k) ? 'none' : a[Math.floor(Math.random() * a.length)]; }
   return l;
 }
 // Kommt übers Netz: nur Werte aus LOOKS durchlassen. Altes Profil {color, hat} wird übernommen.
@@ -63,6 +72,11 @@ const dome = (r, c, x, y, z, sx = 1, sy = 1, sz = 1) => {
 };
 const ring = (r, t, c, x, y, z, arc = Math.PI * 2, rx = 0, ry = 0, rz = 0, seg = 10) => part(new THREE.TorusGeometry(r, t, 4, seg, arc), c, x, y, z, rx, ry, rz);
 const flatCone = (r, h, c, x, y, z, sz, rz) => { const g = new THREE.ConeGeometry(r, h, 4); g.rotateY(Math.PI / 4); g.scale(1, 1, sz); return part(g, c, x, y, z, 0, 0, rz); };
+// kleines Herz (zwei Bögen + Spitze), schaut nach +z, um ry gedreht
+const heartP = (s, c, x, y, z, ry = 0) => {
+  const parts = [ell(s * 0.3, c, -s * 0.2, s * 0.08, 0, 1, 1, 0.55, 0, 0, 0, 7), ell(s * 0.3, c, s * 0.2, s * 0.08, 0, 1, 1, 0.55, 0, 0, 0, 7), flatCone(s * 0.5, s * 0.6, c, 0, -s * 0.22, 0, 0.32, Math.PI)];
+  return tf(parts, x, y, z, 0, ry, 0);
+};
 // ganze Teilgruppe verschieben/drehen (z. B. Hut leicht nach hinten kippen, damit man das Gesicht von oben sieht)
 const tf = (parts, x, y, z, rx = 0, ry = 0, rz = 0) => {
   const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(1, 1, 1));
@@ -134,6 +148,44 @@ function hatParts(l) {
       for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, x = Math.sin(a) * 0.29, z = Math.cos(a) * 0.29; p.push(ball(0.055, i % 3 ? 0xffffff : 0xffd8e6, x, 0.22, z, 1, 0.75, 1, 6)); }
       p.push(ell(0.36, 0xfdfaff, 0, 0.0, -0.22, 0.95, 1.05, 0.28, 0.25, 0, 0, 10), ell(0.3, 0xffffff, 0, -0.2, -0.27, 0.9, 0.9, 0.2, 0.15, 0, 0, 10));
       return p;
+    }
+    case 'rosenkranz': { // Haarkranz aus Rosen mit Blättchen
+      const p = [];
+      for (let i = 0; i < 11; i++) {
+        const a = i / 11 * Math.PI * 2, x = Math.sin(a) * 0.29, z = Math.cos(a) * 0.29, c = [0xe8445e, 0xff8fab, 0xd42f4e][i % 3];
+        p.push(ball(0.062, c, x, 0.2, z, 1, 0.8, 1, 7), ball(0.035, shade(c, 0.72), x * 1.06, 0.235, z * 1.06, 1, 0.8, 1, 5));
+        p.push(ell(0.045, 0x5fae4c, Math.sin(a + 0.29) * 0.3, 0.17, Math.cos(a + 0.29) * 0.3, 1.5, 0.35, 0.75, 0, a + 0.29));
+      }
+      return tf(p, 0, 0, 0, -0.18);
+    }
+    case 'bluetenspange': { // drei kleine Blüten über dem linken Ohr
+      const p = [];
+      [[0.25, 0.14, 0.1, 0xff8fab], [0.27, 0.06, 0.02, 0xfff6a8], [0.22, 0.2, -0.02, 0xc9b3ff]].forEach(([x, y, z, c]) => {
+        for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; p.push(ell(0.032, c, x + 0.012, y + Math.sin(a) * 0.035, z + Math.cos(a) * 0.035, 0.5, 1, 1, 0, 0, 0, 6)); }
+        p.push(ball(0.02, GOLD, x + 0.03, y, z, 1, 1, 1, 4));
+      });
+      p.push(ell(0.04, 0x6cc06a, 0.27, 0.1, -0.07, 0.5, 0.6, 1.6, 0.4));
+      return p;
+    }
+    case 'herzreif': { // schmaler rosa Haarreif mit einem großen und zwei kleinen Herzen
+      const p = [ring(0.315, 0.022, 0xff8fab, 0, 0.0, -0.02, Math.PI, -0.3, 0, 0, 16)];
+      p.push(...heartP(0.16, 0xff4d7d, 0.15, 0.3, -0.04, 0.35), ...heartP(0.09, 0xffb3c8, -0.04, 0.33, -0.08, -0.1), ...heartP(0.08, 0xffd0e0, 0.26, 0.2, -0.03, 0.8));
+      return p;
+    }
+    case 'blumenkrone': { // üppige Krone aus Pfingstrosen auf einem goldenen Reif
+      const p = [cyl(0.29, 0.3, 0.035, GOLD, 0, 0.2, 0, 16)];
+      for (let i = 0; i < 9; i++) {
+        const a = i / 9 * Math.PI * 2, x = Math.sin(a) * 0.29, z = Math.cos(a) * 0.29, c = [0xff9ac4, 0xffd0e0, 0xf07aa8][i % 3], big = i % 2 ? 0.075 : 0.095;
+        p.push(ball(big, c, x, 0.26, z, 1, 0.7, 1, 7), ball(big * 0.62, shade(c, 1.08), x, 0.3, z, 1, 0.7, 1, 6), ball(big * 0.3, 0xffe6a0, x, 0.33, z, 1, 0.8, 1, 4));
+        if (i % 3 === 0) p.push(ell(0.05, 0x6cc06a, Math.sin(a + 0.35) * 0.31, 0.22, Math.cos(a + 0.35) * 0.31, 1.5, 0.35, 0.8, 0, a + 0.35));
+      }
+      return tf(p, 0, 0, 0, -0.16);
+    }
+    case 'herzkrone': { // goldene Krone mit Herzspitzen und rosa Steinen
+      const p = [cyl(0.2, 0.185, 0.11, GOLD, 0, 0.36, 0, 10)];
+      for (let i = 0; i < 5; i++) { const a = i * 1.2566; p.push(...heartP(0.075, GOLD, Math.sin(a) * 0.19, 0.47, Math.cos(a) * 0.19, a)); }
+      p.push(...heartP(0.06, 0xff4d7d, 0, 0.36, 0.195, 0), ell(0.025, 0xff9ac4, 0.13, 0.36, 0.14, 1, 1, 0.5, 0, 0.75), ell(0.025, 0xff9ac4, -0.13, 0.36, 0.14, 1, 1, 0.5, 0, -0.75));
+      return tf(p, 0, 0, 0, -0.1, 0, -0.1);
     }
     case 'flowers': {
       const p = [], cols = [0xff8fab, 0xffe066, 0xffffff, 0xb39cff, 0xff6b8a];
@@ -239,6 +291,26 @@ function eyeParts(st) {
   return p;
 }
 
+// Make-up: Rouge, Lippen, Lidschatten, Sticker – eigene Schicht (Kopf-lokal, Gesicht schaut nach +z)
+const MK = { rosa: 0xff8fb0, pfirsich: 0xffa98a, beere: 0xd9507a, herz: 0xff6f9a, rose: 0xf08aa8, rot: 0xe23a4e, koralle: 0xff7a62, glanz: 0xff9ac4, flieder: 0xc6a6ff, gold: 0xf2c75c, mint: 0x8fe0c4 };
+function makeupParts(l) {
+  const p = [];
+  for (const s of [-1, 1]) {
+    if (l.blush === 'herz') p.push(...heartP(0.1, MK.herz, 0.185 * s, -0.095, 0.222, 0.55 * s));
+    else if (MK[l.blush]) p.push(ell(0.058, MK[l.blush], 0.19 * s, -0.1, 0.212, 1.15, 0.62, 0.36, 0, 0.55 * s, 0, 10));
+    if (MK[l.lid]) p.push(ell(0.05, MK[l.lid], 0.115 * s, EY + 0.052, 0.259, 1.15, 0.42, 0.4, 0, 0.35 * s, -0.12 * s, 9));
+  }
+  if (MK[l.lips]) {
+    p.push(ring(0.027, 0.012, MK[l.lips], 0, -0.103, 0.272, Math.PI, 0, 0, Math.PI, 8), ell(0.016, shade(MK[l.lips], 1.12), 0, -0.118, 0.278, 1.5, 0.55, 0.45, 0, 0, 0, 7));
+    if (l.lips === 'glanz') p.push(ball(0.007, 0xffffff, 0.012, -0.118, 0.286, 1, 1, 1, 4));
+  }
+  if (l.mark === 'sommersprossen') for (const s of [-1, 1]) [[0.15, -0.06], [0.175, -0.045], [0.2, -0.065], [0.16, -0.035]].forEach(([x, y]) => p.push(ball(0.008, 0xa86a4a, x * s, y, Math.sqrt(Math.max(0.0001, 0.087 - x * x * 0.92 - y * y * 1.13)) + 0.004, 1, 1, 0.5, 4)));
+  if (l.mark === 'herz') p.push(...heartP(0.06, 0xff4d7d, -0.2, -0.04, 0.215, -0.6));
+  if (l.mark === 'stern') p.push(...[0, 1, 2].map(i => box(0.05, 0.014, 0.01, 0xffc93c, -0.2, -0.04, 0.218, -0.6, 0, i * Math.PI / 3 + Math.PI / 2)));
+  if (l.mark === 'punkt') p.push(ball(0.011, 0x4a2a20, 0.1, -0.135, 0.262, 1, 1, 0.5, 5));
+  return p;
+}
+
 // ---------- Körper (Ursprung = Hüftgelenk) ----------
 function torsoParts(l) {
   const T = l.topColor, B = l.bottomColor, p = [];
@@ -332,7 +404,7 @@ function faceMat(e) {
   return (emojiMat[e] = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
 }
 const BLUSH_MAT = new THREE.MeshBasicMaterial({ color: 0xff7f9a, transparent: true, opacity: 0.55, depthWrite: false });
-const EXPR = { '❤️': 'love', '❤': 'love', '🥰': 'love', '😘': 'kiss', '😊': 'shy', '🙈': 'shy', '😢': 'cry', '😂': 'laugh', '😡': 'angry', '🎉': 'sparkle', '✨': 'sparkle', '🤔': 'think' };
+const EXPR = { '🤗': 'love', '💞': 'love', '💫': 'sparkle', '🫂': 'shy', '❤️': 'love', '❤': 'love', '🥰': 'love', '😘': 'kiss', '😊': 'shy', '🙈': 'shy', '😢': 'cry', '😂': 'laugh', '😡': 'angry', '🎉': 'sparkle', '✨': 'sparkle', '🤔': 'think' };
 function buildFace(neck) {
   const f = new THREE.Group();
   f.position.set(0, HEAD + EY, 0);
@@ -366,6 +438,8 @@ export function makeAvatar(look) {
   const eyes = mesh(bgeo(['av_eyes_' + l.eyes], l, 'eyes' + l.eyes, () => eyeParts(l.eyes)), neck, 0, HEAD + EY);
   eyes.castShadow = false;
   const face = buildFace(neck);
+  if (MAKEUP.some(k => l[k] !== 'none')) { const mk = mesh(geo('mk' + MAKEUP.map(k => l[k]).join(), () => makeupParts(l)), neck, 0, HEAD); mk.castShadow = false; }
+  if (BL() && l.hat !== 'none' && !hasModel('av_hat_' + l.hat)) mesh(geo('hat' + [l.hat, l.topColor, l.bottomColor, l.hairColor], () => hatParts(l)), neck, 0, HEAD); // Hut ohne Blender-Modell: aus Code
 
   let held = null, heldMesh = null, level = false, ph = 0, T = Math.random() * 9, blinkAt = 1 + Math.random() * 3;
   const c = { ...REST };
@@ -457,12 +531,16 @@ export function makeAvatar(look) {
       case '😘': { const k = Math.sin(T * 5); t.aRx = -2.0 + k * 0.4; t.aRz = -0.5; t.tx = 0.15; t.hz = 0.15; eye = 0.25; break; }
       case '🎵': t.rz = Math.sin(T * 5) * 0.12; t.hz = Math.sin(T * 5 + 1) * 0.2; t.aLz = t.aRz = 0.6 + Math.sin(T * 5) * 0.2; t.hx = -0.15; eye = 0.6; break;
       case '✨': t.ry = T * 9; t.aLz = t.aRz = 1.4; t.y += 0.04; eye = 0.6; break;
+      case '💫': t.ry = T * 7; t.aLz = 2.3; t.aRz = 0.9; t.aLx = 0; t.y += Math.abs(Math.sin(T * 7)) * 0.04; eye = 0.6; break;
+      case '💞': t.aLx = t.aRx = -2.75; t.aLz = t.aRz = -0.55 + Math.sin(T * 4) * 0.05; t.hx = -0.12; t.y += Math.abs(Math.sin(T * 3)) * 0.02; eye = 0.55; break;
+      case '🤗': t.aLx = t.aRx = -1.3; t.aLz = t.aRz = -0.55; t.tx = 0.1; t.hz = 0.18 + Math.sin(T * 2) * 0.06; t.rz = Math.sin(T * 2) * 0.06; eye = 0.25; break;
+      case '🫂': t.aLx = -1.1; t.aRx = -0.9; t.aLz = t.aRz = -0.6; t.tx = 0.12; t.hz = 0.32; t.rz = 0.06 + Math.sin(T * 1.5) * 0.03; eye = 0.15; break;
     }
 
     if (T > blinkAt) { if (T > blinkAt + 0.13) blinkAt = T + 2 + Math.random() * 3; else eye = 0.1; }
     const k = 1 - Math.exp(-dt * 18);
     for (const n in c) c[n] += (t[n] - c[n]) * k;
-    rig.position.set(0, c.y, c.z); rig.rotation.set(c.rx, st.emote === '✨' ? t.ry % (Math.PI * 2) : c.ry, c.rz);
+    rig.position.set(0, c.y, c.z); rig.rotation.set(c.rx, st.emote === '✨' || st.emote === '💫' ? t.ry % (Math.PI * 2) : c.ry, c.rz);
     torso.rotation.set(c.tx, c.ty, c.tz);
     body.scale.y = 1 + br * 0.012;
     neck.rotation.set(c.hx, 0, c.hz);

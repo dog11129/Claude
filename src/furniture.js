@@ -544,6 +544,20 @@ function wallParts(p, gl, w, d, [, , base, pat, acc]) {
             disc(k, u - 0.16, v - 0.12, 0.05, 0x8fcf7a, 0.015); disc(k, u + 0.15, v - 0.13, 0.045, 0x7cc06a, 0.015);
           }
         break;
+      case 'hearts': // Herzchen-Tapete: zarte Streifen und kleine Herzen im Versatz
+        for (let u = -L / 2 + 0.2; u < L / 2 - 0.05; u += 0.4) put(k, u, (V0 + ROOM_H) / 2, 0.05, ROOM_H - V0, shade(base, -0.03));
+        for (let j = 0, v = V0 + 0.3; v < ROOM_H - 0.1; j++, v += 0.36)
+          for (let u = -L / 2 + 0.2 + (j % 2) * 0.2; u < L / 2 - 0.1; u += 0.4) {
+            const c = (j + Math.round(u * 5)) % 3 ? acc : shade(acc, -0.1);
+            disc(k, u - 0.028, v + 0.018, 0.04, c); disc(k, u + 0.028, v + 0.018, 0.04, c); put(k, u, v - 0.012, 0.058, 0.058, c, 0.021, PI / 4);
+          }
+        break;
+      case 'clouds': // Zuckerwolken: weiße Wolken und kleine Sterne auf Himmelblau
+        for (let j = 0, v = V0 + 0.45; v < ROOM_H - 0.2; j++, v += 0.7)
+          for (let u = -L / 2 + 0.4 + (j % 2) * 0.45; u < L / 2 - 0.2; u += 0.9)
+            for (const [du, dv, r] of [[0, 0, 0.13], [-0.13, -0.03, 0.09], [0.13, -0.03, 0.1], [0.06, 0.07, 0.08]]) disc(k, u + du, v + dv, r, acc);
+        for (let i = 0; i < L * 4; i++) { const u = (rnd() - 0.5) * (L - 0.1), v = V0 + 0.2 + rnd() * (ROOM_H - V0 - 0.3); put(k, u, v, 0.04, 0.04, 0xffe39a, 0.02, PI / 4); }
+        break;
       case 'wainscot':
         put(k, 0, 0.52, L, 0.76, acc, 0.025);
         put(k, 0, 0.92, L, 0.06, acc, 0.06);

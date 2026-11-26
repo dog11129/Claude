@@ -1,5 +1,6 @@
 // 3D für Inselleben 6: Jahrmarkt (Riesenrad, Karussell, Buden), Becken mit Bewohnern, Wildtiere, Bienen,
 // veredelte Obstbäume, Schatz-Zeichen, Tandem, Picknick- und Band-Plätze der Nachbarn.
+import { decorFurniture10 } from './world-extra7.js';
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
 import { bm, bmv } from './blend.js';
@@ -32,7 +33,7 @@ export function syncTandem(world, e, on, dt) {
 // ---------- Aquarium & Terrarium: Glas und Bewohner ----------
 const GLASS = new THREE.MeshLambertMaterial({ color: 0xbfe6ff, transparent: true, opacity: 0.32, depthWrite: false });
 export function decorFurniture(m, o, f) {
-  if (!f?.tank) return null;
+  if (!f?.tank) return decorFurniture10(m, o, f); // Mieze im Körbchen (world-extra7.js)
   // Aquarium (1×1, Wasser ist Teil des Modells): Fische schwimmen vor der Scheibe; Terrarium: Glaskasten drumherum
   const fish = f.tank === 'fish', W = fish ? 0.76 : 0.74, H = 0.6, y0 = fish ? 0.6 : 0.44;
   if (!fish) { const box = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.54), GLASS); box.position.y = y0 + H / 2; box.renderOrder = 2; m.add(box); }

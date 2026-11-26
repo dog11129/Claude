@@ -18,6 +18,7 @@ import * as E6 from './extras6.js';
 import * as E7 from './extras7.js';
 import * as E8 from './extras8.js';
 import * as E9 from './extras9.js';
+import * as E10 from './extras10.js';
 import { groupOf, GROUP_IDS } from './groups.js';
 import { decoTrees, DECO_LABEL, areaTreeBlock } from './decotrees.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
@@ -1465,6 +1466,7 @@ const ACTIONS = {
     inv[a.item] = (inv[a.item] || 0) + n;
     out.msg = `🎁 ${n}× ${ITEMS[a.item].icon} ${ITEMS[a.item].name} verschenkt!`;
     out.gave = { item: a.item, n, to: a.to };
+    E10.loveGift(s, a.item, n, out); // Herzensbuch: Sträuße & Süßes für den Schatz
     out.snd = 'love';
     return true;
   },
@@ -1834,7 +1836,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1890,6 +1892,8 @@ function resolveHome(s, me, sel, at) {
     if (E6.FURN_UI6[h.o.k]) return { ...base, ui: E6.FURN_UI6[h.o.k][0], uid: { x: h.x, z: h.z, room: R.id || null }, label: E6.FURN_UI6[h.o.k][1], tiles };
     if (V.FURN_GO5[h.o.k] && !R.id) return { ...base, go: V.FURN_GO5[h.o.k][0], label: V.FURN_GO5[h.o.k][1], tiles };
     if (W4.FURN_UI[h.o.k]) return { ...base, ui: W4.FURN_UI[h.o.k][0], label: W4.FURN_UI[h.o.k][1], tiles };
+    const r10 = E10.resolveFurn10(s, h, R, base, tiles); // Schminktisch, Blumenbinde-Tisch, Mieze
+    if (r10) return r10;
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
   }
   if (ITEMS[sel]?.furn) return { ...base, label: '🔨 Einrichten geht im Baumodus', tiles: one };

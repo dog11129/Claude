@@ -1,6 +1,6 @@
 // Möbel-, Tapeten- und Bodenkatalog als reine Daten (ohne three.js, damit die Spiellogik in Node-Tests läuft).
 // cat: sitzen | tische | betten | licht | deko | pflanzen | teppiche | kueche | bad | wand
-import { FURN2 } from './furni-data2.js';
+import { FURN2, RARE10 } from './furni-data2.js';
 export const FURNITURE = {
   stuhl:          { name: 'Holzstuhl',       icon: '🪑', buy: 140,  lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true, craft: { holz: 6 } },
   hocker:         { name: 'Pilzhocker',      icon: '🍄', buy: 80,   lvl: 1, cat: 'sitzen',   w: 1, d: 1, solid: true, sit: true, craft: { holz: 3 } },
@@ -134,6 +134,7 @@ Object.assign(FURNITURE, {
 });
 export const WOOL_COLORS = [['rot', 'rot', 0xe8505a], ['rosa', 'rosa', 0xff9ab8], ['gelb', 'gelb', 0xf2cf4a], ['orange', 'orange', 0xff9a3a], ['lila', 'lila', 0xa98bff], ['blau', 'blau', 0x5a9ae8], ['weiss', 'weiß', 0xf4f0e6]];
 for (const [k, v] of Object.entries(FURN2)) if (!FURNITURE[k]) FURNITURE[k] = v; // 120 weitere Möbel in Serien (furni-data2.js)
+for (const [k, v] of Object.entries(RARE10)) if (!FURNITURE[k]) FURNITURE[k] = v; // Herzensbuch & Blumenbinde-Tisch (Inselleben 10)
 // Inselleben 8: aus der Traumwelt (gegen Traumsterne bei Mondschaf Luna) und vom Sonnenuntergang auf der Klippenbank
 Object.assign(FURNITURE, {
   traumfaenger:   { name: 'Traumfänger',     icon: '🕸️', buy: 0, lvl: 1, cat: 'wand',     w: 1, d: 1, solid: false, wall: true, rare: 'dream' },
@@ -168,6 +169,8 @@ export const WALLS = [
   ['karo',      'Himmelkaro',      '#e2f0ff', 'checker', '#b5d6f6'],
   ['mint',      'Mint',            '#cdeee0', 'wainscot', '#fffaf2'],
   ['pfingstrosen', 'Pfingstrosen',  '#ffe9ef', 'peonies',  '#ff9ac4'],
+  ['herzchen',  'Herzchen',        '#ffeef3', 'hearts',  '#ff9fbf'],
+  ['wolken',    'Zuckerwolken',    '#d9ecff', 'clouds',  '#ffffff'],
 ];
 export const FLOORS = [
   ['dielen',  'Helle Dielen',  '#e6c595', 'planks'],
@@ -180,4 +183,5 @@ export const FLOORS = [
   ['fliesen', 'Blaue Fliesen', '#94bfe8', 'tiles',   '#fdfbf6'],
   ['rosadielen', 'Rosa Dielen', '#f4c9d2', 'planks'],
   ['rosenparkett', 'Pfingstrosen-Parkett', '#f8d6de', 'parquet', '#f0b8c6'],
+  ['flieder', 'Flieder-Teppich', '#dccbf2', 'carpet', '#efe4fb'],
 ];

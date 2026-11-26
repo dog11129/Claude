@@ -105,6 +105,10 @@ export const GUIDE = [
   ['Unterwegs', '🦌', 'Weißer Hirsch & Pilzkreis', 'Kiefernwald: an manchen Morgen (6–9:30 Uhr) steht ein weißer Hirsch auf der Lichtung – langsam hingehen, nicht rennen! An manchen Abenden leuchtet ein Pilzkreis.', s => (s.book || []).some(p => p.k === 'stag' || p.k === 'ring')],
   ['Unterwegs', '🦋', 'Schmetterlingstanz', 'Blütenwiese: an sonnigen Tagen tanzen von 10 bis 16 Uhr Schmetterlinge – mit dem Kescher goldenen Blütenstaub fangen.', s => (s.book || []).some(p => p.k === 'swarm')],
   ['Unterwegs', '🎵', 'Kristallklang', 'Kristallhöhle: den Klangstein anschlagen, zuhören und die drei Kristalle in derselben Reihenfolge anschlagen – einmal am Tag blüht eine Kristallblume.', s => (s.book || []).some(p => p.k === 'chime')],
+  ['Zu zweit', '💗', 'Herzensbuch', 'Im Handy: Kuscheln, Küsschen, Drehen, Herz formen & Co. bringen je einmal am Tag einen Herzpunkt, Sträuße und Selbstgebackenes für den Schatz noch mehr. Dafür gibt es Herz-Möbel, ein Himmelbett und Haarschmuck.', s => (s.love?.pts || 0) >= 5],
+  ['Zu Hause', '💐', 'Blumenbinde-Tisch', 'Kam per Post: im Haus aufstellen und aus euren Blumen Sträuße binden (Rosen, Tulpen, Pfingstrosen jeder Farbe, Regenbogen …) – auch Rosenkranz und Blüten-Haarspange.', s => (s.stats?.bound || 0) > 0],
+  ['Zu Hause', '🐈', 'Mieze', 'Im Katzenkörbchen schläft Mieze – jeden Tag einmal streicheln, manchmal bringt sie euch etwas mit.', s => (s.mieze?.n || 0) > 0],
+  ['Zu Hause', '🧁', 'Süßes backen', 'Am Herd: Herzkekse, Erdbeer-Cupcakes, Rosen-Macarons und die Herzchentorte – verschenkt gibt es Herzpunkte.', s => ['herzkekse', 'cupcake', 'macarons', 'herzchentorte'].some(k => (s.catalog || {})[k])],
 ];
 export function guideList(s) {
   return GUIDE.map(([area, icon, name, how, test]) => { let done = false; try { done = !!test(s); } catch { /* fehlt im Spielstand */ } return { area, icon, name, how, done }; });

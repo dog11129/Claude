@@ -31,6 +31,8 @@ import { APP_PANELS_6 } from './ui-extra3.js';
 import { initFun5, uiF, travel7, context7, execute7, updateF, busy7 } from './client/fun5.js';
 import { initFun6, uiG, travel8, context8, execute8, updateG, busy8 } from './client/fun6.js';
 import { initFun7, execute9, update9, usable9 } from './client/fun7.js';
+import { initFun8, execute10, update10, usable10 } from './client/fun8.js';
+import { loveSocial } from './extras10.js';
 import { duelName } from './extras8.js';
 import { APP_PANELS_7 } from './ui-extra4.js';
 import { APP_PANELS_8 } from './ui-extra5.js';
@@ -83,6 +85,7 @@ initFun3({ get G() { return G; }, world, profile, get panels() { return panels; 
 initFun4({ get G() { return G; }, world, profile, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
 initFun6({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), fade: () => fade() });
 initFun7({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n) });
+initFun8({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), openEditor: tab => openEditor(tab) });
 initFun5({ get G() { return G; }, world, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), listPhotos: async () => [...await photos.list(isleKey(), 'photo'), ...await photos.list(isleKey(), 'moment')] });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
@@ -114,7 +117,7 @@ const r3 = v => Math.round(v * 1000) / 1000;
 const pack = s => JSON.parse(JSON.stringify(s, (k, v) => typeof v === 'number' && !Number.isInteger(v) ? r3(v) : v));
 const ACTS = ['hoe', 'can', 'sickle', 'plant', 'pet', 'fish', 'use', 'hug', 'shake', 'highfive', 'kiss', 'net'];
 const HELD = ['hoe', 'can', 'sickle', 'rod', 'seeds', 'box', 'net', 'shovel', 'axe'];
-const ANIM_OF = { water: 'can', plant: 'plant', harvest: 'use', place: 'use', pickup: 'use', pick: 'plant', use: 'shake', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake', tpick: 'shake', hit: 'plant' };
+const ANIM_OF = { mieze10: 'pet', water: 'can', plant: 'plant', harvest: 'use', place: 'use', pickup: 'use', pick: 'plant', use: 'shake', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake', tpick: 'shake', hit: 'plant' };
 
 // ---------- kleine Helfer fürs HUD ----------
 function toast(text, kind) {
@@ -456,9 +459,11 @@ function social(a, b, k) {
   const pa = G.players[a], pb = G.players[b];
   if (!(Math.hypot(pa.x - pb.x, pa.z - pb.z) <= 3)) return;
   if (k === 'hug') { const out = {}; S.questEvent(G.s, 'hug', 1, out); G.dirty = true; if (out.quest) questDone(out.quest); }
-  const moment = { hug: ['🤗', 'haben sich umarmt'], kiss: ['😘', 'haben sich ein Küsschen gegeben'], dance: ['💃', 'haben zusammen getanzt'], hand: ['🤝', 'sind Händchen haltend spazieren gegangen'], hide: ['🙈', 'haben Verstecken gespielt'] }[k];
+  const moment = { hug: ['🤗', 'haben sich umarmt'], kiss: ['😘', 'haben sich ein Küsschen gegeben'], dance: ['💃', 'haben zusammen getanzt'], hand: ['🤝', 'sind Händchen haltend spazieren gegangen'], hide: ['🙈', 'haben Verstecken gespielt'],
+    cuddle: ['🥰', 'haben gekuschelt'], twirl: ['💫', 'haben sich im Kreis gedreht'], heart: ['💞', 'haben zusammen ein Herz geformt'], nose: ['😚', 'haben Nasenstupser gemacht'], forehead: ['💋', 'haben sich Stirnküsschen gegeben'], lap: ['🫂', 'haben sich aneinander gelehnt'] }[k];
   const dk = `${G.s.day}${k}`;
   if (moment && G.diaryDone?.[dk] !== true) { (G.diaryDone ||= {})[dk] = true; (G.s.diary ||= []).push({ day: G.s.day, icon: moment[0], text: `${pa.name} & ${pb.name} ${moment[1]}` }); G.dirty = true; }
+  if (loveSocial(G.s, k, {})) G.dirty = true; // Herzensbuch: je Zärtlichkeit einmal am Tag ein Herzpunkt
   G.net?.broadcast({ t: 'soc', a, b, k });
   G.net?.broadcast({ t: 'hug', a, b }); // für ältere Versionen
   onSocial(a, b, k);
@@ -783,7 +788,7 @@ function onSocial(a, b, k) {
     me.ry = Math.atan2(o.x - me.x, o.z - me.z);
     me.pose = null;
     if (k === 'dance') { showEmote(a, '💃', 5000); showEmote(b, '💃', 5000); }
-    else animate(k);
+    else animate(k === 'nose' || k === 'forehead' ? 'kiss' : k === 'cuddle' ? 'hug' : k);
   }
   const x = (pa.x + pb.x) / 2, z = (pa.z + pb.z) / 2;
   if (k === 'hand') {
@@ -798,6 +803,12 @@ function onSocial(a, b, k) {
   if (k === 'hug') { world.burst(x, z, 'heart', 1.3); world.float(x, z, '💕', 1.7); world.emoteFx(x, z, '🥰'); play('love'); }
   if (k === 'kiss') { world.emoteFx(x, z, '😘'); world.float(x, z, '😘', 1.9); play('love'); }
   if (k === 'highfive') { setTimeout(() => { world.burst(x, z, 'coin', 1.7); world.float(x, z, '✋✨', 2); play('coin'); }, 180); }
+  // Inselleben 10: neue Zärtlichkeiten
+  if (k === 'cuddle') { showEmote(a, '🤗', 4200); showEmote(b, '🤗', 4200); [0, 1200, 2400].forEach(t => setTimeout(() => { world.burst(x, z, 'heart', 1.3); world.float(x, z, '💕', 1.8); }, t)); }
+  if (k === 'twirl') { showEmote(b, '💫', 2400); showEmote(a, '👏', 2400); world.float(x, z, '💫', 2); setTimeout(() => world.burst(pb.x, pb.z, 'sparkle', 1.2), 400); play('party'); }
+  if (k === 'heart') { showEmote(a, '💞', 3600); showEmote(b, '💞', 3600); setTimeout(() => { world.float(x, z, '💖', 2.4, { life: 2.6, rise: 0.4 }); world.burst(x, z, 'heart', 2.2); play('love'); }, 700); }
+  if (k === 'nose' || k === 'forehead') { world.emoteFx(x, z, k === 'nose' ? '😚' : '💋'); world.float(x, z, k === 'nose' ? '😚💗' : '💋', 1.9); play('love'); }
+  if (k === 'lap') { showEmote(a, '🫂', 5200); showEmote(b, '🫂', 5200); world.float(x, z, '💗', 1.8, { life: 2.4 }); play('love'); }
 }
 // ---------- Zu zweit: Verstecken ----------
 const HIDE_COUNT = 15, HIDE_SEEK = 120;
@@ -1295,7 +1306,7 @@ function needName() {
 
 // ---------- Charakter-Editor ----------
 const preview = { id: 'preview', name: '', look: profile.look, x: -2.4, z: 2.6, ry: 0.3, m: false, an: 0, held: null };
-function openEditor() {
+function openEditor(tab) {
   const inGame = !!G?.ready, me = inGame && G.players[G.me], before = me && { ...me.look };
   interrupt();
   if (!inGame) {
@@ -1310,6 +1321,7 @@ function openEditor() {
   setOwnedHats(profile.owned);
   $('hud').classList.add('hidden');
   const back = () => { if (inGame && G?.ready && !G.photo) $('hud').classList.remove('hidden'); };
+  if (tab) editor.tab = tab;
   editor.open(profile, {
     canCancel: !!profile.name,
     onChange: look => { if (inGame) me.look = look; else preview.look = look; },
@@ -2001,6 +2013,7 @@ function pressAction() {
 
 function execute(r, fresh) {
   if (!r) return;
+  if (execute10(r, fresh)) return;
   if (execute9(r, fresh)) return;
   if (execute8(r, fresh)) return;
   if (executeW(r, fresh)) return;
@@ -2136,7 +2149,7 @@ function tapAt(cx, cy) {
 }
 
 // Was zeigen Maus oder Finger an – und kann die Figur es von hier aus benutzen?
-const usable = r => !!r && !!(usable9(r) || r.dreamIn || r.wedYes || r.surf || r.raft || r.paradeEnd || r.bigfish || r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
+const usable = r => !!r && !!(usable9(r) || usable10(r) || r.dreamIn || r.wedYes || r.surf || r.raft || r.paradeEnd || r.bigfish || r.bino || r.sled || r.snowball || r.canoe || r.a || r.ui || r.go || r.kite || r.bike || r.enter || r.exit || r.visit || r.npc || r.hug || r.sit || r.sleep || r.fish || r.net || r.petals || r.dive || r.wish);
 const reachOf = r => r.npc ? 1.9 : r.hug ? 1.5 : r.ui || r.go || r.enter || r.exit || r.visit ? 2.2 : r.fish ? 1.8 : r.net ? 2 : 1.6;
 function aimAt(cx, cy) {
   const me = G.players[G.me];
@@ -2783,6 +2796,7 @@ function gameFrame(dt, now) {
   updateF(dt);
   updateG(dt);
   update9();
+  update10();
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)

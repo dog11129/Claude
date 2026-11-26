@@ -14,7 +14,7 @@ import { homeScore } from '../src/newleaf.js';
 test('120 neue Möbel, zwölf Serien, nichts Altes überschrieben', () => {
   const ids = Object.keys(FURN2);
   assert.ok(ids.length >= 100, `${ids.length} Möbel`);
-  assert.equal(Object.keys(FURN_SETS).length, 13);
+  assert.equal(Object.keys(FURN_SETS).length, 14);
   assert.ok(ids.filter(id => FURN2[id].set === 'pfingstrose').length >= 12, 'Pfingstrosen-Serie');
   for (const [k, n] of Object.entries(FURN_SETS)) assert.ok(ids.filter(id => FURN2[id].set === k).length >= SET_MIN, `${n[1]} hat genug Stücke`);
   const snap = JSON.parse(readFileSync(new URL('./fixtures/catalog-snapshot.json', import.meta.url), 'utf8'));

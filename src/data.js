@@ -327,6 +327,11 @@ export const ITEMS = {
   pfannkuchen: { name: 'Pfannkuchen', icon: '🥞', sell: 380, cat: 'dish', xp: 4 },
   apfelkuchen: { name: 'Apfelkuchen', icon: '🥧', sell: 620, cat: 'dish', xp: 6 },
   kirschtorte: { name: 'Kirschtorte', icon: '🍰', sell: 640, cat: 'dish', xp: 6 },
+  // Inselleben 10: Süßes zum Verschenken (gibt Herzpunkte, wenn ihr es euch gegenseitig schenkt)
+  herzkekse:   { name: 'Herzkekse',          icon: '🍪', sell: 320,  cat: 'dish', xp: 4 },
+  cupcake:     { name: 'Erdbeer-Cupcake',    icon: '🧁', sell: 560,  cat: 'dish', xp: 5 },
+  macarons:    { name: 'Rosen-Macarons',     icon: '🌸', sell: 680,  cat: 'dish', xp: 6 },
+  herzchentorte: { name: 'Herzchentorte',    icon: '🎂', sell: 1900, cat: 'dish', xp: 10 },
   saft:      { name: 'Orangensaft',  icon: '🧃', sell: 420, cat: 'dish', xp: 4 },
   sorbet:    { name: 'Pfirsich-Sorbet', icon: '🍧', sell: 480, cat: 'dish', xp: 5 },
   kokosmilch:{ name: 'Kokos-Shake',  icon: '🥤', sell: 700, cat: 'dish', xp: 6 },
@@ -632,7 +637,8 @@ export const COLORS = ['#ff8fab', '#ffb86b', '#ffe066', '#8fd694', '#6cc4ff', '#
 export const EMOTE_LIST = [['❤️', 'Liebe'], ['👋', 'Winken'], ['😂', 'Lachen'], ['😮', 'Staunen'], ['🎉', 'Jubeln'], ['🥰', 'Verliebt'], ['😘', 'Küsschen'], ['💃', 'Tanzen'],
   ['👏', 'Klatschen'], ['🎵', 'Singen'], ['👍', 'Super'], ['✨', 'Drehen'], ['😊', 'Schüchtern'], ['🙈', 'Verlegen'], ['🤔', 'Grübeln'], ['😢', 'Traurig'], ['😡', 'Grummelig'], ['😴', 'Müde'], ['💤', 'Schlafen'], ['🍀', 'Glück'], ['🐾', 'Haustier-Trick']];
 export const EMOTES = EMOTE_LIST.map(e => e[0]);
-export const SOCIAL = { hug: ['🤗', 'Umarmen'], kiss: ['😘', 'Küsschen'], highfive: ['✋', 'High-Five'], dance: ['💃', 'Zusammen tanzen'], hand: ['🤝', 'Händchen halten'], hide: ['🙈', 'Verstecken spielen'], found: ['🎉', 'Gefunden'] };
+export const SOCIAL = { hug: ['🤗', 'Umarmen'], kiss: ['😘', 'Küsschen'], highfive: ['✋', 'High-Five'], dance: ['💃', 'Zusammen tanzen'], hand: ['🤝', 'Händchen halten'], hide: ['🙈', 'Verstecken spielen'], found: ['🎉', 'Gefunden'],
+  cuddle: ['🥰', 'Kuscheln'], twirl: ['💫', 'Im Kreis drehen'], heart: ['💞', 'Herz formen'], nose: ['😚', 'Nasenstupser'], forehead: ['💋', 'Stirnküsschen'], lap: ['🫂', 'Anlehnen'] };
 
 // Feste & Turniere im Jahreskreis: Jahreszeit + Tag der Jahreszeit (1–7)
 export const FESTS = {
@@ -768,6 +774,10 @@ export const RECIPES = {
   l_papierlaterne: { st: 'craft', out: 'papierlaterne', n: 1, in: { holz: 1, ast: 1 }, gem: 1 },
   sprossenpfanne: { st: 'cook', out: 'sprossenpfanne', n: 1, in: { bambussprosse: 2, karotte: 1 } },
   erdbeermarmelade: { st: 'cook', out: 'erdbeermarmelade', n: 1, in: { erdbeere: 3, zucker: 1 } },
+  herzkekse: { st: 'cook', out: 'herzkekse', n: 2, in: { mehl: 1, zucker: 1, ei: 1 } },
+  cupcake: { st: 'cook', out: 'cupcake', n: 1, in: { mehl: 1, zucker: 1, ei: 1, erdbeere: 2 } },
+  macarons: { st: 'cook', out: 'macarons', n: 1, in: { zucker: 2, ei: 2, rose: 1 } },
+  herzchentorte: { st: 'cook', out: 'herzchentorte', n: 1, in: { mehl: 2, zucker: 2, ei: 2, erdbeere: 3, milch: 1 } },
   apfelmus: { st: 'cook', out: 'apfelmus', n: 1, in: { apfel: 3, zucker: 1 } },
   traubensaft: { st: 'cook', out: 'traubensaft', n: 1, in: { traube: 3 } },
   kirschkompott: { st: 'cook', out: 'kirschkompott', n: 1, in: { kirsche: 3, zucker: 1 } },

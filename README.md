@@ -40,6 +40,16 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 
 ## Was es gibt
 
+### 💗 Neu: Herzstücke (Inselleben 10)
+- **Herzensbuch** (Handy-App): Ihr sammelt gemeinsam Herzpunkte – jede Zärtlichkeit zählt einmal am Tag, ein Strauß für den Schatz bringt 3, Selbstgebackenes 2 (bis 6 Geschenk-Punkte am Tag). Neun Seiten mit Belohnungen, die es nur hier gibt: Herz-Kissen, Herz-Haarreif, Liebesschaukel, Sternen-Nachtlicht, Blütenkrone, Herz-Rosenbogen, Prinzessinnen-Himmelbett, Herzchen-Brunnen und die Herzkrone. Jede Seite landet auch im Fotobuch.
+- **Neue Zärtlichkeiten** im Herz-Menü (Figur antippen): 🥰 Kuscheln, 💫 Im Kreis drehen, 💞 Herz formen, 😚 Nasenstupser, 💋 Stirnküsschen, 🫂 Anlehnen – mit eigenen Bewegungen, Herzchen und Tagebuch-Einträgen.
+- **Blumenbinde-Tisch** (kommt einmal per Post): aus euren Blumen Sträuße in der Vase binden – Rosen, Tulpen, Wiese, Lavendel, Sonnenblumen, Vergissmeinnicht, Pfingstrosen jeder Farbe und der Regenbogen-Strauß aus sieben Sorten. Zum Aufstellen oder Verschenken. Dazu Haarschmuck: Rosenkranz und Blüten-Haarspange.
+- **Schminken:** Am Frisiertisch oder vor einem Spiegel im Haus öffnet sich das Make-up – Rouge (auch als Herzchen), Lippenstift (Rosé, Rot, Beere, Koralle, Glitzer), Lidschatten und Wangen-Sticker (Herz, Stern, Sommersprossen, Schönheitsfleck). Neuer Reiter „💄 Make-up“ im Aussehen.
+- **Serie „Herzchen & Wolken“** im Möbelkatalog: Herzchen-Bett, Herz-Sofa, Herz-Sessel, Zuckerwatte-Lampe, Herz-Spiegel, Herzchen-Regal, Zuckerwatte-Bäumchen, Wolken-Teppich, Herz-Lichterkette, Herz-Frisiertisch, Törtchen-Etagere. Dazu Kratzbaum und Wollknäuel-Korb, die Tapeten „Herzchen“ und „Zuckerwolken“ und der Boden „Flieder-Teppich“.
+- **Mieze:** Im Katzenkörbchen schläft jetzt Mieze – einmal am Tag streicheln, manchmal liegt morgens ein Mitbringsel vor der Tür.
+- **Süßes backen:** Herzkekse, Erdbeer-Cupcakes, Rosen-Macarons und die Herzchentorte am Herd.
+- Der Brautschleier und alle neuen Haarschmuck-Stücke werden jetzt auch mit den Blender-Figuren angezeigt.
+
 ### 🌍 Neu: Serverwelt
 - **Eine Insel für euch beide, immer erreichbar:** Sie liegt auf dem eigenen Server. Wer zuerst kommt, öffnet sie; wer dazukommt, landet automatisch dort – kein Code, kein Einladen, keine Dateien hin und her.
 - **Nahtlos weiter:** Geht die/der eine (oder schaltet das Handy weg), übernimmt die/der andere die Insel sofort mit dem aktuellen Stand. Gespeichert wird laufend auf dem Server (und als Kopie auf jedem Gerät, mit Zwischenständen ⏪).

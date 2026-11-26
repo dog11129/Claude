@@ -6,6 +6,7 @@ export const FURN_SETS = {
   landhaus: ['🏡', 'Landhaus'], strand: ['🏖️', 'Strandhaus'], pilz: ['🍄', 'Pilzwald'], retro: ['🎵', 'Retro-Diner'],
   sterne: ['🚀', 'Sternenreise'], kinder: ['🧸', 'Kinderzimmer'], musik: ['🎻', 'Musikzimmer'], atelier: ['🎨', 'Atelier & Büro'],
   bad: ['🛁', 'Badezimmer'], winter: ['❄️', 'Winterhütte'], cafe: ['☕', 'Café & Bäckerei'], garten: ['🌻', 'Gartenzimmer'],
+  herzchen: ['💗', 'Herzchen & Wolken'],
 };
 export const SET_MIN = 4, SET_BONUS = 1500;
 // [id, Name, Icon, Preis, Level, Kategorie, Breite, Tiefe, Extras]
@@ -101,6 +102,32 @@ const PEONY_SET = [
   ['pfingstrosenbogen', 'Pfingstrosen-Blumenbogen', '🌸', 2000, 2, 'deko', 2, 1, { solid: false }],
 ];
 for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of PEONY_SET) FURN2[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, set: 'pfingstrose', ...x };
+// 💗 Herzchen & Wolken (Inselleben 10): zartrosa, Herzen, Zuckerwatte-Wolken – plus Kätzchen-Ecke und Blumenbinde-Tisch
+const HEART_SET = [
+  ['herzbett', 'Herzchen-Bett', '🛏️', 3400, 3, 'betten', 2, 2, { bed: true }], ['herzsofa', 'Herz-Sofa', '🛋️', 2200, 2, 'sitzen', 2, 1, { sit: true }],
+  ['herzsessel', 'Herz-Sessel', '💗', 1200, 2, 'sitzen', 1, 1, { sit: true }], ['zuckerwattelampe', 'Zuckerwatte-Lampe', '☁️', 900, 1, 'licht', 1, 1, { glow: true }],
+  ['herzspiegel', 'Herz-Spiegel', '🪞', 800, 1, 'wand', 1, 1, { wall: true }], ['herzregal', 'Herzchen-Regal', '📚', 1100, 2, 'betten'],
+  ['zuckerwattebaum', 'Zuckerwatte-Bäumchen', '🌸', 700, 1, 'pflanzen'], ['wolkenteppich', 'Wolken-Teppich', '☁️', 900, 1, 'teppiche', 2, 2, { rug: true }],
+  ['herzlichterkette', 'Herz-Lichterkette', '💡', 600, 1, 'licht', 1, 1, { wall: true, glow: true }], ['herzfrisiertisch', 'Herz-Frisiertisch', '💄', 2400, 2, 'tische'],
+  ['toertchenetagere', 'Törtchen-Etagere', '🧁', 800, 1, 'kueche'],
+];
+for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of HEART_SET) FURN2[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, set: 'herzchen', ...x };
+for (const [id, name, icon, buy, lvl, cat] of [['kratzbaum', 'Kratzbaum', '🐈', 1300, 1, 'deko'], ['wollkorb', 'Wollknäuel-Korb', '🧶', 400, 1, 'deko'], ['blumentisch', 'Blumenbinde-Tisch', '💐', 1200, 1, 'tische']])
+  FURN2[id] = { name, icon, buy, lvl, cat, w: 1, d: 1, solid: true };
+// Nicht im Laden (rare): kommen in furni-data.js dazu
+export const RARE10 = {};
+const MORE10 = [
+  // nur aus dem Herzensbuch (gemeinsame Herzpunkte)
+  ['herzkissen', 'Herz-Kissen', '💗', 0, 1, 'sitzen', 1, 1, { sit: true, rare: 'love' }], ['liebesschaukel', 'Liebesschaukel', '💞', 0, 1, 'sitzen', 2, 1, { sit: true, rare: 'love' }],
+  ['sternennachtlicht', 'Sternen-Nachtlicht', '🌟', 0, 1, 'licht', 1, 1, { glow: true, rare: 'love' }], ['herzbogen', 'Herz-Rosenbogen', '💘', 0, 1, 'deko', 2, 1, { solid: false, rare: 'love' }],
+  ['baldachinbett', 'Prinzessinnen-Himmelbett', '👑', 0, 1, 'betten', 2, 2, { bed: true, rare: 'love' }], ['herzbrunnen', 'Herzchen-Brunnen', '⛲', 0, 1, 'deko', 1, 1, { rare: 'love' }],
+  // nur vom Blumenbinde-Tisch: Sträuße in der Vase – zum Aufstellen oder Verschenken
+  ['rosenstrauss', 'Rosenstrauß', '🌹', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['tulpenstrauss', 'Tulpenstrauß', '🌷', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
+  ['wiesenstrauss', 'Wiesenstrauß', '💐', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['lavendelstrauss', 'Lavendelstrauß', '💜', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
+  ['pfingstrosenstrauss', 'Pfingstrosen-Strauß', '🩷', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['regenbogenstrauss', 'Regenbogen-Strauß', '🌈', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
+  ['sonnenblumenstrauss', 'Sonnenblumen-Strauß', '🌻', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['vergissmeinnichtstrauss', 'Vergissmeinnicht-Strauß', '💙', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
+];
+for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of MORE10) RARE10[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, ...x };
 // Serien-Bonus: wie viele Serien sind mit mindestens vier verschiedenen Stücken vertreten?
 export function setsIn(keys, FURN) {
   const by = {};

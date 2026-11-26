@@ -1,10 +1,10 @@
 // Charakter-Editor und Einstellungen (im Hauptmenü und im Spiel genutzt).
 import * as THREE from '../vendor/three.module.min.js';
-import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS } from './avatar.js';
+import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, HAT_FROM } from './avatar.js';
 
 // Kleine 3D-Vorschaubilder für jede Option (eigener Mini-Renderer, Ergebnis wird zwischengespeichert)
-const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', top: 'body', pet: 'pet' };
-const CAM = { head: [[0, 1.32, 1.7], [0, 1.13, 0]], face: [[0, 1.08, 0.85], [0, 1.03, 0]], body: [[0, 0.85, 2.5], [0, 0.62, 0]], pet: [[0, 0.42, 1.0], [0, 0.2, 0]] };
+const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', blush: 'cheek', lips: 'mouth', lid: 'cheek', mark: 'cheek', top: 'body', pet: 'pet' };
+const CAM = { head: [[0, 1.32, 1.7], [0, 1.13, 0]], face: [[0, 1.08, 0.85], [0, 1.03, 0]], cheek: [[0, 1.0, 1.15], [0, 0.97, 0]], mouth: [[0, 0.95, 0.85], [0, 0.93, 0]], body: [[0, 0.85, 2.5], [0, 0.62, 0]], pet: [[0, 0.42, 1.0], [0, 0.2, 0]] };
 let tr = null, ts, tc;
 const thumbs = new Map();
 function thumb(look, view) {
@@ -43,6 +43,7 @@ const TABS = [
   ['hair', '💇 Haare', [['hairStyle', 'Frisur'], ['hairColor', 'Haarfarbe']]],
   ['outfit', '👕 Outfit', [['top', 'Oberteil'], ['topColor', 'Farbe Oberteil'], ['bottomColor', 'Hose / Rock'], ['shoes', 'Schuhe']]],
   ['extra', '🎩 Extras', [['hat', 'Kopfbedeckung'], ['glasses', 'Brille']]],
+  ['makeup', '💄 Make-up', [['blush', 'Rouge'], ['lips', 'Lippen'], ['lid', 'Lidschatten'], ['mark', 'Wangen-Sticker']]],
   ['pet', '🐾 Haustier', [['pet', 'Begleiter'], ['petColor', 'Fellfarbe']]],
 ];
 
@@ -54,7 +55,7 @@ function options(field, value, look) {
   const list = LOOKS[field];
   if (VIEW[field]) {
     return `<div class="thumbs">${list.map(([id, l]) => { const lock = lockedHat(field, id) && id !== value, src = thumb({ ...look, [field]: id }, VIEW[field]);
-      return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es in der Schneiderei der Bummelgasse" style="opacity:.45"' : ''}>${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${lock ? '🔒 ' : ''}${l}</small></button>`; }).join('')}</div>`;
+      return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es ' + (HAT_FROM[id] || 'in der Schneiderei der Bummelgasse') + '" style="opacity:.45"' : ''}>${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${lock ? '🔒 ' : ''}${l}</small></button>`; }).join('')}</div>`;
   }
   if (typeof list[0] === 'string') {
     return `<div class="swatches">${list.map(c => `<button style="background:${c}" data-f="${field}" data-v="${c}" class="${c === value ? 'on' : ''}" aria-label="${c}"></button>`).join('')}</div>`;
