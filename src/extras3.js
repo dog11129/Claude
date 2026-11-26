@@ -1,7 +1,7 @@
 // Inselleben 3: Heißluftballon, Schmetterlingsgarten, Schiffswrack, Spieleabend, Fotowettbewerb, Grillabend,
 // Sternbilder, Nachbarzimmer und Höhlen-Tiefen. Die Teile liegen in src/features/ – hier werden Aktionen, Tagesaufgaben
 // und die neuen Felder für alte Spielstände zusammengesteckt. Läuft beim Host in der Spiellogik.
-import { NPC_IDS } from './data.js';
+import { NPC_IDS, VISITOR_IDS } from './data.js';
 import { shuffle } from './features/util.js';
 import { ride, skygift, rideshot } from './features/balloon.js';
 import { WRECK_SYMS, wreck } from './features/wreck.js';
@@ -44,7 +44,7 @@ export function migrateZ(s) {
   s.consts = Array.isArray(s.consts) ? s.consts.filter(c => c && typeof c.n === 'string' && Number.isInteger(c.sec) && Array.isArray(c.l)).slice(0, CONST_MAX) : [];
   s.nhome = s.nhome && typeof s.nhome === 'object' ? s.nhome : {};
   for (const [id, h] of Object.entries(s.nhome)) {
-    if (!NPC_IDS.includes(id) || !h || typeof h !== 'object') { delete s.nhome[id]; continue; }
+    if (!(NPC_IDS.includes(id) || VISITOR_IDS.includes(id)) || !h || typeof h !== 'object') { delete s.nhome[id]; continue; }
     for (const m of ['items', 'rugs', 'walls']) if (!h[m] || typeof h[m] !== 'object') h[m] = {};
     h.w = Number.isInteger(h.w) ? Math.max(0, Math.min(3, h.w)) : 0;
   }

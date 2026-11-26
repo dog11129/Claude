@@ -1783,15 +1783,17 @@ function select(id, quiet) {
 // ---------- Baumodus ----------
 // Aufstellen, Einrichten, Wege legen und Abbauen geht nur hier: unten eine Leiste mit Kategorien und den Sachen aus der Tasche,
 // auf dem Feld eine Vorschau. Draußen auch Inselprojekte (die man jetzt wieder abbauen und versetzen kann).
-const OUT_CATS = [['deko', '🏮 Deko'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['haus', '🏠 Haus']]; // ✋ Aufheben: eigener Knopf oben (#bpick)
+const OUT_CATS = [['deko', '🏮 Deko'], ['zaeune', '🚧 Zäune'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['haus', '🏠 Haus']]; // ✋ Aufheben: eigener Knopf oben (#bpick)
 const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['bad', '🛁 Bad'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['lackieren', '🖌️ Lackieren']];
 function buildList(b) {
   const inv = G.s.inv;
   if (b.inside) return Object.keys(FURNITURE).filter(id => inv[id] > 0 && (b.cat === 'alle' || FURNITURE[id].cat === b.cat));
   const kind = id => PLACE[id]?.kind;
   if (b.cat === 'projekte') return Object.keys(PLACE).filter(id => inv[id] > 0 && (kind(id) === 'project' || kind(id) === 'site'));
-  if (b.cat === 'garten') return Object.keys(PLACE).filter(id => inv[id] > 0 && (kind(id) === 'producer' || PLACE[id].garden));
-  return Object.keys(PLACE).filter(id => inv[id] > 0 && !['project', 'site', 'producer'].includes(kind(id)) && !PLACE[id].garden);
+  const fz = id => PLACE[id].fence || PLACE[id].gate;
+  if (b.cat === 'zaeune') return Object.keys(PLACE).filter(id => inv[id] > 0 && fz(id));
+  if (b.cat === 'garten') return Object.keys(PLACE).filter(id => inv[id] > 0 && !fz(id) && (kind(id) === 'producer' || PLACE[id].garden));
+  return Object.keys(PLACE).filter(id => inv[id] > 0 && !['project', 'site', 'producer'].includes(kind(id)) && !PLACE[id].garden && !fz(id));
 }
 function openBuild(cat) {
   if (!G?.ready) return;
@@ -1836,7 +1838,7 @@ function togglePick() {
 function liftFor(b, pick) {
   b.want = pick.id; b.r = pick.r || 0; b.pend = null;
   const k = PLACE[pick.id]?.kind;
-  if (b.mode === 'place') b.cat = b.inside ? 'alle' : k === 'project' || k === 'site' ? 'projekte' : k === 'producer' || PLACE[pick.id]?.garden ? 'garten' : 'deko';
+  if (b.mode === 'place') b.cat = b.inside ? 'alle' : k === 'project' || k === 'site' ? 'projekte' : PLACE[pick.id]?.fence || PLACE[pick.id]?.gate ? 'zaeune' : k === 'producer' || PLACE[pick.id]?.garden ? 'garten' : 'deko';
   G.buildSig = null;
 }
 function setBuildCat(cat) {
@@ -1994,7 +1996,7 @@ function context(me, at) {
   if (!at && (G.sel === 'bino' || G.sel === 'sled')) { const c = contextW(me, null); if (c) return c; }
   const p = at || { x: me.x + Math.sin(me.ry) * 0.9, z: me.z + Math.cos(me.ry) * 0.9 };
   const n = world.npcNear(p.x, p.z, at ? 0.9 : 1.1);
-  if (n?.visitor) return { ui: 'visitor', visitor: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
+  if (n?.visitor && !(G.s.residents?.[n.id] && !G.s.residents[n.id].ask && !G.s.residents[n.id].leave)) return { ui: 'visitor', visitor: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z }; // Zeltgäste und Umzugsfragen; wer hier wohnt, plaudert wie alle Nachbarn
   if (n) return { npc: n.id, label: `💬 ${NPCS[n.id].name}`, tiles: [], px: n.x, pz: n.z };
   for (const o of Object.values(G.players)) {
     if (o.id !== G.me && Math.hypot(o.x - p.x, o.z - p.z) < 0.75) return { hug: o.id, label: `🤗 ${o.name} umarmen`, tiles: [], px: o.x, pz: o.z };
@@ -2100,6 +2102,11 @@ function execute(r, fresh) {
     const [, d] = S.roomSize(G.s);
     if (r.enter) Object.assign(me, { x: S.HOME_X, z: d / 2 - 0.7, ry: Math.PI, pose: null });
     else if (r.room && V.XROOMS[r.room]) { const e = exitV(r.room), ok = e && freeAt(e[0], e[1]); Object.assign(me, ok ? { x: e[0], z: e[1], ry: 0 } : r.room === 'tree' ? { x: BUILDINGS.house.cx, z: BUILDINGS.house.z1 + 1.4, ry: 0 } : { x: S.HOME_X, z: d / 2 - 1.2, ry: Math.PI }, { pose: null }); }
+    else if (r.room && G.s.residents?.[r.room]?.home) { // Zugezogene: vor ihr Häuschen (Tür zeigt in Blickrichtung des Hauses)
+      const [hx, hz] = G.s.residents[r.room].home.split(',').map(Number), rr = (G.s.obj[G.s.residents[r.room].home]?.r | 0) * Math.PI / 2;
+      const spots = [[Math.sin(rr), Math.cos(rr)], [0, 1], [1, 0], [-1, 0], [0, -1]].map(([dx, dz]) => [hx + dx * 1.4, hz + dz * 1.4]), sp = spots.find(([x, z]) => freeAt(x, z)) || spots[0];
+      Object.assign(me, { x: sp[0], z: sp[1], ry: 0, pose: null });
+    }
     else if (r.room && BUILDINGS['vh_' + r.room]) { const B = BUILDINGS['vh_' + r.room]; Object.assign(me, { x: B.cx, z: B.z1 + 1.3, ry: 0, pose: null }); }
     else Object.assign(me, { x: BUILDINGS.house.cx, z: BUILDINGS.house.z1 + 1.4, ry: 0, pose: null });
   } else if (r.sleep) {
@@ -2348,11 +2355,11 @@ function openTalk(id) {
   if (!G?.ready || !NPCS[id]) return;
   interrupt();
   panels.close();
-  const me = G.players[G.me], n = world.npcM.get(id);
+  const me = G.players[G.me], n = world.npcEnt(id), res = !!G.s.residents?.[id]; // res: zugezogen (Flocke & Co.)
   if (n) me.ry = Math.atan2(n.x - me.x, n.z - me.z);
-  G.talk = { id };
+  G.talk = { id, res };
   world.npcTalk = { id, x: me.x, z: me.z };
-  send({ t: 'talk', id });
+  send({ t: res ? 'vtalk' : 'talk', id });
   document.body.classList.add('talking');
   $('dialog').classList.remove('hidden');
   $('dlggifts').classList.add('hidden');
@@ -2435,7 +2442,7 @@ function giftAnswer(reaction, bday) {
   say2(bday && reaction !== 'dislike' ? `Ein Geburtstagsgeschenk für mich?! ${ITEMS[G.talk.gift]?.name || ''} – das ist ja wunderschön! Danke, danke, DANKE! 🎂` : giftReply(id, reaction, ITEMS[G.talk.gift]?.name || ''));
   if (bday) { const n = world.npcM.get(id); if (n) { world.burst(n.x, n.z, 'coin', 1.6); for (let i = 0; i < 5; i++) world.float(n.x + (Math.random() - 0.5) * 1.4, n.z, ['🎉', '🎂', '🎈', '✨'][i % 4], 1.4 + Math.random()); } play('party'); }
   world.npcSay(id, { love: 'love', like: 'happy', neutral: 'happy', dislike: 'sad' }[reaction]);
-  const n = world.npcM.get(id);
+  const n = world.npcEnt(id);
   if (n && reaction !== 'dislike') { world.burst(n.x, n.z, 'heart', 1.4); world.emoteFx(n.x, n.z, reaction === 'love' ? '🥰' : '❤️'); }
   const h = S.hearts(G.s, id);
   $('dlgname').querySelector('small').textContent = '❤️'.repeat(Math.ceil(h / 2)) || '🤍';
@@ -2465,7 +2472,7 @@ $('dialog').addEventListener('click', e => {
   }
   if (b.dataset.gift) {
     G.talk.gift = b.dataset.gift;
-    send({ t: 'gift', id, item: b.dataset.gift });
+    send({ t: G.talk.res ? 'vgift' : 'gift', id, item: b.dataset.gift });
     $('dlggifts').classList.add('hidden');
   }
 });

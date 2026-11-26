@@ -43,6 +43,7 @@ import { npcStep } from './npc-walk.js';
 import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
 import { placeable } from './nature.js';
+import { fencePiece, gateModel } from './plants.js';
 import { building } from './buildings.js';
 import { Zones } from './zones.js';
 import { tickAssets, part, snow, model, hasModel, GLOW_VC, tex, flatGeometry } from './assets.js';
@@ -134,6 +135,10 @@ export const QUALITY = {
   high: { ratio: 2, shadows: 2048, bloom: true, grass: 9, lights: 4 },
 };
 
+function fenceMask(s, k) {
+  const [x, z] = k.split(',').map(Number), f = (dx, dz) => { const q = PLACE[s.obj[(x + dx) + ',' + (z + dz)]?.k]; return q && (q.fence || q.gate) ? 1 : 0; };
+  return f(0, -1) | f(1, 0) << 1 | f(0, 1) << 2 | f(-1, 0) << 3;
+}
 export class World {
   constructor(canvas, labels, quality = isTouch ? 'mid' : 'high') {
     this.labels = labels;
@@ -1063,15 +1068,18 @@ export class World {
     this.lanterns = [];
     this.sprinklers = [];
     for (const [k, o] of Object.entries(s.obj)) {
-      const p = PLACE[o.k], ready = p.kind === 'producer' && o.t >= p.every, flag = o.k === 'fahne' ? s.patterns?.[s.flagPat]?.px || '' : '', sig = `${o.k}|${o.r}|${ready}|${flag}`;
+      const p = PLACE[o.k], ready = p.kind === 'producer' && o.t >= p.every, flag = o.k === 'fahne' ? s.patterns?.[s.flagPat]?.px || '' : '';
+      // Zäune verbinden sich mit Zaun-Nachbarn (Bit 1 = Norden, 2 = Osten, 4 = Süden, 8 = Westen); Tore stellen sich quer zur Zaunreihe
+      const fm = p.fence || p.gate ? fenceMask(s, k) : 0, sig = `${o.k}|${o.r}|${ready}|${flag}|${fm}`;
       seen.add(k);
-      let e = this.objs.get(k);
-      if (e && e.sig !== sig) { this.scene.remove(e.m); e = null; }
+      let e = this.objs.get(k), born = this.time;
+      if (e && e.sig !== sig) { if (e.k === o.k) born = e.born; this.scene.remove(e.m); e = null; } // nur neu verbunden: kein Hüpfer
       if (!e) {
         const [x, z] = k.split(',').map(Number);
-        const m = placeable(o.k, ready);
+        // Zaunstücke und Tore: Blender-Fassung, sobald es sie gibt (zaun_<art>_<maske>, tor_<art>_rahmen/_fluegel), sonst aus dem Code
+        const m = p.fence ? (model(`zaun_${p.fence}_${fm || 10}`) || fencePiece(p.fence, fm)) : p.gate ? gateModel(p.gate, model(`tor_${p.gate}_rahmen`), model(`tor_${p.gate}_fluegel`)) : placeable(o.k, ready);
         m.position.set(x, 0, z);
-        m.rotation.y = o.r * Math.PI / 2;
+        m.rotation.y = p.fence ? 0 : p.gate ? ((fm & 5) && !(fm & 10) ? Math.PI / 2 : 0) : o.r * Math.PI / 2;
         if (!m.userData.asset && ['kirschbaum', 'blumen'].includes(o.k)) m.children[0].material = WIND_CROP;
         if (!m.userData.asset && p.kind === 'producer') m.children[0].material = WIND_TREE;
         let cloth = null;
@@ -1083,11 +1091,17 @@ export class World {
           m.add(cloth);
         }
         this.scene.add(m);
-        e = { m, sig, x, z, born: this.time, cloth };
+        e = { m, sig, x, z, born, cloth, k: o.k };
         this.objs.set(k, e);
       }
       const pop = Math.min(1, (this.time - e.born) * 4);
       e.m.scale.setScalar(pop < 1 ? 0.6 + 0.4 * pop + Math.sin(pop * Math.PI) * 0.2 : 1);
+      if (p.gate && e.m.userData.leaf) { // Tor schwingt auf, wenn jemand in der Nähe ist
+        const P = this.lastPlayers, near = (Array.isArray(P) ? P : Object.values(P || {})).some(q => q && Math.hypot(q.x - e.x, q.z - e.z) < 1.6) || [...(this.npcM?.values() || [])].some(q => q.awake && Math.hypot(q.x - e.x, q.z - e.z) < 1.3);
+        if (near && !(e.open > 0.02)) this.gateSnd = this.time;
+        e.open = (e.open || 0) + ((near ? 1 : 0) - (e.open || 0)) * Math.min(1, (this.dt || 0.016) * 5);
+        e.m.userData.leaf.rotation.y = -e.open * 1.7;
+      }
       if (p.glow) this.lanterns.push(e);
       if (e.cloth) { // Fahne weht im Wind
         const a = e.cloth.geometry.attributes.position;
@@ -1496,6 +1510,7 @@ export class World {
     if (want.umb) add('umbrella_' + (i % 3), e.m, 0.2, u.headTop - 0.62, 0.06, 1, -0.12);
     if (want.scarf) add('scarf', u.torso, 0, u.neck.position.y - 0.03, 0, Math.max(0.12, u.bodyR * 0.82));
   }
+  npcEnt(id) { return this.npcM?.get(id) || this.visM?.get(id) || (this.nroomNpc?.id === id ? this.nroomNpc : null); } // Nachbar, Zugezogene/r oder wer gerade im Zimmer steht
   npcNear(x, z, r = 1.1) {
     let best = null, bd = r;
     for (const [id, e] of [...(this.npcM || []), ...(this.visM || []), ...(this.nroomNpc ? [[this.nroomNpc.id, this.nroomNpc]] : [])]) {
@@ -2045,8 +2060,8 @@ export class World {
       let e = this.visM.get(id);
       const [hx, hz] = home.split(',').map(Number), ph = id.length * 1.7;
       if (!e) { e = { m: makeNpc(id), x: hx + 1, z: hz + 1.6, ry: 0, speed: 0, awake: true, visitor: true }; this.scene.add(e.m); this.visM.set(id, e); }
-      e.m.visible = e.awake = awake;
-      if (!awake) continue;
+      e.m.visible = e.awake = s.residents?.[id] ? nhomeState(s, id) === 'away' : awake; // wer hier wohnt, ist morgens, abends und bei Regen im Haus
+      if (!e.awake) continue;
       const tx = hx + Math.sin(this.time * 0.11 + ph) * 1.6, tz = hz + 1.7 + Math.cos(this.time * 0.07 + ph) * 0.7, talk = this.npcTalk?.id === id;
       const k = Math.min(1, dt * 1.5), ox = e.x, oz = e.z;
       if (!talk) { e.x += (tx - e.x) * k; e.z += (tz - e.z) * k; }

@@ -56,6 +56,9 @@ for (const id of [...Object.keys(D.PLACE), 'heissluftballon', 'nachtstand', 'rif
   try { b = dump(P.placeable(id, true)); } catch { b = null; }
   if (b && sig(a) !== sig(b)) { models.push({ name: name + '_ready', pack: 'place', parts: b }); NEW.add(name + '_ready'); }
 }
+// Inselleben 13: Zaunstücke für jede Nachbarschaft (Maske 1–15) und Tore als Rahmen + Flügel
+for (const kind of new Set(Object.values(D.PLACE).map(p => p.fence).filter(Boolean))) for (let m = 1; m < 16; m++) add('place', `zaun_${kind}_${m}`, () => P.fencePiece(kind, m));
+for (const kind of new Set(Object.values(D.PLACE).map(p => p.gate).filter(Boolean))) { add('place', `tor_${kind}_rahmen`, () => P.gateFramePiece(kind)); add('place', `tor_${kind}_fluegel`, () => P.gateLeafPiece(kind)); }
 for (const id of Object.keys(FURNITURE)) add('furniture', id, () => F.makeFurniture(id));
 for (const id of IM.ITEM_MODEL_IDS) if (D.ITEMS[id] && !id.startsWith('s_')) add('items', 'item_' + id, () => IM.itemModel(id));
 for (const k of Object.keys(D.CROPS)) if (D.ITEMS['s_' + k]) add('items', 'item_s_' + k, () => IM.itemModel('s_' + k));

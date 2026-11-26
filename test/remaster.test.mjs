@@ -13,8 +13,10 @@ const glb = f => {
   return JSON.parse(b.subarray(20, 20 + len).toString('utf8'));
 };
 const roots = j => j.scenes[j.scene || 0].nodes.map(i => j.nodes[i].name);
-// Modelle, die es (noch) nur im Code gibt. Seit Inselleben 12 ist die Liste leer: alles kommt aus Blender.
-const CODE_ONLY = new Set([]);
+// Modelle, die es (noch) nur im Code gibt. Inselleben 12 hat alles Bisherige in Blender nachgebaut; diese hier sind neu
+// (Inselleben 13 „Gartenzeit“: Zäune setzen sich im Spiel aus Pfosten und Armen zusammen, Tore haben einen beweglichen Flügel).
+const CODE_ONLY = new Set(['lattenzaun', 'rosenzaun', 'steinmauer', 'hecke', 'eisenzaun', 'seilzaun', 'gartentor', 'lattentor', 'trittsteine', 'pergola',
+  'feenlaterne', 'pilzhocker', 'pilztisch', 'wunschbrunnen', 'schmetterlingsstrauch', 'regenbogen']);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));

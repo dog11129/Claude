@@ -40,6 +40,14 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 
 ## Was es gibt
 
+### 🌷 Neu: Gartenzeit (Inselleben 13)
+- **Zäune, die sich verbinden:** Holzzaun, weißer Lattenzaun, Rosenzaun, Natursteinmauer, Hecke, Schmiedeeisen-Zaun, Seilzaun und Bambuszaun – einfach Stück für Stück nebeneinander setzen, sie schließen sich von selbst an, auch um die Ecke und als Kreuzung. Im Krämerladen gibt es sie im Zehnerpack, im Baumodus haben sie einen eigenen Reiter. Dazu zwei **Gartentore**, die aufschwingen, wenn jemand kommt, **Trittsteine** und eine **Blauregen-Pergola**.
+- **Zugezogene sind jetzt richtige Nachbarn:** Wer vom Campingplatz eingezogen ist (Flocke, Pingo, Olli, Krümel, Koko, Pia), hat ein Häuschen, das man **betreten** kann – mit eigenem Geschmack, eigenen Möbeln und drei Einrichtungswünschen. Ihr plaudert im normalen Gesprächsfenster, schenkt einmal am Tag etwas und sammelt Herzen. Morgens, abends und bei Regen sind sie im Haus, tagsüber vor der Tür, nachts im Bett.
+- **Fleißkärtchen – immer etwas zu tun:** Im Inselhandy liegen fünf kleine Aufgaben, die nie ausgehen. Wer eine einlöst, bekommt Sternchen und Taler, und sofort rückt ein neues Kärtchen nach (einmal am Tag darf man eins tauschen).
+- **Sternchen-Laden mit Feengarten:** Feenlaterne, Pilzhocker, Pilztisch, Schmetterlingsstrauch, kleiner Regenbogen und der **Wunschbrunnen** – einmal am Tag eine Münze hineinwerfen und schauen, was passiert. Dazu Samen-Wundertüte, Zaun-Paket und Glücksklee.
+- **Gebiete neu gebaut:** Kiefernwald, Blütenwiese und Kristallhöhle sind fast doppelt so groß. Der Weg schlängelt sich jetzt hindurch; im Wald fließt ein Bach mit Holzbrücke und es gibt eine Lichtung mit Lagerfeuer, auf der Wiese warten Windmühle, Seerosenteich, Blumenfelder und ein Lattenzaun am Weg, in der Höhle ein großer leuchtender See, Kristallgruppen, eine Lore und Glühwürmchen an der Decke. Mehr Kiefern, Pilze, Beeren, Blumen und Erzadern – und neue **Fundstellen** (Baumstümpfe, Kleefelder, Kristallnester) zum täglichen Durchstöbern.
+- Die neuen Zäune und Feengarten-Sachen sind fürs Erste Code-Modelle; die Blender-Fassungen folgen beim nächsten Blender-Lauf.
+
 ### 🌸 Neu: Blütenzeit (Inselleben 12)
 - **Nachbarn richten sich selbst ein:** Jeder Nachbar hat einen eigenen Geschmack und kauft sich nach und nach Möbel, Tapeten und Böden dazu – und räumt gern mal um. Was neu ist, erzählen sie euch beim Besuch (und in der Inselzeitung). Eure Geschenke und erfüllten Wünsche bleiben natürlich stehen; was sich ein Nachbar selbst ausgesucht hat, bleibt bei ihm.
 - **Türen stehen immer offen:** Ihr könnt jedes Haus besuchen – auch wenn niemand da ist (dann liegt ein Zettel an der Tür, wo der Nachbar gerade steckt) oder wenn er schon schläft (dann liegt er unter der Decke im Bett, pssst).

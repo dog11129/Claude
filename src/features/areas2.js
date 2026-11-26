@@ -2,7 +2,7 @@
 // die es nur dort gibt. Ein Bewohner pro Gebiet (Eule Oskar, Hummel Hilde, Maulwurf Grubi) tauscht sie gegen eigene
 // Möbel und Deko. Dazu Ereignisse: weißer Hirsch am Morgen, Pilzkreis in der Nacht, Schmetterlingstanz, Kristallklang.
 import { ITEMS } from '../data.js';
-import { AREAS, NODES, nodeAt } from '../areas.js';
+import { AREAS, NODES, nodeAt, pathX, areaBlock, CAVE_LAKE } from '../areas.js';
 import * as X from '../extras.js';
 import { hour } from './util.js';
 import { areaTreesInside } from '../decotrees.js';
@@ -53,10 +53,10 @@ function cableAt(id) {
 // Freie Kacheln für Fundstücke (keine Knoten, kein Weg, nicht am Ausgang, nicht bei Bewohnern & Ereignissen)
 export const SPOTS9 = {};
 for (const [id, A] of Object.entries(AREAS)) {
-  const busy = [...(SOLID9[id] || []), cableAt(id), ...areaTreesInside(id), ...(id === 'wald' ? [STAG_AT, RING_AT] : id === 'wiese' ? [SWARM_AT] : [[0, -6], [-7.8, -5]])];
+  const busy = [...(SOLID9[id] || []), cableAt(id), ...areaTreesInside(id), ...(id === 'wald' ? [STAG_AT, RING_AT] : id === 'wiese' ? [SWARM_AT] : [[0, -(A.d - 1)], [-2, -(A.d - 1)], [2, -(A.d - 1)], CAVE_LAKE])];
   const out = [];
   for (let z = -A.d + 1; z <= A.d - 2; z++) for (let x = -A.w + 1; x <= A.w - 1; x++) {
-    if (Math.abs(x) <= 1 || NODES[id].some(n => Math.abs(n.x - x) <= 1 && Math.abs(n.z - z) <= 1 && (n.x === x && n.z === z || ['pine', 'ore', 'hive'].includes(n.kind)))) continue;
+    if (Math.abs(x - pathX(id, z)) <= 1.2 || areaBlock(id, x, z, 0.7) || NODES[id].some(n => Math.abs(n.x - x) <= 1 && Math.abs(n.z - z) <= 1 && (n.x === x && n.z === z || ['pine', 'ore', 'hive'].includes(n.kind)))) continue;
     if (busy.some(([bx, bz]) => Math.hypot(bx - x, bz - z) < 2.2) || (x > 1 && x < 4 && z > A.d - 3)) continue;
     out.push([x, z]);
   }

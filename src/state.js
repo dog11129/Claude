@@ -3,7 +3,7 @@ import {
   DAY, WET, MAP, CROPS, ANIMALS, PENS, BUILDINGS, ITEMS, FISH, PLACE,
   UPGRADES, needXp, MAX_LEVEL, ACHIEVEMENTS, SEASON_LEN, SEASON_IDS, isFlower,
   RES_SPOTS, TREE_FRUIT, FRUIT_REGROW, BUGS, FOSSILS, SHELLS, SHELLS_PER_DAY, WEEDS_PER_DAY, RECIPES, DIG_SPOTS_PER_DAY,
-  NPC_DATA, NPC_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK, SEA, DIVES, STARTER_DIY, DIY_IDS,
+  NPC_DATA, NPC_IDS, VISITOR_IDS, STORY, DAILY, MUSEUM_ALL, NPC_PLAN, PAVE, BALLOON_GIFTS, weekday, TURNIP_STACK, SEA, DIVES, STARTER_DIY, DIY_IDS,
   FESTS, BIRTHDAYS, CONTEST_SECS, CONTEST_AT, FEST_DECO, HYBRIDS,
 } from './data.js';
 import { walkable, grass, sand, isWater, isSea, coast, inPond as pondAt, inRiver, onBridge, bridgeRail, onPier, onPlaza, rng, riverX, BRIDGES, MAP as ISLAND, PIER } from './island.js';
@@ -21,9 +21,10 @@ import * as E9 from './extras9.js';
 import * as E10 from './extras10.js';
 import * as E11 from './extras11.js';
 import * as E12 from './extras12.js';
+import * as E13 from './extras13.js';
 import { groupOf, GROUP_IDS } from './groups.js';
 import { decoTrees, DECO_LABEL, areaTreeBlock } from './decotrees.js';
-import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
+import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf, areaBlock, SPOT_NAME } from './areas.js';
 export { AREAS, NODES, areaOf };
 import {
   PROJECTS, STREET, TROPIC, zoneOf, STREET_SHOPS, streetWalk, streetShopAt, TROPIC_HUT, TROPIC_TREES, onDock, tropicWalk, tropicTree,
@@ -107,7 +108,7 @@ export function newFarm(name = 'Kuschelinsel') {
 
 export const STYLE_PRICE = 350;
 export const friend = (s, id) => (s.npc[id] ||= { f: 0, talk: 0, gift: 0, sent: [] });
-export const hearts = (s, id) => Math.min(10, Math.floor((s.npc[id]?.f || 0) / 100));
+export const hearts = (s, id) => Math.min(10, Math.floor(!NPC_DATA[id] && s.residents?.[id] ? (s.residents[id].f || 0) / 30 : (s.npc[id]?.f || 0) / 100)); // Zugezogene zählen in 30er-Schritten
 
 // Nachbarn spazieren um ihren Lieblingsort (alle Spieler sehen dasselbe); nachts sind sie zu Hause
 // Nachbarn haben einen Tagesablauf (data.js NPC_PLAN): morgens zu Hause, später am Platz, am Fluss, im Museum …
@@ -148,8 +149,10 @@ export const npcAwake = s => { const h = 6 + s.dayTime * 18, [a, b] = awakeHours
 // ---------- Quests ----------
 // Aufgaben für neue Gebiete nur, wenn das Gebiet schon offen ist
 const DAILY_NEEDS = { mush: ['wald'], ore: ['hoehle'], honey: ['wiese'], berry: ['wald', 'wiese'] };
+// Welche Tagesaufgaben gehen auf dieser Insel schon? (auch für die Fleißkärtchen, extras13.js)
+export const dailyOk = s => i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s)) && (!V.DAILY_OK_V[DAILY[i][1]] || V.DAILY_OK_V[DAILY[i][1]](s)) && (!E6.DAILY_OK_6[DAILY[i][1]] || E6.DAILY_OK_6[DAILY[i][1]](s)) && (!E7.DAILY_OK_7[DAILY[i][1]] || E7.DAILY_OK_7[DAILY[i][1]](s));
 function newDailies(s) {
-  const ok = i => (!DAILY_NEEDS[DAILY[i][1]] || DAILY_NEEDS[DAILY[i][1]].some(a => s.areas?.[a])) && Z.dailyOk(s, DAILY[i][1]) && (!W4.DAILY_OK_W[DAILY[i][1]] || W4.DAILY_OK_W[DAILY[i][1]](s)) && (!V.DAILY_OK_V[DAILY[i][1]] || V.DAILY_OK_V[DAILY[i][1]](s)) && (!E6.DAILY_OK_6[DAILY[i][1]] || E6.DAILY_OK_6[DAILY[i][1]](s)) && (!E7.DAILY_OK_7[DAILY[i][1]] || E7.DAILY_OK_7[DAILY[i][1]](s));
+  const ok = dailyOk(s);
   const pool = DAILY.map((d, i) => i).filter(ok).sort(() => Math.random() - 0.5).slice(0, 3);
   s.daily = pool.map(i => ({ i, p: 0 }));
 }
@@ -166,6 +169,7 @@ export function questEvent(s, ev, n = 1, out) {
     if (d.p >= DAILY[d.i][2]) { d.done = true; if (out) out.quest = DAILY[d.i][0]; }
   }
   X.weekEvent(s, ev, n, out);
+  E13.plusEvent(s, ev, n, out); // Fleißkärtchen
 }
 
 // Morgens: Bäume & Felsen auffüllen, neue Grabstellen, Muscheln und Unkraut verteilen
@@ -343,9 +347,11 @@ export const roomSize = s => ROOMS[s.up.house] || ROOMS[1];
 export const inside = p => p.x > HOME_X / 2;
 // Zimmer der Nachbarn liegen hinter dem eigenen Haus (gleiche x, weiter südlich): je Nachbar eins
 export const NROOM_Z0 = 60, NROOM_DZ = 40, NROOM_SIZE = [7, 5];
-export const nroomZ = id => NROOM_Z0 + NPC_IDS.indexOf(id) * NROOM_DZ;
-export const roomIdAt = z => (z < -30 ? V.xroomAt(z) : z < NROOM_Z0 - NROOM_DZ / 2 ? null : NPC_IDS[Math.round((z - NROOM_Z0) / NROOM_DZ)] || null);
-const NROOM_STYLE = { mira: ['rosa', 'dielen'], bruno: ['holz', 'dunkel'], pippa: ['karo', 'fliesen'], lio: ['bluemchen', 'parkett'], kalle: ['mint', 'moos'], wanda: ['sterne', 'stein'] };
+export const ROOM_IDS = [...NPC_IDS, ...VISITOR_IDS]; // erst die sechs Nachbarn, dahinter die Zugezogenen
+export const nroomZ = id => NROOM_Z0 + ROOM_IDS.indexOf(id) * NROOM_DZ;
+export const roomIdAt = z => (z < -30 ? V.xroomAt(z) : z < NROOM_Z0 - NROOM_DZ / 2 ? null : ROOM_IDS[Math.round((z - NROOM_Z0) / NROOM_DZ)] || null);
+const NROOM_STYLE = { mira: ['rosa', 'dielen'], bruno: ['holz', 'dunkel'], pippa: ['karo', 'fliesen'], lio: ['bluemchen', 'parkett'], kalle: ['mint', 'moos'], wanda: ['sterne', 'stein'],
+  flocke: ['wolken', 'teppich'], pingo: ['mint', 'fliesen'], olli: ['karo', 'dielen'], kruemel: ['vanille', 'parkett'], koko: ['bluemchen', 'moos'], pia: ['pfingstrosen', 'rosadielen'] };
 export const nroomBlank = id => ({ wall: NROOM_STYLE[id]?.[0] || 'vanille', floor: NROOM_STYLE[id]?.[1] || 'dielen', items: { '-2,-1': { k: 'einzelbett', r: 0 } }, rugs: {}, walls: {}, w: 0 });
 const blankRooms = {};
 // Ein Zimmer: eigenes Haus (id = null) oder das Zimmer eines Nachbarn
@@ -413,7 +419,7 @@ function homeBlocked(s, x, z) {
 function actRoom(s, a, out) {
   if (a.room === undefined || a.room === null) return roomOf(s);
   if (V.XROOMS[a.room]) return V.xroomOpen(s, a.room) ? roomOf(s, a.room) : null;
-  if (!NPC_IDS.includes(a.room)) return null;
+  if (!ROOM_IDS.includes(a.room) || (VISITOR_IDS.includes(a.room) && !s.residents?.[a.room])) return null;
   if (hearts(s, a.room) < 3) { if (out) out.msg = 'Erst ab 3 Herzen darfst du hier einrichten.'; return null; }
   s.nhome ||= {};
   s.nhome[a.room] ||= nroomBlank(a.room);
@@ -452,6 +458,7 @@ export function blocked(s, x, z, swim) {
     if (Y.cableBuilt(s)) { const [cx, cz] = Y.cableStop(id); if (Math.hypot(x - cx, z - cz) < 0.7) return true; }
     if (E9.blockedArea9(id, Math.round(lx), Math.round(lz))) return true; // Bewohner, Kristalle
     if (areaTreeBlock(id, lx, lz)) return true; // Randbäume in den Ecken
+    if (areaBlock(id, lx, lz)) return true; // Teich, Mühle, See, Lagerfeuer (Inselleben 13)
     return !!(n && SOLID.includes(n.kind));
   }
   if (gateAt(Math.round(x), Math.round(z))) return true;
@@ -847,6 +854,7 @@ function addXp(s, n, out) {
 
 const addInv = (s, id, n) => { s.inv[id] = (s.inv[id] || 0) + n; if (n > 0 && X.catalogOk(id)) (s.catalog ||= {})[id] = 1; };
 export const addInvX = (s, id, n) => addInv(s, id, n);
+export const addXpX = (s, n, out) => addXp(s, n, out);
 export const questEventX = (s, ev, n, out) => questEvent(s, ev, n, out);
 export const DAY_SECS = DAY;
 export const collectX = (s, id, out) => collect(s, id, out);
@@ -1374,7 +1382,7 @@ const ACTIONS = {
     const h = homeAt(s, a.x, a.z, false, R) || homeAt(s, a.x, a.z, 'walls', R) || homeAt(s, a.x, a.z, true, R);
     if (!h) return false;
     if (R.id && h.key === '-2,-1' && h.o.k === 'einzelbett' && !h.o.by) { out.msg = 'Das ist das Bett von ' + NPC_DATA[R.id].name + ' – das bleibt hier.'; return false; }
-    if (R.id && h.o.npc && NPC_DATA[R.id]) { out.msg = `${FURNITURE[h.o.k].icon} Das hat sich ${NPC_DATA[R.id].name} selbst ausgesucht – das bleibt hier.`; return false; }
+    if (R.id && h.o.npc && ROOM_IDS.includes(R.id)) { out.msg = `${FURNITURE[h.o.k].icon} Das hat sich ${X.pname(R.id)} selbst ausgesucht – das bleibt hier.`; return false; }
     delete layer(s, FURNITURE[h.o.k], R)[h.key];
     if (h.o.a) E6.tankEmpty(s, h.o); // Aquarium/Terrarium: Bewohner zurück in die Tasche
     (s.lifted ||= {})[s._who || 'host'] = { k: h.o.k, c: h.o.c || 0, day: s.day }; // Farbe merken, falls es gleich woanders hinkommt
@@ -1456,6 +1464,7 @@ const ACTIONS = {
       else if (n.kind === 'berry') { const c = 2 + Math.floor(Math.random() * 3); got(today, c); s.stats.berry = (s.stats.berry || 0) + c; questEvent(s, 'berry', c, out); questEvent(s, 'forage', 1, out); }
       else if (n.kind === 'hive') { got('honig', 1 + (Math.random() < 0.3 ? 1 : 0)); s.stats.honey = (s.stats.honey || 0) + 1; questEvent(s, 'honey', 1, out); }
       else if (n.kind === 'bloom') { got('s_' + today, 1); got(today, 1); questEvent(s, 'forage', 1, out); }
+      else if (n.kind === 'spot') { got(today, today === 'holz' || today === 'stein' || today === 'heu' ? 2 : 1); s.stats.spots = (s.stats.spots || 0) + 1; questEvent(s, 'forage', 1, out); }
       out.snd = 'harvest';
     }
     addXp(s, 2, out);
@@ -1840,7 +1849,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS, E12.E12_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS, E12.E12_ACTIONS, E13.E13_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -2004,6 +2013,8 @@ function resolveBase(s, me, sel, at) {
   const [dx, dz] = facing(toward);
   const one = [[x, z]];
 
+  if (s.obj[k]?.k === 'wunschbrunnen') return { a: { t: 'wish13', x, z }, label: '⛲ Münze hineinwerfen (10 Taler)', tiles: one };
+  { const o = s.obj[k]; if (o?.k === 'nachbarhaus' && o.who && s.residents?.[o.who]) return { visit: o.who, label: `🚪 Zu ${X.pname(o.who)}`, tiles: one }; } // Zugezogene besuchen
   const gid = !s.obj[k] && !s.tiles[k] && gateAt(x, z);
   if (gid) return s.areas?.[gid] ? { go: gid, label: `${AREAS[gid].icon} Zum ${AREAS[gid].name}`.replace('Zum Blütenwiese', 'Zur Blütenwiese').replace('Zum Kristallhöhle', 'Zur Kristallhöhle'), tiles: one } : { ui: 'mayor', label: `🔒 ${AREAS[gid].gateName} · im Rathaus freischalten`, tiles: one };
   const b = buildingAt(x, z);
@@ -2125,9 +2136,10 @@ function resolveArea(s, me, sel, at) {
     return used?.shook ? { label: (used?.u || 0) < nodeUses(n) ? '🌲 Heute schon geschüttelt – mit der Axt gibt es Holz' : '🌲 Morgen wieder', tiles } : { a: a('shake'), label: '🌰 Schütteln', tiles, shake };
   }
   if (n.kind === 'ore') return sel === 'shovel' ? ((used?.u || 0) < nodeUses(n) ? { a: a('mine'), label: '⛏️ Auf die Erzader hauen', tiles } : { label: '💎 Morgen wieder', tiles }) : { label: '💎 Erzader · mit der Schaufel draufhauen', tiles };
-  if (used) return { label: { hive: '🍯 Heute schon geerntet – morgen gibt es neuen Honig', berry: '🫐 Abgeerntet – morgen wachsen neue Beeren' }[n.kind] || '✔ Heute schon gepflückt – morgen wächst Neues', tiles };
+  if (used) return { label: { hive: '🍯 Heute schon geerntet – morgen gibt es neuen Honig', berry: '🫐 Abgeerntet – morgen wachsen neue Beeren', spot: '✔ Heute schon durchstöbert – morgen wieder' }[n.kind] || '✔ Heute schon gepflückt – morgen wächst Neues', tiles };
   if (!today) return { label: '', tiles: [] }; // heute wächst hier nichts
   const it = typeof today === 'string' ? ITEMS[today] : null; // Bienenstock: today = true (kein Gegenstand)
+  if (n.kind === 'spot') return { a: a('pick'), label: `${SPOT_NAME[id][0]} ${SPOT_NAME[id][1]}`, tiles, shake };
   const lbl = n.kind === 'mush' ? `${it?.icon || '🍄'} ${it?.name || 'Pilz'} pflücken` : n.kind === 'berry' ? `${it?.icon || '🫐'} Beeren pflücken` : n.kind === 'hive' ? '🍯 Honig ernten' : `🌸 ${CROPS[today]?.name || 'Blume'} pflücken (Samen!)`;
   return { a: a('pick'), label: lbl, tiles, shake: n.kind === 'berry' || n.kind === 'hive' ? shake : undefined };
 }

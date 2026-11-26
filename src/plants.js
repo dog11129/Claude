@@ -6,6 +6,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { MAT, GLOW, merge, box, cyl, cone } from './models.js';
 import { PLACE_X } from './models-extra.js';
 import { PLACE_12 } from './models-12.js';
+import { PLACE_13, fenceParts, gateFrame, gateLeaf } from './models-13.js';
 import { CROPS } from './data.js';
 
 const PI = Math.PI, H = PI / 2, TAU = PI * 2;
@@ -862,6 +863,18 @@ export function crop(k, st) {
 }
 Object.assign(PLACE, PLACE_X); // Gewächshaus, Sprinkler, Sternenrakete, Fahne, Tauschstand … (models-extra.js)
 Object.assign(PLACE, PLACE_12); // Inselleben 12: Garten-Deko (models-12.js)
+Object.assign(PLACE, PLACE_13); // Inselleben 13: Zäune, Tore, Feengarten (models-13.js)
+// Zaunstück passend zur Nachbarschaft (mask: 1 = Norden, 2 = Osten, 4 = Süden, 8 = Westen)
+export const fencePiece = (kind, mask) => make('fz' + kind + (mask & 15), () => fenceParts(kind, mask));
+// Tor: Rahmen und Flügel getrennt, der Flügel hängt an seiner Angel (userData.leaf dreht sich um y).
+// frame/leaf: fertige Blender-Teile (tor_<art>_rahmen / tor_<art>_fluegel), sonst die Code-Fassung.
+export const gateFramePiece = kind => make('gf' + kind, () => gateFrame(kind));
+export const gateLeafPiece = kind => make('gl' + kind, () => gateLeaf(kind));
+export function gateModel(kind, frame, leaf) {
+  const g = frame || gateFramePiece(kind), hinge = new THREE.Group();
+  hinge.position.x = -0.42; hinge.add(leaf || gateLeafPiece(kind)); g.add(hinge); g.userData.leaf = hinge;
+  return g;
+}
 export function placeable(k, ready) {
   return make('p' + k + (ready ? 1 : 0), () => (PLACE[k] ? PLACE[k](!!ready) : missing()));
 }

@@ -8,7 +8,8 @@ import { building } from './buildings.js';
 import { placeable } from './nature.js';
 import { tex, model } from './assets.js';
 import { STREET, TROPIC, STREET_SHOPS, TROPIC_HUT, TROPIC_TREES, TOURS, TOUR_ICON, shopOpen, concertNow } from './newleaf.js';
-import { AREAS, NODES, nodeToday, nodeUses } from './areas.js';
+import { AREAS, NODES, nodeToday, nodeUses, pathX, CAVE_LAKE } from './areas.js';
+import { decorateArea13, spotModel } from './world-extra10.js';
 import { cropModel } from './nature.js';
 import { crop } from './plants.js';
 import { TRIP, TRIP_KINDS, tripLayout, tripUses, nodeThing } from './trips.js';
@@ -175,9 +176,12 @@ function buildArea(id) {
   const stoneT = tex('floor_stein', (W * 2 + 18) / 2.2, (D * 2 + 18) / 2.2);
   const floor = new THREE.Mesh(M.flat(W * 2 + 18, D * 2 + 18), new THREE.MeshLambertMaterial(A.cave ? { color: 0x8a7f9a, map: stoneT } : { color: A.ground, map: tex('grass', W + 9, D + 9) }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(X, -0.02, Z); floor.receiveShadow = true; g.add(floor);
-  // Weg vom Eingang (Süden) in die Mitte
-  const path = new THREE.Mesh(M.flat(2.2, D + 1.4, 0.75), new THREE.MeshLambertMaterial(A.cave ? { color: 0x7a7088 } : { color: 0xf2deb0, map: tex('path', 1.2, (D + 1.4) / 2) }));
-  path.rotation.x = -Math.PI / 2; path.position.set(X, 0.01, Z + D / 2 + 0.7); path.receiveShadow = true; g.add(path);
+  // Weg: schlängelt sich vom Eingang (Süden) durch die Mitte bis zum Nordrand; in der Höhle führt er gerade zur Mitte
+  const pp = [];
+  for (let lz = D + 1.4; lz >= (A.cave ? -0.6 : -D - 1); lz -= 0.55) pp.push(M.cyl(1.12, 1.12, 0.02, A.cave ? 0x7a7088 : 0xf2deb0, X + pathX(id, Math.min(lz, D)), 0.002, Z + lz, 12));
+  const pathM = bm('zone13_path_' + id, pp, [], false);
+  pathM.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
+  g.add(pathM);
   const rnd = (i => () => ((i = Math.imul(i, 48271) % 2147483647) / 2147483647))(id.length * 999 + 7), occ = g.userData.occ = []; // Bäume, die durchsichtig werden, wenn sie die Figur verdecken
   if (A.cave) {
     // Felswände rundherum, leuchtende Kristalle, ein kleiner See
@@ -190,9 +194,9 @@ function buildArea(id) {
     }
     for (let i = 0; i < 14; i++) glow.push(M.cone(0.06, 0.5 + rnd() * 0.5, 0xbfa8ff, (rnd() * 2 - 1) * W * 1.1, 2.6 + rnd(), (rnd() * 2 - 1) * D, 5, Math.PI));
     // Tropfsteine und Leuchtpilze auf dem Boden
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 40; i++) {
       const x = (rnd() * 2 - 1) * (W - 0.5), z = (rnd() * 2 - 1) * (D - 0.5);
-      if (Math.abs(x) < 1.6 || NODES[id].some(n => Math.abs(n.x - x) < 1.4 && Math.abs(n.z - z) < 1.4) || Math.hypot(X + x - DEPTH_STAIRS[0], Z + z - DEPTH_STAIRS[1]) < 2) continue;
+      if (Math.abs(x) < 1.6 || Math.hypot(x - CAVE_LAKE[0], z - CAVE_LAKE[1]) < CAVE_LAKE[2] + 0.5 || NODES[id].some(n => Math.abs(n.x - x) < 1.4 && Math.abs(n.z - z) < 1.4) || Math.hypot(X + x - DEPTH_STAIRS[0], Z + z - DEPTH_STAIRS[1]) < 2) continue;
       if (i % 3) parts.push(M.cone(0.18 + rnd() * 0.12, 0.5 + rnd() * 0.8, 0x8e84a0, x, 0.3, z, 6));
       else { glow.push(M.ball(0.12, 0x9ff0ff, x, 0.18, z, 1, 0.5, 1, 8)); parts.push(M.cyl(0.03, 0.04, 0.14, 0xe8e0f0, x, 0.07, z, 5)); }
     }
@@ -207,9 +211,9 @@ function buildArea(id) {
       parts.push(M.cyl(0.04, 0.05, 1.1, 0x45332f, sx + 1.1, 0.55, sz + 0.7, 6));
       glow.push(M.box(0.16, 0.2, 0.16, 0xffb04a, sx + 1.1, 1.2, sz + 0.7));
     }
-    g.add(bmv('zone_cave_' + id, parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
-    const lake = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), new THREE.MeshLambertMaterial({ color: 0x4f8fd8, transparent: true, opacity: 0.85 }));
-    lake.rotation.x = -Math.PI / 2; lake.position.set(X - W + 2.2, 0.02, Z - D + 2); g.add(lake);
+    g.add(bmv('zone13_cave_' + id, parts.map(q => (q.g.translate(X, 0, Z), q)), glow.map(q => (q.g.translate(X, 0, Z), q))));
+    const lake = new THREE.Mesh(new THREE.CircleGeometry(CAVE_LAKE[2], 40), new THREE.MeshLambertMaterial({ color: 0x4f8fd8, transparent: true, opacity: 0.85, emissive: 0x16335a }));
+    lake.rotation.x = -Math.PI / 2; lake.position.set(X + CAVE_LAKE[0], 0.02, Z + CAVE_LAKE[1]); g.add(lake);
   } else {
     // Rand: dichter Wald bzw. Hecken mit Blumen
     for (const e of areaEdge(id)) { // Baumring (decotrees.js) – die nahen Bäume kann man schütteln und hacken
@@ -218,8 +222,8 @@ function buildArea(id) {
       m.scale.setScalar(e.s);
       occ.push(put(g, m, X + e.x, Z + e.z, e.ry));
     }
-    if (id === 'wiese') for (let i = 0; i < 60; i++) { const m = model('wildflower_' + (i % 4)); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
-    if (id === 'wald') for (let i = 0; i < 30; i++) { const m = model('tuft'); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
+    if (id === 'wiese') for (let i = 0; i < 40; i++) { const m = model('wildflower_' + (i % 4)); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
+    if (id === 'wald') for (let i = 0; i < 46; i++) { const m = model('tuft'); if (m) put(g, m, X + (rnd() * 2 - 1) * W, Z + (rnd() * 2 - 1) * D, rnd() * 6); }
   }
   // Feste Dinge: Kiefern, Erzadern, Bienenstöcke, Beerensträucher
   const dyn = [];
@@ -228,11 +232,13 @@ function buildArea(id) {
     if (n.kind === 'pine') { const m = model('pine') || N.wild('tree', 'summer', 3); m.scale.setScalar(1.15); occ.push(put(g, m, x, z, n.i)); }
     else if (n.kind === 'ore') put(g, oreRock(n.i), x, z, n.i * 0.7);
     else if (n.kind === 'hive') put(g, hive(), x, z, n.i);
+    else if (n.kind === 'spot') put(g, spotModel(id), x, z, n.i * 1.3);
     else if (n.kind === 'berry') { const [b, fr] = berryBush(id === 'wiese' ? 0xe8304a : 0x4a5aff); put(g, b, x, z, n.i); put(g, fr, x, z, n.i); dyn.push({ n, m: fr }); }
     else dyn.push({ n, m: null, x, z });
   }
   g.userData.dyn = dyn;
   g.userData.lights = A.cave ? NODES[id].filter((n, i) => i % 3 === 0).map(n => [X + n.x, Z + n.z]) : [];
+  decorateArea13(g, id, put); // Inselleben 13: Bach & Lichtung, Teich & Mühle, See & Kristalle
   decorateArea9(g, id); // Inselleben 9: Natur, Tiere, Bewohner, Ereignisse
   return g;
 }

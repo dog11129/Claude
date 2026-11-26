@@ -15,6 +15,7 @@ import * as E9 from './extras9.js';
 import * as E10 from './extras10.js';
 import * as E11 from './extras11.js';
 import * as E12 from './extras12.js';
+import * as E13 from './extras13.js';
 import { TRIP, TRIP_PRICE, TRIP_KINDS, tripLayout, tripNodeAt, onTripDock, tripWalk, SOLID_TRIP, tripUses, nodeThing, TRIP_BUGS, TRIP_FISH } from './trips.js';
 
 // Pixel-Muster prüfen (wie in patterns.js, aber ohne three.js, damit es in Node-Tests läuft)
@@ -469,6 +470,13 @@ ich liebe eure Insel … aber ich träume auch von der weiten Welt. Was meint ih
 ${vname(id)}`); break; }
   }
 }
+export const pname = id => NPC_DATA[id]?.name || VISITORS[id]?.name || id;
+// Freundschaft dazu (pts in Nachbar-Punkten: 100 = 1 Herz); Zugezogene rechnen in 30er-Schritten
+export function befriend(s, id, pts) {
+  if (NPC_DATA[id]) { S.friendX(s, id).f += pts; return; }
+  const r = s.residents?.[id];
+  if (r) r.f = Math.min(330, (r.f || 0) + Math.round(pts * 0.3));
+}
 const vok = (s, id) => typeof id === 'string' && VISITORS[id] && (s.residents?.[id] || s.camper?.id === id);
 const vrec = (s, id) => s.residents?.[id] || (s.camper?.id === id ? s.camper : null);
 
@@ -503,6 +511,7 @@ export function migrateX(s) {
   E10.migrate10(s);
   E11.migrate11(s);
   E12.migrate12(s);
+  E13.migrate13(s);
   s.patterns = Array.from({ length: PAT_SLOTS }, (_, i) => { const p = Array.isArray(s.patterns) ? s.patterns[i] : null; return p && validPx(p.px) ? { name: String(p.name || 'Muster').slice(0, 20), px: p.px, by: String(p.by || '').slice(0, 16) } : null; });
   if (s.melody && !(Array.isArray(s.melody.notes) && s.melody.notes.length === 16 && s.melody.notes.every(n => Number.isInteger(n) && n >= 0 && n < MEL_NOTES.length))) s.melody = null;
   for (const k of ['flagPat', 'pathPat']) if (!(Number.isInteger(s[k]) && s.patterns[s[k]])) s[k] = null;
@@ -539,6 +548,7 @@ export function morningX(s) {
   E8.morning8(s);
   E10.morning10(s);
   E12.morning12(s);
+  E13.morning13(s);
   makePaper(s);
   E9.paper9(s);
   E12.paper12(s);
@@ -679,6 +689,10 @@ export const X_ACTIONS = {
   vgift(s, a, out) { // Besuch beschenken
     if (!vok(s, a.id) || typeof a.item !== 'string' || !ITEMS[a.item] || ITEMS[a.item].gear || !S.takeInvX(s, a.item, 1)) return false;
     const r = vrec(s, a.id), V = VISITORS[a.id], love = V.loves.includes(a.item), like = V.likes.includes(a.item);
+    if (s.residents?.[a.id]) { // wer hier wohnt, bekommt – wie alle Nachbarn – ein Geschenk am Tag
+      if (r.gift === s.day) { S.addInvX(s, a.item, 1); out.msg = `${V.name} hat heute schon ein Geschenk bekommen.`; return false; }
+      r.gift = s.day; out.reaction = love ? 'love' : like ? 'like' : 'neutral';
+    }
     r.f = (r.f || 0) + (love ? 30 : like ? 15 : 6);
     out.msg = `${V.icon} ${V.name}: ${love ? '„Waaas?! Das ist ja mein Allerliebstes! Danke, danke, danke!“' : like ? '„Oh, wie lieb! Das mag ich sehr.“' : '„Danke schön! Wie aufmerksam.“'}`;
     out.snd = love ? 'love' : 'harvest';

@@ -82,3 +82,12 @@ Die Platzhalter-GLBs aus `art/export/` lassen sich in jedem Programm öffnen, da
 Baumkronen → 1.700, Felsen → 650, reife Beete → 1.000) und schreibt die Pakete zurück; Namen, Gelenke, Animationen und Vertex-Farben
 bleiben gleich, die Originale liegen als `*_orig.glb` daneben. Zusammen mit den Schatten, die nur noch jedes zweite Bild neu
 berechnet werden, sind es im Schnitt rund 58 % weniger Zeichenaufrufe und 43 % weniger Dreiecke pro Bild.
+
+## Inselleben 13: Zäune, Tore und Feengarten (Blender-Lauf steht noch aus)
+
+Die neuen Stücke laufen fürs Erste als Code-Modelle (`src/models-13.js`, Ausnahmeliste `CODE_ONLY` in `test/remaster.test.mjs`).
+`node tools/dump-models.mjs` schreibt sie schon in den Bauplan: je Zaunart 15 Stücke `zaun_<art>_<maske>` (Maske: 1 = Norden,
+2 = Osten, 4 = Süden, 8 = Westen), je Tor `tor_<art>_rahmen` und `tor_<art>_fluegel` (Ursprung des Flügels = Angel), dazu die
+16 neuen Deko-Modelle samt Icons. Nach dem nächsten `remaster.py`-Lauf nimmt das Spiel die Blender-Fassungen von selbst
+(`world.js`, `syncObjects`); dann die 16 Namen aus `CODE_ONLY` streichen. Die Gebiete (`zone13_*`) kommen über
+`python3 tools/capture-world.py` + `PACKS = ['world']` dazu.

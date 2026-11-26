@@ -470,7 +470,7 @@ export const DIVES = 8;
 export const PLACE = {
   weg:        { name: 'Steinweg',      icon: '🧱', buy: 20,   lvl: 1, kind: 'deco' },
   blumen:     { name: 'Blumenbeet',    icon: '🌷', buy: 120,  lvl: 1, kind: 'deco' },
-  zaun:       { name: 'Holzzaun',      icon: '🪵', buy: 60,   lvl: 1, kind: 'deco', solid: 1 },
+  zaun:       { name: 'Holzzaun',      icon: '🪵', buy: 60,   lvl: 1, kind: 'deco', solid: 1, fence: 'holz' },
   heu:        { name: 'Strohballen',   icon: '🟨', buy: 150,  lvl: 2, kind: 'deco', solid: 1 },
   pilz:       { name: 'Fliegenpilz',   icon: '🍄', buy: 200,  lvl: 1, kind: 'deco' },
   laterne:    { name: 'Laterne',       icon: '🏮', buy: 400,  lvl: 2, kind: 'deco', solid: 1, glow: 1 },
@@ -481,7 +481,7 @@ export const PLACE = {
   wiesenschaukel: { name: 'Wiesenschaukel', icon: '🌼', lvl: 1, kind: 'deco', solid: 1, sit: 1, desc: 'Von Hummel Hilde auf der Blütenwiese' },
   kristallsaeule: { name: 'Kristallsäule', icon: '💎', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Von Maulwurf Grubi in der Kristallhöhle' },
   marktstand: { name: 'Marktstand',    icon: '🧺', buy: 2500, lvl: 2, kind: 'deco', solid: 1, desc: 'Samstags Bauernmarkt: die Nachbarn kaufen eure Ernte' },
-  bambuszaun: { name: 'Bambuszaun',    icon: '🎋', lvl: 1, kind: 'deco', solid: 1, desc: 'Aus dem Bambushain' },
+  bambuszaun: { name: 'Bambuszaun',    icon: '🎋', lvl: 1, kind: 'deco', solid: 1, desc: 'Aus dem Bambushain', fence: 'bambus' },
   irrlichtlaterne: { name: 'Irrlicht-Laterne', icon: '💫', lvl: 1, kind: 'deco', solid: 1, glow: 1, desc: 'Drei Irrlichter in einem Glas' },
   schafweide: { name: 'Schafweide',    icon: '🐑', buy: 6800, lvl: 2, kind: 'producer', farm: 1, solid: 1, item: 'wolle', n: 1, every: DAY, desc: 'Zwei Schafe geben jeden Tag Wolle – wenn sie gefüttert sind (🌾 Weizen, 🥕 Karotte, 🍎 Apfel)' },
   bienenkasten: { name: 'Bienenkasten', icon: '🐝', buy: 3200, lvl: 1, kind: 'deco', solid: 1, desc: 'Neben blühende Blumen stellen – der Honig schmeckt nach den Blumen ringsum' },
@@ -607,6 +607,24 @@ export const PLACE = {
   entenhaus:   { name: 'Entenhäuschen',   icon: '🦆', buy: 1600, lvl: 2, kind: 'deco', solid: 1 },
   lichterbogen: { name: 'Lichterbogen',   icon: '✨', buy: 2800, lvl: 3, kind: 'deco', glow: 1 },
   hollywoodschaukel: { name: 'Hollywoodschaukel', icon: '🛋️', buy: 3200, lvl: 3, kind: 'deco', solid: 1, sit: 1 },
+  // Inselleben 13 „Gartenzeit“: Zäune verbinden sich von selbst mit ihren Nachbarn (fence), Tore schwingen auf (gate)
+  lattenzaun:  { name: 'Weißer Lattenzaun', icon: '🤍', buy: 70,  lvl: 1, kind: 'deco', solid: 1, fence: 'latten' },
+  rosenzaun:   { name: 'Rosenzaun',         icon: '🌹', buy: 120, lvl: 2, kind: 'deco', solid: 1, fence: 'rosen' },
+  steinmauer:  { name: 'Natursteinmauer',   icon: '🪨', buy: 90,  lvl: 2, kind: 'deco', solid: 1, fence: 'stein' },
+  hecke:       { name: 'Hecke',             icon: '🌳', buy: 80,  lvl: 1, kind: 'deco', solid: 1, fence: 'hecke' },
+  eisenzaun:   { name: 'Schmiedeeisen-Zaun', icon: '⚜️', buy: 130, lvl: 3, kind: 'deco', solid: 1, fence: 'eisen' },
+  seilzaun:    { name: 'Seilzaun',          icon: '🪢', buy: 50,  lvl: 1, kind: 'deco', solid: 1, fence: 'seil' },
+  gartentor:   { name: 'Gartentor',         icon: '🚪', buy: 180, lvl: 1, kind: 'deco', gate: 'holz', desc: 'Schwingt auf, wenn jemand kommt' },
+  lattentor:   { name: 'Weißes Gartentor',  icon: '🚪', buy: 200, lvl: 1, kind: 'deco', gate: 'latten', desc: 'Schwingt auf, wenn jemand kommt' },
+  trittsteine: { name: 'Trittsteine',       icon: '🥌', buy: 60,  lvl: 1, kind: 'deco', desc: 'Zum Drüberlaufen' },
+  pergola:     { name: 'Blauregen-Pergola', icon: '💜', buy: 1800, lvl: 3, kind: 'deco', garden: 1, desc: 'Zum Durchspazieren' },
+  // Feengarten: nur im Sternchen-Laden (Fleißkärtchen)
+  feenlaterne: { name: 'Feenlaterne',       icon: '🧚', lvl: 1, kind: 'deco', glow: 1, star: 4, desc: 'Aus dem Sternchen-Laden' },
+  pilzhocker:  { name: 'Pilzhocker',        icon: '🍄', lvl: 1, kind: 'deco', solid: 1, sit: 1, star: 3, desc: 'Aus dem Sternchen-Laden' },
+  pilztisch:   { name: 'Pilztisch',         icon: '🍄', lvl: 1, kind: 'deco', solid: 1, star: 4, desc: 'Aus dem Sternchen-Laden' },
+  wunschbrunnen: { name: 'Wunschbrunnen',   icon: '⛲', lvl: 1, kind: 'deco', solid: 1, glow: 1, star: 12, desc: 'Einmal am Tag eine Münze hineinwerfen' },
+  schmetterlingsstrauch: { name: 'Schmetterlingsstrauch', icon: '🦋', lvl: 1, kind: 'deco', solid: 1, garden: 1, star: 6, desc: 'Aus dem Sternchen-Laden' },
+  regenbogen:  { name: 'Kleiner Regenbogen', icon: '🌈', lvl: 1, kind: 'deco', solid: 1, glow: 1, star: 8, desc: 'Aus dem Sternchen-Laden' },
 };
 // Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
 export const PROJECTS = {
@@ -827,6 +845,8 @@ export const RECIPES = {
 export const DIG_SPOTS_PER_DAY = 5;
 
 // Nachbarn: Vorlieben (Geschenke), Lieblingsort (sie spazieren dort herum), Dankesgeschenk im Brief
+// Besuch vom Campingplatz, der einziehen kann (Daten in extras.js: VISITORS) – ihre Zimmer liegen hinter denen der Nachbarn
+export const VISITOR_IDS = ['flocke', 'pingo', 'olli', 'kruemel', 'koko', 'pia'];
 export const NPC_DATA = {
   mira: { name: 'Mira', icon: '🦔', likes: ['erdbeermarmelade', 'apfel', 'kirsche', 'tulpe', 'weizen'], loves: ['kirschtorte', 'apfelkuchen'], dislikes: ['kugelfisch', 'krebs'], spot: [-12, 4, 2.6, 1.6], gift: ['apfelkuchen', 1] },
   bruno: { name: 'Bruno', icon: '🐻', likes: ['apfelmus', 'holz', 'apfel', 'brot', 'forelle'], loves: ['lachs', 'eintopf'], dislikes: ['stein', 'unkraut'], spot: [12.6, 4.6, 1.8, 1.3], gift: ['holz', 15] },

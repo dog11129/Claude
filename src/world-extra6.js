@@ -106,7 +106,7 @@ export function decorateArea9(g, id) {
     U.bats = Array.from({ length: 6 }, (_, i) => { const m = BAT(); m.userData.p = i * 1.05; g.add(m); return m; });
     U.lights.push([X + lx, Z + lz]);
   }
-  if (parts.length || glow.length) g.add(bmv('zone9_decor_' + id, at(parts, X, Z), at(glow, X, Z)));
+  if (parts.length || glow.length) g.add(bmv('zone13_decor_' + id, at(parts, X, Z), at(glow, X, Z)));
   // Bewohner
   U.creature = put(g, id === 'wald' ? OWL() : id === 'wiese' ? BEE() : MOLE(), cx, cz, id === 'hoehle' ? -0.6 : 0.4, id === 'wiese' ? 0.9 : 0);
   if (id === 'wiese') put(g, placeable('blumenkuebel') || new THREE.Group(), cx, cz);

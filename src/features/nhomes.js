@@ -1,7 +1,8 @@
 // Teil von extras12.js – Nachbarn richten ihr Zuhause selbst ein: Jede/r hat einen eigenen Geschmack (Möbel, Tapeten,
 // Böden), stellt alle paar Tage etwas Neues auf, räumt um oder tapeziert neu. Ihre eigenen Sachen (npc: 1) bleiben im
 // Haus; was ihr dazustellt, bleibt unangetastet. Außerdem: Wo steckt jemand gerade (zu Hause, unterwegs, im Bett)?
-import { NPC_DATA, NPC_IDS, NPC_PLAN, BUILDINGS } from '../data.js';
+import { NPC_DATA, NPC_IDS, VISITOR_IDS, NPC_PLAN, BUILDINGS } from '../data.js';
+import * as X from '../extras.js';
 import { FURNITURE } from '../furni-data.js';
 import * as S from '../state.js';
 import { NWISH } from './nrooms.js';
@@ -20,10 +21,25 @@ export const NTASTE = {
     walls: ['mint', 'vanille', 'holz'], floors: ['moos', 'parkett', 'dielen'], word: 'ruhig' },
   wanda: { furn: ['raketenregal', 'saturnsessel', 'galaxieteppich', 'sternbildposter', 'planetenlampe', 'meteorit', 'schreibtisch', 'wanduhr', 'astronautenhelm', 'buecherregal', 'ufolampe', 'sternenteppich', 'pinnwand', 'terrarium', 'sternhocker', 'globus'],
     walls: ['sterne', 'ziegel', 'wolken'], floors: ['stein', 'dunkel', 'schach'], word: 'verträumt' },
+  // Zugezogene (Inselleben 13)
+  flocke: { furn: ['wollkorb', 'schaukelstuhl', 'wolkenteppich', 'bild', 'blumenvase', 'petroleumlampe', 'teddy', 'kommode', 'bonbonglas', 'wandregal', 'pfingstrosenvase', 'zuckerwattelampe', 'herzspiegel', 'flickenteppich'],
+    walls: ['wolken', 'rosa', 'herzchen'], floors: ['teppich', 'rosadielen', 'dielen'], word: 'wollig-weich' },
+  pingo: { furn: ['seekiste', 'aquarium', 'wellenteppich', 'bullauge', 'muschellampe', 'muschelregal', 'ankerlampe', 'rettungsring', 'kiste', 'fischernetz', 'surfdeko', 'teppich_rund'],
+    walls: ['mint', 'wolken', 'karo'], floors: ['fliesen', 'stein', 'dielen'], word: 'frisch' },
+  olli: { furn: ['strandkorbsessel', 'muschelregal', 'teppich_rund', 'fischernetz', 'kiste', 'ankerlampe', 'zimmerpalme', 'rettungsring', 'globus', 'couchtisch', 'aquarium', 'wellenteppich'],
+    walls: ['karo', 'holz', 'mint'], floors: ['dielen', 'parkett', 'fliesen'], word: 'verspielt' },
+  kruemel: { furn: ['vorratsregal', 'bodenkissen', 'flickenteppich', 'kuckucksuhr', 'honigregal', 'leselampe', 'eichelvase', 'wandregal', 'kiste', 'schneckenhocker', 'rundtisch', 'teppich_rund'],
+    walls: ['vanille', 'karo', 'holz'], floors: ['parkett', 'dielen', 'dunkel'], word: 'kuschelig-vollgestopft' },
+  koko: { furn: ['geigenfeige', 'rattansessel', 'juteteppich', 'makramee', 'gummibaum', 'rattanlampe', 'strelitzie', 'haengepflanze', 'pflanzenregal', 'rattantisch', 'pampasvase', 'moosteppich'],
+    walls: ['bluemchen', 'mint', 'vanille'], floors: ['moos', 'parkett', 'dielen'], word: 'grün und verschlafen' },
+  pia: { furn: ['teeservice', 'bodenkissen', 'pfingstrosenteppich', 'blumenfenster', 'bambuslampe', 'pfingstrosenvase', 'zimmerbrunnen', 'blumenampel', 'kakteenregal', 'couchtisch', 'glockenlampe', 'herzteppich'],
+    walls: ['pfingstrosen', 'bluemchen', 'rosa'], floors: ['rosadielen', 'parkett', 'moos'], word: 'elegant' },
 };
 export const NPC_CAP = { items: 6, walls: 2, rugs: 1 }; // so viel stellt ein Nachbar höchstens selbst auf
 export const ROOM_CAP = 15;                              // … und nur, solange das Zimmer nicht schon voll ist
 const START = 4, GAP = 2, RESTYLE_GAP = 5;
+// Wer hat gerade ein Zuhause? Die sechs Nachbarn immer, Zugezogene nur, solange sie hier wohnen
+export const homeIds = s => [...NPC_IDS, ...VISITOR_IDS.filter(id => s.residents?.[id])];
 
 const layerOf = (h, k) => { const f = FURNITURE[k]; return f.rug ? h.rugs : f.wall ? h.walls : h.items; };
 const kindOf = k => (FURNITURE[k].rug ? 'rugs' : FURNITURE[k].wall ? 'walls' : 'items');
@@ -97,7 +113,8 @@ export function npcRestyle(s, id, rnd = Math.random) {
 }
 // Jeden Morgen: Wer hat Lust, etwas zu verändern? (höchstens ein Nachbar am Tag, damit es etwas Besonderes bleibt)
 export function nhomeMorning(s, rnd = Math.random) {
-  const ids = NPC_IDS.filter(id => s.nhome?.[id]?.self);
+  migrateNhomes(s); // frisch Eingezogene bekommen ihre ersten eigenen Sachen
+  const ids = homeIds(s).filter(id => s.nhome?.[id]?.self);
   const todo = ids.filter(id => s.day - s.nhome[id].self.last >= GAP && nextPiece(s, id) && count(s.nhome[id]) < ROOM_CAP);
   if (todo.length) { const id = todo[Math.floor(rnd() * todo.length) % todo.length]; return npcFurnish(s, id) ? id : null; }
   const done = ids.filter(id => s.day - s.nhome[id].self.last >= RESTYLE_GAP);
@@ -109,13 +126,19 @@ export function nhomeMorning(s, rnd = Math.random) {
 const planSlot = (s, id) => { const plan = NPC_PLAN[id], hour = 6 + s.dayTime * 18; let i = 0; for (let k = 0; k < plan.length; k++) if (hour >= plan[k][0]) i = k; return [i, plan]; };
 // 'sleep' = liegt im Bett, 'home' = zu Hause (morgens und abends rund ums Haus), 'away' = unterwegs auf der Insel
 export function nhomeState(s, id) {
-  if (!NPC_PLAN[id]) return 'home';
+  if (!NPC_PLAN[id]) { // Zugezogene: morgens und abends (und bei Regen) im Haus, tagsüber vor der Tür, nachts im Bett
+    if (!s.residents?.[id]) return 'away';
+    const h = 6 + s.dayTime * 18;
+    if (h < 7 || h >= 21.5) return 'sleep';
+    return h < 9 || h >= 18 || ['rain', 'storm', 'snow'].includes(s.weather) ? 'home' : 'away';
+  }
   if (!S.npcAwake(s)) return 'sleep';
   const [i, plan] = planSlot(s, id);
   return i === 0 || i === plan.length - 1 ? 'home' : 'away';
 }
 const AT = { office: 'beim Rathaus', plaza: 'am Dorfbaum', board: 'am Schwarzen Brett', shop: 'beim Krämerladen', bin: 'bei der Ankaufkiste', museum: 'beim Museum', house: 'bei eurem Haus', mail: 'bei eurem Briefkasten', bench: 'an der Werkbank', kitchen: 'bei der Gartenküche', gate: 'am Tor zur Bummelgasse', boat: 'am Bootssteg' };
 export function whereabouts(s, id) {
+  if (!NPC_PLAN[id]) return 'draußen vor dem Haus';
   const [i, plan] = planSlot(s, id), [, x, z] = plan[i];
   let best = null, bd = 6.5;
   for (const [k, B] of Object.entries(BUILDINGS)) {
@@ -128,7 +151,7 @@ export function whereabouts(s, id) {
 }
 // Zettel an der Tür, wenn niemand da ist
 export function doorNote(s, id) {
-  const st = nhomeState(s, id), n = NPC_DATA[id].name;
+  const st = nhomeState(s, id), n = X.pname(id);
   if (st === 'away') return `📝 „Bin ${whereabouts(s, id)}. Fühl dich wie zu Hause! – ${n}“`;
   if (st === 'sleep') return `💤 ${n} schläft tief und fest. Pssst!`;
   return '';
@@ -146,12 +169,12 @@ export function nhomeNews(s, id, maxAge = 4) {
   if (!N || s.day - N.day > maxAge || !NEWS_TXT[N.kind]) return null;
   const f = N.k ? FURNITURE[N.k] : null;
   if (N.k && !f) return null;
-  const [say, paper] = NEWS_TXT[N.kind](NPC_DATA[id].name, f || {});
+  const [say, paper] = NEWS_TXT[N.kind](X.pname(id), f || {});
   return { ...N, say, paper };
 }
 export function gossip12(s) {
   const L = [];
-  for (const id of NPC_IDS) { const N = nhomeNews(s, id, 1); if (N && N.day === s.day) L.push(N.paper); }
+  for (const id of homeIds(s)) { const N = nhomeNews(s, id, 1); if (N && N.day === s.day) L.push(N.paper); }
   return L;
 }
 // Gespräch zu Hause: Neuigkeit erzählt? Dann merkt sich das der Spielstand (Aktion nhome12)
@@ -165,7 +188,7 @@ export function nhome12(s, a) {
 // ---------- Spielstand ----------
 export function migrateNhomes(s) {
   s.nhome ||= {};
-  for (const id of NPC_IDS) {
+  for (const id of homeIds(s)) {
     if (!NTASTE[id]) continue;
     const h = s.nhome[id] ||= S.nroomBlank(id);
     const o = h.self;
