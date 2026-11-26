@@ -32,6 +32,7 @@ import { initFun5, uiF, travel7, context7, execute7, updateF, busy7 } from './cl
 import { initFun6, uiG, travel8, context8, execute8, updateG, busy8 } from './client/fun6.js';
 import { initFun7, execute9, update9, usable9 } from './client/fun7.js';
 import { initFun8, execute10, update10, usable10 } from './client/fun8.js';
+import { initFun9, uiH, update11 } from './client/fun9.js';
 import { loveSocial } from './extras10.js';
 import { duelName } from './extras8.js';
 import { APP_PANELS_7 } from './ui-extra4.js';
@@ -86,6 +87,7 @@ initFun4({ get G() { return G; }, world, profile, touch, get panels() { return p
 initFun6({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), fade: () => fade() });
 initFun7({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n) });
 initFun8({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), openEditor: tab => openEditor(tab) });
+initFun9({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), interrupt: () => interrupt() });
 initFun5({ get G() { return G; }, world, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), listPhotos: async () => [...await photos.list(isleKey(), 'photo'), ...await photos.list(isleKey(), 'moment')] });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
@@ -117,7 +119,7 @@ const r3 = v => Math.round(v * 1000) / 1000;
 const pack = s => JSON.parse(JSON.stringify(s, (k, v) => typeof v === 'number' && !Number.isInteger(v) ? r3(v) : v));
 const ACTS = ['hoe', 'can', 'sickle', 'plant', 'pet', 'fish', 'use', 'hug', 'shake', 'highfive', 'kiss', 'net'];
 const HELD = ['hoe', 'can', 'sickle', 'rod', 'seeds', 'box', 'net', 'shovel', 'axe'];
-const ANIM_OF = { mieze10: 'pet', water: 'can', plant: 'plant', harvest: 'use', place: 'use', pickup: 'use', pick: 'plant', use: 'shake', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake', tpick: 'shake', hit: 'plant' };
+const ANIM_OF = { mieze10: 'pet', dinner11: 'use', water: 'can', plant: 'plant', harvest: 'use', place: 'use', pickup: 'use', pick: 'plant', use: 'shake', chop: 'hoe', mine: 'hoe', dig: 'hoe', shake: 'shake', tpick: 'shake', hit: 'plant' };
 
 // ---------- kleine Helfer fürs HUD ----------
 function toast(text, kind) {
@@ -405,6 +407,10 @@ function handleAct(id, a) {
     const t = performance.now(), last = (G.lastCatch ||= {})[id] || 0;
     if (t - last < (a.t === 'bug' ? 1200 : 2500)) return;
     G.lastCatch[id] = t;
+  }
+  if (a?.t === 'dinner11') { // Dinner zu zweit: der Gastgeber schaut, wer am Tisch steht
+    const pl = G.players[id];
+    a = { ...a, names: pl ? [pl.name, ...Object.values(G.players).filter(p => p !== pl && Math.hypot(p.x - pl.x, p.z - pl.z) < 3.2).map(p => p.name)] : [] };
   }
   if (a?.t === 'give') { // Empfänger muss gerade da sein
     const to = G.players[a.to];
@@ -1429,6 +1435,7 @@ const panels = new Panels({
     if (kind.startsWith('e:')) { uiE(kind.slice(2), d); return; } // Inselleben 6 (client/fun4.js)
     if (kind.startsWith('f:')) { uiF(kind.slice(2), d); return; } // Inselleben 7 (client/fun5.js)
     if (kind.startsWith('g:')) { uiG(kind.slice(2), d); return; } // Inselleben 8 (client/fun6.js)
+    if (kind.startsWith('h:')) { uiH(kind.slice(2), d); return; } // Inselleben 11 (client/fun9.js)
     if (kind === 'app') openApp(d.app);
     if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
     if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
@@ -2797,6 +2804,7 @@ function gameFrame(dt, now) {
   updateG(dt);
   update9();
   update10();
+  update11();
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)

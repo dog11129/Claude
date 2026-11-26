@@ -1,6 +1,6 @@
 // Charakter-Editor und Einstellungen (im Hauptmenü und im Spiel genutzt).
 import * as THREE from '../vendor/three.module.min.js';
-import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, HAT_FROM } from './avatar.js';
+import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, PREMIUM_TOPS, HAT_FROM } from './avatar.js';
 
 // Kleine 3D-Vorschaubilder für jede Option (eigener Mini-Renderer, Ergebnis wird zwischengespeichert)
 const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', blush: 'cheek', lips: 'mouth', lid: 'cheek', mark: 'cheek', top: 'body', pet: 'pet' };
@@ -50,7 +50,7 @@ const TABS = [
 // Besondere Hüte sind erst nach dem Kauf (Schneiderei / Tauschhütte) wählbar
 let owned = new Set();
 export const setOwnedHats = list => { owned = new Set(list || []); };
-const lockedHat = (field, id) => field === 'hat' && PREMIUM_HATS.includes(id) && !owned.has(id);
+const lockedHat = (field, id) => ((field === 'hat' && PREMIUM_HATS.includes(id)) || (field === 'top' && PREMIUM_TOPS.includes(id))) && !owned.has(id);
 function options(field, value, look) {
   const list = LOOKS[field];
   if (VIEW[field]) {

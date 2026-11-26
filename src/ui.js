@@ -14,6 +14,7 @@ import { PANELS_7, TITLES_7, APPS_7, sig7 } from './ui-extra4.js';
 import { PANELS_8, TITLES_8, APPS_8, sig8 } from './ui-extra5.js';
 import { PANELS_9, TITLES_9, sig9 } from './ui-extra6.js';
 import { PANELS_10, TITLES_10, APPS_10, sig10 } from './ui-extra7.js';
+import { PANELS_11, TITLES_11, sig11 } from './ui-extra8.js';
 import { FURN_SETS, SET_MIN, SET_BONUS } from './furni-data2.js';
 import { PIRATE_LVL } from './extras6.js';
 import { DEEPSEA_PRICE, DEEPSEA_LVL, ponyHappy } from './extras5.js';
@@ -393,7 +394,7 @@ const PANELS = {
     const items = Object.entries(s.inv).filter(([id, n]) => n > 0 && ITEMS[id] && !ITEMS[id].seed && !['hand', 'axe', 'shovel', 'can', 'net', 'rod', 'sling'].includes(id)).slice(0, 60);
     return `<div class="note">Schreib einen Brief! Er liegt morgen früh im Briefkasten – auch wenn ihr gerade nicht zusammen spielt.</div>
       <label class="field">An:<input id="ltto" maxlength="16" list="ltnames" value="${esc(known[0] || '')}" placeholder="Name"></label><datalist id="ltnames">${known.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
-      <label class="field">Briefpapier:<span class="papers">${['🌸', '🌊', '🍂', '❄️'].map((e, i) => `<button class="chip${i ? '' : ' on'}" data-paper="${i}">${e}</button>`).join('')}</span></label>
+      <label class="field">Briefpapier:<span class="papers">${['🌸', '🌊', '🍂', '❄️', '💗', '🩷', '🌙', '🐱'].map((e, i) => `<button class="chip${i ? '' : ' on'}" data-paper="${i}">${e}</button>`).join('')}</span></label>
       <textarea id="lttext" maxlength="400" rows="6" placeholder="Liebe/r …"></textarea>
       <label class="field">Geschenk beilegen:<select id="ltitem"><option value="">– nichts –</option>${items.map(([id, n]) => `<option value="${id}">${ITEMS[id].icon} ${esc(ITEMS[id].name)} (${n})</option>`).join('')}</select></label>
       <button class="btn pink" data-ui="sendletter">💌 Abschicken</button>`;
@@ -681,8 +682,8 @@ const PANELS = {
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Insel wird gespeichert</small></span></button>`;
   },
 };
-Object.assign(PANELS, PANELS_W, PANELS_V, PANELS_6, PANELS_7, PANELS_8, PANELS_9, PANELS_10); // Inselleben 4–7 (ui-extra.js … ui-extra4.js)
-Object.assign(TITLES, TITLES_W, TITLES_V, TITLES_6, TITLES_7, TITLES_8, TITLES_9, TITLES_10);
+Object.assign(PANELS, PANELS_W, PANELS_V, PANELS_6, PANELS_7, PANELS_8, PANELS_9, PANELS_10, PANELS_11); // Inselleben 4–7 (ui-extra.js … ui-extra4.js)
+Object.assign(TITLES, TITLES_W, TITLES_V, TITLES_6, TITLES_7, TITLES_8, TITLES_9, TITLES_10, TITLES_11);
 Object.assign(TABS, TABS_W);
 
 // ---------- Bürgermeister-Update: Rathaus, Baustelle, Bummelgasse, Tropeninsel ----------
@@ -779,12 +780,12 @@ Object.assign(PANELS, {
       + '<button class="big pink" data-ui="sailhome"><span class="i">⛵</span><span>Nach Hause<small>gratis</small></span></button>';
   },
   tailor(s) {
-    let h = hero(STREET_SHOPS.tailor.who, 'Schneiderei Wollknäuel', 'Määäh, willkommen! Hier gibt es Hüte, die man sonst nirgends bekommt. Einmal gekauft, kann sie jede/r auf eurer Insel tragen.');
+    let h = hero(STREET_SHOPS.tailor.who, 'Schneiderei Wollknäuel', 'Määäh, willkommen! Hier gibt es Hüte und Kleider, die man sonst nirgends bekommt. Einmal gekauft, kann sie jede/r auf eurer Insel tragen.');
     if (!shopOpen(s, 'tailor')) return h + closed(s, 'tailor');
     for (const [id, W] of Object.entries(WARDROBE)) {
       if (W.medals || W.knit) continue;
       const own = s.wardrobe?.[id], c = buyPrice(s, W.price);
-      h += row(W.icon, W.name + (own ? ' <span class="lv">✓ gehört euch</span>' : ''), own ? 'Unter Aussehen ändern ➜ Extras' : 'Neuer Hut für alle auf der Insel', own ? '' : btn(`🪙 ${fmt(c)}`, { t: 'wear', id }, 'pink', s.money < c));
+      h += row(W.icon, W.name + (own ? ' <span class="lv">✓ gehört euch</span>' : ''), own ? `Unter Aussehen ändern ➜ ${W.top ? 'Outfit' : 'Extras'}` : W.top ? 'Bodenlanges Kleid mit Tüll und Glitzer – für alle auf der Insel' : 'Neuer Hut für alle auf der Insel', own ? '' : btn(`🪙 ${fmt(c)}`, { t: 'wear', id }, 'pink', s.money < c));
     }
     return h + '<br><button class="big" data-ui="editlook"><span class="i">🪞</span><span>Umziehen<small>Frisur, Outfit, Hüte …</small></span></button>';
   },
@@ -896,7 +897,7 @@ export class Panels {
     const now = performance.now(); // höchstens 5× pro Sekunde prüfen (sig = null erzwingt sofort)
     if (this.sig && now - (this.checked || 0) < 200) return;
     this.checked = now;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.birds?.n, s.tidebook, s.stamps, s.capsules, g.capSel, s.golf, s.dance, s.cafe, s.library, s.radio, s.guestbook?.length, g.gbPx, g.gbSt, s.fashion, s.gardenc, s.giant, s.xrooms && Object.keys(s.xrooms), s.compost, s.kiln?.length, g.pot, s.florist, s.pony, s.petschool, s.olymp, s.hunts, g.huntItem, s.cinema, s.theater, s.lighthouse, s.penpal?.out?.length, g.ppItem, s.party, g.partyGuests, s.fair, s.resto, s.pirate, s.honeys, s.wild, s.hybrids, s.picnic, s.band, g.woolCol, g.uiAt, this.open === 'tank' ? [s.home.items, s.xrooms] : 0, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0, sig7(s, g, this.open), sig8(s, g, this.open), sig9(s, g, this.open), sig10(s, g, this.open)]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.birds?.n, s.tidebook, s.stamps, s.capsules, g.capSel, s.golf, s.dance, s.cafe, s.library, s.radio, s.guestbook?.length, g.gbPx, g.gbSt, s.fashion, s.gardenc, s.giant, s.xrooms && Object.keys(s.xrooms), s.compost, s.kiln?.length, g.pot, s.florist, s.pony, s.petschool, s.olymp, s.hunts, g.huntItem, s.cinema, s.theater, s.lighthouse, s.penpal?.out?.length, g.ppItem, s.party, g.partyGuests, s.fair, s.resto, s.pirate, s.honeys, s.wild, s.hybrids, s.picnic, s.band, g.woolCol, g.uiAt, this.open === 'tank' ? [s.home.items, s.xrooms] : 0, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0, sig7(s, g, this.open), sig8(s, g, this.open), sig9(s, g, this.open), sig10(s, g, this.open), sig11(s, g, this.open)]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;

@@ -31,6 +31,7 @@ function today(s) {
   if (L.day !== s.day) { L.day = s.day; L.did = {}; L.gift = 0; }
   return L;
 }
+export const loveDay = s => today(s);
 const blankLove = () => ({ pts: 0, day: 0, did: {}, gift: 0, got: 0 });
 
 // Punkte gutschreiben und erreichte Stufen belohnen (Post für euch beide, Hüte gleich in die Garderobe)
@@ -60,7 +61,7 @@ export function loveSocial(s, k, out = {}) {
 // Geschenk an den Schatz: Strauß 3, Selbstgebackenes 2, andere Blumen oder Gerichte 1
 export function giftValue(id) {
   if (BIND[id] && FURNITURE[id]) return 3;
-  if (SWEETS.includes(id)) return 2;
+  if (SWEETS.includes(id) || id.startsWith('kuscheltier_')) return 2;
   if (isFlower(id) || ITEMS[id]?.cat === 'dish' || ['pfingstrosenvase', 'blumenvase', 'sonnenblumenvase'].includes(id)) return 1;
   return 0;
 }

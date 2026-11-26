@@ -22,7 +22,10 @@ const CODE_ONLY = new Set(['klippenbank', 'duellpokal', 'kapelle', 'traumfaenger
   'herzbett', 'herzsofa', 'herzsessel', 'zuckerwattelampe', 'herzspiegel', 'herzregal', 'zuckerwattebaum', 'wolkenteppich', 'herzlichterkette', 'herzfrisiertisch', 'toertchenetagere',
   'kratzbaum', 'wollkorb', 'blumentisch', 'herzkissen', 'liebesschaukel', 'sternennachtlicht', 'herzbogen', 'baldachinbett', 'herzbrunnen',
   'rosenstrauss', 'tulpenstrauss', 'wiesenstrauss', 'lavendelstrauss', 'pfingstrosenstrauss', 'regenbogenstrauss', 'sonnenblumenstrauss', 'vergissmeinnichtstrauss',
-  'herzkekse', 'cupcake', 'macarons', 'herzchentorte', 'rosenkranz', 'bluetenspange', 'herzreif', 'blumenkrone', 'herzkrone']);
+  'herzkekse', 'cupcake', 'macarons', 'herzchentorte', 'rosenkranz', 'bluetenspange', 'herzreif', 'blumenkrone', 'herzkrone',
+  // Inselleben 11 (Für zwei): Greifautomat, Kuscheltiere, Dinnertisch, Jahrestags-Bild
+  'greifautomat', 'dinnertisch', 'jahrestagsbild', 'kuscheltier_teddy', 'kuscheltier_katze', 'kuscheltier_pinguin', 'kuscheltier_kueken', 'kuscheltier_frosch',
+  'kuscheltier_panda', 'kuscheltier_wal', 'kuscheltier_fuchs', 'kuscheltier_einhorn', 'kuscheltier_gold']);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));

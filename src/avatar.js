@@ -7,10 +7,10 @@ import { keyedGeometry, hasModel } from './assets.js';
 
 export const LOOKS = {
   skin: ['#ffe3cc', '#ffd8b8', '#f2c29b', '#d9a07a', '#a8714f', '#6e4a34'],
-  hairStyle: [['short', 'Kurz'], ['long', 'Lang'], ['ponytail', 'Zopf'], ['buns', 'Dutt'], ['curly', 'Locken'], ['bob', 'Bob'], ['spiky', 'Igel'], ['bald', 'Glatze']],
+  hairStyle: [['short', 'Kurz'], ['long', 'Lang'], ['ponytail', 'Zopf'], ['buns', 'Dutt'], ['curly', 'Locken'], ['bob', 'Bob'], ['spiky', 'Igel'], ['bald', 'Glatze'], ['zoepfe', 'Zöpfe'], ['wellen', 'Wellen']],
   hairColor: ['#2b2321', '#6b4428', '#a8683a', '#f2cf6b', '#d9572e', '#b9b6b2', '#ffaecb', '#9ed4ff', '#c7a8ff', '#9fe3c3'],
   eyes: [['round', 'Rund'], ['happy', 'Fröhlich'], ['lashes', 'Wimpern'], ['sleepy', 'Verschlafen']],
-  top: [['tshirt', 'T-Shirt'], ['overalls', 'Latzhose'], ['dress', 'Kleid'], ['hoodie', 'Hoodie'], ['vest', 'Hemd & Weste']],
+  top: [['tshirt', 'T-Shirt'], ['overalls', 'Latzhose'], ['dress', 'Kleid'], ['hoodie', 'Hoodie'], ['vest', 'Hemd & Weste'], ['rueschenkleid', 'Rüschenkleid'], ['bluemchenkleid', 'Blümchenkleid'], ['kuschelpulli', 'Kuschelpulli'], ['ballkleid', 'Ballkleid']],
   topColor: ['#ff8fab', '#ffb86b', '#ffe066', '#8fd694', '#6cc4ff', '#b39cff', '#ff6b6b', '#f5f5f5', '#7fd8d0', '#ffd0a8', '#4a6fa5', '#5a5f73'],
   bottomColor: ['#4a6fa5', '#2f3e5c', '#8a5a3a', '#c9b48a', '#3b3b4a', '#ff8fab', '#8fd694', '#b39cff'],
   shoes: ['#6b4a32', '#3b3b4a', '#f5f5f5', '#ff6b6b', '#ffd23f', '#6cc4ff'],
@@ -35,11 +35,13 @@ export function defaultLook() {
 // Diese Hüte gibt es nur in der Schneiderei bzw. der Tauschhütte
 export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat', 'bommel', 'zipfel', 'veil', 'rosenkranz', 'bluetenspange', 'herzreif', 'blumenkrone', 'herzkrone'];
 // Woher die besonderen Stücke kommen (Hinweis im Editor)
-export const HAT_FROM = { rosenkranz: 'am Blumenbinde-Tisch', bluetenspange: 'am Blumenbinde-Tisch', herzreif: 'im Herzensbuch (Handy)', blumenkrone: 'im Herzensbuch (Handy)', herzkrone: 'im Herzensbuch (Handy)', veil: 'bei der Inselhochzeit' };
+export const HAT_FROM = { rosenkranz: 'am Blumenbinde-Tisch', bluetenspange: 'am Blumenbinde-Tisch', herzreif: 'im Herzensbuch (Handy)', blumenkrone: 'im Herzensbuch (Handy)', herzkrone: 'im Herzensbuch (Handy)', veil: 'bei der Inselhochzeit', ballkleid: 'in der Schneiderei der Bummelgasse' };
 const MAKEUP = ['blush', 'lips', 'lid', 'mark'];
+export const PREMIUM_TOPS = ['ballkleid']; // gibt es in der Schneiderei
+export const DRESSES = ['dress', 'rueschenkleid', 'bluemchenkleid', 'ballkleid'];
 export function randomLook() {
   const l = {};
-  for (const k of KEYS) { const a = ids(k).filter(v => k !== 'hat' || !PREMIUM_HATS.includes(v)); l[k] = MAKEUP.includes(k) ? 'none' : a[Math.floor(Math.random() * a.length)]; }
+  for (const k of KEYS) { const a = ids(k).filter(v => (k !== 'hat' || !PREMIUM_HATS.includes(v)) && (k !== 'top' || !PREMIUM_TOPS.includes(v))); l[k] = MAKEUP.includes(k) ? 'none' : a[Math.floor(Math.random() * a.length)]; }
   return l;
 }
 // Kommt übers Netz: nur Werte aus LOOKS durchlassen. Altes Profil {color, hat} wird übernommen.
@@ -106,6 +108,20 @@ function hairParts(st, c) {
     case 'bald': return [];
     case 'short': return [cap, side(-1), side(1),
       ell(0.1, c, -0.09, 0.15, 0.215, 1.25, 0.55, 0.65, 0.4, 0, 0.35), ell(0.09, c, 0.08, 0.16, 0.215, 1.2, 0.5, 0.65, 0.4, 0, -0.25), ell(0.07, c, 0.2, 0.12, 0.17, 1, 0.6, 0.7, 0.3, 0, -0.6)];
+    case 'zoepfe': { // zwei geflochtene Zöpfe über den Schultern, mit Schleifchen
+      const p = [cap, side(-1), side(1), ell(0.12, c, -0.09, 0.15, 0.2, 1.1, 0.5, 0.7, 0.4, 0, 0.45), ell(0.12, c, 0.09, 0.15, 0.2, 1.1, 0.5, 0.7, 0.4, 0, -0.45), ell(0.24, c, 0, -0.06, -0.14, 1.1, 1, 0.6, 0, 0, 0, 10)];
+      for (const s of [-1, 1]) {
+        for (let i = 0; i < 5; i++) p.push(ell(0.06 - i * 0.004, c, (0.25 - i * 0.012) * s, -0.14 - i * 0.075, 0.03 + i * 0.022, 1, 0.9, 1, 0, 0, (i % 2 ? 0.25 : -0.25) * s, 7));
+        p.push(ell(0.028, 0xff8fab, 0.2 * s, -0.5, 0.13, 1.4, 0.8, 0.8), ell(0.028, 0xff8fab, 0.25 * s, -0.5, 0.13, 1.4, 0.8, 0.8), ell(0.035, c, 0.2 * s, -0.56, 0.14, 0.8, 1.1, 0.8, 0, 0, 0, 6));
+      }
+      return p;
+    }
+    case 'wellen': { // lange, weich gewellte Haare
+      const p = [cap, ell(0.12, c, -0.1, 0.16, 0.2, 1.15, 0.5, 0.7, 0.4, 0, 0.5), ell(0.11, c, 0.11, 0.15, 0.2, 1.1, 0.5, 0.7, 0.4, 0, -0.4)];
+      for (let i = 0; i < 9; i++) { const a = -1.15 + i * 0.2875, x = Math.sin(a) * 0.27, z = Math.cos(a) * -0.22 + 0.02; for (let j = 0; j < 4; j++) p.push(ell(0.085, c, x + Math.sin(j * 1.6 + i) * 0.025 * (x > 0 ? 1 : -1), -0.02 - j * 0.12, z - j * 0.01, 1, 0.85, 0.8, 0, 0, 0, 7)); }
+      for (const s of [-1, 1]) for (let j = 0; j < 4; j++) p.push(ell(0.07, c, (0.26 + Math.sin(j * 1.8) * 0.02) * s, -0.06 - j * 0.11, 0.1, 0.8, 0.85, 0.9, 0, 0, 0, 7));
+      return p;
+    }
     case 'long': return [cap, ell(0.29, c, 0, -0.15, -0.12, 1.12, 1.25, 0.72, 0, 0, 0, 10),
       ell(0.085, c, -0.255, -0.17, 0.1, 0.7, 2, 0.8), ell(0.085, c, 0.255, -0.17, 0.1, 0.7, 2, 0.8),
       ell(0.12, c, -0.09, 0.15, 0.2, 1.1, 0.5, 0.7, 0.4, 0, 0.45), ell(0.12, c, 0.09, 0.15, 0.2, 1.1, 0.5, 0.7, 0.4, 0, -0.45)];
@@ -314,7 +330,22 @@ function makeupParts(l) {
 // ---------- Körper (Ursprung = Hüftgelenk) ----------
 function torsoParts(l) {
   const T = l.topColor, B = l.bottomColor, p = [];
-  if (l.top === 'dress') {
+  if (l.top === 'rueschenkleid') { // drei Rüschen-Stufen, Spitzenkragen, Schleife
+    p.push(cyl(0.165, 0.19, 0.25, T, 0, 0.255, 0, 12), ell(0.17, T, 0, 0.37, 0, 1, 0.32, 0.98, 0, 0, 0, 10), ell(0.1, WHITE, 0, 0.375, 0.1, 1.6, 0.32, 0.75));
+    [[0.2, 0.25, 0.1], [0.25, 0.3, 0.0], [0.3, 0.36, -0.09]].forEach(([r0, r1, y], i) => p.push(cyl(r0, r1, 0.1, i % 2 ? mix(T, 0xffffff, 0.35) : T, 0, y, 0, 14), cyl(r1 + 0.005, r1 + 0.005, 0.02, WHITE, 0, y - 0.05, 0, 14)));
+    p.push(ell(0.05, WHITE, -0.05, 0.16, 0.19, 1.2, 0.8, 0.4, 0, 0, 0.4), ell(0.05, WHITE, 0.05, 0.16, 0.19, 1.2, 0.8, 0.4, 0, 0, -0.4), ball(0.022, mix(T, 0xffffff, 0.5), 0, 0.16, 0.2));
+  } else if (l.top === 'bluemchenkleid') { // Sommerkleid mit Blümchen, Puffärmel-Kante
+    p.push(cyl(0.165, 0.2, 0.25, T, 0, 0.255, 0, 12), cyl(0.19, 0.34, 0.27, T, 0, 0.01, 0, 14), ell(0.17, T, 0, 0.37, 0, 1, 0.32, 0.98, 0, 0, 0, 10), cyl(0.17, 0.17, 0.03, WHITE, 0, 0.14, 0, 12));
+    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + (i % 2) * 0.2, y = i % 2 ? -0.07 : 0.05, r = i % 2 ? 0.31 : 0.25; p.push(ball(0.022, i % 3 ? WHITE : 0xfff3a0, Math.sin(a) * r, y, Math.cos(a) * r, 1, 1, 0.5, 5), ball(0.009, 0xffd23f, Math.sin(a) * (r + 0.012), y, Math.cos(a) * (r + 0.012), 1, 1, 1, 4)); }
+  } else if (l.top === 'ballkleid') { // bodenlanges Ballkleid mit Tüll, Glitzer und Schleife
+    p.push(cyl(0.16, 0.185, 0.24, T, 0, 0.26, 0, 14), ell(0.165, T, 0, 0.37, 0, 1, 0.3, 0.98, 0, 0, 0, 10), cyl(0.19, 0.42, 0.42, T, 0, -0.05, 0, 18), cyl(0.38, 0.47, 0.1, mix(T, 0xffffff, 0.6), 0, -0.29, 0, 18),
+      cyl(0.188, 0.188, 0.035, WHITE, 0, 0.14, 0, 14), ell(0.06, mix(T, 0xffffff, 0.4), -0.06, 0.15, -0.17, 1.2, 0.8, 0.5, 0, 0, 0.4), ell(0.06, mix(T, 0xffffff, 0.4), 0.06, 0.15, -0.17, 1.2, 0.8, 0.5, 0, 0, -0.4));
+    for (let i = 0; i < 16; i++) { const a = i * 2.4, h = -0.24 + (i % 5) * 0.075, r = 0.19 + (0.16 - h) / 0.42 * 0.23 + 0.012; p.push(ball(0.012, i % 2 ? 0xffffff : GOLD, Math.sin(a) * r, h, Math.cos(a) * r, 1, 1, 1, 4)); }
+  } else if (l.top === 'kuschelpulli') { // weiter Strickpulli mit Rippenbund und Herz
+    p.push(cyl(0.2, 0.215, 0.12, B, 0, 0.0, 0, 12), cyl(0.18, 0.225, 0.31, T, 0, 0.215, 0, 14), cyl(0.228, 0.228, 0.05, shade(T, 0.88), 0, 0.075, 0, 14), ell(0.178, T, 0, 0.37, 0, 1, 0.34, 0.98, 0, 0, 0, 10),
+      cyl(0.1, 0.12, 0.05, shade(T, 0.88), 0, 0.4, 0, 12), ...heartP(0.13, mix(T, 0xffffff, 0.6), 0, 0.25, 0.205, 0));
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; p.push(box(0.012, 0.045, 0.012, shade(T, 0.82), Math.sin(a) * 0.229, 0.075, Math.cos(a) * 0.229, a)); }
+  } else if (l.top === 'dress') {
     p.push(cyl(0.165, 0.2, 0.25, T, 0, 0.255, 0, 12), cyl(0.19, 0.33, 0.25, T, 0, 0.02, 0, 12), cyl(0.335, 0.335, 0.03, WHITE, 0, -0.105, 0, 12),
       ell(0.1, WHITE, 0, 0.37, 0.1, 1.5, 0.3, 0.7), ell(0.17, T, 0, 0.37, 0, 1, 0.32, 0.98, 0, 0, 0, 10), ball(0.035, WHITE, 0, 0.14, 0.2));
   } else if (l.top === 'hoodie') {
@@ -342,13 +373,15 @@ function torsoParts(l) {
 
 function armParts(l) {
   const S = l.skin, C = l.top === 'vest' ? WHITE : l.topColor;
+  if (l.top === 'kuschelpulli') return [ell(0.078, C, 0, -0.03, 0), cyl(0.072, 0.066, 0.18, C, 0, -0.11, 0, 8), cyl(0.07, 0.07, 0.04, shade(C, 0.88), 0, -0.2, 0, 8), ball(0.062, S, 0, -0.25, 0)];
+  if (l.top === 'ballkleid' || l.top === 'rueschenkleid') return [ell(0.092, l.top === 'ballkleid' ? mix(C, 0xffffff, 0.3) : C, 0, -0.04, 0, 1, 1.05, 1), cyl(0.045, 0.043, 0.15, S, 0, -0.15, 0, 7), ball(0.062, S, 0, -0.25, 0)];
   if (l.top === 'hoodie' || l.top === 'vest') return [ell(0.072, C, 0, -0.03, 0), cyl(0.066, 0.06, 0.18, C, 0, -0.11, 0, 8), cyl(0.063, 0.063, 0.03, shade(C, 0.85), 0, -0.2, 0, 8), ball(0.062, S, 0, -0.25, 0)];
   return [ell(0.075, C, 0, -0.05, 0, 1, 1.3, 1), cyl(0.047, 0.044, 0.14, S, 0, -0.15, 0, 7), ball(0.062, S, 0, -0.25, 0)];
 }
 
 function legParts(l) {
   const shoe = ell(0.085, l.shoes, 0, -0.29, 0.035, 1, 0.65, 1.4);
-  if (l.top === 'dress') return [cyl(0.052, 0.048, 0.24, l.skin, 0, -0.12, 0, 7), cyl(0.056, 0.056, 0.06, WHITE, 0, -0.235, 0, 7), shoe];
+  if (DRESSES.includes(l.top)) return [cyl(0.052, 0.048, 0.24, l.skin, 0, -0.12, 0, 7), cyl(0.056, 0.056, 0.06, WHITE, 0, -0.235, 0, 7), shoe];
   return [cyl(0.085, 0.075, 0.24, l.bottomColor, 0, -0.12, 0, 8), shoe];
 }
 
@@ -423,13 +456,13 @@ export function makeAvatar(look) {
   const root = new THREE.Group(), rig = grp(root), hips = grp(rig, 0, HIP), torso = grp(hips);
   const body = mesh(bgeo(['av_torso_' + l.top], l, 'torso' + [l.top, l.topColor, l.bottomColor], () => torsoParts(l)), torso);
   if (l.pat) { // Muster-Shirt: bedruckte Hülle ums Oberteil
-    const dress = l.top === 'dress', g = new THREE.CylinderGeometry(dress ? 0.175 : 0.171, dress ? 0.235 : 0.207, dress ? 0.3 : 0.25, 24, 1, true);
+    const dress = DRESSES.includes(l.top), g = new THREE.CylinderGeometry(dress ? 0.175 : 0.171, dress ? 0.235 : 0.207, dress ? 0.3 : 0.25, 24, 1, true);
     const pm = patMesh(g, l.pat, { repeat: 2 });
     pm.position.y = dress ? 0.21 : 0.245;
     torso.add(pm);
   }
-  const legG = bgeo([l.top === 'dress' ? 'av_leg_dress' : 'av_leg_pants'], l, 'leg' + [l.top, l.bottomColor, l.shoes, l.skin], () => legParts(l));
-  const armG = bgeo([l.top === 'hoodie' ? 'av_arm_hoodie' : l.top === 'vest' ? 'av_arm_vest' : 'av_arm_short'], l, 'arm' + [l.top, l.topColor, l.skin], () => armParts(l));
+  const legG = bgeo([DRESSES.includes(l.top) ? 'av_leg_dress' : 'av_leg_pants'], l, 'leg' + [l.top, l.bottomColor, l.shoes, l.skin], () => legParts(l));
+  const armG = bgeo([l.top === 'hoodie' || l.top === 'kuschelpulli' ? 'av_arm_hoodie' : l.top === 'vest' ? 'av_arm_vest' : 'av_arm_short'], l, 'arm' + [l.top, l.topColor, l.skin], () => armParts(l));
   // Figur schaut nach +z: linke Seite = +x, rechte Seite = -x
   const legL = grp(hips, 0.095), legR = grp(hips, -0.095), armL = grp(torso, 0.21, 0.31), armR = grp(torso, -0.21, 0.31);
   mesh(legG, legL); mesh(legG, legR); mesh(armG, armL); mesh(armG, armR);
@@ -439,6 +472,10 @@ export function makeAvatar(look) {
   eyes.castShadow = false;
   const face = buildFace(neck);
   if (MAKEUP.some(k => l[k] !== 'none')) { const mk = mesh(geo('mk' + MAKEUP.map(k => l[k]).join(), () => makeupParts(l)), neck, 0, HEAD); mk.castShadow = false; }
+  const hairN = `av_${HAT_HIDES.includes(l.hat) ? 'hairlow' : 'hair'}_${l.hairStyle}`;
+  if (BL() && l.hairStyle !== 'bald' && !hasModel(hairN)) { // Frisur ohne Blender-Modell: aus Code (unter Hüten nur, was unten herausschaut)
+    mesh(geo('hair' + [l.hairStyle, l.hairColor, HAT_HIDES.includes(l.hat)], () => { let h = hairParts(l.hairStyle, l.hairColor); if (HAT_HIDES.includes(l.hat)) h = h.filter(q => (q.g.computeBoundingBox(), q.g.boundingBox.min.y + q.g.boundingBox.max.y < 0.28)); return h; }), neck, 0, HEAD);
+  }
   if (BL() && l.hat !== 'none' && !hasModel('av_hat_' + l.hat)) mesh(geo('hat' + [l.hat, l.topColor, l.bottomColor, l.hairColor], () => hatParts(l)), neck, 0, HEAD); // Hut ohne Blender-Modell: aus Code
 
   let held = null, heldMesh = null, level = false, ph = 0, T = Math.random() * 9, blinkAt = 1 + Math.random() * 3;

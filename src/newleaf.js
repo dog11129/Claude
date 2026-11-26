@@ -91,6 +91,7 @@ export const WARDROBE = {
   sunhat: { name: 'Tropen-Sonnenhut', icon: '👒', medals: 6 },
   bommel: { name: 'Bommelmütze', icon: '🧶', knit: 1 }, // gestrickt am Webstuhl
   zipfel: { name: 'Zipfelmütze', icon: '🧶', knit: 1 },
+  ballkleid: { name: 'Ballkleid', icon: '👗', price: 5800, top: true }, // Kleid statt Hut (Aussehen ➜ Outfit)
 };
 export const isPremiumHat = id => !!WARDROBE[id];
 

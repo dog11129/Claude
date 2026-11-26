@@ -19,6 +19,7 @@ import * as E7 from './extras7.js';
 import * as E8 from './extras8.js';
 import * as E9 from './extras9.js';
 import * as E10 from './extras10.js';
+import * as E11 from './extras11.js';
 import { groupOf, GROUP_IDS } from './groups.js';
 import { decoTrees, DECO_LABEL, areaTreeBlock } from './decotrees.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf } from './areas.js';
@@ -1300,7 +1301,8 @@ const ACTIONS = {
     if (!text || !to) return false;
     if (a.item && (!has(ITEMS, a.item) || !(s.inv[a.item] > 0))) return false;
     if (a.item) takeInv(s, a.item, 1);
-    s.mail.push({ kind: 'letter', from, to, text, item: a.item || null, n: 1, paper: [0, 1, 2, 3].includes(a.paper) ? a.paper : 0, day: s.day, arrive: s.day + 1 });
+    s.mail.push({ kind: 'letter', from, to, text, item: a.item || null, n: 1, paper: [0, 1, 2, 3, 4, 5, 6, 7].includes(a.paper) ? a.paper : 0, day: s.day, arrive: s.day + 1 });
+    E11.loveLetter(s, to, from, out); // Herzensbuch: Liebesbrief
     (s.diary ||= []).push({ day: s.day, icon: '💌', text: `${from} hat ${to} einen Brief geschrieben` });
     out.msg = `💌 Brief an ${to} eingeworfen – er liegt morgen früh im Briefkasten!`;
     out.snd = 'love';
@@ -1744,7 +1746,7 @@ Object.assign(ACTIONS, {
       s.money -= c;
     }
     s.wardrobe[a.id] = s.day;
-    out.msg = `${W.icon} ${W.name} gekauft! Unter ⚙️ → Aussehen ändern → Extras könnt ihr ihn jetzt tragen.`;
+    out.msg = W.top ? `${W.icon} ${W.name} gekauft! Unter ⚙️ → Aussehen ändern → Outfit könnt ihr es jetzt tragen.` : `${W.icon} ${W.name} gekauft! Unter ⚙️ → Aussehen ändern → Extras könnt ihr ihn jetzt tragen.`;
     out.snd = 'love';
     return true;
   },
@@ -1836,7 +1838,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1892,7 +1894,7 @@ function resolveHome(s, me, sel, at) {
     if (E6.FURN_UI6[h.o.k]) return { ...base, ui: E6.FURN_UI6[h.o.k][0], uid: { x: h.x, z: h.z, room: R.id || null }, label: E6.FURN_UI6[h.o.k][1], tiles };
     if (V.FURN_GO5[h.o.k] && !R.id) return { ...base, go: V.FURN_GO5[h.o.k][0], label: V.FURN_GO5[h.o.k][1], tiles };
     if (W4.FURN_UI[h.o.k]) return { ...base, ui: W4.FURN_UI[h.o.k][0], label: W4.FURN_UI[h.o.k][1], tiles };
-    const r10 = E10.resolveFurn10(s, h, R, base, tiles); // Schminktisch, Blumenbinde-Tisch, Mieze
+    const r10 = E10.resolveFurn10(s, h, R, base, tiles) || E11.resolveFurn11(s, h, R, base, tiles); // Schminktisch, Blumenbinde-Tisch, Mieze, Greifautomat, Dinnertisch
     if (r10) return r10;
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
   }

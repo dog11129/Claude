@@ -128,6 +128,16 @@ const MORE10 = [
   ['sonnenblumenstrauss', 'Sonnenblumen-Strauß', '🌻', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['vergissmeinnichtstrauss', 'Vergissmeinnicht-Strauß', '💙', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
 ];
 for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of MORE10) RARE10[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, ...x };
+// 🕹️ Inselleben 11 „Für zwei“: Greifautomat mit Kuscheltieren, Dinnertisch für zwei, Jahrestags-Bild
+FURN2.greifautomat = { name: 'Greifautomat', icon: '🕹️', buy: 2800, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, glow: true };
+FURN2.dinnertisch = { name: 'Dinnertisch für zwei', icon: '🕯️', buy: 3200, lvl: 2, cat: 'tische', w: 2, d: 1, solid: true, glow: true };
+export const KUSCHEL = {
+  kuscheltier_teddy: ['Kuschel-Teddy', '🧸', 14], kuscheltier_katze: ['Kuschel-Kätzchen', '🐱', 14], kuscheltier_pinguin: ['Kuschel-Pinguin', '🐧', 12],
+  kuscheltier_kueken: ['Kuschel-Küken', '🐥', 12], kuscheltier_frosch: ['Kuschel-Frosch', '🐸', 11], kuscheltier_panda: ['Kuschel-Panda', '🐼', 10],
+  kuscheltier_wal: ['Kuschel-Wal', '🐳', 9], kuscheltier_fuchs: ['Kuschel-Fuchs', '🦊', 9], kuscheltier_einhorn: ['Kuschel-Einhorn', '🦄', 6], kuscheltier_gold: ['Goldener Teddy', '🌟', 3],
+};
+for (const [id, [name, icon]] of Object.entries(KUSCHEL)) RARE10[id] = { name, icon, buy: 0, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, rare: 'plush' };
+RARE10.jahrestagsbild = { name: 'Jahrestags-Bild', icon: '💍', buy: 0, lvl: 1, cat: 'wand', w: 1, d: 1, solid: false, wall: true, rare: 'love' };
 // Serien-Bonus: wie viele Serien sind mit mindestens vier verschiedenen Stücken vertreten?
 export function setsIn(keys, FURN) {
   const by = {};

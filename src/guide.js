@@ -109,6 +109,9 @@ export const GUIDE = [
   ['Zu Hause', '💐', 'Blumenbinde-Tisch', 'Kam per Post: im Haus aufstellen und aus euren Blumen Sträuße binden (Rosen, Tulpen, Pfingstrosen jeder Farbe, Regenbogen …) – auch Rosenkranz und Blüten-Haarspange.', s => (s.stats?.bound || 0) > 0],
   ['Zu Hause', '🐈', 'Mieze', 'Im Katzenkörbchen schläft Mieze – jeden Tag einmal streicheln, manchmal bringt sie euch etwas mit.', s => (s.mieze?.n || 0) > 0],
   ['Zu Hause', '🧁', 'Süßes backen', 'Am Herd: Herzkekse, Erdbeer-Cupcakes, Rosen-Macarons und die Herzchentorte – verschenkt gibt es Herzpunkte.', s => ['herzkekse', 'cupcake', 'macarons', 'herzchentorte'].some(k => (s.catalog || {})[k])],
+  ['Zu zweit', '📅', 'Unser Tag', 'Im Herzensbuch eintragen, seit wann ihr zusammen seid: Tage zählen, Monatstage mit Post und Herzchenregen, Jahrestag mit Feuerwerk.', s => !!s.couple],
+  ['Zu zweit', '🕯️', 'Dinner bei Kerzenschein', 'Dinnertisch für zwei aus dem Möbelkatalog: zusammen davorstehen, etwas zu essen dabeihaben – einmal am Tag.', s => (s.dinner11?.n || 0) > 0],
+  ['Zu Hause', '🕹️', 'Greifautomat', 'Aus dem Möbelkatalog: Kuscheltiere angeln – zehn Sorten, der goldene Teddy ist ganz selten.', s => (s.claw11?.n || 0) > 0],
 ];
 export function guideList(s) {
   return GUIDE.map(([area, icon, name, how, test]) => { let done = false; try { done = !!test(s); } catch { /* fehlt im Spielstand */ } return { area, icon, name, how, done }; });

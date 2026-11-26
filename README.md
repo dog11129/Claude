@@ -40,6 +40,13 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 
 ## Was es gibt
 
+### 💞 Neu: Für zwei (Inselleben 11)
+- **Unser Tag** (im Herzensbuch): Datum eintragen, seit wann ihr zusammen seid – das Handy zählt eure Tage. Jeden Monatstag gibt es Post von Rosi mit einer Überraschung, 5 Herzpunkte und Herzchenregen; am Jahrestag ein eigenes Jahrestags-Bild, 10 Herzpunkte und abends ein Feuerwerk.
+- **Greifautomat** im Möbelkatalog: im richtigen Moment antippen, der Greifer schnappt sich ein Kuscheltier (100 Taler pro Versuch). Zehn Kuscheltiere zum Sammeln – Teddy, Kätzchen, Pinguin, Küken, Frosch, Panda, Wal, Fuchs, Einhorn und der ganz seltene goldene Teddy. Verschenkt gibt es 2 Herzpunkte.
+- **Dinner bei Kerzenschein:** Am Dinnertisch für zwei (mit Kerzen und Herz-Stühlen) esst ihr einmal am Tag zusammen – etwas zu essen mitbringen, Selbstgebackenes kommt zuerst auf den Tisch. 3 Herzpunkte und ein Tagebuch-Eintrag.
+- **Liebesbriefe:** Vier neue Briefpapiere (Herzchen, Pfingstrosen, Sternennacht, Kätzchen); ein Brief an deinen Schatz bringt einmal am Tag 2 Herzpunkte.
+- **Neue Kleider & Frisuren:** Rüschenkleid, Blümchenkleid, Kuschelpulli und – in der Schneiderei – ein bodenlanges Ballkleid mit Tüll und Glitzer. Dazu die Frisuren Zöpfe und Wellen.
+
 ### 💗 Neu: Herzstücke (Inselleben 10)
 - **Herzensbuch** (Handy-App): Ihr sammelt gemeinsam Herzpunkte – jede Zärtlichkeit zählt einmal am Tag, ein Strauß für den Schatz bringt 3, Selbstgebackenes 2 (bis 6 Geschenk-Punkte am Tag). Neun Seiten mit Belohnungen, die es nur hier gibt: Herz-Kissen, Herz-Haarreif, Liebesschaukel, Sternen-Nachtlicht, Blütenkrone, Herz-Rosenbogen, Prinzessinnen-Himmelbett, Herzchen-Brunnen und die Herzkrone. Jede Seite landet auch im Fotobuch.
 - **Neue Zärtlichkeiten** im Herz-Menü (Figur antippen): 🥰 Kuscheln, 💫 Im Kreis drehen, 💞 Herz formen, 😚 Nasenstupser, 💋 Stirnküsschen, 🫂 Anlehnen – mit eigenen Bewegungen, Herzchen und Tagebuch-Einträgen.

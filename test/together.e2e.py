@@ -148,6 +148,15 @@ async def main():
             ok(r == 4, f'Strauß verschenkt: Host hat ihn, +3 Herzpunkte ({r})')
             r = await until(B, "window.__game.G.s.love?.pts === 4 && document.querySelector('#toasts') !== null")
             ok(r is True, 'Gast sieht die Herzpunkte')
+            # Inselleben 11: Dinner zu zweit – der Gastgeber prüft, dass beide am Tisch sind
+            await A.evaluate(f"(() => {{ const {{G, S}} = window.__game, o = {mia}; G.s.home.items = {{ '0,0': {{ k: 'dinnertisch', r: 0 }} }}; (G.s.pinv[o.key] ||= {{}}).cupcake = 1; Object.assign(G.players[G.me], {{ x: S.HOME_X - 1, z: 1.4 }}); G.dirty = true; }})()")
+            await until(B, "window.__game.G.s.inv?.cupcake >= 1 && !!window.__game.G.s.home.items['0,0']")
+            await B.evaluate("(() => { const {G, S} = window.__game; Object.assign(G.players[G.me], { x: S.HOME_X + 1, z: 1.4 }); })()")
+            await until(A, f"(() => {{ const o = {mia}, S = window.__game.S; return Math.abs(o.x - S.HOME_X - 1) < 0.3 }})()")
+            p0 = await A.evaluate('window.__game.G.s.love.pts')
+            await B.evaluate("window.__game.send({ t: 'dinner11', x: 0, z: 0, room: null, names: ['Schummel'] })")
+            r = await until(A, f"(window.__game.G.s.love.pts >= {p0 + 3}) && (window.__game.G.s.diary || []).at(-1).text")
+            ok(isinstance(r, str) and 'Mia' in r and 'Shawn' in r and 'Schummel' not in r, f'Dinner zu zweit: {r}')
             await b.close()
     finally:
         for pr in procs: pr.terminate()
