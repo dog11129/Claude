@@ -19,7 +19,7 @@ function buildDream() {
   for (let i = 0; i < 36; i++) { const a = i * 2.39, r = 14 + (i * 7.3) % 40; parts.push(M.ball(2.2 + (i % 4) * 0.8, i % 3 ? 0xffffff : 0xffe4f2, Math.cos(a) * r, -6.4 + (i % 3) * 0.4, Math.sin(a) * r, 1.6, 0.55, 1.3)); }
   // Inseln: Wiese oben (fein unterteilt wegen der Krümmung), Fels darunter, Wolkenkranz am Rand
   E.DREAM_ISLES.forEach((I, k) => {
-    const top = new THREE.Mesh(M.disc(I.r, 40, 1.2), lam(k ? PASTEL[k % 5] : 0xd8f8c8));
+    const top = new THREE.Mesh(M.disc(I.r, 40, 1.2), lam(k ? PASTEL[k % 5] : 0xc8f0dc));
     top.rotation.x = -Math.PI / 2; top.position.set(X0 + I.x, 0.005, Z0 + I.z); g.add(top);
     const rim = new THREE.Mesh(M.disc(I.r + 0.25, 40, 1.2), lam(0xffffff));
     rim.rotation.x = -Math.PI / 2; rim.position.set(X0 + I.x, -0.06, Z0 + I.z); g.add(rim);
@@ -86,7 +86,7 @@ export const lights8 = zones => zones.dream8?.userData.lights || null;
 // Himmel im Traum: Lavendel und Rosa, Sterne, weiches Licht
 export function dreamSky(world, top, hor) {
   top.setRGB(0.36, 0.3, 0.62); hor.setRGB(0.98, 0.72, 0.86);
-  world.scene.fog.color.copy(hor); world.scene.fog.near = 18; world.scene.fog.far = 70;
+  world.scene.fog.color.copy(hor); world.scene.fog.near = 30; world.scene.fog.far = 110;
   world.stars.material.opacity = 0.9;
   world.sun.intensity = 1.2; world.sun.color.setRGB(1, 0.86, 0.95);
   world.hemi.color.setRGB(0.92, 0.85, 1); world.hemi.groundColor.setRGB(0.62, 0.52, 0.8); world.hemi.intensity = 1.25;

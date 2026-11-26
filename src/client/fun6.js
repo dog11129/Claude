@@ -50,6 +50,10 @@ export function execute8(r, fresh) {
   if (r.wedYes) { if (fresh) { C.send({ t: 'wed', op: 'yes' }); C.world.burst(me().x, me().z, 'heart', 1.4); } return true; }
   if (r.surf) { if (fresh) startSurf(); return true; }
   if (r.go === 'dreamwake') { if (fresh) wakeDream(); return true; }
+  if (r.bench8 && r.sit && fresh) { // Klippenbank: ist der Platz schon besetzt, den anderen nehmen
+    const taken = (x, z) => Object.values(C.G.players).some(p => p !== me() && p.pose === 'sit' && Math.hypot(p.x - x, p.z - z) < 0.3);
+    if (taken(r.sit.x, r.sit.z)) { const [a, b] = E.seats(r.tiles[0][0], r.tiles[0][1], r.sit.r), o = Math.hypot(a[0] - r.sit.x, a[1] - r.sit.z) < 0.05 ? b : a; if (!taken(o[0], o[1])) r.sit = { ...r.sit, x: o[0], z: o[1] }; }
+  }
   return false;
 }
 
@@ -84,7 +88,7 @@ function updateWedding(m, dt) {
   const G = C.G, s = G.s, W = s.wedding, w = C.world;
   if (!W) { if (G.wed8) { G.wed8 = null; card(null); } return; }
   const sp = E.wedSpots(W.x, W.z, W.r), t = E.wedT(s), near = Math.hypot(m.x - W.x, m.z - W.z) < 30 && zoneOf(m) === 'island';
-  if (!near) { card(null); return; }
+  if (!near) { card(null); if (G.wedTold !== W.t0 && !W.done) { G.wedTold = W.t0; C.toast('💒 An der Inselkapelle beginnt gleich eine Hochzeit – schnell hin!', 'ach'); } return; }
   if (!G.wed8 || G.wed8.t0 !== W.t0) { // Neu dabei: ans Altar stellen (Gastgeber links, Gast rechts)
     G.wed8 = { t0: W.t0, said: -1, fw: 0, kiss: 0 };
     const [x, z, ry] = sp.couple[myKey() === 'host' ? 0 : 1];
