@@ -196,7 +196,10 @@ test('Lieferdienst: jeden Morgen Bestellungen, persönlich abgeben, Trinkgeld f�
   assert.ok(!act(s, { t: 'deliver14', id: d.id }).ok, 'ohne die Ware geht es nicht');
   s.pinv.host = { [d.item]: d.n };
   const r = act(s, { t: 'deliver14', id: d.id });
-  assert.ok(r.ok); assert.equal(s.money, m0 + d.pay + Math.round(d.pay * 0.4 / 10) * 10, 'Eil-Bonus am selben Tag'); assert.equal(E.delivFor(s, d.id), null);
+  const tip = Math.round(d.pay * 0.4 / 10) * 10;
+  assert.ok(r.ok); assert.equal(E.delivFor(s, d.id), null);
+  assert.ok(r.msg.replace(/\./g, '').includes(`${tip} Taler Trinkgeld (Eil-Bonus)`), r.msg); // Eil-Bonus am selben Tag
+  assert.ok(s.money === m0 + d.pay + tip || (r.ach?.length && s.money > m0 + d.pay + tip), 'Lohn und Trinkgeld (dazu höchstens die Prämie für einen Erfolg)');
   assert.equal(s.stats.deliv, 1);
   for (let i = 0; i < 6; i++) { s.day++; E.morning14(s); assert.ok(s.deliv.list.length <= E.DELIV_MAX); assert.ok(s.deliv.list.every(q => q.due >= s.day), 'abgelaufene verschwinden'); }
 });
