@@ -10,7 +10,7 @@ const me = () => C.G.players[C.G.me];
 export function initFun10(ctx) { C = ctx; }
 
 // Was zu einem Outfit gehört (Hautfarbe, Augen und Begleiter bleiben, wie sie sind)
-export const OUTFIT_KEYS = ['hairStyle', 'hairColor', 'top', 'topColor', 'bottomColor', 'shoes', 'hat', 'glasses', 'blush', 'lips', 'lid', 'mark', 'nails', 'pat'];
+export const OUTFIT_KEYS = ['hairStyle', 'hairColor', 'top', 'topColor', 'bottomColor', 'shoes', 'hat', 'glasses', 'blush', 'lips', 'lid', 'mark', 'nails', 'neck', 'ear', 'wrist', 'pat'];
 export const OUTFIT_SLOTS = 6;
 export const outfits = () => (C?.profile.outfits || []);
 const nameOf = (k, v) => (LOOKS[k].find(o => o[0] === v) || [])[1] || '';

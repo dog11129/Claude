@@ -10,6 +10,7 @@ import { FURN_X } from './models-extra.js';
 import { FURN_2 } from './models-furn2.js';
 import { FURN_12 } from './models-12.js';
 import { FURN_14 } from './models-14.js';
+import { FURN_15 } from './models-15.js';
 export { FURNITURE, WALLS, FLOORS };
 
 const PI = Math.PI, H = PI / 2;
@@ -434,6 +435,7 @@ Object.assign(MAKE, FURN_X); // seltene Möbel (models-extra.js)
 for (const [k, fn] of Object.entries(FURN_2)) MAKE[k] ||= fn; // 120 Möbel in Serien (models-furn2.js)
 for (const [k, fn] of Object.entries(FURN_12)) MAKE[k] ||= fn; // Wintergarten (models-12.js)
 for (const [k, fn] of Object.entries(FURN_14)) MAKE[k] ||= fn; // Saisonkatalog, Sträuße, Kränze (models-14.js)
+for (const [k, fn] of Object.entries(FURN_15)) MAKE[k] ||= fn; // Puzzletisch, Adventskalender & Geschenke, Bilder (models-15.js)
 const cache = new Map();
 function built(k, fn) {
   if (!cache.has(k)) {

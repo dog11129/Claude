@@ -99,3 +99,13 @@ Kuschelplätze, der Saisonkatalog (20 Deko, 20 Möbel), vier Sträuße und vier 
 schon in den Bauplan auf (samt Icons). Nicht im Bauplan, weil sie sich im Spiel zusammensetzen: Hase, Schneemann (je nach
 Kugeln und Schmuck), Liebesschlösser, Salon-Stand, Fassaden-Teile (Tür, Läden, Blumenkästen) und das Gelände (Hügel, Wasser).
 Die sechs Salon-Frisuren kommen über `node tools/dump-shapes.mjs` + `shapes.py` in `characters.glb`.
+
+## Inselleben 15: Winterzauber (Blender-Lauf steht noch aus)
+
+Diese 26 Stücke und vier Kostüm-Hüte laufen fürs Erste als Code-Modelle (`src/models-15.js`, Hüte in `src/avatar.js`, alle in
+`CODE_ONLY`): Federballnetz, Erinnerungsbaum, Koi-Fahne, Koi-Statue, drei geschnitzte Kürbisse, Lebkuchenhaus, Puzzletisch,
+Adventskalender, Nikolausstiefel, Nussknacker, Leuchtstern, Weihnachtspyramide, sechs Puzzlebilder und sechs Polaroids.
+`node tools/dump-models.mjs` nimmt sie in den Bauplan auf. Nicht im Bauplan, weil sie sich im Spiel zusammensetzen: der
+Erinnerungsbaum in seiner Wuchsstufe (`memTreeParts`, je Jahreszeit, mit Anhängern und Zetteln – das Modell im Bauplan ist
+nur die Vorschau), die Koi (`koiParts`, zwölf Farben), der Federball und der Schmuck an den Figuren. Die Bilder auf
+Polaroids und Puzzlebildern sind Texturen aus dem Spiel (`src/world-extra12.js`, `src/motifs15.js`), die Rahmen bleiben Modelle.

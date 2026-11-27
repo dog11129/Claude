@@ -3,6 +3,7 @@
 // kleine Überraschungen. Die Aufgaben sind dieselben Ereignisse wie bei den Tagesaufgaben (DAILY), nur größer.
 import { DAILY, PLACE, ITEMS, CROPS } from '../data.js';
 import * as S from '../state.js';
+import { lucky } from './pure15.js';
 
 export const PLUS_N = 5;
 const SIZES = [[1, 1], [1.5, 2], [2.5, 3]]; // [Menge ×, Sternchen]
@@ -46,7 +47,7 @@ export function plus13(s, a, out) {
   if (a.op === 'claim') {
     const c = P.cards[a.i];
     if (!c || !c.done) return false;
-    const st = cardStars(c), pay = 120 * st;
+    const st0 = cardStars(c), pay = 120 * st0, st = st0 * (lucky(s, 'stars') ? 2 : 1); // Sternchenglück (Glückskeks): doppelt
     P.stars += st; P.total = (P.total || 0) + st; P.n = (P.n || 0) + 1; P.last = DAILY[c.i][1];
     s.money += pay; s.stats.earned += pay;
     P.cards.splice(a.i, 1);
@@ -93,7 +94,7 @@ export function wish13(s, a, out) {
   if (r < 0.5) { const m = 60 + Math.floor(Math.random() * 25) * 10; s.money += m; out.msg = `⛲ Plitsch! Der Brunnen glitzert … und spuckt ${m} Taler zurück.`; }
   else if (r < 0.8) { const pool = FLOWER_SEEDS(), k = pool[Math.floor(Math.random() * pool.length)]; S.addInvX(s, 's_' + k, 3); out.msg = `⛲ Plitsch! Am Brunnenrand liegen drei Samen: ${CROPS[k].icon} ${CROPS[k].name}.`; }
   else if (r < 0.93 && ITEMS.sternsplitter) { S.addInvX(s, 'sternsplitter', 1); out.got = 'sternsplitter'; out.msg = '⛲ Plitsch! Im Wasser funkelt ein Sternsplitter.'; }
-  else { if (s.plus) { s.plus.stars += 1; s.plus.total = (s.plus.total || 0) + 1; } out.msg = '⛲ Plitsch! Ein Wunsch geht in Erfüllung: +1 Sternchen ⭐'; }
+  else { const n = lucky(s, 'stars') ? 2 : 1; if (s.plus) { s.plus.stars += n; s.plus.total = (s.plus.total || 0) + n; } out.msg = `⛲ Plitsch! Ein Wunsch geht in Erfüllung: +${n} Sternchen ⭐`; }
   (out.fx ||= []).push({ x: a.x, z: a.z, t: '✨', k: 'heart' });
   out.snd = 'splash';
   return true;

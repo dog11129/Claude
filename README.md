@@ -40,6 +40,19 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 
 ## Was es gibt
 
+### ❄️ Neu: Winterzauber (Inselleben 15)
+- **Adventskalender:** Vom 1. bis 24. Dezember (echtes Datum) öffnet jede:r jeden Tag ein Türchen – im Inselhandy oder am Wandkalender, den Mira schickt. Verpasste Türchen lassen sich bis Silvester nachholen; am 24. gibt es Weihnachtspyramide und Lebkuchenhaus.
+- **Koi-Teich:** Selbst gegrabenes Wasser antippen, Koi einsetzen (je zwei Wasser-Kacheln ein Fisch, höchstens zwölf), täglich füttern. Über Nacht schlüpft manchmal Nachwuchs – je nach Eltern in neuen Farben. Zwölf Sorten fürs Koi-Buch, die Fische schwimmen sichtbar im Teich.
+- **Gemeinsames Puzzle:** Am Puzzletisch legt jede:r vier Teile am Tag (richtigen Platz finden). Das fertige Bild kommt als Wandbild in die Tasche; sechs Motive.
+- **Schmuckwerkstatt:** Neuer Reiter „Goldschmiede“ im Salon – aus Kristall, Amethyst, Rubin, Saphir, Opal, Smaragd, Perle und Gold werden sechs Ketten, fünf Paar Ohrringe und vier Armbänder (auch ein Partner-Armband). Anlegen im Aussehen unter „Schmuck“, Outfits merken sich den Schmuck.
+- **Spieleabend:** Am Spieltisch gibt es zusätzlich **Mühle** und **Würfelglück** – zu zweit oder gegen einen Nachbarn.
+- **Federball:** Federballnetz aufstellen, Ball abwechselnd im richtigen Moment zurückschlagen; Rekord zu zweit und allein.
+- **Kostümfest:** Kürbisse zu drei Laternen-Gesichtern schnitzen; Bonbons vom Kürbisfest gegen vier Kostüm-Hüte tauschen. Wer am Festtag schon geschnitzt hat, bekommt von den Nachbarn ein Bonbon mehr.
+- **Erinnerungsbaum:** Wächst mit jedem Tag (doppelt an gemeinsamen Tagen) über fünf Größen, zeigt die Jahreszeit, trägt Anhänger für 15 Meilensteine und eure Zettel.
+- **Polaroid-Wand:** Fotos aus dem Fotobuch werden zu kleinen Polaroids fürs Haus – sechs Plätze, mit Bildunterschrift.
+- **Glückskeks:** Jeden Tag ein Spruch und ein paar Taler; der erste Keks legt das Tagesglück der Insel fest (Angler-, Kescher-, Sternchen-, Trinkgeld- oder Herzensglück).
+- Die neuen Stücke sind fürs Erste Code-Modelle; die Blender-Fassungen folgen beim nächsten Blender-Lauf.
+
 ### 💞 Neu: Lieblingsplätze (Inselleben 14)
 - **Wege mit runden Ecken:** Vier neue Sorten (Kiesweg, Sandsteinplatten, Kopfsteinpflaster, Blumen-Mosaik) – und alle Wege, auch die alten, bekommen von selbst runde Ecken und einen Rand.
 - **Gelände formen:** Im Baumodus unter „Gelände“ grabt ihr Wasser (nebeneinander wird es ein Teich oder Bach, mit Seerosen) und schüttet Hügel auf. Über euer Wasser führen **Holzsteg** und **Steinbrücke**, auf die Hügel **Holz- und Steintreppen**. Auf Hügeln darf Deko stehen.

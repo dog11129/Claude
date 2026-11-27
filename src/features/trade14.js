@@ -1,6 +1,7 @@
 // Teil von extras14.js – Saisonkatalog (zehn Sachen je Jahreszeit, nur dann zu haben), Lieferdienst (Bestellungen der
 // Nachbarn persönlich vorbeibringen, mit Trinkgeld), Salon (Frisuren, Haarfarben, Nagellack), Hausfassade
 // (Dach, Tür, Fensterläden, Blumenkästen, Hausnummer, Türkranz) und neue Sträuße & Kränze am Blumenbinde-Tisch.
+import { lucky } from './pure15.js';
 import { PLACE, ITEMS, SEASON_IDS, SEASONS } from '../data.js';
 import { FURNITURE } from '../furni-data.js';
 import { SALON, SALON_PRICE, SALON_NAME, salonKey } from '../salon-data.js';
@@ -59,7 +60,7 @@ export function deliver14(s, a, out) {
   if (i < 0) return false;
   const d = L[i];
   if (!S.takeInvX(s, d.item, d.n)) { out.msg = `📦 Dafür fehlt noch etwas: ${d.n}× ${ITEMS[d.item].icon} ${ITEMS[d.item].name}.`; return false; }
-  const fast = d.day === s.day, tip = Math.round(d.pay * (fast ? 0.4 : 0.15) / 10) * 10;
+  const fast = d.day === s.day, tip = Math.round(d.pay * (fast ? 0.4 : 0.15) / 10) * 10 * (lucky(s, 'tip') ? 2 : 1); // Trinkgeldglück (Glückskeks)
   s.money += d.pay + tip; s.stats.earned += d.pay + tip;
   s.stats.deliv = (s.stats.deliv || 0) + 1;
   X.befriend(s, d.id, 30);

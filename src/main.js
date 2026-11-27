@@ -34,6 +34,7 @@ import { initFun7, execute9, update9, usable9 } from './client/fun7.js';
 import { initFun8, execute10, update10, usable10 } from './client/fun8.js';
 import { initFun9, uiH, update11 } from './client/fun9.js';
 import { initFun10, uiX, onRes14, sitSpot, tick14 } from './client/fun10.js';
+import { initFun11, uiY, onRes15, tick15 } from './client/fun11.js';
 import * as E14 from './extras14.js';
 import { loveSocial } from './extras10.js';
 import { nhomeState, doorNote, nhomeNews } from './extras12.js';
@@ -93,6 +94,7 @@ initFun7({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => to
 initFun8({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), openEditor: tab => openEditor(tab), showPanel: k => panels.show(k) });
 initFun9({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), interrupt: () => interrupt() });
 initFun10({ get G() { return G; }, get profile() { return profile; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), saveProfile: () => saveProfile(), sendLook: () => sendLook(), reopen: k => { if (panels.open === k) panels.show(k); }, openEditor: tab => { panels.close(); openEditor(tab); }, closePanel: () => panels.close() });
+initFun11({ get G() { return G; }, get profile() { return profile; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), saveProfile: () => saveProfile(), sendLook: () => sendLook(), reopen: k => { if (panels.open === k) panels.show(k); }, openEditor: tab => { panels.close(); openEditor(tab); }, closePanel: () => panels.close(), showPanel: k => panels.show(k), panelOpen: () => panels.open });
 initFun5({ get G() { return G; }, world, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), listPhotos: async () => [...await photos.list(isleKey(), 'photo'), ...await photos.list(isleKey(), 'moment')] });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
@@ -121,6 +123,8 @@ const demo = demoFarm();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const r3 = v => Math.round(v * 1000) / 1000;
 // Zustand fürs Netz verkleinern: Kommazahlen kürzen
+// Inselleben 15: alle Ergebnisfelder, die auf „15“ enden, in einem Päckchen (advent15, jewel15 …)
+const x15 = out => { let r = null; for (const k in out) if (k.endsWith('15')) (r ||= {})[k] = out[k]; return r; };
 const pack = s => JSON.parse(JSON.stringify(s, (k, v) => typeof v === 'number' && !Number.isInteger(v) ? r3(v) : v));
 const ACTS = ['hoe', 'can', 'sickle', 'plant', 'pet', 'fish', 'use', 'hug', 'shake', 'highfive', 'kiss', 'net'];
 const HELD = ['hoe', 'can', 'sickle', 'rod', 'seeds', 'box', 'net', 'shovel', 'axe'];
@@ -347,6 +351,7 @@ function hostData(id, d) {
   const p = G.players[id];
   if (d.t === 'join') {
     G.players[id] = newPlayer(id, d.profile);
+    (G.v15 ||= new Set())[d.v >= 15 ? 'add' : 'delete'](id); // ältere Spielfassung: bekommt die Polaroids immer mit
     const fr = (G.s.friends ||= []);
     if (!fr.includes(G.players[id].name)) { fr.push(G.players[id].name); if (fr.length > 8) fr.shift(); }
     G.net.send(id, { t: 'welcome', id, s: pack(G.s), players: G.players, code: G.code });
@@ -433,7 +438,7 @@ function handleAct(id, a) {
   }
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes, taleSay: out.taleSay, taleReady: out.taleReady, ride: out.ride, duel: out.duel, rate14: out.rate14, salon14: out.salon14 };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes, taleSay: out.taleSay, taleReady: out.taleReady, ride: out.ride, duel: out.duel, rate14: out.rate14, salon14: out.salon14, x15: x15(out) };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -505,7 +510,7 @@ async function connectGuest(g) {
   if (G !== g) { conn.close(); return; }
   g.conn = conn;
   g.lastHost = performance.now();
-  conn.send({ t: 'join', profile });
+  conn.send({ t: 'join', profile, v: 15 }); // v: kann mit ausgelassenen Polaroids im Vollabgleich umgehen
   try {
     await new Promise((res, rej) => { g.onWelcome = res; setTimeout(() => rej({ type: 'timeout' }), 10000); });
   } catch (e) {
@@ -538,7 +543,7 @@ function guestData(d) {
       saveFarm();
       break;
     }
-    case 's': if (G.s && d.s && typeof d.s === 'object') { G.sRaw = d.s; G.s = S.bindInv(S.migrate(structuredClone(d.s)), myBag(d.s)); } break;
+    case 's': if (G.s && d.s && typeof d.s === 'object') { if (d.s.pola === undefined && G.sRaw?.pola) d.s.pola = G.sRaw.pola; G.sRaw = d.s; G.s = S.bindInv(S.migrate(structuredClone(d.s)), myBag(d.s)); } break;
     case 'sd': { // nur die geänderten Teile
       if (!G.s || !G.sRaw || !d.d || typeof d.d !== 'object') break;
       const raw = { ...G.sRaw, ...d.d };
@@ -636,6 +641,7 @@ function showFx(fx) {
 }
 function onRes(r) {
   onRes14(r); // Bewertung der Nachbarn, Salon
+  onRes15(r); // Schmuck und Kostüme gleich anziehen, Türchen, Glückskeks
   if (r.reaction && G.talk) giftAnswer(r.reaction, r.bday);
   if (r.contest) { const me = G.players[G.me]; world.float(me.x, me.z, `🏆 ${r.contest}`, 2.2, { cls: 'big' }); bump('contestpill', 'pop'); }
   if (r.snd) play(r.snd);
@@ -747,7 +753,7 @@ async function fillBook() {
     const list = await photos.list(isle, 'photo'), others = Object.values(G.players).filter(p => p.id !== G.me);
     const card = G.cardFor && list.find(p => p.id === G.cardFor);
     grid.innerHTML = (card ? `<div class="photo" style="grid-column:1/-1"><img src="${card.url}" alt=""><div class="diaryadd" style="margin-top:6px"><input id="cardtxt" maxlength="160" placeholder="Liebe Grüße von der Insel …"></div><div class="row2">${others.map(p => `<button class="btn small pink" data-ui="cardsend" data-to="${esc(p.id)}">📮 An ${esc(p.name)}</button>`).join('')}<button class="btn small" data-ui="cardshare">📤 Teilen / Speichern</button><button class="btn small white" data-ui="cardno">Abbrechen</button></div></div>` : '')
-      + (list.length ? list.map(p => `<div class="photo"><img src="${p.url}" alt=""><small>${p.card ? `📮 von ${esc(p.from || '?')} · ` : ''}Tag ${p.day || '?'} · ${new Date(p.time).toLocaleDateString('de-DE')}</small><div class="row2"><button class="btn small white" data-ui="phcard" data-id="${p.id}" title="Als Postkarte">📮</button><button class="btn small white" data-ui="phsave" data-id="${p.id}" title="Speichern/Teilen">⬇️</button><button class="btn small white" data-ui="phdel" data-id="${p.id}" title="Löschen">🗑️</button></div></div>`).join('')
+      + (list.length ? list.map(p => `<div class="photo"><img src="${p.url}" alt=""><small>${p.card ? `📮 von ${esc(p.from || '?')} · ` : ''}Tag ${p.day || '?'} · ${new Date(p.time).toLocaleDateString('de-DE')}</small><div class="row2"><button class="btn small white" data-ui="phcard" data-id="${p.id}" title="Als Postkarte">📮</button><button class="btn small white" data-ui="y:pola" data-id="${p.id}" title="Als Polaroid an die Wand">🖼️</button><button class="btn small white" data-ui="phsave" data-id="${p.id}" title="Speichern/Teilen">⬇️</button><button class="btn small white" data-ui="phdel" data-id="${p.id}" title="Löschen">🗑️</button></div></div>`).join('')
         : '<div class="note">Noch keine Fotos. Im 📷 Fotomodus auf 📸 drücken – das Bild landet hier.</div>');
   }
 }
@@ -981,7 +987,7 @@ function netTick() {
         // Nur geänderte Teile des Spielstands schicken (alle 15 s und nach Neu-Beitritt einmal alles)
         const P = pack(G.s), cur = {};
         for (const k of Object.keys(P)) cur[k] = JSON.stringify(P[k]);
-        if (!G.sentKeys || now - (G.lastFull || 0) > 15000) { G.net.broadcast({ t: 's', s: P }); G.lastFull = now; }
+        if (!G.sentKeys || now - (G.lastFull || 0) > 15000) { G.net.broadcast({ t: 's', s: G.sentKeys && G.sentKeys.pola === cur.pola && Object.keys(G.players).every(id => id === 'h' || G.v15?.has(id)) ? { ...P, pola: undefined } : P }); G.lastFull = now; } // Polaroid-Bilder nur, wenn neu
         else {
           const d = {}, x = Object.keys(G.sentKeys).filter(k => !(k in cur));
           for (const k of Object.keys(cur)) if (cur[k] !== G.sentKeys[k]) d[k] = P[k];
@@ -1444,6 +1450,7 @@ const panels = new Panels({
     if (kind.startsWith('g:')) { uiG(kind.slice(2), d); return; } // Inselleben 8 (client/fun6.js)
     if (kind.startsWith('h:')) { uiH(kind.slice(2), d); return; } // Inselleben 11 (client/fun9.js)
     if (kind.startsWith('x:')) { uiX(kind.slice(2), d); return; } // Inselleben 14 (client/fun10.js)
+    if (kind.startsWith('y:')) { uiY(kind.slice(2), d); return; } // Inselleben 15 (client/fun11.js)
     if (kind === 'app') openApp(d.app);
     if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
     if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
@@ -1574,7 +1581,7 @@ function interrupt() {
 function openApp(app) {
   play('click');
   const P = { map: ['map'], shop: ['shop'], sell: ['sell'], quests: ['orders', 'quests'], album: ['orders', 'album'], museum: ['museum'], recipes: ['recipes'], turnip: ['turnip'],
-    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W, ...APP_PANELS_V, ...APP_PANELS_6, ...APP_PANELS_7, ...APP_PANELS_8 }[app];
+    friends: ['friends'], goals: ['orders', 'goals'], emotes: ['emotes'], settings: ['settings', 'options'], diary: ['diary'], fests: ['fests'], news: ['news'], book: ['book'], catalog: ['catalog'], patterns: ['patterns'], piano: ['piano'], stars: ['stars'], contest: ['book', 'contest'], guide: ['guide'], ...APP_PANELS_W, ...APP_PANELS_V, ...APP_PANELS_6, ...APP_PANELS_7, ...APP_PANELS_8 }[app] || (panels.has(app) ? [app] : null); // neuere Apps heißen wie ihr Fenster
   if (P) { panels.show(...P); return; }
   panels.close();
   if (app === 'camera') setPhoto(true);
@@ -2831,6 +2838,7 @@ function gameFrame(dt, now) {
   update10();
   update11();
   tick14(dt);
+  tick15(dt);
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)

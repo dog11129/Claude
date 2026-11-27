@@ -4,9 +4,10 @@ import { FURNITURE } from '../furni-data.js';
 import * as S from '../state.js';
 import * as X from '../extras.js';
 import { rnd, pick, fmt, hour, who, note, shuffle, near } from './util.js';
+import { GAME15, initGame15, playOp15, playAi15 } from './play15.js';
 
 // =====================================================================
-// Spieleabend am Spieltisch: Vier gewinnt und Memory, gegen Mitspieler oder einen Nachbarn
+// Spieleabend am Spieltisch: Vier gewinnt, Memory, Mühle und Würfelglück – gegen Mitspieler oder einen Nachbarn
 // =====================================================================
 export const C4_W = 7, C4_H = 6;
 const NPC_SKILL = { mira: 0.55, bruno: 0.6, pippa: 0.5, lio: 0.75, kalle: 0.7, wanda: 0.85 };
@@ -32,6 +33,7 @@ export function c4Ai(b, me, skill = 0.7) {
   const pool = (safe.length ? safe : cols).sort((x, y) => Math.abs(x - 3) - Math.abs(y - 3));
   return Math.random() < skill ? pool[0] : pick(pool);
 }
+export const gameName = k => (k === 'c4' ? 'Vier gewinnt' : k === 'mem' ? 'Memory' : GAME15[k]?.[1] || 'Spiel');
 const gamePlayer = (s, g) => g.p[g.turn];
 const isMe = (s, p) => p.who === who(s);
 export function gameEnd(s, g, out) {
@@ -39,7 +41,7 @@ export function gameEnd(s, g, out) {
   s.stats.games = (s.stats.games || 0) + 1;
   if (g.win === 'draw') { out.msg = '🤝 Unentschieden! Noch eine Runde?'; if (npc) S.friendX(s, npc.npc).f += 25; return; }
   const winner = g.p[g.win];
-  out.msg = `🏆 ${winner.name} gewinnt ${g.k === 'c4' ? 'Vier gewinnt' : 'Memory'}!`;
+  out.msg = `🏆 ${winner.name} gewinnt ${gameName(g.k)}!`;
   out.snd = 'fanfare';
   if (npc) {
     if (winner.npc) { S.friendX(s, npc.npc).f += 15; out.msg += ` „Gut gespielt – Revanche?“`; }
@@ -84,7 +86,7 @@ export function game(s, a, out) {
   const g = s.game;
   if (a.op === 'start') {
     if (g && g.win == null && g.p.some(p => !p.npc && p.who !== who(s)) && s.time - g.t < 600) { out.msg = 'Am Spieltisch läuft gerade noch eine Runde.'; return false; }
-    if (!['c4', 'mem'].includes(a.k)) return false;
+    if (!['c4', 'mem'].includes(a.k) && !GAME15[a.k]) return false;
     const me = { who: who(s), name: String(a.name || 'Gast').slice(0, 16) };
     let you;
     if (typeof a.vs === 'string' && a.vs.startsWith('npc:') && NPC_IDS.includes(a.vs.slice(4))) { const id = a.vs.slice(4); you = { who: 'npc', npc: id, name: NPC_DATA[id].name }; }
@@ -93,8 +95,9 @@ export function game(s, a, out) {
     const first = rnd(2);
     s.game = { k: a.k, p: [me, you], turn: first, t: s.time, win: null };
     if (a.k === 'c4') s.game.b = Array(C4_W * C4_H).fill(-1);
+    else if (GAME15[a.k]) initGame15(s.game);
     else Object.assign(s.game, { b: shuffle([...MEM_CARDS.slice(0, 6), ...MEM_CARDS.slice(0, 6)]), open: [], found: {}, seen: {}, score: [0, 0], miss: null });
-    out.msg = `🎲 ${a.k === 'c4' ? 'Vier gewinnt' : 'Memory'}: ${me.name} gegen ${you.name} – ${s.game.p[first].name} fängt an!`;
+    out.msg = `🎲 ${gameName(a.k)}: ${me.name} gegen ${you.name} – ${s.game.p[first].name} fängt an!`;
     out.snd = 'click';
     return true;
   }
@@ -109,11 +112,13 @@ export function game(s, a, out) {
   if (a.op === 'ai') {
     if (!cur.npc) return false;
     if (g.k === 'c4') { const col = c4Ai(g.b, g.turn, NPC_SKILL[cur.npc]); g.last = c4Drop(g.b, col, g.turn) * C4_W + col; g.win = c4Win(g.b); if (g.win !== null) gameEnd(s, g, out); else g.turn = 1 - g.turn; }
+    else if (GAME15[g.k]) { playAi15(g, NPC_SKILL[cur.npc] || 0.6, out); if (g.win != null) gameEnd(s, g, out); }
     else memAi(s, g, out);
     g.t = s.time;
     return true;
   }
   if (!isMe(s, cur)) return false;
+  if (GAME15[g.k]) { const ok = playOp15(g, a, out); if (ok) { g.t = s.time; if (g.win != null) gameEnd(s, g, out); } return ok; }
   if (g.k === 'c4' && a.op === 'move') {
     if (!Number.isInteger(a.col) || a.col < 0 || a.col >= C4_W || g.b[a.col] >= 0) return false;
     g.last = c4Drop(g.b, a.col, g.turn) * C4_W + a.col;

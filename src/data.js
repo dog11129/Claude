@@ -659,6 +659,15 @@ export const PLACE = {
   wunschbrunnen: { name: 'Wunschbrunnen',   icon: '⛲', lvl: 1, kind: 'deco', solid: 1, glow: 1, star: 12, desc: 'Einmal am Tag eine Münze hineinwerfen' },
   schmetterlingsstrauch: { name: 'Schmetterlingsstrauch', icon: '🦋', lvl: 1, kind: 'deco', solid: 1, garden: 1, star: 6, desc: 'Aus dem Sternchen-Laden' },
   regenbogen:  { name: 'Kleiner Regenbogen', icon: '🌈', lvl: 1, kind: 'deco', solid: 1, glow: 1, star: 8, desc: 'Aus dem Sternchen-Laden' },
+  // Inselleben 15 „Winterzauber“: Federball, Erinnerungsbaum, Koi-Teich, Kostümfest, Adventskalender
+  federballnetz: { name: 'Federballnetz',    icon: '🏸', buy: 600, lvl: 2, kind: 'deco', solid: 1, desc: 'Ballwechsel zu zweit – oder allein üben' },
+  erinnerungsbaum: { name: 'Erinnerungsbaum', icon: '🌳', lvl: 1, kind: 'deco', solid: 1, desc: 'Wächst mit jedem Tag – und mit euch' },
+  koifahne:    { name: 'Koi-Fahne',          icon: '🎏', lvl: 1, kind: 'deco', solid: 1, desc: 'Für fünf Koi-Sorten' },
+  koistatue:   { name: 'Koi-Statue',         icon: '🐟', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.6, desc: 'Für alle zwölf Koi-Sorten' },
+  schnitzkuerbis_froh: { name: 'Fröhlicher Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, desc: 'Selbst geschnitzt' },
+  schnitzkuerbis_grusel: { name: 'Grusel-Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, desc: 'Selbst geschnitzt' },
+  schnitzkuerbis_herz: { name: 'Herz-Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, desc: 'Selbst geschnitzt' },
+  lebkuchenhaus: { name: 'Lebkuchenhaus',    icon: '🏠', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.8, desc: 'Aus dem 24. Türchen' },
 };
 // Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
 export const PROJECTS = {
@@ -732,7 +741,7 @@ export const FESTS = {
   angeln:    { sea: 'summer', d: 3, name: 'Angelturnier', icon: '🎣', contest: 'fish', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Fische fangen wie möglich.' },
   feuerwerk: { sea: 'summer', d: 6, name: 'Sommerfeuerwerk', icon: '🎆', desc: 'Ab 19 Uhr leuchtet ein Feuerwerk über der Insel – mit 🔭 in den Himmel schauen, am schönsten zu zweit!' },
   kaefer2:   { sea: 'autumn', d: 2, name: 'Krabbeltier-Turnier', icon: '🐞', contest: 'bug', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Insekten fangen wie möglich.' },
-  kuerbis:   { sea: 'autumn', d: 5, name: 'Kürbisfest', icon: '🎃', desc: 'Die Insel leuchtet orange! Besucht alle Nachbarn – jede und jeder hat Bonbons für euch.' },
+  kuerbis:   { sea: 'autumn', d: 5, name: 'Kürbisfest', icon: '🎃', desc: 'Die Insel leuchtet orange! Besucht alle Nachbarn – jede und jeder hat Bonbons für euch. Im Handy (🎃 Kostümfest) schnitzt ihr Kürbisse und tauscht Bonbons gegen Kostüme.' },
   angeln2:   { sea: 'winter', d: 3, name: 'Eisangel-Turnier', icon: '🎣', contest: 'fish', desc: 'Am Turnierstand auf dem Dorfplatz anmelden und in 3 Minuten so viele Fische fangen wie möglich.' },
   laternen:  { sea: 'autumn', d: 6, name: 'Laternenumzug', icon: '🏮', desc: 'Abends ab 18 Uhr: Laterne basteln (Werkbank) oder von Mira bekommen, auf dem Dorfplatz den Umzug beginnen – alle Nachbarn laufen singend hinter euch her.' },
   silvester: { sea: 'winter', d: 7, name: 'Silvesternacht', icon: '🎆', desc: 'Im Handy eigene Raketen gestalten, ab 22 Uhr auf dem Dorfplatz den Countdown starten – das letzte Feuerwerk des Jahres!' },

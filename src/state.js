@@ -23,6 +23,7 @@ import * as E11 from './extras11.js';
 import * as E12 from './extras12.js';
 import * as E13 from './extras13.js';
 import * as E14 from './extras14.js';
+import * as E15 from './extras15.js';
 import { groupOf, GROUP_IDS } from './groups.js';
 import { decoTrees, DECO_LABEL, areaTreeBlock } from './decotrees.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf, areaBlock, SPOT_NAME } from './areas.js';
@@ -1036,7 +1037,8 @@ const ACTIONS = {
     let pool = FISH.filter(f => (!f[5] || f[5].includes(sea)) && X.wxOk(s, f[8]) && (f[6] === where || (where === 'pond' && f[6] === 'river' && f[0] === 'barsch')));
     if (Number.isInteger(a.size)) { const sized = pool.filter(f => f[7] === a.size && (f[4][l] || 0) > 0); if (sized.length) pool = sized; } // Schattengröße verrät den Fisch
     const gold = s.inv.goldangel > 0 || (s.inv.regenwurm > 0 && takeInv(s, 'regenwurm', 1)); // Goldangel oder Regenwurm: seltene Fische beißen öfter
-    const f = weighted(pool, f => (f[4][l] || 0) * (gold && f[3] >= 1000 ? 1.8 : 1) * (f[8] ? 2 : 1)), id = f[0];
+    const lk = E15.lucky(s, 'fish') ? 1.7 : 1; // Tagesglück aus dem Glückskeks
+    const f = weighted(pool, f => (f[4][l] || 0) * (gold && f[3] >= 1000 ? 1.8 : 1) * (f[3] >= 1000 ? lk : 1) * (f[8] ? 2 : 1)), id = f[0];
     addInv(s, id, 1);
     collect(s, id, out);
     s.stats.fish++;
@@ -1055,7 +1057,8 @@ const ACTIONS = {
     const pool = [...BUGS.filter(b => b[5] !== 'tropic' && b[5] !== 'garden' && b[5] !== 'moor' && b[4].includes(sea) && X.wxOk(s, b[7], night) && (b[5] === 'any' || (b[5] === 'night') === night)), ...garden];
     if (!pool.length) { out.msg = 'Gerade sind keine Insekten unterwegs.'; return false; }
     const saph = s.inv.saphirkescher > 0; // Saphirkescher: seltene Krabbeltiere öfter
-    const [id, , icon] = weighted(pool, b => b[6] * (saph && b[3] >= 1000 ? 1.8 : 1) * (b[7] ? 2 : 1) * (b[5] === 'garden' ? 3 : 1));
+    const lk = E15.lucky(s, 'bug') ? 1.7 : 1; // Tagesglück aus dem Glückskeks
+    const [id, , icon] = weighted(pool, b => b[6] * (saph && b[3] >= 1000 ? 1.8 : 1) * (b[3] >= 1000 ? lk : 1) * (b[7] ? 2 : 1) * (b[5] === 'garden' ? 3 : 1));
     addInv(s, id, 1);
     collect(s, id, out);
     s.stats.bugs = (s.stats.bugs || 0) + 1;
@@ -1300,8 +1303,9 @@ const ACTIONS = {
     const f = s.fest;
     if (f?.k === 'kuerbis' && f.day === s.day && !f.candy.includes(a.id)) {
       f.candy.push(a.id);
-      addInv(s, 'bonbon', 2);
-      out.msg = `🍬 ${NPC_DATA[a.id].name} schenkt euch 2 Bonbons! (${f.candy.length} von ${NPC_IDS.length} Nachbarn)`;
+      const nb = 2 + E15.candyBonus(s); // Kostümfest: wer schon einen Kürbis geschnitzt hat, bekommt eins mehr
+      addInv(s, 'bonbon', nb);
+      out.msg = `🍬 ${NPC_DATA[a.id].name} schenkt euch ${nb} Bonbons! (${f.candy.length} von ${NPC_IDS.length} Nachbarn)`;
       out.snd = 'love';
       if (f.candy.length >= NPC_IDS.length && !f.done) {
         f.done = 1; addInv(s, 'kuerbislaterne', 1);
@@ -1856,7 +1860,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS, E12.E12_ACTIONS, E13.E13_ACTIONS, E14.E14_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS, E12.E12_ACTIONS, E13.E13_ACTIONS, E14.E14_ACTIONS, E15.E15_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1913,7 +1917,7 @@ function resolveHome(s, me, sel, at) {
     if (E6.FURN_UI6[h.o.k]) return { ...base, ui: E6.FURN_UI6[h.o.k][0], uid: { x: h.x, z: h.z, room: R.id || null }, label: E6.FURN_UI6[h.o.k][1], tiles };
     if (V.FURN_GO5[h.o.k] && !R.id) return { ...base, go: V.FURN_GO5[h.o.k][0], label: V.FURN_GO5[h.o.k][1], tiles };
     if (W4.FURN_UI[h.o.k]) return { ...base, ui: W4.FURN_UI[h.o.k][0], label: W4.FURN_UI[h.o.k][1], tiles };
-    const r10 = E10.resolveFurn10(s, h, R, base, tiles) || E11.resolveFurn11(s, h, R, base, tiles); // Schminktisch, Blumenbinde-Tisch, Mieze, Greifautomat, Dinnertisch
+    const r10 = E10.resolveFurn10(s, h, R, base, tiles) || E11.resolveFurn11(s, h, R, base, tiles) || E15.resolveFurn15(s, h, R, base, tiles); // Schminktisch, Blumenbinde-Tisch, Mieze, Greifautomat, Dinnertisch
     if (r10) return r10;
     return { ...base, label: `${f.icon} ${f.name}`, tiles };
   }
@@ -1979,6 +1983,8 @@ export function resolveBuild(s, b, x, z) {
 export function resolve(s, me, sel, at) {
   const r14 = E14.resolve14(s, me, sel, at); // Hase, Schneemänner, Liebesschlösser, Salon
   if (r14) return r14;
+  const r15 = E15.resolve15(s, me, sel, at); // Federballnetz, Erinnerungsbaum, Koi-Teich
+  if (r15) return r15;
   const r = resolveBase(s, me, sel, at);
   if (r && !r.a && !r.ui && !r.go && !r.label && !r.net && !r.petals && !r.sit) return resolveDeco(s, me, sel, at) || r;
   return r;

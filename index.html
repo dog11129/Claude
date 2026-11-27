@@ -718,6 +718,51 @@ body.pbg-weiss #panel:not(.phone) .card { background: #fff; }
 .sub14{display:block;opacity:.7;margin:-4px 0 6px}
 .apps{grid-template-columns:repeat(3,minmax(0,1fr))}
 .apps small{white-space:nowrap}
+/* Inselleben 15 „Winterzauber“ */
+.adv15{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:10px;border-radius:18px;background:linear-gradient(160deg,#2f6a4a,#245238);margin:8px 0}
+.adv15 button{aspect-ratio:1;border-radius:12px;border:2px dashed rgba(255,255,255,.55);background:#c8343f;color:#fff;font:inherit;font-weight:800;font-size:17px;cursor:pointer;padding:0;display:grid;place-items:center;min-width:0}
+.adv15 button:nth-child(3n){background:#f2c84b;color:#5a4410}.adv15 button:nth-child(4n+1){background:#fff3e0;color:#8a3b3b}
+.adv15 button.shut{opacity:.55;cursor:default}
+.adv15 button.can{border-style:solid;border-color:#fff7c9;box-shadow:0 0 0 3px rgba(255,240,160,.55),0 0 14px rgba(255,240,160,.9);animation:adv15 1.4s ease-in-out infinite}
+.adv15 button.got{background:#f7efe2;border:2px solid #e3d3b4;color:inherit;cursor:default}.adv15 button.got span{font-size:22px}
+.adv15 button.big b{font-size:21px}.adv15 button.new{animation:pop15 .5s}
+@keyframes adv15{50%{transform:scale(1.07)}}@keyframes pop15{0%{transform:scale(.4) rotate(-20deg)}70%{transform:scale(1.15)}}
+.cookie15{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px 14px;text-align:center}
+.ck15{font-size:74px;line-height:1.1;background:none;border:0;cursor:pointer;filter:drop-shadow(0 6px 0 rgba(120,90,50,.18))}
+button.ck15{animation:adv15 1.6s ease-in-out infinite}.ck15.open{transform:rotate(-12deg);opacity:.85;font-size:54px}
+.slip15{background:#fffdf6;border:2px solid #eadfc8;border-radius:6px;padding:12px 16px;font-weight:700;font-style:italic;max-width:340px;box-shadow:0 3px 0 rgba(120,90,50,.15);position:relative}
+.slip15::before,.slip15::after{content:'';position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:var(--panel,#fff6e6);transform:translateY(-50%)}.slip15::before{left:-6px}.slip15::after{right:-6px}
+.koi15{display:inline-block;width:34px;height:20px;border-radius:60% 40% 40% 60%/50%;background:radial-gradient(circle at 62% 45%,var(--b) 0 22%,transparent 24%),radial-gradient(circle at 30% 60%,var(--b) 0 14%,transparent 16%),var(--a);border:2px solid rgba(120,90,50,.25);position:relative}
+.koi15::after{content:'';position:absolute;right:-9px;top:3px;border:7px solid transparent;border-left-color:var(--a);border-right:0;transform:rotate(180deg)}
+.pz15{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;padding:6px;background:#a87449;border-radius:12px;max-width:420px;margin:8px auto}
+.pz15 i,.pz15 button{aspect-ratio:1;display:block;border-radius:3px;min-width:0}
+.pz15 i,.pzp15{background-image:var(--pz15);background-size:600% 400%;background-color:#ddd}
+.pz15 button{background:#f7efe2;border:1px dashed #cdb894;cursor:pointer;padding:0}.pz15 button:not([disabled]):hover{background:#ffe9a8}
+.pznext15{display:flex;gap:12px;align-items:center;margin:8px 0}.pznext15 small{display:block;opacity:.75}
+.pzp15{width:76px;height:76px;flex:none;border-radius:8px;border:3px solid #fff;box-shadow:0 3px 0 rgba(120,90,50,.25);display:block;transform:rotate(-5deg)}
+.rcount15{text-align:center;margin:4px 0}.rcount15 b{font-size:54px;line-height:1;display:block}.rcount15 small{opacity:.7}
+.rbar15{position:relative;height:30px;border-radius:15px;background:#e9e2d2;margin:10px 4px;overflow:hidden;border:2px solid #d8ccb0}.rbar15.off{opacity:.4}
+.rbar15 b{position:absolute;top:0;bottom:0;background:#8fd694;left:55%;width:25%}
+.rbar15 i{position:absolute;top:-2px;bottom:-2px;width:8px;margin-left:-4px;border-radius:4px;background:#e8445e;left:0;box-shadow:0 0 0 2px #fff}
+.rhit15{font-size:20px;padding:14px 34px}
+.marks15{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;margin:6px 0 10px}
+.marks15 span{display:flex;flex-direction:column;align-items:center;text-align:center;font-size:24px;padding:6px 4px;border-radius:12px;background:#f1ebdd;opacity:.4;filter:grayscale(1)}
+.marks15 span.on{opacity:1;filter:none;background:#fff3c9}.marks15 small{font-size:10.5px;line-height:1.15;margin-top:2px}
+.polas15{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0}
+.pola15{background:#fffdf6;border:2px solid #eadfc8;border-radius:6px;padding:6px 6px 8px;display:flex;flex-direction:column;gap:5px;align-items:center;box-shadow:0 3px 0 rgba(120,90,50,.15);min-width:0}
+.pola15:nth-child(odd){transform:rotate(-1.5deg)}.pola15:nth-child(even){transform:rotate(1.2deg)}
+.pimg15{width:100%;aspect-ratio:104/86;background:#d8dde4;border-radius:2px;display:grid;place-items:center;overflow:hidden}.pimg15 img{width:100%;height:100%;object-fit:cover;display:block}.pimg15 span{opacity:.5;font-size:12px}
+.pola15 input{width:100%;min-width:0;font:inherit;font-size:12px;padding:3px 5px;border:1px solid #eadfc8;border-radius:6px;text-align:center;background:#fff}
+.gem15{display:inline-block;width:26px;height:26px;border-radius:50% 50% 50% 50%/40% 40% 60% 60%;border:3px solid #fff;box-shadow:0 2px 0 rgba(120,90,50,.25),inset -4px -4px 0 rgba(0,0,0,.12)}
+.mill15{position:relative;width:min(300px,78vw);aspect-ratio:1;margin:14px auto 18px;background:#f7e6c4;border-radius:14px;box-shadow:0 0 0 14px #f7e6c4,0 0 0 17px #d9b98a}
+.mill15 svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.mill15 button{position:absolute;width:13%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;border:2px solid #b98d5e;background:#f7e6c4;padding:0;cursor:pointer}
+.mill15 button[disabled]{cursor:default}.mill15 button.r{background:radial-gradient(circle at 35% 30%,#ff8f9a,#d9344a);border-color:#a82436}.mill15 button.y{background:radial-gradient(circle at 35% 30%,#fff0a8,#f2c23a);border-color:#b98a1a}
+.mill15 button.go{background:#c9f0c0;border-style:dashed}.mill15 button.sel{box-shadow:0 0 0 4px #6cc4ff}.mill15 button.last{box-shadow:0 0 0 3px rgba(255,255,255,.9)}.mill15 button.take{box-shadow:0 0 0 4px #e8445e;animation:adv15 1s infinite}
+.dice15{display:flex;justify-content:center;gap:8px;margin:10px 0}
+.dice15 button{font-size:44px;line-height:1;width:58px;height:58px;border-radius:14px;border:3px solid #eadfc8;background:#fffdf6;cursor:pointer;padding:0;color:#4a3a3a}
+.dice15 button.hold{border-color:#6cc4ff;background:#e3f4ff;transform:translateY(4px)}.dice15 button[disabled]{cursor:default}
+@media(max-width:420px){.dice15 button{width:50px;height:50px;font-size:38px}.polas15{grid-template-columns:repeat(2,minmax(0,1fr))}.adv15{gap:5px;padding:8px}.adv15 button{font-size:15px}}
 </style>
 </head>
 <body>

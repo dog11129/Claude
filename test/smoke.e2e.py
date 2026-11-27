@@ -28,7 +28,9 @@ INIT = ("localStorage.setItem('kh.settings', JSON.stringify({quality:'low',sound
 # Fenster, die nur mit Zusammenhang (Gesprächspartner, Ort …) sinnvoll sind, werden über ihren echten Weg getestet
 PANELS = ['oskar', 'hilde', 'grubi', 'wedding', 'duel', 'dreamshop', 'moorsteg', 'bambusgate', 'teahouse', 'parade', 'fireworks', 'fwedit', 'gym', 'housing', 'market', 'calendar', 'review', 'fair', 'fairinfo', 'resto', 'tank', 'pirate', 'loom', 'picnic', 'band', 'nature6', 'xbuild', 'compost', 'pottery', 'florist', 'pony', 'petschool', 'olympia', 'hunt', 'cinema', 'theater', 'train', 'lighthouse', 'penpal', 'party', 'nature', 'stamps', 'capsule', 'golf', 'dancegame', 'cafe', 'library', 'radio', 'guestbook', 'fashion', 'gardenc', 'depthdoor', 'guide', 'balloon', 'grill', 'butterfly', 'games', 'stars', 'cable', 'reef', 'piano', 'patterns', 'night', 'stall', 'news', 'book', 'catalog',
           'chest', 'mayor', 'boat', 'tailor', 'garden', 'club', 'hut', 'phone', 'map', 'turnip', 'designer', 'recipes', 'shop', 'sell', 'orders', 'museum',
-          'friends', 'emotes', 'settings', 'craft', 'cook', 'together', 'mail', 'contest', 'diary', 'fests']
+          'friends', 'emotes', 'settings', 'craft', 'cook', 'together', 'mail', 'contest', 'diary', 'fests',
+          'plus13', 'lock14', 'pet14', 'scat14', 'deliv14', 'salon14', 'ext14', 'outfits14',
+          'advent15', 'cookie15', 'koi15', 'puzzle15', 'rally15', 'kostuem15', 'tree15', 'pola15']
 PLACES = ['street', 'island', 'tropic', 'pier', 'wald', 'island', 'wiese', 'island', 'hoehle', 'island', 'reef', 'reefup', 'wreck', 'wreckup', 'hoehle', 'depth:0', 'depth:1', 'depth:2', 'depthup:2', 'depthup:1', 'depthup:0', 'island', 'volcano', 'pier', 'grotto', 'grottoup', 'nroom:mira', 'xroom:attic', 'xroom:tree', 'deepsea', 'pier', 'street', 'fair', 'fairback', 'island', 'wiese', 'moor', 'moorback', 'island', 'wald', 'bambus', 'bambusback', 'island', 'dream', 'island']
 
 def chrome():

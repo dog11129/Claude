@@ -1,9 +1,9 @@
 // Charakter-Editor und Einstellungen (im Hauptmenü und im Spiel genutzt).
 import * as THREE from '../vendor/three.module.min.js';
-import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, PREMIUM_TOPS, PREMIUM_HAIR, PREMIUM_HCOL, HAT_FROM } from './avatar.js';
+import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, PREMIUM_TOPS, PREMIUM_HAIR, PREMIUM_HCOL, HAT_FROM, JEWEL_KEYS } from './avatar.js';
 
 // Kleine 3D-Vorschaubilder für jede Option (eigener Mini-Renderer, Ergebnis wird zwischengespeichert)
-const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', blush: 'cheek', lips: 'mouth', lid: 'cheek', mark: 'cheek', top: 'body', pet: 'pet' };
+const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', blush: 'cheek', lips: 'mouth', lid: 'cheek', mark: 'cheek', top: 'body', pet: 'pet', neck: 'body', ear: 'head', wrist: 'body' };
 const CAM = { head: [[0, 1.32, 1.7], [0, 1.13, 0]], face: [[0, 1.08, 0.85], [0, 1.03, 0]], cheek: [[0, 1.0, 1.15], [0, 0.97, 0]], mouth: [[0, 0.95, 0.85], [0, 0.93, 0]], body: [[0, 0.85, 2.5], [0, 0.62, 0]], pet: [[0, 0.42, 1.0], [0, 0.2, 0]] };
 let tr = null, ts, tc;
 const thumbs = new Map();
@@ -44,19 +44,20 @@ const TABS = [
   ['outfit', '👕 Outfit', [['top', 'Oberteil'], ['topColor', 'Farbe Oberteil'], ['bottomColor', 'Hose / Rock'], ['shoes', 'Schuhe']]],
   ['extra', '🎩 Extras', [['hat', 'Kopfbedeckung'], ['glasses', 'Brille']]],
   ['makeup', '💄 Make-up', [['blush', 'Rouge'], ['lips', 'Lippen'], ['lid', 'Lidschatten'], ['mark', 'Wangen-Sticker'], ['nails', 'Nagellack']]],
+  ['schmuck', '💎 Schmuck', [['neck', 'Kette'], ['ear', 'Ohrringe'], ['wrist', 'Armband']]],
   ['pet', '🐾 Haustier', [['pet', 'Begleiter'], ['petColor', 'Fellfarbe']]],
 ];
 
 // Besondere Hüte sind erst nach dem Kauf (Schneiderei / Tauschhütte) wählbar
 let owned = new Set();
 export const setOwnedHats = list => { owned = new Set(list || []); };
-const lockedHat = (field, id) => (field === 'nails' ? id !== 'none' && !owned.has('nl_' + id) : field === 'hairColor' ? PREMIUM_HCOL.includes(id) && !owned.has('hc_' + id.slice(1))
+const lockedHat = (field, id) => (JEWEL_KEYS.includes(field) ? id !== 'none' && !owned.has('jw_' + id) : field === 'nails' ? id !== 'none' && !owned.has('nl_' + id) : field === 'hairColor' ? PREMIUM_HCOL.includes(id) && !owned.has('hc_' + id.slice(1))
   : ((field === 'hat' && PREMIUM_HATS.includes(id)) || (field === 'top' && PREMIUM_TOPS.includes(id)) || (field === 'hairStyle' && PREMIUM_HAIR.includes(id))) && !owned.has(id));
 function options(field, value, look) {
   const list = LOOKS[field];
   if (VIEW[field]) {
     return `<div class="thumbs">${list.map(([id, l]) => { const lock = lockedHat(field, id) && id !== value, src = thumb({ ...look, [field]: id }, VIEW[field]);
-      return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es ' + (HAT_FROM[id] || 'in der Schneiderei der Bummelgasse') + '" style="opacity:.45"' : ''}>${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${lock ? '🔒 ' : ''}${l}</small></button>`; }).join('')}</div>`;
+      return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es ' + (JEWEL_KEYS.includes(field) ? 'in der Goldschmiede (Salon in der Bummelgasse)' : HAT_FROM[id] || 'in der Schneiderei der Bummelgasse') + '" style="opacity:.45"' : ''}>${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${lock ? '🔒 ' : ''}${l}</small></button>`; }).join('')}</div>`;
   }
   if (typeof list[0] === 'string') {
     return `<div class="swatches">${list.map(c => { const lock = lockedHat(field, c) && c !== value; return `<button style="background:${c}${lock ? ';opacity:.35' : ''}" data-f="${field}" data-v="${c}" class="${c === value ? 'on' : ''}" aria-label="${c}"${lock ? ' disabled title="Gibt es im Salon der Bummelgasse"' : ''}>${lock ? '🔒' : ''}</button>`; }).join('')}</div>`;

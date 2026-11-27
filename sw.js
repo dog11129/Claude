@@ -1,6 +1,6 @@
 // Kuschelinsel als App: alles, was einmal geladen wurde, bleibt für offline im Speicher.
 // Immer zuerst aus dem Netz (damit Updates sofort da sind), ohne Netz aus dem Speicher.
-const CACHE = 'kuschelinsel-17';
+const CACHE = 'kuschelinsel-18';
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

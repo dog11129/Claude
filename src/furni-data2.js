@@ -148,6 +148,15 @@ const MORE14 = [
   ['kranz_herbst', 'Herbstkranz', '🍁', 0, 1, 'wand', 1, 1, { wall: true, rare: 'bind' }], ['kranz_winter', 'Winterkranz', '🎄', 0, 1, 'wand', 1, 1, { wall: true, rare: 'bind' }],
 ];
 for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of MORE14) RARE10[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, ...x };
+// Inselleben 15 „Winterzauber“: Puzzletisch und fertige Puzzlebilder, Adventskalender und seine Geschenke, Polaroids
+const MORE15 = [
+  ['puzzletisch', 'Puzzletisch', '🧩', 0, 1, 'tische', 1, 1, { rare: 'i15' }], ['adventskalender', 'Adventskalender', '🎄', 0, 1, 'wand', 1, 1, { wall: true, rare: 'i15' }],
+  ['nikolausstiefel', 'Nikolausstiefel', '👢', 0, 1, 'deko', 1, 1, { rare: 'advent' }], ['nussknacker', 'Nussknacker', '💂', 0, 1, 'deko', 1, 1, { rare: 'advent' }],
+  ['adventsstern', 'Leuchtstern', '⭐', 0, 1, 'wand', 1, 1, { wall: true, glow: true, rare: 'advent' }], ['weihnachtspyramide', 'Weihnachtspyramide', '🎄', 0, 1, 'deko', 1, 1, { glow: true, rare: 'advent' }],
+  ...['Abend auf der Insel', 'Leuchtturm am Morgen', 'Blumenwiese', 'Sternennacht', 'Winterhütte', 'Ballonfahrt zu zweit'].map((n, i) => ['puzzlebild' + (i + 1), 'Puzzle: ' + n, '🧩', 0, 1, 'wand', 1, 1, { wall: true, rare: 'puzzle' }]),
+  ...[1, 2, 3, 4, 5, 6].map(n => ['polaroid' + n, 'Polaroid ' + n, '🖼️', 0, 1, 'wand', 1, 1, { wall: true, rare: 'pola' }]),
+];
+for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of MORE15) RARE10[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, ...x };
 // 🕹️ Inselleben 11 „Für zwei“: Greifautomat mit Kuscheltieren, Dinnertisch für zwei, Jahrestags-Bild
 FURN2.greifautomat = { name: 'Greifautomat', icon: '🕹️', buy: 2800, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, glow: true };
 FURN2.dinnertisch = { name: 'Dinnertisch für zwei', icon: '🕯️', buy: 3200, lvl: 2, cat: 'tische', w: 2, d: 1, solid: true, glow: true };

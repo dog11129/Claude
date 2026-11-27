@@ -17,6 +17,7 @@ import { PANELS_10, TITLES_10, APPS_10, sig10 } from './ui-extra7.js';
 import { PANELS_11, TITLES_11, sig11 } from './ui-extra8.js';
 import { PANELS_13, TITLES_13, TABS_13, sig13, plusReady } from './ui-extra9.js';
 import { PANELS_14, TITLES_14, TABS_14, KIND_14, sig14, delivOpen } from './ui-extra10.js';
+import { PANELS_15, TITLES_15, TABS_15, KIND_15, sig15, apps15, games15, GAMES_15 } from './ui-extra11.js';
 import { FURN_SETS, SET_MIN, SET_BONUS } from './furni-data2.js';
 import { PIRATE_LVL } from './extras6.js';
 import { DEEPSEA_PRICE, DEEPSEA_LVL, ponyHappy } from './extras5.js';
@@ -326,7 +327,7 @@ const PANELS = {
     const canMuseum = MUSEUM_ALL.filter(id => !s.museum?.[id] && s.inv[id] > 0).length;
     const apps = [['map', '🗺️', 'Karte', '#7fd3a8'], ['shop', '🛍️', 'Bestellen', '#ffb36b'], ['sell', '🎒', 'Taschen', '#f7a8c4'], ['quests', '📜', 'Inselbuch', '#ffd66b', ready],
       ['album', '📖', 'Sammelbuch', '#9fd0ff'], ['museum', '🏛️', 'Museum', '#b8c8d8', canMuseum], ['recipes', '🔨', 'Rezepte', '#e3b47c'], ['turnip', '📈', 'Rübenkurs', '#c9b2ff', turnipSeller(s) ? '!' : 0],
-      ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['plus13', '⭐', 'Fleißkärtchen', '#ffe9a8', plusReady(s)], ['deliv14', '📦', 'Lieferdienst', '#ffe2b8', delivOpen(s)], ['scat14', '📖', 'Katalog', '#ffd9e3'], ['outfits14', '👗', 'Outfits', '#e9dcff'], ['ext14', '🏡', 'Fassade', '#d9ecff'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
+      ['build', '🔨', 'Bauen', '#f4a582'], ['designer', '🧱', 'Wege', '#e8b896'], ['friends', '👥', 'Freunde', '#a8e2cf'], ['plus13', '⭐', 'Fleißkärtchen', '#ffe9a8', plusReady(s)], ...apps15(s, g), ['deliv14', '📦', 'Lieferdienst', '#ffe2b8', delivOpen(s)], ['scat14', '📖', 'Katalog', '#ffd9e3'], ['outfits14', '👗', 'Outfits', '#e9dcff'], ['ext14', '🏡', 'Fassade', '#d9ecff'], ['goals', '🏆', 'Erfolge', '#ffe08a'], ['emotes', '😊', 'Gefühle', '#ffc8dc'],
       ['camera', '📷', 'Kamera', '#c4ccd4'], ['sky', '🔭', 'Himmel', '#7f8fd8'], ['diary', '📔', 'Tagebuch', '#ffb7c8'], ['fests', '🎉', 'Feste', '#ffd09a', festOf(s.day) || birthdayOf(s.day) ? '!' : 0],
       ['news', '📰', 'Zeitung', '#f2e6c9', s.paper?.day === s.day && g.readPaper !== s.day ? '1' : 0], ['book', '📸', 'Fotobuch', '#ffcfb8'], ['patterns', '🎨', 'Muster', '#e9c6ff'], ['piano', '🎹', 'Melodie', '#c9e4ff'], ['stars', '✨', 'Sternbilder', '#8f9ee8'], ['guide', '📘', 'Inselführer', '#9fd8c8', guideList(s).filter(x => !x.done).length > 25 ? '!' : 0], ['catalog', '📦', 'Katalog', '#cfe3c4'], ['settings', '⚙️', 'Optionen', '#d8cfc2'], ...APPS_W, ...APPS_V, ...APPS_6, ...APPS_7, ...APPS_8, ...APPS_10];
     const hour = 6 + s.dayTime * 18, hh = Math.floor(hour), mm = Math.floor((hour % 1) * 60);
@@ -529,12 +530,13 @@ const PANELS = {
       let h = G2?.win != null ? `<div class="note">🏆 ${G2.win === 'draw' ? 'Unentschieden!' : `${esc(G2.p[G2.win].name)} hat gewonnen!`}</div>` : '';
       h += '<div class="note">🎲 Wer spielt mit? Nachbarn sagen nie nein – und Mitspieler müssen auch an den Spieltisch kommen.</div>';
       const others = Object.values(g.players).filter(p => p.key && p.key !== me);
-      for (const [k, name] of [['c4', '🔴 Vier gewinnt'], ['mem', '🃏 Memory']]) {
+      for (const [k, name] of [['c4', '🔴 Vier gewinnt'], ['mem', '🃏 Memory'], ...GAMES_15]) {
         h += `<h3>${name}</h3><div class="pattools">${NPC_IDS.map(id => btn(`${NPCS[id].icon} ${NPCS[id].name}`, { ui: 'gamestart', k, vs: 'npc:' + id }, 'white')).join('')}${others.map(p => btn(`👤 ${esc(p.name)}`, { ui: 'gamestart', k, vs: p.key, vsName: p.name }, 'pink')).join('')}</div>`;
       }
       return h;
     }
     const cur = G2.p[G2.turn], mine = cur.who === me, inGame = G2.p.some(p => p.who === me);
+    if (G2.k === 'muehle' || G2.k === 'dice') return games15(G2, g, mine) + (inGame ? `<div class="pattools">${btn('🏳️ Aufhören', { t: 'game', op: 'quit' }, 'white')}</div>` : '');
     let h = `<div class="note">${G2.k === 'c4' ? '🔴 Vier gewinnt' : '🃏 Memory'}: ${G2.p.map((p, i) => `${G2.k === 'c4' ? (i ? '🟡' : '🔴') : ''} ${esc(p.name)}${G2.k === 'mem' ? ` (${G2.score[i]})` : ''}`).join(' gegen ')}<br><b>${mine ? 'Du bist dran!' : `${esc(cur.name)} ist dran …`}</b></div>`;
     if (G2.k === 'c4') {
       h += '<div class="c4">';
@@ -694,11 +696,12 @@ const PANELS = {
       <button class="big pink" data-ui="leave"><span class="i">🏠</span><span>Zurück zum Hauptmenü<small>Die Insel wird gespeichert</small></span></button>`;
   },
 };
-Object.assign(PANELS, PANELS_W, PANELS_V, PANELS_6, PANELS_7, PANELS_8, PANELS_9, PANELS_10, PANELS_11, PANELS_13, PANELS_14); // Inselleben 4–7 (ui-extra.js … ui-extra4.js)
+Object.assign(PANELS, PANELS_W, PANELS_V, PANELS_6, PANELS_7, PANELS_8, PANELS_9, PANELS_10, PANELS_11, PANELS_13, PANELS_14, PANELS_15); // Inselleben 4–7 (ui-extra.js … ui-extra4.js)
 Object.assign(TITLES, TITLES_W, TITLES_V, TITLES_6, TITLES_7, TITLES_8, TITLES_9, TITLES_10, TITLES_11, TITLES_13);
-Object.assign(TABS, TABS_13, TABS_14);
-Object.assign(TITLES, TITLES_14);
+Object.assign(TABS, TABS_13, TABS_14, TABS_15);
+Object.assign(TITLES, TITLES_14, TITLES_15);
 for (const [k, list] of Object.entries(KIND_14)) for (const n of list) PANEL_KIND[n] = k;
+for (const [k, list] of Object.entries(KIND_15)) for (const n of list) PANEL_KIND[n] = k;
 Object.assign(TABS, TABS_W);
 
 // ---------- Bürgermeister-Update: Rathaus, Baustelle, Bummelgasse, Tropeninsel ----------
@@ -867,6 +870,7 @@ function recipes(s, st) {
 }
 
 export class Panels {
+  has(name) { return !!PANELS[name]; } // gibt es so ein Fenster? (Handy-Apps ohne eigene Zuordnung)
   constructor(cb) {
     this.cb = cb;
     this.open = null;
@@ -913,7 +917,7 @@ export class Panels {
     const now = performance.now(); // höchstens 5× pro Sekunde prüfen (sig = null erzwingt sofort)
     if (this.sig && now - (this.checked || 0) < 200) return;
     this.checked = now;
-    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.birds?.n, s.tidebook, s.stamps, s.capsules, g.capSel, s.golf, s.dance, s.cafe, s.library, s.radio, s.guestbook?.length, g.gbPx, g.gbSt, s.fashion, s.gardenc, s.giant, s.xrooms && Object.keys(s.xrooms), s.compost, s.kiln?.length, g.pot, s.florist, s.pony, s.petschool, s.olymp, s.hunts, g.huntItem, s.cinema, s.theater, s.lighthouse, s.penpal?.out?.length, g.ppItem, s.party, g.partyGuests, s.fair, s.resto, s.pirate, s.honeys, s.wild, s.hybrids, s.picnic, s.band, g.woolCol, g.uiAt, this.open === 'tank' ? [s.home.items, s.xrooms] : 0, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0, sig7(s, g, this.open), sig8(s, g, this.open), sig9(s, g, this.open), sig10(s, g, this.open), sig11(s, g, this.open), sig13(s, g, this.open), sig14(s, g, this.open)]);
+    const sig = JSON.stringify([this.open, this.tab, s.money, s.inv, s.up, s.level, s.orders, s.museum, s.recipes, g.pathType, Object.keys(s.paths || {}).length, s.turnip, this.open === 'phone' || this.open === 'turnip' ? Math.floor(s.dayTime * 36) : 0, Object.keys(g.players), g.code, g.settings, s.ach, s.album, s.mail.length, g.together, s.day, s.npc, s.home.wall, s.home.floor, s.quest, s.daily, s.mayor, s.loan, s.medals, s.wardrobe, s.songs, s.concert, s.tour && [s.tour.k, s.tour.targets.filter(t => t.got).length, Math.ceil(s.tour.end - s.time)], s.diary?.length, s.cook, s.night, s.stall, s.patterns, s.flagPat, s.pathPat, s.melody, g.visitor, s.residents, s.camper, s.pending, g.melEdit?.join(), g.patEdit && [g.patEdit.i, g.patEdit.c, g.patEdit.tool], s.paper?.day, s.week, s.book?.length, s.anniv, Object.keys(s.catalog || {}).length, s.reef, s.castles, s.beach, g.reefSlot, g.castleK, s.tales, s.game, g.lock, g.cst && [g.cst.sec, Object.keys(s.consts || {}).length], s.consts?.length, s.photoc && [s.photoc.week, Object.keys(s.photoc.entries || {}), s.photoc.last?.week], s.grill, s.skyg, s.wreck, s.depth, g.echo, s.birds?.n, s.tidebook, s.stamps, s.capsules, g.capSel, s.golf, s.dance, s.cafe, s.library, s.radio, s.guestbook?.length, g.gbPx, g.gbSt, s.fashion, s.gardenc, s.giant, s.xrooms && Object.keys(s.xrooms), s.compost, s.kiln?.length, g.pot, s.florist, s.pony, s.petschool, s.olymp, s.hunts, g.huntItem, s.cinema, s.theater, s.lighthouse, s.penpal?.out?.length, g.ppItem, s.party, g.partyGuests, s.fair, s.resto, s.pirate, s.honeys, s.wild, s.hybrids, s.picnic, s.band, g.woolCol, g.uiAt, this.open === 'tank' ? [s.home.items, s.xrooms] : 0, s.areas, s.obj && Object.values(s.obj).filter(o => PLACE[o?.k]?.farm).map(o => [o.fed, o.pet, o.h]), s.contest && [Object.keys(s.contest.runs), s.contest.res.length, this.open === 'contest' ? Math.ceil(s.time / 5) : 0], siteOf(s)?.[1].paid, ['tailor', 'garden', 'club', 'hut'].includes(this.open) ? Math.floor(hourOf(s)) : 0, sig7(s, g, this.open), sig8(s, g, this.open), sig9(s, g, this.open), sig10(s, g, this.open), sig11(s, g, this.open), sig13(s, g, this.open), sig14(s, g, this.open), sig15(s, g, this.open)]);
     if (sig === this.sig) return;
     // Während man schreibt (Brief, Tagebuch), nicht neu zeichnen – sonst wäre der Text weg
     if (this.sig && this.open === this.sigOpen && [...$('pbody').querySelectorAll('input:not([type=range]):not([type=file]), textarea')].some(i => i.value || i === document.activeElement)) return;

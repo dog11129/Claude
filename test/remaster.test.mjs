@@ -24,7 +24,12 @@ const CODE_ONLY = new Set(['lattenzaun', 'rosenzaun', 'steinmauer', 'hecke', 'ei
   'eislaterne', 'geschenkestapel', 'zuckerstange', 'eisskulptur', 'bluetenlampe', 'pastellsessel', 'eierkorb', 'veilchenbild', 'fruehlingsteppich',
   'ventilator', 'muschelspiegel', 'limokrug', 'surfregal', 'hawaiilampe', 'kuerbislampe', 'strickhocker', 'apfelkiste', 'laubgirlande',
   'kastanienschale', 'winterdorf', 'kaminofen', 'kakaotablett', 'sternlichterkette', 'norwegerteppich', 'veilchenstrauss', 'irisstrauss', 'ranunkelstrauss',
-  'herbststrauss', 'kranz_fruehling', 'kranz_sommer', 'kranz_herbst', 'kranz_winter']);
+  'herbststrauss', 'kranz_fruehling', 'kranz_sommer', 'kranz_herbst', 'kranz_winter',
+  // Inselleben 15 „Winterzauber“: Federball, Erinnerungsbaum, Koi-Deko, Kürbisse, Advent, Puzzle, Polaroids, Kostüm-Hüte
+  'federballnetz', 'erinnerungsbaum', 'koifahne', 'koistatue', 'schnitzkuerbis_froh', 'schnitzkuerbis_grusel', 'schnitzkuerbis_herz', 'lebkuchenhaus',
+  'puzzletisch', 'adventskalender', 'nikolausstiefel', 'nussknacker', 'adventsstern', 'weihnachtspyramide',
+  'puzzlebild1', 'puzzlebild2', 'puzzlebild3', 'puzzlebild4', 'puzzlebild5', 'puzzlebild6', 'polaroid1', 'polaroid2', 'polaroid3', 'polaroid4', 'polaroid5', 'polaroid6',
+  'hexenhut', 'kuerbishut', 'geisterhaube', 'fledermausreif']);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));

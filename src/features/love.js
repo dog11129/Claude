@@ -1,6 +1,7 @@
 // Teil von extras10.js – Herzstücke: das Herzensbuch (gemeinsame Herzpunkte fürs Kuscheln, Küsschen, Blumen und
 // Süßes schenken, mit Belohnungen), der Blumenbinde-Tisch (Sträuße und Blütenschmuck aus euren Blumen) und Mieze,
 // die im Katzenkörbchen schläft und gestreichelt werden will.
+import { lucky } from './pure15.js';
 import { ITEMS, isFlower } from '../data.js';
 import { FURNITURE } from '../furni-data.js';
 import { note } from './util.js';
@@ -37,6 +38,7 @@ const blankLove = () => ({ pts: 0, day: 0, did: {}, gift: 0, got: 0 });
 // Punkte gutschreiben und erreichte Stufen belohnen (Post für euch beide, Hüte gleich in die Garderobe)
 export function addLove(s, n, out = {}) {
   const L = today(s);
+  if (lucky(s, 'love')) n = Math.ceil(n * 1.5); // Herzensglück (Glückskeks)
   L.pts += n;
   out.love10 = (out.love10 || 0) + n;
   while (L.got < LOVE_STEPS.length && L.pts >= LOVE_STEPS[L.got].at) {

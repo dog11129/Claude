@@ -46,6 +46,7 @@ import { placeable } from './nature.js';
 import { fencePiece, gateModel } from './plants.js';
 import { edgeMesh, edgeSet, PATH_PAINT_14, update14, houseExterior } from './world-extra11.js';
 import { terraY, HILL_H } from './extras14.js';
+import { update15, furnSig15, furnPic15 } from './world-extra12.js';
 import { building } from './buildings.js';
 import { Zones } from './zones.js';
 import { tickAssets, part, snow, model, hasModel, GLOW_VC, tex, flatGeometry } from './assets.js';
@@ -1186,7 +1187,7 @@ export class World {
   furnSync(s, store, h, z0) {
     const seen = new Set();
     for (const [map, tag] of [[h.items, 'i'], [h.rugs, 'r'], [h.walls || {}, 'w']]) for (const [k, o] of Object.entries(map)) {
-      const f = FURNITURE[o.k], px = f?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px + (o.c ? 'c' + o.c : '') + (o.a ? 'a' + o.a.join() : '');
+      const f = FURNITURE[o.k], px = f?.pattern ? s.patterns?.[o.p]?.px || '' : '', id = tag + k + o.k + o.r + px + (o.c ? 'c' + o.c : '') + (o.a ? 'a' + o.a.join() : '') + furnSig15(s, o.k);
       if (!f) continue;
       seen.add(id);
       if (store.has(id)) continue;
@@ -1203,6 +1204,7 @@ export class World {
         m.add(pic);
       }
       tintFurniture(m, o.c); // lackiert (Farbpinsel)
+      furnPic15(m, s, o.k); // Polaroid-Foto, fertiges Puzzlebild (world-extra12.js) – bleibt unlackiert
       const anim = decorFurniture(m, o, f); // Aquarium & Terrarium: Bewohner
       m.position.set(HOME_X + x + (fw - 1) / 2, f.rug ? 0.005 : 0, z0 + z + (fd - 1) / 2);
       m.rotation.y = o.r * Math.PI / 2;
@@ -2226,6 +2228,7 @@ export class World {
     this.updateSkyFx(s, info, rain);
     this.lastPlayers = players; this.lowFx = !this.Q?.shadows;
     update14(this, s, me, dt, info.night);
+    update15(this, s, me, dt, info.night);
     updateAmbient(this, s, info, dt, rain, indoors); // Wolkenschatten, Vogelschwarm, Spatzen, Möwen (world-extra9.js)
 
     // Schnee

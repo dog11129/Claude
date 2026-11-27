@@ -3,6 +3,7 @@
 import { PLACE } from '../data.js';
 import { onPath, onPlaza } from '../island.js';
 import * as S from '../state.js';
+import { koiNeedsWater } from './pure15.js';
 
 export const HILL_H = 0.55, TERRA_COST = { w: 30, h: 50 }, TERRA_MAX = 400;
 export const TERRA_NAME = { w: ['💧', 'Wasser graben'], h: ['⛰️', 'Hügel aufschütten'] };
@@ -28,6 +29,7 @@ export function terra14(s, a, out) {
   if (a.k === null) {
     if (!old) return false;
     if (s.obj[k]) { out.msg = 'Erst wegräumen, was hier steht.'; return false; }
+    if (old === 'w' && koiNeedsWater(s)) { out.msg = 'Dann wird es den Koi zu eng – erst einen Fisch abgeben oder den Teich woanders vergrößern.'; return false; }
     delete T[k];
     (out.fx ||= []).push({ x: a.x, z: a.z, t: '', k: 'dust' });
     out.snd = 'till';
@@ -35,6 +37,7 @@ export function terra14(s, a, out) {
   }
   if (!TERRA_COST[a.k] || old === a.k) return false;
   if (old ? !!s.obj[k] : !terraOk(s, a.x, a.z)) { out.msg = 'Hier lässt sich das Gelände nicht formen.'; return false; }
+  if (old === 'w' && koiNeedsWater(s)) { out.msg = 'Dann wird es den Koi zu eng – erst einen Fisch abgeben oder den Teich woanders vergrößern.'; return false; }
   if (!old && Object.keys(T).length >= TERRA_MAX) { out.msg = `Mehr als ${TERRA_MAX} Gelände-Kacheln gehen nicht.`; return false; }
   if (s.money < TERRA_COST[a.k]) { out.msg = 'Nicht genug Taler.'; return false; }
   s.money -= TERRA_COST[a.k];

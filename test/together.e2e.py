@@ -1,7 +1,7 @@
 # Zwei-Spieler-Test über den lokalen Nachbau des Verbindungsservers (cloud/dev-server.mjs).
 #   npm run together        (braucht Node, pip install playwright und Chrome wie beim Smoke-Test)
 # Host (PC) und Gast (Handy) spielen zusammen: Bewegung, Sandburg, Riff, Vier gewinnt, Sternbild, Foto-Wettbewerb,
-# Nachbarzimmer einrichten, Fahrrad & Drachen. Statt fester Wartezeiten wird auf das Ergebnis gewartet (bis 15 s),
+# Nachbarzimmer einrichten, Fahrrad & Drachen, Polaroid, Glückskeks, Advent, Federball und Mühle (Inselleben 15). Statt fester Wartezeiten wird auf das Ergebnis gewartet (bis 15 s),
 # und Chrome drosselt Hintergrund-Tabs nicht – so ist der Test auch auf langsamen Rechnern stabil.
 import asyncio, os, socket, subprocess, sys, json
 from playwright.async_api import async_playwright
@@ -157,6 +157,42 @@ async def main():
             await B.evaluate("window.__game.send({ t: 'dinner11', x: 0, z: 0, room: null, names: ['Schummel'] })")
             r = await until(A, f"(window.__game.G.s.love.pts >= {p0 + 3}) && (window.__game.G.s.diary || []).at(-1).text")
             ok(isinstance(r, str) and 'Mia' in r and 'Shawn' in r and 'Schummel' not in r, f'Dinner zu zweit: {r}')
+            # Inselleben 15: Polaroid (auch nach dem Vollabgleich noch da), Glückskeks, Adventstürchen, Federball zu zweit, Mühle
+            key = await A.evaluate(f"({mia}).key")
+            img = 'data:image/jpeg;base64,' + 'A' * 2000
+            await A.evaluate("img => window.__game.send({ t: 'pola15', op: 'set', slot: 3, img, cap: 'Wir zwei' })", img)
+            r = await until(B, "window.__game.G.s.pola?.img?.[3]?.length === 2023 && window.__game.G.s.pola.cap[3]")
+            ok(r == 'Wir zwei', f'Polaroid kommt beim Gast an ({r})')
+            await A.evaluate("import('/src/extras15.js').then(E => { E.setClock15(() => new Date(2026, 11, 2)); })")
+            await B.evaluate("import('/src/extras15.js').then(E => { E.setClock15(() => new Date(2026, 11, 2)); })")
+            await B.evaluate("window.__game.send({ t: 'cookie15' })")
+            r = await until(A, "!!window.__game.G.s.luck && Object.keys(window.__game.G.s.cookie.who).length === 1 && window.__game.G.s.luck.k")
+            ok(isinstance(r, str), f'Glückskeks vom Gast legt das Tagesglück fest ({r})')
+            await B.evaluate("window.__game.send({ t: 'advent15', d: 1 })")
+            r = await until(A, f"(() => {{ const s = window.__game.G.s, o = {mia}; return s.advent?.open?.[o.key]?.includes(1) && !(s.advent.open.host || []).includes(1) && (s.pinv[o.key].kakao || 0) }})()")
+            ok(r == 2, f'Adventstürchen: der Gast bekommt sein eigenes Geschenk ({r})')
+            await A.evaluate("([key]) => window.__game.send({ t: 'rally15', op: 'start', vs: key, vsName: 'Mia', name: 'Shawn' })", [key])
+            r = await until(B, "window.__game.G.s.rally?.on === 1 && window.__game.panels.open")
+            ok(r == 'rally15', f'Federball: Beim Gast geht das Fenster von selbst auf ({r})')
+            await A.evaluate("window.__game.send({ t: 'rally15', op: 'hit' })")
+            r = await until(B, "window.__game.G.s.rally.n === 1 && window.__game.G.s.rally.turn === 1 && !!window.__game.G.r15 && document.querySelector('.rhit15')?.disabled === false")
+            ok(r is True, 'Federball: Nach dem Schlag des Hosts ist der Gast dran')
+            await B.evaluate("(() => { const W = window.__game.G.r15; W.t = (W.z0 + W.zw / 2) * W.dur; document.querySelector('.rhit15').click(); })()")
+            r = await until(A, "window.__game.G.s.rally.n === 2 && window.__game.G.s.rally.turn === 0")
+            ok(r is True, 'Federball: Der Gast schlägt im Fenster zurück')
+            await A.evaluate("window.__game.send({ t: 'rally15', op: 'miss' })")
+            r = await until(B, "window.__game.G.s.rally.on === 0 && window.__game.G.s.rally.best")
+            ok(r == 2, f'Federball: Rekord zu zweit steht bei beiden ({r})')
+            await A.evaluate("([key]) => { const g = window.__game; g.send({ t: 'game', op: 'quit' }); g.send({ t: 'game', op: 'start', k: 'muehle', vs: key, vsName: 'Mia', name: 'Shawn' }); }", [key])
+            await until(B, "window.__game.G.s.game?.k === 'muehle'")
+            first = await A.evaluate("window.__game.G.s.game.turn")
+            await (A if first == 0 else B).evaluate("window.__game.send({ t: 'game', op: 'mplace', i: 4 })")
+            r = await until(B if first == 0 else A, f"window.__game.G.s.game.b[4] === {first} && window.__game.G.s.game.turn === {1 - first}")
+            ok(r is True, 'Mühle zu zweit: Der gesetzte Stein kommt drüben an')
+            await A.evaluate("window.__game.send({ t: 'game', op: 'quit' })")
+            await asyncio.sleep(17)  # länger als der Abstand zwischen zwei Vollabgleichen (15 s)
+            r = await B.evaluate("[window.__game.G.s.pola?.img?.[3]?.length, window.__game.G.sRaw?.pola?.img?.[3]?.length]")
+            ok(r == [2023, 2023], f'Polaroid bleibt beim Gast auch nach dem Vollabgleich ({r})')
             await b.close()
     finally:
         for pr in procs: pr.terminate()

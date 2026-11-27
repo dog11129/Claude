@@ -7,6 +7,7 @@ import * as S from './state.js';
 import * as X from './extras.js';
 import * as E from './extras14.js';
 import { outfits, outfitLabel, OUTFIT_SLOTS } from './client/fun10.js';
+import { jewelTab } from './ui-extra11.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const hero = (who, title, text) => `<div class="quest-hero"><div class="qh-top"><span class="qh-chap">${who}</span><b>${title}</b></div><p>${text}</p></div>`;
@@ -74,6 +75,7 @@ function deliv14(s) {
 }
 
 function salon14(s, g, tab) {
+  if (tab === 'jewel') return jewelTab(s, g); // Goldschmiede (Inselleben 15, ui-extra11.js)
   const W = s.wardrobe || {}, kind = ['hair', 'hcol', 'nails'].includes(tab) ? tab : 'hair', price = E.SALON_PRICE[kind];
   let h = hero('💇 Salon Schnipp & Glanz', { hair: 'Friseur', hcol: 'Haarfarben', nails: 'Nagelstudio' }[kind], 'Was ihr hier aussucht, tragt ihr sofort – und es bleibt für euch beide in der Garderobe (Aussehen ➜ Haare bzw. Make-up).');
   h += `<div class="pgrid">${E.SALON[kind].map(([id, name, col]) => { const own = W[E.salonKey(kind, id)];
@@ -102,7 +104,7 @@ function outfits14() {
 
 export const PANELS_14 = { lock14, pet14, snow14, scat14, deliv14, salon14, ext14, outfits14 };
 export const TITLES_14 = { lock14: '🔒 Liebesschlösser', pet14: '🐇 Unser Hase', snow14: '⛄ Schneemann', scat14: '📖 Saisonkatalog', deliv14: '📦 Lieferdienst', salon14: '💇 Salon', ext14: '🏡 Hausfassade', outfits14: '👗 Outfits' };
-export const TABS_14 = { salon14: [['hair', '💇 Friseur'], ['hcol', '🎨 Haarfarben'], ['nails', '💅 Nagelstudio']] };
+export const TABS_14 = { salon14: [['hair', '💇 Friseur'], ['hcol', '🎨 Haarfarben'], ['nails', '💅 Nagelstudio'], ['jewel', '💎 Goldschmiede']] };
 export const KIND_14 = { love: ['lock14', 'pet14', 'outfits14', 'salon14'], green: ['scat14'], blue: ['snow14', 'ext14'] };
 export const sig14 = (s, g, open) => (PANELS_14[open] ? [s.locks?.length, s.pet14, s.snowmen, s.deliv, s.wardrobe, s.home?.ext, s.scat, s.money, s.day, g.uiAt] : open === 'phone' ? [s.deliv?.list?.length] : 0);
 export const delivOpen = s => s.deliv?.list?.length || 0;
