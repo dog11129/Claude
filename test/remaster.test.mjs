@@ -16,7 +16,15 @@ const roots = j => j.scenes[j.scene || 0].nodes.map(i => j.nodes[i].name);
 // Modelle, die es (noch) nur im Code gibt. Inselleben 12 hat alles Bisherige in Blender nachgebaut; diese hier sind neu
 // (Inselleben 13 „Gartenzeit“: Zäune setzen sich im Spiel aus Pfosten und Armen zusammen, Tore haben einen beweglichen Flügel).
 const CODE_ONLY = new Set(['lattenzaun', 'rosenzaun', 'steinmauer', 'hecke', 'eisenzaun', 'seilzaun', 'gartentor', 'lattentor', 'trittsteine', 'pergola',
-  'feenlaterne', 'pilzhocker', 'pilztisch', 'wunschbrunnen', 'schmetterlingsstrauch', 'regenbogen']);
+  'feenlaterne', 'pilzhocker', 'pilztisch', 'wunschbrunnen', 'schmetterlingsstrauch', 'regenbogen',
+  // Inselleben 14 „Lieblingsplätze“: Stege, Treppen, Laternen, Kuschelplätze, Saisonkatalog, Sträuße & Kränze
+  'holzbruecke', 'steinbruecke', 'holztreppe', 'steintreppe', 'strassenlaterne', 'doppellaterne', 'wegleuchte', 'lampionpfahl', 'kuschelschaukel',
+  'doppelhaengematte', 'sternendecke', 'osternest', 'tulpenkiste', 'hasenfigur', 'bluetenbogen', 'maibaum', 'planschbecken', 'eistruhe',
+  'melonentisch', 'strandmuschel', 'limostand', 'kuerbisstapel', 'laubhaufen', 'heubank', 'kastanienmann', 'apfelkarren', 'iglu',
+  'eislaterne', 'geschenkestapel', 'zuckerstange', 'eisskulptur', 'bluetenlampe', 'pastellsessel', 'eierkorb', 'veilchenbild', 'fruehlingsteppich',
+  'ventilator', 'muschelspiegel', 'limokrug', 'surfregal', 'hawaiilampe', 'kuerbislampe', 'strickhocker', 'apfelkiste', 'laubgirlande',
+  'kastanienschale', 'winterdorf', 'kaminofen', 'kakaotablett', 'sternlichterkette', 'norwegerteppich', 'veilchenstrauss', 'irisstrauss', 'ranunkelstrauss',
+  'herbststrauss', 'kranz_fruehling', 'kranz_sommer', 'kranz_herbst', 'kranz_winter']);
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));

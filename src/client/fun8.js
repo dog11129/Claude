@@ -9,7 +9,7 @@ export const usable10 = r => !!r && !!r.makeup;
 
 export function execute10(r, fresh) {
   if (!r.makeup) return false;
-  if (fresh) { C.play('click'); C.openEditor('makeup'); }
+  if (fresh) { C.play('click'); if (String(r.label || '').includes('Spiegel')) C.showPanel('outfits14'); else C.openEditor('makeup'); } // Spiegel: Outfits, Schminken, Posieren
   return true;
 }
 

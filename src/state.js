@@ -22,6 +22,7 @@ import * as E10 from './extras10.js';
 import * as E11 from './extras11.js';
 import * as E12 from './extras12.js';
 import * as E13 from './extras13.js';
+import * as E14 from './extras14.js';
 import { groupOf, GROUP_IDS } from './groups.js';
 import { decoTrees, DECO_LABEL, areaTreeBlock } from './decotrees.js';
 import { AREAS, AREA_IDS, NODES, nodeAt, nodeToday, nodeUses, SOLID, MUSHROOMS, GEMS, inArea, areaExit, gateAt, areaOf, areaBlock, SPOT_NAME } from './areas.js';
@@ -337,8 +338,11 @@ export const inPond = pondAt;
 export const boxCap = s => Object.values(s.home?.items || {}).filter(o => o?.k === 'kiste').length * 40;
 export function canPlace(s, x, z) {
   const k = key(x, z);
-  return grass(x, z) && !gateAt(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !resAt(s, k) && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k] && !s.capsules?.some(c => c.k === k && !c.opened);
+  return grass(x, z) && !gateAt(x, z) && !buildingAt(x, z) && !s.tiles[k] && !s.obj[k] && !resAt(s, k) && !s.digs?.includes(k) && !s.weeds?.[k] && !s.shells?.[k] && !s.ground?.[k] && !s.capsules?.some(c => c.k === k && !c.opened)
+    && !(s.terra && s.terra[k] === 'w') && !s.snowmen?.[k] && !s.snowpiles?.includes(k); // eigenes Wasser, Schneemänner (Inselleben 14)
 }
+// Darf genau dieses Stück hierhin? (Brücken nur aufs eigene Wasser, auf Hügel nur Deko)
+export const canPlaceItem = (s, item, x, z) => (PLACE[item]?.bridge ? E14.placeOk14(s, item, x, z) : canPlace(s, x, z) && E14.placeOk14(s, item, x, z));
 
 // ---------- Zuhause (Innenraum liegt weit weg bei x = HOME_X, damit es eine eigene Welt ist) ----------
 export const HOME_X = 300;
@@ -473,6 +477,7 @@ export function blocked(s, x, z, swim) {
     if (f && ((tx === CONTEST_AT[0] && tz === CONTEST_AT[1] && FESTS[f].contest) || FEST_DECO[f]?.some(([, x, z]) => x === tx && z === tz))) return true;
     if (tx === X.NIGHT_AT[0] && tz === X.NIGHT_AT[1] && X.nightOpen(s)) return true;
   }
+  if (E14.waterBlocked(s, tx, tz) || E14.snowBlocked(s, tx, tz)) return true; // selbst gegrabenes Wasser (ohne Brücke), Schneemänner
   const o = s.obj[key(tx, tz)];
   return !!(o && PLACE[o.k].solid);
 }
@@ -786,7 +791,7 @@ export function balloonPos(b, t) {
   const dt = t - b.t0, x = b.x0 + b.dir * dt * 1.15;
   return { x, z: b.z + Math.sin(dt * 0.3) * 1.2, y: 3.3 + Math.sin(dt * 0.9) * 0.3 };
 }
-export const pavable = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !resAt(s, key(x, z)) && !s.tiles[key(x, z)] && !s.digs?.includes(key(x, z));
+export const pavable = (s, x, z) => walkable(x, z) && !onBridge(x, z) && !onPier(x, z) && !buildingAt(x, z) && !resAt(s, key(x, z)) && !s.tiles[key(x, z)] && !s.digs?.includes(key(x, z)) && !s.terra?.[key(x, z)];
 
 // Wo wird geangelt? Fluss, Teich oder Meer
 export const waterKind = (x, z) => pondAt(x, z) ? 'pond' : inRiver(x, z) && !onBridge(x, z) ? 'river' : 'sea';
@@ -819,6 +824,7 @@ export const SAPLING = { apfel: 'baum_apfel', kirsche: 'baum_kirsche', orange: '
 
 // ---------- Wünsche der Nachbarn ----------
 
+export const orderCandidatesX = s => orderCandidates(s);
 function orderCandidates(s) {
   const c = ['apfel', 'kirsche', 'orange', 'pfirsich', 'birne', 'holz', 'stein', 'herzmuschel'];
   for (const k of Object.keys(CROPS)) if (CROPS[k].lvl <= s.level) c.push(k);
@@ -913,7 +919,7 @@ const ACTIONS = {
     return true;
   },
   place(s, a, out) {
-    if (!has(PLACE, a.item) || !canPlace(s, a.x, a.z)) return false;
+    if (!has(PLACE, a.item) || !canPlaceItem(s, a.item, a.x, a.z)) return false;
     if (a.item === 'baustelle') {
       if (!PROJECTS[s.mayor.plan]) { out.msg = 'Sucht euch erst im Rathaus ein Projekt aus.'; return false; }
       if (!siteFree(s, a.x, a.z)) { out.msg = '🚩 Ein Inselprojekt braucht rundherum eine Kachel Platz.'; return false; }
@@ -1247,8 +1253,9 @@ const ACTIONS = {
     return true;
   },
   wish(s, a, out) { // Wunsch an eine Sternschnuppe
-    if (!s.starNight || 6 + s.dayTime * 18 < 19 || (s.wishes || 0) >= 20) return false;
+    if (!s.starNight || 6 + s.dayTime * 18 < 19 || (s.wishes || 0) >= (s.starShower ? 40 : 20)) return false;
     s.wishes = (s.wishes || 0) + 1;
+    E14.wished14(s); // wer hat sich heute etwas gewünscht? (Zwillingsstern)
     s.stats.wishes = (s.stats.wishes || 0) + 1;
     out.snd = 'love';
     return true;
@@ -1849,7 +1856,7 @@ Object.assign(ACTIONS, {
 let xMerged = false;
 export function act(s, a, who) {
   const out = { ok: false, fx: [], snd: null, msg: null };
-  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS, E12.E12_ACTIONS, E13.E13_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
+  if (!xMerged) { Object.assign(ACTIONS, X.X_ACTIONS, Y.Y_ACTIONS, Z.Z_ACTIONS, W4.W_ACTIONS, V.V_ACTIONS, E6.E6_ACTIONS, E7.E7_ACTIONS, E8.E8_ACTIONS, E9.E9_ACTIONS, E10.E10_ACTIONS, E11.E11_ACTIONS, E12.E12_ACTIONS, E13.E13_ACTIONS, E14.E14_ACTIONS); xMerged = true; } // Erweiterungen (extras.js) erst hier: Modul-Kreis
   if (!a || typeof a !== 'object' || !has(ACTIONS, a.t)) return out;
   if (who !== undefined && PKEY.test(who)) { // für die Dauer der Aktion: Tasche dieses Spielers
     const before = s._who;
@@ -1860,6 +1867,7 @@ export function act(s, a, who) {
   const needsTile = ['water', 'plant', 'harvest', 'place', 'pickup', 'use', 'pick', 'chop', 'uproot', 'replant', 'mine', 'shake', 'dig', 'bug', 'fish', 'hplace', 'hpick', 'pave', 'fund'].includes(a.t);
   if (needsTile && !(isInt(a.x) && isInt(a.z))) return out;
   if (a.t === 'water' && !isDir(a.dx, a.dz)) return out;
+  if (s.terra && ['plant', 'dig', 'pave'].includes(a.t) && s.terra[key(a.x, a.z)]) { out.msg = 'Auf Hügeln und im Wasser geht das nicht.'; return out; }
   if ((a.t === 'order' || a.t === 'mail') && !Number.isInteger(a.i)) return out;
   if (a.t === 'claim' && a.q !== 'story' && ![0, 1, 2].includes(a.q)) return out;
   out.ok = ACTIONS[a.t](s, a, out);
@@ -1948,6 +1956,7 @@ export function resolveBuild(s, b, x, z) {
     if (s.paths?.[k]) return { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one };
     return { label: 'Hier steht nichts', tiles: one, bad: true };
   }
+  if (b.mode === 'terra') return E14.resolveTerra(s, b.terra || 'w', x, z) || { label: 'Wähle unten Wasser, Hügel oder Einebnen', tiles: one, bad: true };
   if (b.mode === 'pave') {
     const type = b.path || 'erde';
     if (type === 'none' || s.paths?.[k] === type) return s.paths?.[k] ? { a: { t: 'pave', x, z, k: null }, label: '🧹 Weg entfernen', tiles: one } : { label: 'Hier ist kein Weg', tiles: one, bad: true };
@@ -1959,14 +1968,17 @@ export function resolveBuild(s, b, x, z) {
   const o = s.obj[k], q = o && PLACE[o.k], lift = q && q.kind !== 'project' && q.kind !== 'site' && !['baustelle', 'nachbarhaus'].includes(o.k) ? { a: { t: 'pickup', x, z }, pick: { id: o.k, r: o.r | 0 }, label: `✋ ${q.icon} ${q.name} aufheben`, tiles: one } : null;
   if (!p || !(s.inv[b.item] > 0)) return lift || { label: 'Wähle unten etwas zum Aufstellen', tiles: one, bad: true };
   const big = p.kind === 'project' || b.item === 'baustelle';
-  const ok = canPlace(s, x, z) && (!big || siteFree(s, x, z)) && (b.item !== 'baustelle' || PROJECTS[s.mayor.plan]);
+  const cp = canPlaceItem(s, b.item, x, z);
+  const ok = cp && (!big || siteFree(s, x, z)) && (b.item !== 'baustelle' || PROJECTS[s.mayor.plan]);
   if (!ok && lift) return lift;
-  const why = !canPlace(s, x, z) ? 'Hier ist kein Platz' : b.item === 'baustelle' && !PROJECTS[s.mayor.plan] ? 'Erst im Rathaus ein Projekt wählen' : 'Projekte brauchen rundherum Platz';
+  const why = !cp ? (p.bridge ? 'Brücken gehören aufs selbst gegrabene Wasser' : s.terra?.[k] === 'h' ? 'Auf dem Hügel steht nur Deko' : 'Hier ist kein Platz') : b.item === 'baustelle' && !PROJECTS[s.mayor.plan] ? 'Erst im Rathaus ein Projekt wählen' : 'Projekte brauchen rundherum Platz';
   return { ...(ok ? { a: { t: 'place', x, z, item: b.item, r: (((b.r | 0) % 4) + 4) % 4 }, label: `📍 ${p.icon} ${p.name} aufstellen` } : { label: why, bad: true }), tiles: big ? [-1, 0, 1].flatMap(i => [-1, 0, 1].map(j => [x + i, z + j])) : one };
 }
 
 // Was passiert vor der Figur? Ist am Ausflugsort sonst nichts da, kommen die Randbäume dran (schütteln, hacken).
 export function resolve(s, me, sel, at) {
+  const r14 = E14.resolve14(s, me, sel, at); // Hase, Schneemänner, Liebesschlösser, Salon
+  if (r14) return r14;
   const r = resolveBase(s, me, sel, at);
   if (r && !r.a && !r.ui && !r.go && !r.label && !r.net && !r.petals && !r.sit) return resolveDeco(s, me, sel, at) || r;
   return r;
@@ -2083,7 +2095,7 @@ function resolveBase(s, me, sel, at) {
     if (p.kind === 'project') return p.sit ? { sit: { x, z, r: o.r }, label: '🧺 Hinsetzen', tiles: one } : { label: `${p.icon} ${p.name}`, tiles: one };
     if (p.farm) return Y.farmResolve(s, o, x, z);
     if (p.kind === 'producer') return { a: { t: 'use', x, z }, label: `${ITEMS[p.item].icon} Pflücken`, tiles: one };
-    if (o.k === 'bank' || p.sit) return { sit: { x, z, r: o.r }, label: '🪑 Hinsetzen', tiles: one };
+    if (o.k === 'bank' || p.sit) return { sit: { x, z, r: o.r, two: p.cuddle ? 1 : 0, k: o.k }, label: p.cuddle ? '💞 Einkuscheln' : '🪑 Hinsetzen', tiles: one };
     if (o.k === 'kirschbaum') return { petals: { x, z }, label: '🌸 Schütteln', tiles: one };
     if (o.k === 'sternenrakete') return { a: { t: 'fwstart', x, z }, label: s.fw?.day === s.day ? '🎆 Heute Abend ist Feuerwerk!' : '🚀 Feuerwerk für heute Abend zünden', tiles: one };
     if (o.k === 'tauschstand') return { ui: 'stall', label: '🏪 Tauschstand', tiles: one };

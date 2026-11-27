@@ -7,6 +7,7 @@ import { MAT, GLOW, merge, box, cyl, cone } from './models.js';
 import { PLACE_X } from './models-extra.js';
 import { PLACE_12 } from './models-12.js';
 import { PLACE_13, fenceParts, gateFrame, gateLeaf } from './models-13.js';
+import { PLACE_14 } from './models-14.js';
 import { CROPS } from './data.js';
 
 const PI = Math.PI, H = PI / 2, TAU = PI * 2;
@@ -864,6 +865,7 @@ export function crop(k, st) {
 Object.assign(PLACE, PLACE_X); // Gewächshaus, Sprinkler, Sternenrakete, Fahne, Tauschstand … (models-extra.js)
 Object.assign(PLACE, PLACE_12); // Inselleben 12: Garten-Deko (models-12.js)
 Object.assign(PLACE, PLACE_13); // Inselleben 13: Zäune, Tore, Feengarten (models-13.js)
+Object.assign(PLACE, PLACE_14); // Inselleben 14: Stege, Treppen, Laternen, Kuschelplätze, Saisonkatalog (models-14.js)
 // Zaunstück passend zur Nachbarschaft (mask: 1 = Norden, 2 = Osten, 4 = Süden, 8 = Westen)
 export const fencePiece = (kind, mask) => make('fz' + kind + (mask & 15), () => fenceParts(kind, mask));
 // Tor: Rahmen und Flügel getrennt, der Flügel hängt an seiner Angel (userData.leaf dreht sich um y).

@@ -9,6 +9,7 @@ const E = await import('../src/extras10.js');
 const { ITEMS, RECIPES, SOCIAL } = await import('../src/data.js');
 const { FURNITURE, WALLS, FLOORS } = await import('../src/furni-data.js');
 const { FURN_2 } = await import('../src/models-furn2.js');
+const { FURN_14 } = await import('../src/models-14.js');
 const { merge } = await import('../src/models.js');
 const A = await import('../src/avatar.js');
 
@@ -154,7 +155,7 @@ test('Neue Möbel: Modell passt auf die Grundfläche, Icon da, Laden & Serie sti
   for (const id of NEW_FURN) {
     const f = FURNITURE[id];
     assert.ok(f && ITEMS[id]?.furn === id, id);
-    const r = FURN_2[id](), [p, gl] = Array.isArray(r[0]) ? r : [r, []];
+    const r = (FURN_2[id] || FURN_14[id])(), [p, gl] = Array.isArray(r[0]) ? r : [r, []]; // neue Sträuße & Kränze: models-14.js
     const g = merge([...p, ...gl]); g.computeBoundingBox();
     const b = g.boundingBox, w = f.w / 2 + 0.12, d = f.d / 2 + 0.12;
     assert.ok(b.min.x > -w && b.max.x < w, `${id}: Breite ${b.min.x.toFixed(2)}…${b.max.x.toFixed(2)}`);

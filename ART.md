@@ -91,3 +91,11 @@ Die neuen Stücke laufen fürs Erste als Code-Modelle (`src/models-13.js`, Ausna
 16 neuen Deko-Modelle samt Icons. Nach dem nächsten `remaster.py`-Lauf nimmt das Spiel die Blender-Fassungen von selbst
 (`world.js`, `syncObjects`); dann die 16 Namen aus `CODE_ONLY` streichen. Die Gebiete (`zone13_*`) kommen über
 `python3 tools/capture-world.py` + `PACKS = ['world']` dazu.
+
+## Inselleben 14: Lieblingsplätze (Blender-Lauf steht noch aus)
+
+Auch diese 59 Stücke laufen fürs Erste als Code-Modelle (`src/models-14.js`, in `CODE_ONLY`): Stege, Treppen, Laternen,
+Kuschelplätze, der Saisonkatalog (20 Deko, 20 Möbel), vier Sträuße und vier Kränze. `node tools/dump-models.mjs` nimmt sie
+schon in den Bauplan auf (samt Icons). Nicht im Bauplan, weil sie sich im Spiel zusammensetzen: Hase, Schneemann (je nach
+Kugeln und Schmuck), Liebesschlösser, Salon-Stand, Fassaden-Teile (Tür, Läden, Blumenkästen) und das Gelände (Hügel, Wasser).
+Die sechs Salon-Frisuren kommen über `node tools/dump-shapes.mjs` + `shapes.py` in `characters.glb`.

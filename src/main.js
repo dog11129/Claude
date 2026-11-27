@@ -33,6 +33,8 @@ import { initFun6, uiG, travel8, context8, execute8, updateG, busy8 } from './cl
 import { initFun7, execute9, update9, usable9 } from './client/fun7.js';
 import { initFun8, execute10, update10, usable10 } from './client/fun8.js';
 import { initFun9, uiH, update11 } from './client/fun9.js';
+import { initFun10, uiX, onRes14, sitSpot, tick14 } from './client/fun10.js';
+import * as E14 from './extras14.js';
 import { loveSocial } from './extras10.js';
 import { nhomeState, doorNote, nhomeNews } from './extras12.js';
 import { duelName } from './extras8.js';
@@ -88,8 +90,9 @@ initFun3({ get G() { return G; }, world, profile, get panels() { return panels; 
 initFun4({ get G() { return G; }, world, profile, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), freeAt: (x, z) => freeAt(x, z), interrupt: () => interrupt(), setBike: (on, q) => setBike(on, q) });
 initFun6({ get G() { return G; }, world, profile, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), fade: () => fade() });
 initFun7({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n) });
-initFun8({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), openEditor: tab => openEditor(tab) });
+initFun8({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), openEditor: tab => openEditor(tab), showPanel: k => panels.show(k) });
 initFun9({ get G() { return G; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), interrupt: () => interrupt() });
+initFun10({ get G() { return G; }, get profile() { return profile; }, world, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), saveProfile: () => saveProfile(), sendLook: () => sendLook(), reopen: k => { if (panels.open === k) panels.show(k); }, openEditor: tab => { panels.close(); openEditor(tab); }, closePanel: () => panels.close() });
 initFun5({ get G() { return G; }, world, touch, get panels() { return panels; }, send: a => send(a), toast: (t, k) => toast(t, k), play: n => play(n), travel: w => travel(w), interrupt: () => interrupt(), listPhotos: async () => [...await photos.list(isleKey(), 'photo'), ...await photos.list(isleKey(), 'moment')] });
 // Alle Grafik-, Kamera- und Anzeige-Einstellungen anwenden
 function applyView() {
@@ -420,7 +423,7 @@ function handleAct(id, a) {
     a = { ...a, to: to.key };
   }
   const who = G.players[id]?.key || 'host';
-  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle', 'cookin', 'stalladd', 'stallswap', 'fwstart', 'castle', 'kitescore', 'game', 'photoentry', 'sternbild', 'wed', 'surf'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
+  const out = S.act(G.s, a && ['fish', 'bug', 'contest', 'letter', 'diary', 'riddle', 'cookin', 'stalladd', 'stallswap', 'fwstart', 'castle', 'snow14', 'kitescore', 'game', 'photoentry', 'sternbild', 'wed', 'surf'].includes(a.t) ? { ...a, by: id, name: G.players[id]?.name } : a, who);
   S.bindInv(G.s, 'host');
   if (duelName(G.s, who, G.players[id]?.name)) G.dirty = true; // Duell der Woche: Namen merken
   if (out.gave) { // dem Empfänger Bescheid sagen
@@ -430,7 +433,7 @@ function handleAct(id, a) {
   }
   if (out.ok) { G.dirty = true; G.lastState = 0; }
   if (out.fx.length) { G.net?.broadcast({ t: 'fx', fx: out.fx }); showFx(out.fx); }
-  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes, taleSay: out.taleSay, taleReady: out.taleReady, ride: out.ride, duel: out.duel };
+  const res = { t: 'res', ok: out.ok, msg: out.msg, snd: out.snd, caught: out.caught, newAlbum: out.newAlbum, reaction: out.reaction, learned: out.learned, got: out.got, contest: out.contest, bday: out.bday, cookVotes: out.cookVotes, taleSay: out.taleSay, taleReady: out.taleReady, ride: out.ride, duel: out.duel, rate14: out.rate14, salon14: out.salon14 };
   if (id === G.me) onRes(res); else G.net?.send(id, res);
   if (out.levelUp) { G.net?.broadcast({ t: 'lvl', l: out.levelUp }); onLevel(out.levelUp); }
   if (out.ach) { G.net?.broadcast({ t: 'ach', ids: out.ach }); onAch(out.ach); }
@@ -632,6 +635,7 @@ function showFx(fx) {
   }
 }
 function onRes(r) {
+  onRes14(r); // Bewertung der Nachbarn, Salon
   if (r.reaction && G.talk) giftAnswer(r.reaction, r.bday);
   if (r.contest) { const me = G.players[G.me]; world.float(me.x, me.z, `🏆 ${r.contest}`, 2.2, { cls: 'big' }); bump('contestpill', 'pop'); }
   if (r.snd) play(r.snd);
@@ -1439,6 +1443,7 @@ const panels = new Panels({
     if (kind.startsWith('f:')) { uiF(kind.slice(2), d); return; } // Inselleben 7 (client/fun5.js)
     if (kind.startsWith('g:')) { uiG(kind.slice(2), d); return; } // Inselleben 8 (client/fun6.js)
     if (kind.startsWith('h:')) { uiH(kind.slice(2), d); return; } // Inselleben 11 (client/fun9.js)
+    if (kind.startsWith('x:')) { uiX(kind.slice(2), d); return; } // Inselleben 14 (client/fun10.js)
     if (kind === 'app') openApp(d.app);
     if (kind === 'phdel' && confirm('Foto löschen?')) { photos.del(+d.id).then(() => { const g = $('photogrid'); if (g) delete g.dataset.done; }); }
     if (kind === 'phsave') photos.get(+d.id).then(p => p && shareImage(p.url, `kuschelinsel-tag${p.day || ''}.jpg`));
@@ -1783,7 +1788,7 @@ function select(id, quiet) {
 // ---------- Baumodus ----------
 // Aufstellen, Einrichten, Wege legen und Abbauen geht nur hier: unten eine Leiste mit Kategorien und den Sachen aus der Tasche,
 // auf dem Feld eine Vorschau. Draußen auch Inselprojekte (die man jetzt wieder abbauen und versetzen kann).
-const OUT_CATS = [['deko', '🏮 Deko'], ['zaeune', '🚧 Zäune'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['haus', '🏠 Haus']]; // ✋ Aufheben: eigener Knopf oben (#bpick)
+const OUT_CATS = [['deko', '🏮 Deko'], ['zaeune', '🚧 Zäune'], ['garten', '🌳 Garten'], ['projekte', '🏗️ Projekte'], ['wege', '🧱 Wege'], ['gelaende', '⛰️ Gelände'], ['haus', '🏠 Haus']]; // ✋ Aufheben: eigener Knopf oben (#bpick)
 const IN_CATS = [['alle', '🏠 Alle'], ['sitzen', '🪑 Sitzen'], ['tische', '🍽️ Tische'], ['betten', '🛏️ Betten'], ['licht', '💡 Licht'], ['deko', '🧸 Deko'], ['pflanzen', '🪴 Pflanzen'], ['kueche', '🍳 Küche'], ['bad', '🛁 Bad'], ['teppiche', '🟫 Teppiche'], ['wand', '🖼️ Wand'], ['lackieren', '🖌️ Lackieren']];
 function buildList(b) {
   const inv = G.s.inv;
@@ -1844,7 +1849,7 @@ function liftFor(b, pick) {
 function setBuildCat(cat) {
   const b = G.build;
   b.cat = cat;
-  b.mode = cat === 'abbauen' ? 'remove' : cat === 'lackieren' ? 'paint' : cat === 'wege' ? 'pave' : cat === 'haus' ? 'house' : 'place';
+  b.mode = cat === 'abbauen' ? 'remove' : cat === 'lackieren' ? 'paint' : cat === 'wege' ? 'pave' : cat === 'gelaende' ? 'terra' : cat === 'haus' ? 'house' : 'place';
   b.pend = null;
   if (b.mode === 'place' && !buildList(b).includes(b.item)) b.item = null;
   G.buildSig = null;
@@ -1856,7 +1861,7 @@ function renderBuild() {
   if (b.want && list.includes(b.want)) { b.item = b.want; b.want = null; } // gerade aufgehoben: gleich wieder hinstellen
   if (b.mode === 'place' && !b.item && list.length) b.item = list[0];
   if (b.mode === 'place' && b.item && !list.includes(b.item)) b.item = list[0] || null;
-  const sig = JSON.stringify([b.cat, b.item, b.path, b.mode, list.map(id => [id, G.s.inv[id]])]);
+  const sig = JSON.stringify([b.cat, b.item, b.path, b.terra, b.mode, list.map(id => [id, G.s.inv[id]])]);
   $('bpick').classList.toggle('on', b.mode === 'remove');
   $('bpick').textContent = b.mode === 'remove' ? '✋ Aufheben an' : '✋ Aufheben';
   if (sig === G.buildSig) return;
@@ -1867,6 +1872,8 @@ function renderBuild() {
   if (b.mode === 'house') h = `<div class="bnote">🏠 <b>Haus umziehen:</b> Tippe auf einen freien Platz – dort erscheint euer Haus als Vorschau (mit Briefkasten). Ein Umzug kostet ${S.HOUSE_MOVE_PRICE.toLocaleString("de-DE")} Taler aus der Inselkasse, drinnen bleibt alles, wie es ist.</div>`;
   else if (b.mode === 'paint') h = `<div class="bnote">🖌️ ${G.s.inv.farbpinsel > 0 ? 'Tippe auf ein Möbelstück – jedes Antippen gibt ihm die nächste Farbe (8 Farben, die letzte ist wieder natur).' : 'Dafür braucht ihr einen <b>Farbpinsel</b> aus dem Krämerladen 🛒.'}</div>`;
   else if (b.mode === 'remove') h = `<div class="bnote">✋ <b>Aufheben:</b> Tippe auf etwas, um es einzupacken – so oft du willst. Nochmal „✋ Aufheben“ drücken zum Aufstellen. ${b.inside ? 'Möbel kommen in deine Tasche.' : 'Deko kommt in deine Tasche, Inselprojekte auch – so kannst du sie woanders neu aufstellen. Baustellen geben die Spenden zurück.'}</div>`;
+  else if (b.mode === 'terra') h = [['w', '💧', `Wasser · ${E14.TERRA_COST.w} Taler`], ['h', '⛰️', `Hügel · ${E14.TERRA_COST.h} Taler`], ['none', '🧹', 'Einebnen']].map(([k, ic, l]) => `<button data-terra="${k}" class="${(b.terra || 'w') === k ? 'on' : ''}"><span class="iic emo">${ic}</span><small>${l}</small></button>`).join('')
+    + '<div class="bnote">💧 Wasser-Kacheln nebeneinander werden zum Teich oder Bach – darüber passen Stege (Deko). ⛰️ Auf Hügel kommt man nur über eine Treppe (Deko, drehen!).</div>';
   else if (b.mode === 'pave') h = Object.entries(PAVE).map(([k, p]) => `<button data-path="${k}" class="${b.path === k ? 'on' : ''}"><span class="iic emo" style="color:${p.col ? '#' + p.col.toString(16).padStart(6, '0') : ''}">${p.icon}</span><small>${p.name}</small></button>`).join('') + `<button data-path="none" class="${b.path === 'none' ? 'on' : ''}"><span class="iic emo">🧹</span><small>Weg entfernen</small></button>`;
   else if (!list.length) h = `<div class="bnote">${b.inside ? 'Keine Möbel in deiner Tasche. Kauft welche im Krämerladen 🛒 oder baut sie an der Werkbank 🔨. Auf ein aufgestelltes Möbelstück tippen hebt es auf.' : b.cat === 'projekte' ? 'Wählt im 🏛️ Rathaus ein Projekt – dann liegt hier der Bauplatz-Pflock. Abgebaute Projekte landen auch hier.' : 'Hier ist gerade nichts in deiner Tasche. Deko gibt es im Krämerladen 🛒 und an der Werkbank 🔨.'}</div>`;
   else h = list.map(id => `<button data-item="${id}" class="${b.item === id ? 'on' : ''}" title="${esc(ITEMS[id].name)}">${itemIcon(id)}<small>${esc(ITEMS[id].name)}</small><span class="n">${G.s.inv[id]}</span></button>`).join('');
@@ -1897,6 +1904,7 @@ $('bitems').onclick = e => {
   if (!t || !G?.build) return;
   if (t.dataset.item) { if (G.build.item !== t.dataset.item) G.build.r = 0; G.build.item = t.dataset.item; }
   if (t.dataset.path) G.build.path = G.pathType = t.dataset.path;
+  if (t.dataset.terra) G.build.terra = t.dataset.terra;
   G.buildSig = null;
   renderBuild();
   play('click');
@@ -2116,7 +2124,7 @@ function execute(r, fresh) {
     const h = 6 + G.s.dayTime * 18;
     toast(h >= 18 ? (Object.keys(G.players).length > 1 ? '😴 Gute Nacht! Wenn alle im Bett liegen, beginnt ein neuer Tag.' : '😴 Gute Nacht!') : '😴 Ein kleines Nickerchen … (Schlafen geht ab 18 Uhr bis zum Morgen)');
   } else if (r.sit) {
-    if (fresh) { Object.assign(me, { x: r.sit.x, z: r.sit.z, ry: r.sit.r * Math.PI / 2, pose: 'sit' }); if (r.bath) send({ t: 'volc', op: 'bath' }); }
+    if (fresh) { Object.assign(me, { ...sitSpot(r.sit), ry: r.sit.r * Math.PI / 2, pose: 'sit' }); if (r.bath) send({ t: 'volc', op: 'bath' }); }
   } else if (r.fish) {
     if (fresh) startFishing(me);
   } else if (r.a && (fresh || r.a.t !== 'pickup')) {
@@ -2370,6 +2378,7 @@ function openTalk(id) {
   updTale(id);
   const h3 = h >= 3, news = home ? nhomeNews(G.s, id) : null;
   $('dlgwish').classList.toggle('hidden', !home || !h3);
+  { const dv = E14.delivFor(G.s, id), bd = $('dlgdeliv'); bd.classList.toggle('hidden', !dv); if (dv) bd.textContent = `📦 ${dv.n}× ${ITEMS[dv.item].icon} ${ITEMS[dv.item].name} abgeben`; } // Lieferdienst
   if (home) {
     if (news && !news.told) { say2(news.say); send({ t: 'nhome12', op: 'told', id }); }
     else say2(!h3 ? anyOf(['Oh, Besuch! Schau dich ruhig um – ich richte mich gerade erst ein.', 'Schön, dass du vorbeischaust! Wenn wir uns besser kennen, darfst du mir beim Einrichten helfen.', 'Mach es dir bequem! Wie gefällt dir mein Zuhause?']) : wish ? `Schön, dass du mich besuchst! Ich hätte da einen Wunsch: ${wish.t}` : 'Mein Zimmer ist ein Traum – dank dir! Setz dich doch!');
@@ -2452,6 +2461,7 @@ $('dialog').addEventListener('click', e => {
   if (!b || !G?.talk) return;
   const id = G.talk.id;
   if (b.dataset.dlg === 'bye') closeTalk();
+  if (b.dataset.dlg === 'deliv') { $('dlggifts').classList.add('hidden'); send({ t: 'deliver14', id }); setTimeout(() => { if (G.talk?.id === id) $('dlgdeliv').classList.toggle('hidden', !E14.delivFor(G.s, id)); }, 400); }
   if (b.dataset.dlg === 'nwish') { $('dlggifts').classList.add('hidden'); send({ t: 'nwish', id }); play('click'); }
   if (b.dataset.dlg === 'tale') {
     $('dlggifts').classList.add('hidden');
@@ -2764,7 +2774,7 @@ function gameFrame(dt, now) {
     const swim = (s.inv.neopren || 0) > 0 && !S.inside(me);
     me.run = !me.sw && (keys.has('shift') || Math.hypot(joy.x, joy.y) > 0.92);
     const sp = SPEED[s.up.boots] * dt * (me.sw ? 0.65 : me.bike || me.td ? 1.75 : me.pony ? 1.7 : me.sled ? 1.55 : me.run ? 1.6 : 1);
-    const free = (x, z) => ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b, swim));
+    const free = (x, z) => E14.terraPass(s, me.x, me.z, x, z) && ![[0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]].some(([a, b]) => S.blocked(s, x + a, z + b, swim)); // auf Hügel nur über Treppen
     const stuck = !free(me.x, me.z);
     if (!iceMove(me, wx * sp, wz * sp, free)) { // auf dem Eis rutscht man (client/fun2.js)
       if (stuck || free(me.x + wx * sp, me.z)) me.x += wx * sp;
@@ -2820,6 +2830,7 @@ function gameFrame(dt, now) {
   update9();
   update10();
   update11();
+  tick14(dt);
   updateRide(dt);
   autoQuality(dt);
   // Spieleabend: Züge der Nachbarn macht der Gastgeber (mit kleiner Denkpause)

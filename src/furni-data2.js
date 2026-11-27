@@ -128,6 +128,26 @@ const MORE10 = [
   ['sonnenblumenstrauss', 'Sonnenblumen-Strauß', '🌻', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['vergissmeinnichtstrauss', 'Vergissmeinnicht-Strauß', '💙', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
 ];
 for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of MORE10) RARE10[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, ...x };
+// Inselleben 14: Saisonkatalog (nur in ihrer Jahreszeit) und neue Sträuße & Kränze vom Blumenbinde-Tisch
+const MORE14 = [
+  ['bluetenlampe', 'Blüten-Stehlampe', '🌸', 0, 1, 'licht', 1, 1, { glow: true, rare: 'saison' }], ['pastellsessel', 'Pastell-Sessel', '🛋️', 0, 1, 'sitzen', 1, 1, { sit: true, rare: 'saison' }],
+  ['eierkorb', 'Eierkorb', '🧺', 0, 1, 'deko', 1, 1, { rare: 'saison' }], ['veilchenbild', 'Veilchen-Bild', '🖼️', 0, 1, 'wand', 1, 1, { wall: true, rare: 'saison' }],
+  ['fruehlingsteppich', 'Frühlingswiesen-Teppich', '🌼', 0, 1, 'teppiche', 2, 2, { rug: true, rare: 'saison' }],
+  ['ventilator', 'Standventilator', '🌀', 0, 1, 'deko', 1, 1, { rare: 'saison' }], ['muschelspiegel', 'Muschel-Spiegel', '🐚', 0, 1, 'wand', 1, 1, { wall: true, rare: 'saison' }],
+  ['limokrug', 'Limonaden-Krug', '🍋', 0, 1, 'deko', 1, 1, { rare: 'saison' }], ['surfregal', 'Surfbrett-Regal', '🏄', 0, 1, 'regale', 1, 1, { rare: 'saison' }],
+  ['hawaiilampe', 'Hawaii-Lampe', '🌺', 0, 1, 'licht', 1, 1, { glow: true, rare: 'saison' }],
+  ['kuerbislampe', 'Kürbis-Lampe', '🎃', 0, 1, 'licht', 1, 1, { glow: true, rare: 'saison' }], ['strickhocker', 'Strick-Hocker', '🧶', 0, 1, 'sitzen', 1, 1, { sit: true, rare: 'saison' }],
+  ['apfelkiste', 'Apfelkiste', '🍎', 0, 1, 'deko', 1, 1, { rare: 'saison' }], ['laubgirlande', 'Laub-Girlande', '🍁', 0, 1, 'wand', 1, 1, { wall: true, rare: 'saison' }],
+  ['kastanienschale', 'Kastanien-Schale', '🌰', 0, 1, 'deko', 1, 1, { rare: 'saison' }],
+  ['winterdorf', 'Mini-Winterdorf', '🏘️', 0, 1, 'deko', 1, 1, { glow: true, rare: 'saison' }], ['kaminofen', 'Kaminofen', '🔥', 0, 1, 'deko', 1, 1, { glow: true, rare: 'saison' }],
+  ['kakaotablett', 'Kakao-Tablett', '☕', 0, 1, 'deko', 1, 1, { rare: 'saison' }], ['sternlichterkette', 'Stern-Lichterkette', '⭐', 0, 1, 'wand', 1, 1, { wall: true, glow: true, rare: 'saison' }],
+  ['norwegerteppich', 'Norweger-Teppich', '❄️', 0, 1, 'teppiche', 2, 2, { rug: true, rare: 'saison' }],
+  ['veilchenstrauss', 'Veilchenstrauß', '💜', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['irisstrauss', 'Schwertlilien-Strauß', '⚜️', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
+  ['ranunkelstrauss', 'Ranunkel-Strauß', '🌼', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }], ['herbststrauss', 'Herbststrauß', '🍂', 0, 1, 'pflanzen', 1, 1, { rare: 'bind' }],
+  ['kranz_fruehling', 'Frühlingskranz', '🌷', 0, 1, 'wand', 1, 1, { wall: true, rare: 'bind' }], ['kranz_sommer', 'Sommerkranz', '🌻', 0, 1, 'wand', 1, 1, { wall: true, rare: 'bind' }],
+  ['kranz_herbst', 'Herbstkranz', '🍁', 0, 1, 'wand', 1, 1, { wall: true, rare: 'bind' }], ['kranz_winter', 'Winterkranz', '🎄', 0, 1, 'wand', 1, 1, { wall: true, rare: 'bind' }],
+];
+for (const [id, name, icon, buy, lvl, cat, w = 1, d = 1, x = {}] of MORE14) RARE10[id] = { name, icon, buy, lvl, cat, w, d, solid: !(x.rug || x.wall) && x.solid !== false, ...x };
 // 🕹️ Inselleben 11 „Für zwei“: Greifautomat mit Kuscheltieren, Dinnertisch für zwei, Jahrestags-Bild
 FURN2.greifautomat = { name: 'Greifautomat', icon: '🕹️', buy: 2800, lvl: 1, cat: 'deko', w: 1, d: 1, solid: true, glow: true };
 FURN2.dinnertisch = { name: 'Dinnertisch für zwei', icon: '🕯️', buy: 3200, lvl: 2, cat: 'tische', w: 2, d: 1, solid: true, glow: true };

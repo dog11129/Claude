@@ -4,7 +4,7 @@
 import { blocked } from './state.js';
 
 const R = 0.22; // halbe Körperbreite
-const freeAt = (s, x, z) => !blocked(s, x, z) && !blocked(s, x + R, z) && !blocked(s, x - R, z) && !blocked(s, x, z + R) && !blocked(s, x, z - R);
+const freeAt = (s, x, z) => !(s.terra && s.terra[Math.round(x) + ',' + Math.round(z)]) && !blocked(s, x, z) && !blocked(s, x + R, z) && !blocked(s, x - R, z) && !blocked(s, x, z + R) && !blocked(s, x, z - R);
 function clear(s, ax, az, bx, bz) {
   const n = Math.ceil(Math.hypot(bx - ax, bz - az) / 0.3);
   for (let i = 1; i <= n; i++) if (!freeAt(s, ax + (bx - ax) * i / n, az + (bz - az) * i / n)) return false;

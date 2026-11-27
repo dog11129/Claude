@@ -6,7 +6,7 @@ import * as E from './extras13.js';
 const hero = (who, title, text) => `<div class="quest-hero"><div class="qh-top"><span class="qh-chap">${who}</span><b>${title}</b></div><p>${text}</p></div>`;
 const chip = t => `<span class="chip">${t}</span>`;
 const act = a => `data-act='${JSON.stringify(a)}'`;
-const row = (icon, title, sub, right = '') => `<div class="row"><div class="ico">${icon}</div><div class="grow"><b>${title}</b><small>${sub}</small></div>${right}</div>`;
+const row = (icon, title, sub, right = '') => `<div class="row"><div class="ic">${icon}</div><div class="tx"><b>${title}</b><small>${sub}</small></div><div class="bt">${right}</div></div>`;
 const bar = (p, n) => `<span class="pbar13"><i style="width:${Math.min(100, Math.round(p / n * 100))}%"></i></span>`;
 
 function plus13(s, g, tab) {

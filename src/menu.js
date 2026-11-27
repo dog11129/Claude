@@ -1,6 +1,6 @@
 // Charakter-Editor und Einstellungen (im Hauptmenü und im Spiel genutzt).
 import * as THREE from '../vendor/three.module.min.js';
-import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, PREMIUM_TOPS, HAT_FROM } from './avatar.js';
+import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, PREMIUM_TOPS, PREMIUM_HAIR, PREMIUM_HCOL, HAT_FROM } from './avatar.js';
 
 // Kleine 3D-Vorschaubilder für jede Option (eigener Mini-Renderer, Ergebnis wird zwischengespeichert)
 const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', blush: 'cheek', lips: 'mouth', lid: 'cheek', mark: 'cheek', top: 'body', pet: 'pet' };
@@ -43,14 +43,15 @@ const TABS = [
   ['hair', '💇 Haare', [['hairStyle', 'Frisur'], ['hairColor', 'Haarfarbe']]],
   ['outfit', '👕 Outfit', [['top', 'Oberteil'], ['topColor', 'Farbe Oberteil'], ['bottomColor', 'Hose / Rock'], ['shoes', 'Schuhe']]],
   ['extra', '🎩 Extras', [['hat', 'Kopfbedeckung'], ['glasses', 'Brille']]],
-  ['makeup', '💄 Make-up', [['blush', 'Rouge'], ['lips', 'Lippen'], ['lid', 'Lidschatten'], ['mark', 'Wangen-Sticker']]],
+  ['makeup', '💄 Make-up', [['blush', 'Rouge'], ['lips', 'Lippen'], ['lid', 'Lidschatten'], ['mark', 'Wangen-Sticker'], ['nails', 'Nagellack']]],
   ['pet', '🐾 Haustier', [['pet', 'Begleiter'], ['petColor', 'Fellfarbe']]],
 ];
 
 // Besondere Hüte sind erst nach dem Kauf (Schneiderei / Tauschhütte) wählbar
 let owned = new Set();
 export const setOwnedHats = list => { owned = new Set(list || []); };
-const lockedHat = (field, id) => ((field === 'hat' && PREMIUM_HATS.includes(id)) || (field === 'top' && PREMIUM_TOPS.includes(id))) && !owned.has(id);
+const lockedHat = (field, id) => (field === 'nails' ? id !== 'none' && !owned.has('nl_' + id) : field === 'hairColor' ? PREMIUM_HCOL.includes(id) && !owned.has('hc_' + id.slice(1))
+  : ((field === 'hat' && PREMIUM_HATS.includes(id)) || (field === 'top' && PREMIUM_TOPS.includes(id)) || (field === 'hairStyle' && PREMIUM_HAIR.includes(id))) && !owned.has(id));
 function options(field, value, look) {
   const list = LOOKS[field];
   if (VIEW[field]) {
@@ -58,9 +59,9 @@ function options(field, value, look) {
       return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es ' + (HAT_FROM[id] || 'in der Schneiderei der Bummelgasse') + '" style="opacity:.45"' : ''}>${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${lock ? '🔒 ' : ''}${l}</small></button>`; }).join('')}</div>`;
   }
   if (typeof list[0] === 'string') {
-    return `<div class="swatches">${list.map(c => `<button style="background:${c}" data-f="${field}" data-v="${c}" class="${c === value ? 'on' : ''}" aria-label="${c}"></button>`).join('')}</div>`;
+    return `<div class="swatches">${list.map(c => { const lock = lockedHat(field, c) && c !== value; return `<button style="background:${c}${lock ? ';opacity:.35' : ''}" data-f="${field}" data-v="${c}" class="${c === value ? 'on' : ''}" aria-label="${c}"${lock ? ' disabled title="Gibt es im Salon der Bummelgasse"' : ''}>${lock ? '🔒' : ''}</button>`; }).join('')}</div>`;
   }
-  return `<div class="chips">${list.map(([id, l]) => `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  return `<div class="chips">${list.map(([id, l]) => { const lock = lockedHat(field, id) && id !== value; return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es im Salon der Bummelgasse" style="opacity:.45"' : ''}>${lock ? '🔒 ' : ''}${l}</button>`; }).join('')}</div>`;
 }
 
 export class Editor {

@@ -40,6 +40,23 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 
 ## Was es gibt
 
+### 💞 Neu: Lieblingsplätze (Inselleben 14)
+- **Wege mit runden Ecken:** Vier neue Sorten (Kiesweg, Sandsteinplatten, Kopfsteinpflaster, Blumen-Mosaik) – und alle Wege, auch die alten, bekommen von selbst runde Ecken und einen Rand.
+- **Gelände formen:** Im Baumodus unter „Gelände“ grabt ihr Wasser (nebeneinander wird es ein Teich oder Bach, mit Seerosen) und schüttet Hügel auf. Über euer Wasser führen **Holzsteg** und **Steinbrücke**, auf die Hügel **Holz- und Steintreppen**. Auf Hügeln darf Deko stehen.
+- **Laternen mit Lichtkreis:** Straßenlaterne, Doppel-Laterne, Wegleuchte und Lampion-Pfahl gehen abends an – alle leuchtenden Sachen werfen jetzt einen warmen Lichtkreis auf den Boden.
+- **Hausfassade:** Dachfarbe, Haustür, Fensterläden, Blumenkästen, Hausnummer und Türkranz (Handy ➜ Fassade).
+- **Liebesschloss-Brücke:** An der Flussbrücke hängt ihr Schlösser mit euren Anfangsbuchstaben auf – eins am Tag, in acht Farben, für immer.
+- **Kuschelecke:** Hängesessel für zwei, Hängematte für zwei und Sternguck-Decke – setzt euch nebeneinander, nach ein paar Sekunden nickt ihr zusammen ein (Herzpunkte).
+- **Saisonkatalog:** Zehn Sachen je Jahreszeit (Deko und Möbel), die es nur in dieser Jahreszeit gibt.
+- **Lieferdienst:** Die Nachbarn (auch die Zugezogenen) bestellen bei euch – persönlich vorbeibringen, Trinkgeld kassieren, Eil-Bonus am selben Tag.
+- **Schneemann bauen:** Im Winter liegen Schneehaufen herum: drei Kugeln rollen, mit Karotte, Steinen, Ästen, Schal und Mütze schmücken – und drei Nachbarn vergeben Sterne. Sandburgen lassen sich jetzt genauso bewerten.
+- **Sternschnuppen:** Jeden Freitag Sternschnuppen-Nacht, einmal je Jahreszeit ein ganzer Schauer; wünscht ihr euch beide etwas, kommt ein Zwillingsstern mit der Post. Auf der Sternguck-Decke wünscht ihr euch von selbst etwas.
+- **Der Hase:** Ein scheuer Hase streunt über die Insel. Fünf Tage füttern, dann zieht er ein – mit Namen, Schleife, Streicheln und Spaziergängen.
+- **Outfits:** Sechs Speicherplätze für Lieblings-Looks, mit einem Tipp gewechselt (Handy oder Spiegel, dort auch „Posieren“).
+- **Salon Schnipp & Glanz** (Bummelgasse): sechs neue Frisuren, sechs Haarfarben und neun Nagellacke.
+- **Blumenbinden:** vier neue Sträuße und vier Kränze für Wand oder Haustür.
+- Die neuen Stücke sind fürs Erste Code-Modelle; die Blender-Fassungen folgen beim nächsten Blender-Lauf.
+
 ### 🌷 Neu: Gartenzeit (Inselleben 13)
 - **Zäune, die sich verbinden:** Holzzaun, weißer Lattenzaun, Rosenzaun, Natursteinmauer, Hecke, Schmiedeeisen-Zaun, Seilzaun und Bambuszaun – einfach Stück für Stück nebeneinander setzen, sie schließen sich von selbst an, auch um die Ecke und als Kreuzung. Im Krämerladen gibt es sie im Zehnerpack, im Baumodus haben sie einen eigenen Reiter. Dazu zwei **Gartentore**, die aufschwingen, wenn jemand kommt, **Trittsteine** und eine **Blauregen-Pergola**.
 - **Zugezogene sind jetzt richtige Nachbarn:** Wer vom Campingplatz eingezogen ist (Flocke, Pingo, Olli, Krümel, Koko, Pia), hat ein Häuschen, das man **betreten** kann – mit eigenem Geschmack, eigenen Möbeln und drei Einrichtungswünschen. Ihr plaudert im normalen Gesprächsfenster, schenkt einmal am Tag etwas und sammelt Herzen. Morgens, abends und bei Regen sind sie im Haus, tagsüber vor der Tür, nachts im Bett.

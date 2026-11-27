@@ -618,6 +618,40 @@ export const PLACE = {
   lattentor:   { name: 'Weißes Gartentor',  icon: '🚪', buy: 200, lvl: 1, kind: 'deco', gate: 'latten', desc: 'Schwingt auf, wenn jemand kommt' },
   trittsteine: { name: 'Trittsteine',       icon: '🥌', buy: 60,  lvl: 1, kind: 'deco', desc: 'Zum Drüberlaufen' },
   pergola:     { name: 'Blauregen-Pergola', icon: '💜', buy: 1800, lvl: 3, kind: 'deco', garden: 1, desc: 'Zum Durchspazieren' },
+  // Inselleben 14 „Lieblingsplätze“: Brücken (nur aufs selbst gegrabene Wasser), Treppen (auf Hügel), Laternen mit Lichtkreis
+  holzbruecke:  { name: 'Holzsteg',           icon: '🌉', buy: 240, lvl: 2, kind: 'deco', bridge: 1, desc: 'Über selbst gegrabenes Wasser' },
+  steinbruecke: { name: 'Steinbrücke',        icon: '🌉', buy: 340, lvl: 3, kind: 'deco', bridge: 1, desc: 'Über selbst gegrabenes Wasser' },
+  holztreppe:   { name: 'Holztreppe',         icon: '🪜', buy: 160, lvl: 2, kind: 'deco', ramp: 1, desc: 'Führt auf einen Hügel (drehen!)' },
+  steintreppe:  { name: 'Steintreppe',        icon: '🪜', buy: 220, lvl: 3, kind: 'deco', ramp: 1, desc: 'Führt auf einen Hügel (drehen!)' },
+  strassenlaterne: { name: 'Straßenlaterne',  icon: '🏮', buy: 380, lvl: 2, kind: 'deco', solid: 1, glow: 1, light: 2.9 },
+  doppellaterne: { name: 'Doppel-Laterne',    icon: '🏮', buy: 620, lvl: 4, kind: 'deco', solid: 1, glow: 1, light: 3.4 },
+  wegleuchte:   { name: 'Wegleuchte',         icon: '💡', buy: 140, lvl: 1, kind: 'deco', glow: 1, light: 1.6 },
+  lampionpfahl: { name: 'Lampion-Pfahl',      icon: '🏮', buy: 260, lvl: 2, kind: 'deco', solid: 1, glow: 1, light: 2.3 },
+  // Kuscheln zu zweit: nebeneinander sitzen, zusammen einnicken
+  kuschelschaukel: { name: 'Hängesessel für zwei', icon: '💞', buy: 2400, lvl: 3, kind: 'deco', solid: 1, sit: 1, cuddle: 1, desc: 'Zu zweit einkuscheln' },
+  doppelhaengematte: { name: 'Hängematte für zwei', icon: '🌴', buy: 1900, lvl: 3, kind: 'deco', solid: 1, sit: 1, cuddle: 1, desc: 'Zu zweit einkuscheln' },
+  sternendecke: { name: 'Sternguck-Decke',    icon: '🌠', buy: 900, lvl: 2, kind: 'deco', sit: 1, cuddle: 1, desc: 'In Sternschnuppen-Nächten wünscht ihr euch hier von selbst etwas' },
+  // Saisonkatalog (Handy): nur in ihrer Jahreszeit zu haben
+  osternest:    { name: 'Osternest',          icon: '🥚', lvl: 1, kind: 'deco', season: 'spring' },
+  tulpenkiste:  { name: 'Tulpenkiste',        icon: '🌷', lvl: 1, kind: 'deco', solid: 1, garden: 1, season: 'spring' },
+  hasenfigur:   { name: 'Hasenfigur',         icon: '🐰', lvl: 1, kind: 'deco', solid: 1, season: 'spring' },
+  bluetenbogen: { name: 'Kirschblüten-Bogen', icon: '🌸', lvl: 1, kind: 'deco', season: 'spring', desc: 'Zum Durchspazieren' },
+  maibaum:      { name: 'Maibaum',            icon: '🎀', lvl: 1, kind: 'deco', solid: 1, season: 'spring' },
+  planschbecken: { name: 'Planschbecken',     icon: '🩱', lvl: 1, kind: 'deco', solid: 1, season: 'summer' },
+  eistruhe:     { name: 'Eistruhe',           icon: '🍦', lvl: 1, kind: 'deco', solid: 1, season: 'summer' },
+  melonentisch: { name: 'Melonen-Tisch',      icon: '🍉', lvl: 1, kind: 'deco', solid: 1, season: 'summer' },
+  strandmuschel: { name: 'Strandzelt',        icon: '⛺', lvl: 1, kind: 'deco', solid: 1, season: 'summer' },
+  limostand:    { name: 'Limonaden-Stand',    icon: '🍋', lvl: 1, kind: 'deco', solid: 1, season: 'summer' },
+  kuerbisstapel: { name: 'Kürbisstapel',      icon: '🎃', lvl: 1, kind: 'deco', solid: 1, season: 'autumn' },
+  laubhaufen:   { name: 'Laubhaufen',         icon: '🍂', lvl: 1, kind: 'deco', season: 'autumn' },
+  heubank:      { name: 'Heuballen-Bank',     icon: '🌾', lvl: 1, kind: 'deco', solid: 1, sit: 1, season: 'autumn' },
+  kastanienmann: { name: 'Kastanienmännchen', icon: '🌰', lvl: 1, kind: 'deco', solid: 1, season: 'autumn' },
+  apfelkarren:  { name: 'Apfelkarren',        icon: '🍎', lvl: 1, kind: 'deco', solid: 1, season: 'autumn' },
+  iglu:         { name: 'Iglu',               icon: '🧊', lvl: 1, kind: 'deco', solid: 1, season: 'winter' },
+  eislaterne:   { name: 'Eislaterne',         icon: '❄️', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.8, season: 'winter' },
+  geschenkestapel: { name: 'Geschenkestapel', icon: '🎁', lvl: 1, kind: 'deco', solid: 1, season: 'winter' },
+  zuckerstange: { name: 'Zuckerstange',       icon: '🍭', lvl: 1, kind: 'deco', solid: 1, season: 'winter' },
+  eisskulptur:  { name: 'Eis-Herz',           icon: '💙', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.4, season: 'winter' },
   // Feengarten: nur im Sternchen-Laden (Fleißkärtchen)
   feenlaterne: { name: 'Feenlaterne',       icon: '🧚', lvl: 1, kind: 'deco', glow: 1, star: 4, desc: 'Aus dem Sternchen-Laden' },
   pilzhocker:  { name: 'Pilzhocker',        icon: '🍄', lvl: 1, kind: 'deco', solid: 1, sit: 1, star: 3, desc: 'Aus dem Sternchen-Laden' },
@@ -954,6 +988,11 @@ export const PAVE = {
   holz:   { name: 'Holzdielen', icon: '🪵', col: '#c89564' },
   sand:   { name: 'Sandweg', icon: '🏖️', col: '#eedcaa' },
   muster: { name: 'Muster-Weg', icon: '🎨', col: '#f2c9d8' }, // zeigt das gewählte eigene Muster
+  // Inselleben 14: vier neue Sorten – alle Wege bekommen von selbst runde Ecken und einen Rand
+  kies:      { name: 'Kiesweg', icon: '⚪', col: '#d9d4cc' },
+  sandstein: { name: 'Sandsteinplatten', icon: '🟨', col: '#e6cf9c' },
+  kopfstein: { name: 'Kopfsteinpflaster', icon: '🔘', col: '#a8a39c' },
+  mosaik:    { name: 'Blumen-Mosaik', icon: '🌸', col: '#f7c6d9' },
 };
 
 // ---------- Geschenkballons ----------

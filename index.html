@@ -705,6 +705,19 @@ body.pbg-weiss #panel:not(.phone) .card { background: #fff; }
 .pbar13{display:inline-block;width:92px;height:9px;border-radius:9px;background:rgba(120,90,50,.16);vertical-align:middle;overflow:hidden;margin-right:6px}
 .pbar13 i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#ffd45c,#ffb347)}
 .star13{font-size:15px;letter-spacing:-3px;white-space:nowrap}
+
+/* Inselleben 14: kleine Bausteine für die neuen Fenster */
+.tin14{font:inherit;padding:8px 12px;border-radius:14px;border:2px solid var(--edge,#eadfc8);background:#fffdf6;width:120px;color:inherit}
+.swrow14{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.lock14{width:52px;height:52px;border-radius:16px;border:3px solid rgba(255,255,255,.85);box-shadow:0 3px 0 rgba(120,90,50,.25);font-size:22px;cursor:pointer}
+.lock14:active{transform:translateY(2px)}
+.lchip14{display:inline-flex;gap:6px;align-items:center;padding:5px 11px;border-radius:14px;border:3px solid;background:#fffdf6;font-weight:700}
+.lchip14 small{opacity:.6;font-weight:500}
+.dot14{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(120,90,50,.25);vertical-align:-2px}
+.bigdot14{display:inline-block;width:38px;height:38px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 0 rgba(120,90,50,.25)}
+.sub14{display:block;opacity:.7;margin:-4px 0 6px}
+.apps{grid-template-columns:repeat(3,minmax(0,1fr))}
+.apps small{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -808,7 +821,7 @@ body.pbg-weiss #panel:not(.phone) .card { background: #fff; }
     <div class="dlgname" id="dlgname"></div>
     <p id="dlgtext"></p>
     <div id="dlggifts" class="hidden"></div>
-    <div class="dlgbtns"><button class="btn white" data-dlg="talk">💬 Plaudern</button><button class="btn pink" data-dlg="gift">🎁 Geschenk</button><button class="btn pink hidden" data-dlg="tale" id="dlgtale">📖 Geschichte</button><button class="btn pink hidden" data-dlg="nwish" id="dlgwish">🏠 Schau mal!</button><button class="btn white" data-dlg="bye">👋 Tschüss</button></div>
+    <div class="dlgbtns"><button class="btn white" data-dlg="talk">💬 Plaudern</button><button class="btn pink" data-dlg="gift">🎁 Geschenk</button><button class="btn pink hidden" data-dlg="tale" id="dlgtale">📖 Geschichte</button><button class="btn pink hidden" data-dlg="deliv" id="dlgdeliv">📦 Lieferung</button><button class="btn pink hidden" data-dlg="nwish" id="dlgwish">🏠 Schau mal!</button><button class="btn white" data-dlg="bye">👋 Tschüss</button></div>
   </div>
 </div>
 <div id="photobar" class="hidden">

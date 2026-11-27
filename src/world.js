@@ -44,6 +44,8 @@ import { makeAnimal } from './animals.js';
 import { crop } from './plants.js';
 import { placeable } from './nature.js';
 import { fencePiece, gateModel } from './plants.js';
+import { edgeMesh, edgeSet, PATH_PAINT_14, update14, houseExterior } from './world-extra11.js';
+import { terraY, HILL_H } from './extras14.js';
 import { building } from './buildings.js';
 import { Zones } from './zones.js';
 import { tickAssets, part, snow, model, hasModel, GLOW_VC, tex, flatGeometry } from './assets.js';
@@ -1001,7 +1003,7 @@ export class World {
 
   // ---------- statische Teile, die sich mit Upgrades ändern ----------
   syncStatic(s) {
-    const sig = `${s.up.house}|${s.mail?.length ? 1 : 0}|${this.season}|${BUILDINGS.house.x0},${BUILDINGS.house.z0}`;
+    const sig = `${s.up.house}|${s.mail?.length ? 1 : 0}|${this.season}|${BUILDINGS.house.x0},${BUILDINGS.house.z0}|${JSON.stringify(s.home?.ext || {})}`;
     if (this.static.sig === sig) return;
     if (this.static.group) this.scene.remove(this.static.group);
     const g = new THREE.Group();
@@ -1010,6 +1012,7 @@ export class World {
       const m = building(model, id === 'house' ? s.up.house : id === 'mail' ? (s.mail?.length ? 1 : 0) : 1, this.season);
       if (B.ox !== undefined && !m.userData.asset) m.position.set(B.ox, 0, B.oz); else m.position.set(B.cx, 0, B.cz);
       m.userData.bid = id;
+      if (id === 'house') houseExterior(m, s.home?.ext, s.up.house); // Dachfarbe, Tür, Läden, Blumenkästen, Hausnummer, Türkranz
       g.add(m);
       if (id === 'office') this.clock = { h: part(m, 'clock_h'), m: part(m, 'clock_m') };
       // Kamin des neuen Hauses (Blender: x 1.3, y 0.5 → Spiel: z -0.5)
@@ -1078,7 +1081,7 @@ export class World {
         const [x, z] = k.split(',').map(Number);
         // Zaunstücke und Tore: Blender-Fassung, sobald es sie gibt (zaun_<art>_<maske>, tor_<art>_rahmen/_fluegel), sonst aus dem Code
         const m = p.fence ? (model(`zaun_${p.fence}_${fm || 10}`) || fencePiece(p.fence, fm)) : p.gate ? gateModel(p.gate, model(`tor_${p.gate}_rahmen`), model(`tor_${p.gate}_fluegel`)) : placeable(o.k, ready);
-        m.position.set(x, 0, z);
+        m.position.set(x, s.terra?.[k] === 'h' ? HILL_H : 0, z); // auf selbst aufgeschütteten Hügeln stehen Sachen oben
         m.rotation.y = p.fence ? 0 : p.gate ? ((fm & 5) && !(fm & 10) ? Math.PI / 2 : 0) : o.r * Math.PI / 2;
         if (!m.userData.asset && ['kirschbaum', 'blumen'].includes(o.k)) m.children[0].material = WIND_CROP;
         if (!m.userData.asset && p.kind === 'producer') m.children[0].material = WIND_TREE;
@@ -1538,14 +1541,12 @@ export class World {
         stein: (g, r) => { g.fillStyle = '#9c968e'; g.fillRect(0, 0, 128, 128); for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { g.fillStyle = `hsl(30 6% ${66 + r() * 14}%)`; g.beginPath(); g.roundRect(x * 32 + 2 + (y % 2) * 8, y * 32 + 2, 28, 28, 8); g.fill(); } },
         ziegel: (g, r) => { g.fillStyle = '#e8d5c0'; g.fillRect(0, 0, 128, 128); for (let y = 0; y < 8; y++) for (let x = -1; x < 4; x++) { g.fillStyle = `hsl(12 55% ${50 + r() * 12}%)`; g.fillRect(x * 32 + (y % 2) * 16 + 2, y * 16 + 2, 28, 12); } },
         muster: g => { g.fillStyle = '#f2c9d8'; g.fillRect(0, 0, 128, 128); },
+        ...PATH_PAINT_14,
         holz: (g, r) => { for (let x = 0; x < 6; x++) { g.fillStyle = `hsl(28 45% ${52 + r() * 12}%)`; g.fillRect(x * 21.3, 0, 20, 128); g.fillStyle = 'rgba(80,50,30,.35)'; g.fillRect(x * 21.3 + 4, 20 + r() * 80, 2, 2); } },
       };
       for (const [k, P] of Object.entries(PAVE)) {
         const map = this.detailTex(paint[k], [1, 1]);
-        const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff, map }), 2400);
-        m.count = 0;
-        m.receiveShadow = true;
-        m.frustumCulled = false; // sonst verschwinden Wege, die nach dem ersten Bild dazukommen (alte Hülle)
+        const m = edgeMesh(map, 2400); // runde Ecken und ein dunkler Rand, wo der Weg aufhört (world-extra11.js)
         m.position.y = 0.016;
         this.pathM[k] = m;
         this.scene.add(m);
@@ -1559,9 +1560,10 @@ export class World {
       const [x, z] = k.split(',').map(Number);
       this.m4.makeTranslation(x, 0, z);
       m.setMatrixAt(n[t] = (n[t] || 0), this.m4);
+      edgeSet(m, n[t], x, z, (a, b) => !!s.paths[a + ',' + b]);
       n[t]++;
     }
-    for (const [t, m] of Object.entries(this.pathM)) { m.count = n[t] || 0; m.instanceMatrix.needsUpdate = true; }
+    for (const [t, m] of Object.entries(this.pathM)) { m.count = n[t] || 0; m.instanceMatrix.needsUpdate = true; m.geometry.attributes.aEdge.needsUpdate = true; }
   }
 
   // ---------- Gegenstände am Boden (fallen herunter, man hebt sie auf) ----------
@@ -1643,7 +1645,7 @@ export class World {
     this.rainbow.position.z = this.target.z - 110;
     // Sternschnuppen in Sternschnuppen-Nächten (nur zum Anschauen und Wünschen, jedes Gerät sieht eigene)
     const night = s.starNight && hour >= 19 && !rain && this.target.x < HOME_X / 2 && this.target.z < 1900;
-    if (night && this.shootT < 0 && Math.random() < this.dt / 4) {
+    if (night && this.shootT < 0 && Math.random() < this.dt / (s.starShower ? 1.4 : 4)) { // Sternschnuppen-Schauer: viel öfter
       const a = Math.random() * 0.6 - 0.3, fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw), dist = 40 + Math.random() * 15, side = (Math.random() - 0.5) * 2 * dist * Math.tan(this.camera.fov / 360 * Math.PI) * this.camera.aspect * 0.6;
       const x = this.target.x + fx * dist - fz * side, z = this.target.z + fz * dist + fx * side;
       this.shootData = { x, z, y: 20 + Math.random() * 10, dx: Math.cos(a) * (Math.random() < 0.5 ? -1 : 1), dy: -0.35 };
@@ -1724,7 +1726,7 @@ export class World {
       const sw = p.sw ? 1 : 0;
       e.swim = (e.swim || 0) + (sw - (e.swim || 0)) * Math.min(1, dt * 6);
       const bk = !!p.bk && !p.sw && !p.pose, deep = e.z > 1000 && e.z < 1900, po = !!p.po && !p.sw && !p.pose && !bk, tn = !!p.tn, td = !!p.td && !p.sw && !p.pose && !bk, tp = !!p.tp && !p.sw; // Fahrrad, Pony, Bimmelbahn, Tandem
-      e.m.position.set(e.x, (p.cn ? -0.12 : bridgeY(e.x, e.z)) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk || td || tp ? 0.34 : po ? 0.55 : tn ? 0.32 : p.sl && !p.sw ? 0.22 : 0) + (p.fh || 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0) + (p.sf ? 0.06 + Math.sin(this.time * 2.2) * 0.05 : 0), e.z);
+      e.m.position.set(e.x, (p.cn ? -0.12 : bridgeY(e.x, e.z) + (this.s14?.terra ? terraY(this.s14, e.x, e.z) : 0)) - 0.78 * e.swim + (p.sw ? Math.sin(this.time * 2.5) * 0.03 : 0) + (bk || td || tp ? 0.34 : po ? 0.55 : tn ? 0.32 : p.sl && !p.sw ? 0.22 : 0) + (p.fh || 0) + (deep ? 0.22 + Math.sin(this.time * 1.8 + e.x) * 0.07 : 0) + (p.rh > 0 ? p.rh + 0.12 : 0) + (p.sf ? 0.06 + Math.sin(this.time * 2.2) * 0.05 : 0), e.z);
       e.m.rotation.y = e.ry;
       e.m.visible = p.pose !== 'dive';
       if (p.sw && (e.speed > 0.3 || Math.random() < 0.05) && Math.random() < 0.3) this.burst(e.x, e.z, 'ripple', SEA_Y + 0.02);
@@ -2084,6 +2086,7 @@ export class World {
   }
 
   render(s, players, me, dt, opt = {}) {
+    this.s14 = s;
     this.time += dt;
     this.lastS = s; // fürs Antippen (Ausflugsinsel, Randbäume)
     this.dt = dt;
@@ -2222,6 +2225,7 @@ export class World {
     this.updateFish();
     this.updateSkyFx(s, info, rain);
     this.lastPlayers = players; this.lowFx = !this.Q?.shadows;
+    update14(this, s, me, dt, info.night);
     updateAmbient(this, s, info, dt, rain, indoors); // Wolkenschatten, Vogelschwarm, Spatzen, Möwen (world-extra9.js)
 
     // Schnee

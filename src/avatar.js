@@ -5,10 +5,11 @@ import { patMesh } from './patterns.js';
 import { MAT, merge, box, ball, cyl, cone } from './models.js';
 import { keyedGeometry, hasModel } from './assets.js';
 
+import { SALON, SALON_HAIR, SALON_HCOL, NAIL_COL } from './salon-data.js';
 export const LOOKS = {
   skin: ['#ffe3cc', '#ffd8b8', '#f2c29b', '#d9a07a', '#a8714f', '#6e4a34'],
-  hairStyle: [['short', 'Kurz'], ['long', 'Lang'], ['ponytail', 'Zopf'], ['buns', 'Dutt'], ['curly', 'Locken'], ['bob', 'Bob'], ['spiky', 'Igel'], ['bald', 'Glatze'], ['zoepfe', 'Zöpfe'], ['wellen', 'Wellen']],
-  hairColor: ['#2b2321', '#6b4428', '#a8683a', '#f2cf6b', '#d9572e', '#b9b6b2', '#ffaecb', '#9ed4ff', '#c7a8ff', '#9fe3c3'],
+  hairStyle: [['short', 'Kurz'], ['long', 'Lang'], ['ponytail', 'Zopf'], ['buns', 'Dutt'], ['curly', 'Locken'], ['bob', 'Bob'], ['spiky', 'Igel'], ['bald', 'Glatze'], ['zoepfe', 'Zöpfe'], ['wellen', 'Wellen'], ...SALON.hair],
+  hairColor: ['#2b2321', '#6b4428', '#a8683a', '#f2cf6b', '#d9572e', '#b9b6b2', '#ffaecb', '#9ed4ff', '#c7a8ff', '#9fe3c3', ...SALON_HCOL],
   eyes: [['round', 'Rund'], ['happy', 'Fröhlich'], ['lashes', 'Wimpern'], ['sleepy', 'Verschlafen']],
   top: [['tshirt', 'T-Shirt'], ['overalls', 'Latzhose'], ['dress', 'Kleid'], ['hoodie', 'Hoodie'], ['vest', 'Hemd & Weste'], ['rueschenkleid', 'Rüschenkleid'], ['bluemchenkleid', 'Blümchenkleid'], ['kuschelpulli', 'Kuschelpulli'], ['ballkleid', 'Ballkleid']],
   topColor: ['#ff8fab', '#ffb86b', '#ffe066', '#8fd694', '#6cc4ff', '#b39cff', '#ff6b6b', '#f5f5f5', '#7fd8d0', '#ffd0a8', '#4a6fa5', '#5a5f73'],
@@ -23,6 +24,7 @@ export const LOOKS = {
   lips: [['none', 'Natürlich'], ['rose', 'Rosé'], ['rot', 'Rot'], ['beere', 'Beere'], ['koralle', 'Koralle'], ['glanz', 'Glitzer']],
   lid: [['none', 'Ohne'], ['rosa', 'Rosa'], ['flieder', 'Flieder'], ['gold', 'Gold'], ['mint', 'Mint']],
   mark: [['none', 'Ohne'], ['sommersprossen', 'Sommersprossen'], ['herz', 'Herz-Sticker'], ['stern', 'Stern-Sticker'], ['punkt', 'Schönheitsfleck']],
+  nails: [['none', 'Natur'], ...SALON.nails.map(n => [n[0], n[1]])], // Nagellack aus dem Salon (Bummelgasse)
   pet: [['none', 'Kein Haustier'], ['cat', 'Katze'], ['dog', 'Hund'], ['bunny', 'Hase'], ['chick', 'Küken'], ['fox', 'Fuchs'], ['pig', 'Schwein']],
   petColor: ['#e8a35c', '#f5f0e6', '#8a8a92', '#6b4a32', '#3b3b40', '#ffd966'],
 };
@@ -30,7 +32,7 @@ const KEYS = Object.keys(LOOKS);
 const ids = k => LOOKS[k].map(o => (Array.isArray(o) ? o[0] : o));
 
 export function defaultLook() {
-  return { skin: '#ffd8b8', hairStyle: 'short', hairColor: '#6b4428', eyes: 'round', top: 'overalls', topColor: '#ff8fab', bottomColor: '#4a6fa5', shoes: '#6b4a32', hat: 'straw', glasses: 'none', blush: 'none', lips: 'none', lid: 'none', mark: 'none', pet: 'none', petColor: '#e8a35c' };
+  return { skin: '#ffd8b8', hairStyle: 'short', hairColor: '#6b4428', eyes: 'round', top: 'overalls', topColor: '#ff8fab', bottomColor: '#4a6fa5', shoes: '#6b4a32', hat: 'straw', glasses: 'none', blush: 'none', lips: 'none', lid: 'none', mark: 'none', nails: 'none', pet: 'none', petColor: '#e8a35c' };
 }
 // Diese Hüte gibt es nur in der Schneiderei bzw. der Tauschhütte
 export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat', 'bommel', 'zipfel', 'veil', 'rosenkranz', 'bluetenspange', 'herzreif', 'blumenkrone', 'herzkrone'];
@@ -38,10 +40,13 @@ export const PREMIUM_HATS = ['beret', 'tophat', 'pirate', 'tiara', 'sunhat', 'bo
 export const HAT_FROM = { rosenkranz: 'am Blumenbinde-Tisch', bluetenspange: 'am Blumenbinde-Tisch', herzreif: 'im Herzensbuch (Handy)', blumenkrone: 'im Herzensbuch (Handy)', herzkrone: 'im Herzensbuch (Handy)', veil: 'bei der Inselhochzeit', ballkleid: 'in der Schneiderei der Bummelgasse' };
 const MAKEUP = ['blush', 'lips', 'lid', 'mark'];
 export const PREMIUM_TOPS = ['ballkleid']; // gibt es in der Schneiderei
+// Aus dem Salon: Frisuren, Haarfarben, Nagellack (in der Garderobe unter salonKey, siehe salon-data.js)
+export const PREMIUM_HAIR = SALON_HAIR, PREMIUM_HCOL = SALON_HCOL;
+for (const h of SALON_HAIR) HAT_FROM[h] = 'im Salon der Bummelgasse';
 export const DRESSES = ['dress', 'rueschenkleid', 'bluemchenkleid', 'ballkleid'];
 export function randomLook() {
   const l = {};
-  for (const k of KEYS) { const a = ids(k).filter(v => (k !== 'hat' || !PREMIUM_HATS.includes(v)) && (k !== 'top' || !PREMIUM_TOPS.includes(v))); l[k] = MAKEUP.includes(k) ? 'none' : a[Math.floor(Math.random() * a.length)]; }
+  for (const k of KEYS) { const a = ids(k).filter(v => (k !== 'hat' || !PREMIUM_HATS.includes(v)) && (k !== 'top' || !PREMIUM_TOPS.includes(v)) && (k !== 'hairStyle' || !SALON_HAIR.includes(v)) && (k !== 'hairColor' || !SALON_HCOL.includes(v))); l[k] = MAKEUP.includes(k) || k === 'nails' ? 'none' : a[Math.floor(Math.random() * a.length)]; }
   return l;
 }
 // Kommt übers Netz: nur Werte aus LOOKS durchlassen. Altes Profil {color, hat} wird übernommen.
@@ -122,6 +127,34 @@ function hairParts(st, c) {
       for (const s of [-1, 1]) for (let j = 0; j < 4; j++) p.push(ell(0.07, c, (0.26 + Math.sin(j * 1.8) * 0.02) * s, -0.06 - j * 0.11, 0.1, 0.8, 0.85, 0.9, 0, 0, 0, 7));
       return p;
     }
+    // ---- Salon (Inselleben 14) ----
+    case 'hochsteck': return [cap, side(-1), side(1), ell(0.12, c, 0, 0.15, 0.2, 1.6, 0.45, 0.7, 0.4), ball(0.15, c, 0, 0.3, -0.17, 1, 0.9, 1, 9), ball(0.09, c, 0, 0.43, -0.13, 1, 1, 1, 8),
+      ell(0.028, c, -0.27, -0.12, 0.12, 0.8, 2.6, 0.8), ell(0.028, c, 0.27, -0.12, 0.12, 0.8, 2.6, 0.8), ball(0.022, WHITE, -0.1, 0.36, -0.06), ball(0.022, WHITE, 0.1, 0.36, -0.06), ball(0.022, WHITE, 0, 0.4, -0.02)];
+    case 'seitenzopf': { // ein dicker geflochtener Zopf über der rechten Schulter
+      const p = [cap, side(-1), side(1), ell(0.13, c, -0.06, 0.15, 0.2, 1.5, 0.5, 0.7, 0.4, 0, 0.4), ell(0.24, c, 0, -0.06, -0.14, 1.1, 1, 0.6, 0, 0, 0, 10)];
+      for (let i = 0; i < 7; i++) p.push(ell(0.068 - i * 0.004, c, 0.24 + i * 0.004, -0.14 - i * 0.075, 0.05 + i * 0.02, 1, 0.9, 1, 0, 0, i % 2 ? 0.28 : -0.28, 7));
+      p.push(ell(0.03, PINK, 0.24, -0.66, 0.19, 1.4, 0.8, 0.8), ell(0.03, PINK, 0.29, -0.66, 0.19, 1.4, 0.8, 0.8), ell(0.035, c, 0.265, -0.72, 0.2, 0.8, 1.1, 0.8, 0, 0, 0, 6));
+      return p;
+    }
+    case 'pixie': return [cap, ell(0.11, c, -0.08, 0.17, 0.2, 1.3, 0.5, 0.7, 0.4, 0, 0.5), ell(0.1, c, 0.1, 0.17, 0.19, 1.2, 0.5, 0.7, 0.4, 0, -0.3), ell(0.06, c, -0.28, 0.02, 0.04, 0.5, 1, 0.9), ell(0.06, c, 0.28, 0.02, 0.04, 0.5, 1, 0.9),
+      ell(0.12, c, 0.02, 0.32, 0.02, 1.2, 0.5, 1.1, 0, 0, 0.2), ell(0.2, c, 0, -0.1, -0.2, 1.1, 0.6, 0.5)];
+    case 'maehne': { // große Lockenmähne bis über die Schultern
+      const p = [cap];
+      for (let i = 0; i < 26; i++) {
+        const a = i * 2.4, top = i < 5, r = top ? 0.13 : 0.3, y = top ? 0.31 : 0.2 - ((i * 7) % 11) * 0.055;
+        if (Math.sin(a) * r > 0.17 && y < 0.2) continue; // Gesicht frei lassen
+        p.push(ball(0.105, c, Math.cos(a) * r, y, Math.sin(a) * r - 0.05, 1, 1, 1, 6));
+      }
+      return p;
+    }
+    case 'flechtkrone': { // geflochtener Kranz rund um den Kopf, mit Blümchen
+      const p = [cap, side(-1), side(1), ell(0.12, c, 0, 0.15, 0.2, 1.6, 0.45, 0.7, 0.4), ell(0.14, c, 0, -0.08, -0.27, 1.1, 0.8, 0.7)];
+      for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; p.push(ball(0.058, c, Math.cos(a) * 0.255, 0.25 + (i % 2) * 0.012, Math.sin(a) * 0.245 - 0.035, 1, 0.8, 1, 6)); }
+      p.push(ball(0.03, PINK, -0.17, 0.3, 0.16), ball(0.03, WHITE, 0.02, 0.31, 0.22), ball(0.03, PINK, 0.19, 0.3, 0.14));
+      return p;
+    }
+    case 'spacebuns': return [cap, side(-1), side(1), ell(0.12, c, 0, 0.15, 0.2, 1.6, 0.45, 0.7, 0.4), ball(0.13, c, -0.2, 0.37, 0, 1, 1, 1, 8), ball(0.13, c, 0.2, 0.37, 0, 1, 1, 1, 8),
+      ell(0.075, 0xb39cff, -0.175, 0.28, 0, 1.2, 0.4, 1.2), ell(0.075, 0xb39cff, 0.175, 0.28, 0, 1.2, 0.4, 1.2), ell(0.028, c, -0.26, -0.1, 0.14, 0.8, 2.8, 0.8), ell(0.028, c, 0.26, -0.1, 0.14, 0.8, 2.8, 0.8)];
     case 'long': return [cap, ell(0.29, c, 0, -0.15, -0.12, 1.12, 1.25, 0.72, 0, 0, 0, 10),
       ell(0.085, c, -0.255, -0.17, 0.1, 0.7, 2, 0.8), ell(0.085, c, 0.255, -0.17, 0.1, 0.7, 2, 0.8),
       ell(0.12, c, -0.09, 0.15, 0.2, 1.1, 0.5, 0.7, 0.4, 0, 0.45), ell(0.12, c, 0.09, 0.15, 0.2, 1.1, 0.5, 0.7, 0.4, 0, -0.45)];
@@ -379,6 +412,12 @@ function armParts(l) {
   return [ell(0.075, C, 0, -0.05, 0, 1, 1.3, 1), cyl(0.047, 0.044, 0.14, S, 0, -0.15, 0, 7), ball(0.062, S, 0, -0.25, 0)];
 }
 
+// Lackierte Nägel: vier kleine Farbtupfer vorn an der Hand (French: weiße Spitzen)
+function nailParts(id) {
+  const c = NAIL_COL[id] || '#ff9ab8';
+  return [[-0.036, -0.293, 0.036], [-0.012, -0.303, 0.046], [0.014, -0.303, 0.046], [0.038, -0.293, 0.036]].map(([x, y, z]) => ell(0.021, c, x, y, z, 1, 1.25, 0.7, 0, 0, 0, 6));
+}
+
 function legParts(l) {
   const shoe = ell(0.085, l.shoes, 0, -0.29, 0.035, 1, 0.65, 1.4);
   if (DRESSES.includes(l.top)) return [cyl(0.052, 0.048, 0.24, l.skin, 0, -0.12, 0, 7), cyl(0.056, 0.056, 0.06, WHITE, 0, -0.235, 0, 7), shoe];
@@ -466,6 +505,7 @@ export function makeAvatar(look) {
   // Figur schaut nach +z: linke Seite = +x, rechte Seite = -x
   const legL = grp(hips, 0.095), legR = grp(hips, -0.095), armL = grp(torso, 0.21, 0.31), armR = grp(torso, -0.21, 0.31);
   mesh(legG, legL); mesh(legG, legR); mesh(armG, armL); mesh(armG, armR);
+  if (l.nails && l.nails !== 'none') { const ng = geo('nail' + l.nails, () => nailParts(l.nails)); mesh(ng, armL).castShadow = false; mesh(ng, armR).castShadow = false; }
   const hand = grp(armR, 0, -0.25), neck = grp(torso, 0, 0.38);
   mesh(bgeo(headNames(l), l, 'head' + [l.skin, l.hairStyle, l.hairColor, l.hat, l.glasses, l.topColor, l.bottomColor], () => headParts(l)), neck, 0, HEAD);
   const eyes = mesh(bgeo(['av_eyes_' + l.eyes], l, 'eyes' + l.eyes, () => eyeParts(l.eyes)), neck, 0, HEAD + EY);
