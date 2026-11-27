@@ -1,0 +1,37 @@
+# Bei jedem Hochladen: Spiellogik, Browser-Smoke-Test und Zwei-Spieler-Test.
+# Schlägt etwas fehl, zeigt GitHub ein rotes ✘ am Commit; Bildschirmfotos gibt es unter „Artifacts“.
+name: Tests
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Spiellogik & alte Spielstände
+        run: npm test
+      - name: Werkzeuge
+        run: |
+          pip install playwright
+          npm i --no-save ws
+      - name: Browser-Smoke-Test
+        run: npm run smoke
+      - name: Zwei-Spieler-Test
+        run: npm run together
+      - name: Serverwelt-Test
+        run: npm run serverwelt
+      - name: Modell-Liste aktuell
+        run: npm run export-models
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bildschirmfotos
+          path: test/out/

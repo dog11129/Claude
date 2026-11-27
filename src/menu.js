@@ -1,0 +1,169 @@
+// Charakter-Editor und Einstellungen (im Hauptmenü und im Spiel genutzt).
+import * as THREE from '../vendor/three.module.min.js';
+import { LOOKS, cleanLook, randomLook, makeAvatar, makePet, lookKey, PREMIUM_HATS, PREMIUM_TOPS, PREMIUM_HAIR, PREMIUM_HCOL, HAT_FROM, JEWEL_KEYS } from './avatar.js';
+
+// Kleine 3D-Vorschaubilder für jede Option (eigener Mini-Renderer, Ergebnis wird zwischengespeichert)
+const VIEW = { hairStyle: 'head', hat: 'head', glasses: 'face', eyes: 'face', blush: 'cheek', lips: 'mouth', lid: 'cheek', mark: 'cheek', top: 'body', pet: 'pet', neck: 'body', ear: 'head', wrist: 'body' };
+const CAM = { head: [[0, 1.32, 1.7], [0, 1.13, 0]], face: [[0, 1.08, 0.85], [0, 1.03, 0]], cheek: [[0, 1.0, 1.15], [0, 0.97, 0]], mouth: [[0, 0.95, 0.85], [0, 0.93, 0]], body: [[0, 0.85, 2.5], [0, 0.62, 0]], pet: [[0, 0.42, 1.0], [0, 0.2, 0]] };
+let tr = null, ts, tc;
+const thumbs = new Map();
+function thumb(look, view) {
+  const k = view + lookKey(look) + look.pet + look.petColor;
+  if (thumbs.has(k)) return thumbs.get(k);
+  if (!tr) {
+    tr = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+    tr.setPixelRatio(1);
+    tr.setSize(112, 112);
+    tr.toneMapping = THREE.NeutralToneMapping;
+    ts = new THREE.Scene();
+    const sun = new THREE.DirectionalLight(0xfff6e8, 2.2);
+    sun.position.set(-1, 2, 2);
+    ts.add(new THREE.HemisphereLight(0xffffff, 0xd8c8b8, 1.6), sun);
+    tc = new THREE.PerspectiveCamera(32, 1, 0.05, 20);
+  }
+  if (view === 'pet' && look.pet === 'none') { thumbs.set(k, ''); return ''; }
+  const o = view === 'pet' ? makePet(look.pet, look.petColor) : makeAvatar(look);
+  o.userData.update?.(1, {});
+  o.rotation.y = 0.35;
+  ts.add(o);
+  const [p, t] = CAM[view];
+  tc.position.set(...p);
+  tc.lookAt(...t);
+  tr.render(ts, tc);
+  ts.remove(o);
+  const url = tr.domElement.toDataURL('image/png');
+  thumbs.set(k, url);
+  return url;
+}
+
+const $ = id => document.getElementById(id);
+
+const TABS = [
+  ['face', '🙂 Gesicht', [['skin', 'Hautfarbe'], ['eyes', 'Augen']]],
+  ['hair', '💇 Haare', [['hairStyle', 'Frisur'], ['hairColor', 'Haarfarbe']]],
+  ['outfit', '👕 Outfit', [['top', 'Oberteil'], ['topColor', 'Farbe Oberteil'], ['bottomColor', 'Hose / Rock'], ['shoes', 'Schuhe']]],
+  ['extra', '🎩 Extras', [['hat', 'Kopfbedeckung'], ['glasses', 'Brille']]],
+  ['makeup', '💄 Make-up', [['blush', 'Rouge'], ['lips', 'Lippen'], ['lid', 'Lidschatten'], ['mark', 'Wangen-Sticker'], ['nails', 'Nagellack']]],
+  ['schmuck', '💎 Schmuck', [['neck', 'Kette'], ['ear', 'Ohrringe'], ['wrist', 'Armband']]],
+  ['pet', '🐾 Haustier', [['pet', 'Begleiter'], ['petColor', 'Fellfarbe']]],
+];
+
+// Besondere Hüte sind erst nach dem Kauf (Schneiderei / Tauschhütte) wählbar
+let owned = new Set();
+export const setOwnedHats = list => { owned = new Set(list || []); };
+const lockedHat = (field, id) => (JEWEL_KEYS.includes(field) ? id !== 'none' && !owned.has('jw_' + id) : field === 'nails' ? id !== 'none' && !owned.has('nl_' + id) : field === 'hairColor' ? PREMIUM_HCOL.includes(id) && !owned.has('hc_' + id.slice(1))
+  : ((field === 'hat' && PREMIUM_HATS.includes(id)) || (field === 'top' && PREMIUM_TOPS.includes(id)) || (field === 'hairStyle' && PREMIUM_HAIR.includes(id))) && !owned.has(id));
+function options(field, value, look) {
+  const list = LOOKS[field];
+  if (VIEW[field]) {
+    return `<div class="thumbs">${list.map(([id, l]) => { const lock = lockedHat(field, id) && id !== value, src = thumb({ ...look, [field]: id }, VIEW[field]);
+      return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es ' + (JEWEL_KEYS.includes(field) ? 'in der Goldschmiede (Salon in der Bummelgasse)' : HAT_FROM[id] || 'in der Schneiderei der Bummelgasse') + '" style="opacity:.45"' : ''}>${src ? `<img src="${src}" alt="">` : '<span>🚫</span>'}<small>${lock ? '🔒 ' : ''}${l}</small></button>`; }).join('')}</div>`;
+  }
+  if (typeof list[0] === 'string') {
+    return `<div class="swatches">${list.map(c => { const lock = lockedHat(field, c) && c !== value; return `<button style="background:${c}${lock ? ';opacity:.35' : ''}" data-f="${field}" data-v="${c}" class="${c === value ? 'on' : ''}" aria-label="${c}"${lock ? ' disabled title="Gibt es im Salon der Bummelgasse"' : ''}>${lock ? '🔒' : ''}</button>`; }).join('')}</div>`;
+  }
+  return `<div class="chips">${list.map(([id, l]) => { const lock = lockedHat(field, id) && id !== value; return `<button data-f="${field}" data-v="${id}" class="${id === value ? 'on' : ''}"${lock ? ' disabled title="Gibt es im Salon der Bummelgasse" style="opacity:.45"' : ''}>${lock ? '🔒 ' : ''}${l}</button>`; }).join('')}</div>`;
+}
+
+export class Editor {
+  constructor() {
+    this.tab = 'face';
+    $('edtabs').innerHTML = TABS.map(([id, l]) => `<button data-t="${id}">${l}</button>`).join('');
+    $('edtabs').onclick = e => { const t = e.target.closest('button')?.dataset.t; if (t) { this.tab = t; this.render(); } };
+    $('edbody').onclick = e => {
+      const b = e.target.closest('button[data-f]');
+      if (!b || b.disabled) return;
+      this.look = { ...this.look, [b.dataset.f]: b.dataset.v };
+      this.render();
+      this.onChange?.(this.look);
+    };
+    $('edrand').onclick = () => {
+      this.look = { ...randomLook(), pet: this.look.pet, petColor: this.look.petColor };
+      this.render();
+      this.onChange?.(this.look);
+    };
+    $('edok').onclick = () => {
+      const name = $('pname').value.trim().slice(0, 16);
+      if (!name) { $('perr').textContent = 'Gib dir einen Namen 🙂'; $('pname').focus(); return; }
+      this.close();
+      this.onDone?.(name, cleanLook(this.look));
+    };
+    $('edcancel').onclick = () => { this.close(); this.onCancel?.(); };
+    for (const b of document.querySelectorAll('#edrot [data-rot]')) b.onclick = () => this.onRotate?.(+b.dataset.rot);
+  }
+  open({ name, look }, { onChange, onDone, onCancel, onRotate, canCancel = true }) {
+    Object.assign(this, { look: cleanLook(look), onChange, onDone, onCancel, onRotate, isOpen: true });
+    $('pname').value = name || '';
+    $('perr').textContent = '';
+    $('edcancel').classList.toggle('hidden', !canCancel);
+    $('editor').classList.remove('hidden');
+    $('edrot').classList.remove('hidden');
+    this.render();
+  }
+  close() {
+    this.isOpen = false;
+    $('editor').classList.add('hidden');
+    $('edrot').classList.add('hidden');
+  }
+  render() {
+    for (const b of $('edtabs').children) b.classList.toggle('on', b.dataset.t === this.tab);
+    const [, , fields] = TABS.find(t => t[0] === this.tab);
+    $('edbody').innerHTML = fields.map(([f, l]) => `<div><h4>${l}</h4>${options(f, this.look[f], this.look)}</div>`).join('');
+  }
+}
+
+// Einstellungen: dieselben Regler im Hauptmenü und im Spiel-Menü
+export const PRESETS = {
+  low:   { scale: 0.75, shadows: 0, bloom: false, grass: 0, lights: false, view: 0.8, fps: 30 },
+  mid:   { scale: 1.0, shadows: 1024, bloom: false, grass: 4, lights: false, view: 1, fps: 60 },
+  high:  { scale: 1.0, shadows: 2048, bloom: true, grass: 9, lights: true, view: 1.2, fps: 0 },
+  ultra: { scale: 1.25, shadows: 4096, bloom: true, grass: 12, lights: true, view: 1.5, fps: 0 },
+};
+export const SETTING_DEFAULTS = { camSpeed: 1, mouseSens: 1, zoomSpeed: 1, invert: false, camAngle: 0.74, camSmooth: 1, uiScale: 1, anim: true, textScale: 1, cbMode: false, lefty: false, contrast: false, panelBg: 'klar', panelDim: 0.45, panelBlur: true, confirmSell: true, weather: 1 };
+// tab: 'look' (Anzeige & Lesbarkeit), 'gfx' (Grafik), 'ctrl' (Steuerung), 'sound' (Klang) oder 'all' (Hauptmenü: alles)
+export function settingsHtml(st, touch, tab = 'all') {
+  const seg = (k, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-set="${k}" data-v="${v}" class="${String(st[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  const tog = k => `<button class="toggle ${st[k] ? 'on' : ''}" data-tog="${k}" aria-label="${k}"><i></i></button>`;
+  const vol = k => `<input type="range" min="0" max="100" value="${Math.round(st[k] * 100)}" data-vol="${k}">`;
+  const rng = (k, min, max, step, fmt) => `<span class="rng"><input type="range" min="${min}" max="${max}" step="${step}" value="${st[k]}" data-rng="${k}"><output>${fmt(st[k])}</output></span>`;
+  const pct = v => Math.round(v * 100) + ' %';
+  const row = (label, ctl, hint) => `<div class="set"><b>${label}${hint ? `<br><small>${hint}</small>` : ''}</b>${ctl}</div>`;
+  const box = (title, body) => `<section class="setbox"><h3 class="sethead">${title}</h3>${body}</section>`;
+  const preset = Object.keys(PRESETS).find(p => Object.entries(PRESETS[p]).every(([k, v]) => st[k] === v)) || 'custom';
+  const look = box('📖 Lesbarkeit', `
+    ${row('Fenster-Hintergrund', seg('panelBg', [['klar', 'Klar'], ['weiss', 'Weiß'], ['papier', 'Papier']]), 'Klar & Weiß: ruhiger Hintergrund, gut lesbar · Papier: mit Notizbuch-Punkten')}
+    ${row('Spielwelt hinter Fenstern', seg('panelDim', [[0.2, 'Hell'], [0.45, 'Abgedunkelt'], [0.7, 'Dunkel']]), 'Je dunkler, desto ruhiger wirkt das Fenster')}
+    ${row('Weichzeichnen', tog('panelBlur'), 'Die Spielwelt hinter Fenstern unscharf machen')}
+    ${row('Textgröße', seg('textScale', [[1, 'Normal'], [1.15, 'Groß'], [1.3, 'Sehr groß']]), 'Fenster, Gespräche und Hinweise')}
+    ${row('Hoher Kontrast', tog('contrast'), 'Dunklere Schrift, deutlichere Ränder')}
+    ${row('Farbenblind-Hilfe', tog('cbMode'), 'Zeichen ✔ ✖ statt nur Rot/Grün, kräftigere Farben')}`)
+    + box('🖥️ Anzeige', `
+    ${row('Größe der Knöpfe', seg('uiScale', [[0.85, 'Klein'], [1, 'Normal'], [1.15, 'Groß'], [1.3, 'Riesig']]))}
+    ${row('🏷️ Namen anzeigen', tog('names'), 'Namen über Figuren und Nachbarn')}
+    ${row('Animationen', tog('anim'), 'Wippen, Fahnen, Windräder, Hüpfer')}
+    ${touch ? row('📱 Querformat', tog('landscape')) : ''}
+    ${row('🕰️ Echte Uhrzeit', tog('realtime'), 'Tag & Nacht wie draußen (gilt für die Insel des Hosts)')}
+    ${row('💰 Vor dem Verkaufen nachfragen', tog('confirmSell'), 'Bei wertvollen Sachen und „Alles verkaufen“')}`);
+  const gfx = box('🎨 Grafik', `
+    <div class="set"><b>Voreinstellung</b><div class="seg">${[['low', 'Niedrig'], ['mid', 'Mittel'], ['high', 'Hoch'], ['ultra', 'Ultra']].map(([v, l]) => `<button data-set="quality" data-v="${v}" class="${preset === v ? 'on' : ''}">${l}</button>`).join('')}${preset === 'custom' ? '<button class="on" disabled>Eigene</button>' : ''}</div></div>
+    ${row('Auflösung', rng('scale', 0.5, 1.5, 0.05, pct), 'Weniger = flüssiger auf schwachen Geräten')}
+    ${row('Schatten', seg('shadows', [[0, 'Aus'], [1024, 'Weich'], [2048, 'Schön'], [4096, 'Scharf']]))}
+    ${row('Leuchten (Bloom)', tog('bloom'), 'Lampen und Fenster strahlen nachts')}
+    ${row('Laternenlicht', tog('lights'), 'Laternen beleuchten nachts ihre Umgebung')}
+    ${row('Grashalme', rng('grass', 0, 12, 1, v => v ? v : 'Aus'))}
+    ${row('Sichtweite', rng('view', 0.6, 1.8, 0.1, pct))}
+    ${row('Bilder pro Sekunde', seg('fps', [[30, '30'], [60, '60'], [0, 'Max']]), 'Begrenzen spart Akku')}`);
+  const ctrl = box('🎥 Kamera', `
+    ${row('Drehtempo (Tasten Z/C)', rng('camSpeed', 0.3, 2.5, 0.1, pct))}
+    ${row(touch ? 'Wisch-Empfindlichkeit' : 'Maus-Empfindlichkeit', rng('mouseSens', 0.2, 3, 0.1, pct), touch ? 'Drehen mit zwei Fingern' : 'Drehen mit gedrückter rechter Maustaste')}
+    ${row('Zoom-Tempo', rng('zoomSpeed', 0.3, 3, 0.1, pct))}
+    ${row('Kamera folgt', rng('camSmooth', 0.3, 2, 0.1, v => v < 0.8 ? 'weich' : v > 1.3 ? 'direkt' : 'normal'))}
+    ${row('Blickwinkel', seg('camAngle', [[0.55, 'Flach'], [0.74, 'Normal'], [0.95, 'Steil']]))}
+    ${row('Drehrichtung umkehren', tog('invert'))}`)
+    + box('🎮 Bedienung', `
+    ${touch ? row('Linkshänder', tog('lefty'), 'Steuerkreuz rechts, Aktionsknopf links') : ''}
+    ${row('⛶ Vollbild', touch ? tog('fullscreen') : '<button class="btn small white" data-ui="fullscreen">Umschalten</button>')}
+    ${row('🎮 Controller', '<small>einfach anschließen</small>', 'Linker Stick laufen · rechter Stick drehen · A Aktion · B zurück · X Tasche · Y Handy · LB/RB Werkzeug · Start Menü')}`);
+  const sound = box('🎵 Klang', `${row('Musik', vol('music'))}${row('Geräusche', vol('sound'))}${row('🌧️ Wetter', vol('weather'), 'Nur Regen und Donner leiser stellen – alles andere bleibt, wie es ist')}`);
+  return { look, gfx, ctrl, sound }[tab] || gfx + look + ctrl + sound;
+}
