@@ -257,6 +257,11 @@ try:
 
     # ---------- sehr dichte Modelle sanft ausdünnen (Handys!) ----------
     CAP = {'furniture': 4000, 'place': 5500, 'items': 1200, 'crops': 1200}
+    NAME_CAP = globals().get('NAME_CAP') or [('zaun_', 1800)]  # Zaunstücke stehen in langen Reihen: deutlich sparsamer
+    def cap_of(pack, name):
+        for pre, c in NAME_CAP:
+            if name.startswith(pre): return c
+        return CAP.get(pack)
     def ntris(me): return sum(len(p.vertices) - 2 for p in me.polygons)
     stats['decimated'] = []
     for pack, objs in built.items():
@@ -264,8 +269,9 @@ try:
             for o in [r] + list(r.children_recursive):
                 if o.type != 'MESH' or '__glow' in o.name: continue
                 n = ntris(o.data)
-                if not CAP.get(pack) or n <= CAP[pack]: continue
-                mod = o.modifiers.new('dec', 'DECIMATE'); mod.ratio = CAP[pack] / n
+                cap = cap_of(pack, r.name)
+                if not cap or n <= cap: continue
+                mod = o.modifiers.new('dec', 'DECIMATE'); mod.ratio = cap / n
                 ev = o.evaluated_get(bpy.context.evaluated_depsgraph_get())
                 me = bpy.data.meshes.new_from_object(ev); old = o.data
                 o.modifiers.remove(mod); o.data = me; bpy.data.meshes.remove(old)

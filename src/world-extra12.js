@@ -3,11 +3,18 @@
 import * as THREE from '../vendor/three.module.min.js';
 import * as M from './models.js';
 import * as E from './extras15.js';
-import { koiParts, shuttleParts, treeBaseParts, memTreeParts, treeHangParts, POLA_TILT } from './models-15.js';
+import { koiParts, shuttleParts, treeHangParts, POLA_TILT, BLEND_15, TREE_SEASONS } from './models-15.js';
+import { model as asset } from './assets.js';
 import { motifCanvas } from './motifs15.js';
 
 const mesh = (parts, glow) => M.model(parts, glow || [], false);
 const shadow = m => { m.traverse(q => { if (q.isMesh) q.castShadow = true; }); return m; };
+// Benanntes Stück: Blender-Fassung, wenn es sie gibt, sonst die Grundformen (fn liefert die Teile)
+function am(name, fn = BLEND_15[name]) {
+  const own = asset(name);
+  if (own) { own.traverse(o => { o.castShadow = false; }); return own; }
+  return mesh(fn());
+}
 const onIsland = w => w.target.x > -150 && w.target.x < 150 && Math.abs(w.target.z) < 150;
 
 // ---------- Koi ----------
@@ -22,7 +29,7 @@ function updateKoi(w, s, dt) {
     const set = new Set(tiles);
     w.koiAdj = k => { const [x, z] = k.split(',').map(Number); return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, b]) => (x + a) + ',' + (z + b)).filter(n => set.has(n)); };
     fish.forEach((f, i) => {
-      const d = E.KOI[f.v], m = mesh(koiParts(d[2], d[3], f.v)), at = tiles[(i * 7 + 3) % tiles.length];
+      const d = E.KOI[f.v], m = am('koi15_' + f.v, () => koiParts(d[2], d[3], f.v)), at = tiles[(i * 7 + 3) % tiles.length];
       m.scale.setScalar(0.82);
       w.scene.add(m);
       w.koi15.push({ m, a: at, b: at, u: 1, sp: 0.22 + (i % 4) * 0.05, ox: ((i * 37) % 11 - 5) * 0.045, oz: ((i * 53) % 11 - 5) * 0.045, ry: i, ph: i * 1.7, x: 0, z: 0 });
@@ -61,13 +68,16 @@ function updateTree(w, s) {
   if (e.m.userData.t15 === sig) return;
   if (e.m.userData.t15g) { e.m.remove(e.m.userData.t15g); e.m.userData.t15g.traverse(o => o.geometry?.dispose?.()); }
   else for (const c of e.m.children) c.visible = false; // das Vorschau-Modell weicht dem gewachsenen Baum
-  const g = shadow(mesh([...treeBaseParts(), ...memTreeParts(st, w.season), ...(st > 0 ? treeHangParts(st, marks, notes) : [])]));
+  const g = new THREE.Group(), sea = TREE_SEASONS.includes(w.season) ? w.season : 'summer';
+  g.add(am('baum15_sockel'), am(`baum15_${sea}_${st}`));
+  if (st > 0 && marks + notes > 0) g.add(mesh(treeHangParts(st, marks, notes)));
+  shadow(g);
   g.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
   e.m.add(g);
   e.m.userData.t15 = sig; e.m.userData.t15g = g;
 }
 
-// ---------- Federball ----------
+// ---------- Federball (winzig und mit offenem Kegel: bleibt aus Grundformen) ----------
 function updateShuttle(w, s, dt) {
   const R = s.rally, N = w.net15, live = !!N && E.rallyLive(s);
   if (!w.shuttle15) { if (!live) return; w.shuttle15 = { m: mesh(shuttleParts()), key: '', t: 9, from: -1, hide: 0 }; w.scene.add(w.shuttle15.m); }

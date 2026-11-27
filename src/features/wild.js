@@ -39,7 +39,7 @@ export function resolveWild(s, me, at) {
   return null;
 }
 export function wild(s, a, out) {
-  const W = WILD[a.id];
+  const W = Object.hasOwn(WILD, a.id) ? WILD[a.id] : null;
   if (!W || !W.food.includes(a.item) || !wildAwake(s, a.id)) return false;
   const w = s.wild[a.id] ||= { t: 0 };
   if (w.fed === s.day || !S.takeInvX(s, a.item, 1)) return false;

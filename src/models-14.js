@@ -158,12 +158,17 @@ export const FURN_14 = {
 const FUR = 0xf5efe6;
 export const rabbitParts = bow => [B(0.16, FUR, 0, 0.17, 0, 1, 0.9, 1.25), B(0.115, FUR, 0, 0.32, 0.16), ...[-1, 1].flatMap(sx => [B(0.036, FUR, sx * 0.05, 0.5, 0.12, 0.9, 2.6, 0.7, 7, 6), B(0.018, 0xffc4d2, sx * 0.05, 0.5, 0.135, 0.8, 2.3, 0.5, 6, 5), B(0.016, DARK, sx * 0.05, 0.345, 0.255),
   B(0.05, FUR, sx * 0.09, 0.05, 0.12, 1, 0.6, 1.5, 7, 5), B(0.06, FUR, sx * 0.1, 0.06, -0.1, 1, 0.7, 1.4, 7, 5), B(0.03, 0xffd9e3, sx * 0.05, 0.3, 0.25)]), B(0.016, ROSE, 0, 0.315, 0.275), B(0.06, WHITE, 0, 0.19, -0.21),
-  ...(bow ? [B(0.04, bow, -0.045, 0.24, 0.22, 1.3, 0.8, 0.6, 6, 4), B(0.04, bow, 0.045, 0.24, 0.22, 1.3, 0.8, 0.6, 6, 4), B(0.02, bow, 0, 0.24, 0.235)] : [])];
-export const snowmanParts = (lv, d = {}) => [B(0.36, SNOW, 0, 0.3, 0, 1, 0.92, 1, 14, 10), ...(lv >= 2 ? [B(0.27, SNOW, 0, 0.8, 0, 1, 0.94, 1, 12, 9)] : []), ...(lv >= 3 ? [B(0.19, SNOW, 0, 1.2, 0)] : []),
-  ...(d.nose ? [K(0.035, 0.18, ORANGE, 0, 1.2, 0.27, 7, H)] : []), ...(d.eyes ? [B(0.024, DARK, -0.07, 1.26, 0.17), B(0.024, DARK, 0.07, 1.26, 0.17), ...[0.9, 0.78, 0.66].map(y => B(0.026, DARK, 0, y, 0.265 - Math.abs(y - 0.8) * 0.2))] : []),
-  ...(d.arms ? [-1, 1].flatMap(sx => [C(0.014, 0.018, 0.5, 0x6a4a2f, sx * 0.44, 0.92, 0, 5, 0, 0, -sx * 1.1), C(0.01, 0.012, 0.14, 0x6a4a2f, sx * 0.62, 1.08, 0, 4, 0, 0, sx * 0.2)]) : []),
-  ...(d.scarf ? [T(0.19, 0.05, RED, 0, 1.03, 0), X(0.09, 0.3, 0.04, RED, 0.13, 0.88, 0.17, 0.15, 0, -0.15), X(0.091, 0.04, 0.041, WHITE, 0.14, 0.78, 0.185, 0.15, 0, -0.15)] : []),
-  ...(d.hat ? [C(0.2, 0.2, 0.025, 0x3b3b4a, 0, 1.36, 0, 12), C(0.13, 0.14, 0.2, 0x3b3b4a, 0, 1.47, 0, 12), C(0.142, 0.142, 0.05, RED, 0, 1.4, 0, 12)] : [])];
+  ...rabbitBowParts(bow)];
+export function rabbitBowParts(bow) { return bow ? [B(0.04, bow, -0.045, 0.24, 0.22, 1.3, 0.8, 0.6, 6, 4), B(0.04, bow, 0.045, 0.24, 0.22, 1.3, 0.8, 0.6, 6, 4), B(0.02, bow, 0, 0.24, 0.235)] : []; }
+export const snowBodyParts = lv => [B(0.36, SNOW, 0, 0.3, 0, 1, 0.92, 1, 14, 10), ...(lv >= 2 ? [B(0.27, SNOW, 0, 0.8, 0, 1, 0.94, 1, 12, 9)] : []), ...(lv >= 3 ? [B(0.19, SNOW, 0, 1.2, 0)] : [])];
+export const SNOW_DECO = {
+  nose: () => [K(0.035, 0.18, ORANGE, 0, 1.2, 0.27, 7, H)],
+  eyes: () => [B(0.024, DARK, -0.07, 1.26, 0.17), B(0.024, DARK, 0.07, 1.26, 0.17), ...[0.9, 0.78, 0.66].map(y => B(0.026, DARK, 0, y, 0.265 - Math.abs(y - 0.8) * 0.2))],
+  arms: () => [-1, 1].flatMap(sx => [C(0.014, 0.018, 0.5, 0x6a4a2f, sx * 0.44, 0.92, 0, 5, 0, 0, -sx * 1.1), C(0.01, 0.012, 0.14, 0x6a4a2f, sx * 0.62, 1.08, 0, 4, 0, 0, sx * 0.2)]),
+  scarf: () => [T(0.19, 0.05, RED, 0, 1.03, 0), X(0.09, 0.3, 0.04, RED, 0.13, 0.88, 0.17, 0.15, 0, -0.15), X(0.091, 0.04, 0.041, WHITE, 0.14, 0.78, 0.185, 0.15, 0, -0.15)],
+  hat: () => [C(0.2, 0.2, 0.025, 0x3b3b4a, 0, 1.36, 0, 12), C(0.13, 0.14, 0.2, 0x3b3b4a, 0, 1.47, 0, 12), C(0.142, 0.142, 0.05, RED, 0, 1.4, 0, 12)],
+};
+export const snowmanParts = (lv, d = {}) => [...snowBodyParts(lv), ...Object.keys(SNOW_DECO).filter(k => d[k]).flatMap(k => SNOW_DECO[k]())];
 export const snowPileParts = () => [dome(0.4, SNOW, 0, 0, 0, 0.7), dome(0.22, 0xeaf3ff, 0.26, 0, 0.18, 0.7), dome(0.18, SNOW, -0.28, 0, -0.14, 0.7), B(0.03, 0xffffff, 0.05, 0.3, 0.05)];
 export const lockParts = c => [X(0.085, 0.07, 0.035, c, 0, 0, 0), T(0.028, 0.008, 0xd0d4dc, 0, 0.038, 0, 0, 0, PI), B(0.012, 0x3b3b40, 0, -0.005, 0.02)];
 export const salonParts = () => [[X(2.3, 0.06, 1.3, 0xf7e3ea, 0, 0.03, 0), ...[[-1.08, -0.58], [1.08, -0.58], [-1.08, 0.58], [1.08, 0.58]].map(([x, z]) => C(0.04, 0.045, 1.9, WHITE, x, 0.98, z, 8)), soft(2.5, 0.16, 1.5, ROSE, 0, 2.0, 0, 0.4),
@@ -181,3 +186,17 @@ export const salonParts = () => [[X(2.3, 0.06, 1.3, 0xf7e3ea, 0, 0.03, 0), ...[[
 export const doorParts = c => [X(0.8, 1.04, 0.05, c, 0, 0.82, 1.665), C(0.4, 0.4, 0.05, c, 0, 1.3, 1.665, 16, H), ...[-0.2, 0, 0.2].map(x => X(0.02, 1.0, 0.012, 0x000000, x, 0.82, 1.694)), B(0.045, 0xf2c84a, 0.28, 0.86, 1.71), X(0.06, 0.11, 0.02, 0xf2c84a, 0.28, 0.74, 1.695)];
 export const shutterParts = (c, xs) => xs.flatMap(x => [-1, 1].flatMap(sx => [X(0.2, 0.7, 0.04, c, x + sx * 0.43, 1.3, 1.64), X(0.16, 0.03, 0.045, 0x000000, x + sx * 0.43, 1.45, 1.642), X(0.16, 0.03, 0.045, 0x000000, x + sx * 0.43, 1.15, 1.642)]));
 export const boxParts = (c, xs) => xs.flatMap(x => [X(0.74, 0.14, 0.16, WOODD, x, 0.9, 1.7), B(0.2, LEAF, x, 0.98, 1.7, 1.7, 0.45, 0.5, 8, 5), ...[-0.26, -0.13, 0, 0.13, 0.26].map((dx, i) => B(0.06, c || [ROSE, BUTTER, LILA, RED, WHITE][i], x + dx, 1.04 + (i % 2) * 0.03, 1.74, 1, 1, 1, 7, 5))]);
+
+// ---------- Zusammengesetzte Stücke mit eigenem Namen: Blender baut sie nach (tools/dump-models.mjs), das Spiel nimmt die
+// Blender-Fassung, wenn es sie gibt (world-extra11.js), sonst diese Grundformen. Jeder Eintrag liefert [Teile, Leuchtteile].
+export const BLEND_14 = {
+  hase14: () => [rabbitParts(0), []],
+  schneemann14_1: () => [snowBodyParts(1), []], schneemann14_2: () => [snowBodyParts(2), []], schneemann14_3: () => [snowBodyParts(3), []],
+  ...Object.fromEntries(Object.keys(SNOW_DECO).map(k => ['schneemann14_' + k, () => [SNOW_DECO[k](), []]])),
+  schneehaufen14: () => [snowPileParts(), []],
+  salon14: () => salonParts(),
+};
+// Fassade: je Farbe ein Stück für EINE Tür, EIN Fenster (Läden) bzw. EINEN Blumenkasten – das Spiel schiebt sie an ihren Platz
+const brown = parts => { for (const q of parts) if (q.c === 0x000000) q.c = 0x4a3a2a; return parts; };
+export const FACADE_NAME = { door: 'tuer14_', shut: 'laden14_', box: 'kasten14_' };
+export const facadeParts = (kind, c) => brown(kind === 'door' ? doorParts(c) : kind === 'shut' ? shutterParts(c, [0]) : boxParts(c, [0]));

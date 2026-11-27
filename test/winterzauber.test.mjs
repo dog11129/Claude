@@ -63,8 +63,8 @@ test('Adventskalender: echtes Datum, jede:r öffnet seine Türchen, nachholen ge
   E.setClock15(() => new Date(2026, 10, 27));
   assert.deepEqual(E.adventInfo(), { y: 2026, on: false, soon: 4 });
   assert.ok(!act(s, { t: 'advent15', d: 1 }).ok, 'im November noch zu');
+  s.pinv.host = { erinnerungsbaum: 1, puzzletisch: 1 }; s.i15 = 1; // Begrüßungspost ist schon lange da
   const n0 = s.mail.length;
-  s.i15 = 1;
   assert.equal(E.tick15(s), true, 'der Wandkalender kommt schon Ende November');
   assert.equal(s.mail.at(-1).item, 'adventskalender');
   assert.equal(E.tick15(s), false); assert.equal(s.mail.length, n0 + 1);
@@ -409,4 +409,41 @@ test('Modelle: alles Neue hat ein Modell und passt auf seine Kachel', () => {
   for (let st = 0; st < 5; st++) for (const sea of ['spring', 'summer', 'autumn', 'winter']) assert.ok(M15.memTreeParts(st, sea).length >= 3);
   assert.ok(M15.treeHangParts(4, 15, 8).length === 46);
   for (const v of E.KOI_IDS) { const b = box(M15.koiParts(E.KOI[v][2], E.KOI[v][3], v)); assert.ok(b.max.z - b.min.z < 0.5, v); }
+});
+
+test('Erinnerungsbaum und Puzzletisch gehen nicht verloren: unverkäuflich bzw. kommen per Post zurück', () => {
+  E.setClock15(() => new Date(2026, 5, 10));
+  const s = fresh();
+  E.tick15(s);
+  assert.equal(E.tick15(s), false, 'liegt in der Post: nichts zu tun');
+  while (s.mail.length) assert.ok(act(s, { t: 'mail', i: 0 }).ok);
+  assert.equal(s.pinv.host.erinnerungsbaum, 1);
+  assert.equal(E.tick15(s), false, 'liegt in der Tasche');
+  assert.ok(!act(s, { t: 'sell', id: 'erinnerungsbaum', n: 1 }).ok, 'der Baum lässt sich nicht verkaufen');
+  assert.equal(S.price(s, 'schnitzkuerbis_froh'), 400);
+  s.pinv.host.erinnerungsbaum = 0; delete s.pinv.host.puzzletisch; // verschenkt …
+  assert.equal(E.tick15(s), true);
+  assert.deepEqual(s.mail.map(m => m.item), ['erinnerungsbaum', 'puzzletisch']);
+  assert.equal(E.tick15(s), false, 'nur einmal');
+  // aufgestellt und eingerichtet zählt als vorhanden
+  s.mail = []; s.obj['3,3'] = { k: 'erinnerungsbaum', r: 0 }; s.home.items['0,0'] = { k: 'puzzletisch', r: 0 };
+  assert.equal(E.tick15(s), false);
+  delete s.home.items['0,0']; (s.xrooms ||= {}).attic = { items: { '1,1': { k: 'puzzletisch', r: 0 } }, rugs: {}, walls: {} };
+  assert.equal(E.owns15(s, 'puzzletisch'), true, 'auch auf dem Dachboden');
+  E.setClock15();
+});
+
+test('Unsinnige Angaben (auch Namen wie „toString“) bringen den Host nicht aus dem Tritt', () => {
+  const s = fresh(), odd = ['toString', 'constructor', '__proto__', 'hasOwnProperty', 'length', '', null, undefined, -1, 1e9, NaN, {}, []];
+  s.snowmen = { '3,3': { lv: 3, deco: {} } };
+  const tries = v => [{ t: 'jewel15', slot: v, id: v }, { t: 'salon14', kind: v, id: v }, { t: 'ext14', k: v, v }, { t: 'terra14', x: 2, z: 2, k: v }, { t: 'lock14', c: v, txt: 'x' },
+    { t: 'pet14', op: 'bow', i: v }, { t: 'snow14', op: 'deco', x: 3, z: 3, part: v }, { t: 'tale', id: v }, { t: 'wild', id: v, item: v }, { t: 'koi15', op: 'buy', v }, { t: 'koi15', op: v, i: v },
+    { t: 'costume15', id: v }, { t: 'carve15', face: v }, { t: 'pola15', op: 'set', slot: v, img: v }, { t: 'tree15', op: 'note', txt: v }, { t: 'tree15', op: 'del', i: v }, { t: 'puzzle15', i: v },
+    { t: 'advent15', d: v }, { t: 'rally15', op: v, vs: v }, { t: 'game', op: 'start', k: v, vs: v }, { t: 'hplace', x: 0, z: 0, item: 'puzzletisch', room: v }, { t: 'hpick', x: 0, z: 0, room: v }];
+  for (const v of odd) for (const a of tries(v)) assert.doesNotThrow(() => act(s, a), JSON.stringify(a));
+  assert.ok(Number.isFinite(s.money), 'das Geld bleibt eine Zahl');
+  assert.doesNotThrow(() => S.roomOf(s, 'toString'));
+  assert.notEqual(S.roomOf(s, 'toString').items, s.home.items, 'unbekanntes Zimmer ist nicht das eigene Zuhause');
+  assert.equal(typeof S.roomOf(s, 'toString').items, 'object');
+  JSON.parse(JSON.stringify(s));
 });

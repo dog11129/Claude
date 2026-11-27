@@ -48,6 +48,9 @@ for (const t of ids('top')) put('av_torso_' + t, P.torsoParts(look({ top: t })))
 put('av_arm_hoodie', P.armParts(look({ top: 'hoodie' }))); put('av_arm_vest', P.armParts(look({ top: 'vest' }))); put('av_arm_short', P.armParts(look({ top: 'tshirt' })));
 put('av_leg_dress', P.legParts(look({ top: 'dress' }))); put('av_leg_pants', P.legParts(look({ top: 'tshirt' })));
 for (const [k, [, , fn]] of Object.entries(P.HELD)) put('held_' + k, fn());
+// Nagellack und Schmuck (feste Farben, keine Schlüsselfarben)
+for (const n of ids('nails').filter(k => k !== 'none')) put('av_nail_' + n, P.nailParts(n));
+for (const [slot, fn] of [['neck', P.neckParts], ['ear', P.earParts], ['wrist', P.wristParts]]) for (const j of ids(slot).filter(k => k !== 'none')) put(`av_${slot}_${j}`, fn(j));
 for (const k of ids('pet').filter(k => k !== 'none')) {
   const D = P.petParts(k, k === 'pig' ? '#e8a35c' : '#00ff00');
   for (const n of ['body', 'head', 'tail', 'a', 'b']) put(`pet_${k}_${n}`, D[n]);

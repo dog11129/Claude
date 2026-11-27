@@ -26,7 +26,7 @@ export function puzzle15(s, a, out) {
   S.addInvX(s, item, 1);
   addLove(s, 12, out);
   P.done = (P.done || 0) + 1;
-  X.moment(s, 'puzzle' + P.done, '🧩', `Puzzle fertig: ${name}`, 'Teil für Teil zusammen gelegt – jetzt hängt das Bild bei euch an der Wand.', out);
+  X.moment(s, 'puzzle_' + P.m, '🧩', `Puzzle fertig: ${name}`, 'Teil für Teil zusammen gelegt – jetzt hängt das Bild bei euch an der Wand.', out);
   out.msg = `${icon} Das letzte Teil! „${name}“ ist fertig – das Bild liegt in deiner Tasche (an die Wand hängen). +12 💕`;
   out.snd = 'fanfare';
   out.puzzle15 = 'done';

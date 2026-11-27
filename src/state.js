@@ -361,9 +361,11 @@ export const nroomBlank = id => ({ wall: NROOM_STYLE[id]?.[0] || 'vanille', floo
 const blankRooms = {};
 // Ein Zimmer: eigenes Haus (id = null) oder das Zimmer eines Nachbarn
 export function roomOf(s, id) {
-  if (V.XROOMS[id]) return V.xroomOf(s, id); // Dachboden, Keller, Baumhaus
+  if (id && typeof id !== 'string') id = null; // nur Zimmernamen – alles andere ist das eigene Zuhause
+  if (id && Object.hasOwn(V.XROOMS, id)) return V.xroomOf(s, id); // Dachboden, Keller, Baumhaus
   if (!id) return { id: null, z0: 0, size: roomSize(s), items: s.home.items, rugs: s.home.rugs, walls: s.home.walls || {}, wall: s.home.wall, floor: s.home.floor };
-  const h = s.nhome?.[id] || (blankRooms[id] ||= nroomBlank(id));
+  const own = (o, k) => (o && Object.hasOwn(o, k) ? o[k] : null); // kein Griff in die Prototypen-Kette (id kommt von außen)
+  const h = own(s.nhome, id) || own(blankRooms, id) || (blankRooms[id] = nroomBlank(id));
   return { id, z0: nroomZ(id), size: NROOM_SIZE, items: h.items, rugs: h.rugs, walls: h.walls, wall: h.wall, floor: h.floor };
 }
 // Kacheln eines Möbels: (x, z) = nordwestliche Kachel, gedreht -> Breite/Tiefe tauschen

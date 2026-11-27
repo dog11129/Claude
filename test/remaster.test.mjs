@@ -13,23 +13,8 @@ const glb = f => {
   return JSON.parse(b.subarray(20, 20 + len).toString('utf8'));
 };
 const roots = j => j.scenes[j.scene || 0].nodes.map(i => j.nodes[i].name);
-// Modelle, die es (noch) nur im Code gibt. Inselleben 12 hat alles Bisherige in Blender nachgebaut; diese hier sind neu
-// (Inselleben 13 „Gartenzeit“: Zäune setzen sich im Spiel aus Pfosten und Armen zusammen, Tore haben einen beweglichen Flügel).
-const CODE_ONLY = new Set(['lattenzaun', 'rosenzaun', 'steinmauer', 'hecke', 'eisenzaun', 'seilzaun', 'gartentor', 'lattentor', 'trittsteine', 'pergola',
-  'feenlaterne', 'pilzhocker', 'pilztisch', 'wunschbrunnen', 'schmetterlingsstrauch', 'regenbogen',
-  // Inselleben 14 „Lieblingsplätze“: Stege, Treppen, Laternen, Kuschelplätze, Saisonkatalog, Sträuße & Kränze
-  'holzbruecke', 'steinbruecke', 'holztreppe', 'steintreppe', 'strassenlaterne', 'doppellaterne', 'wegleuchte', 'lampionpfahl', 'kuschelschaukel',
-  'doppelhaengematte', 'sternendecke', 'osternest', 'tulpenkiste', 'hasenfigur', 'bluetenbogen', 'maibaum', 'planschbecken', 'eistruhe',
-  'melonentisch', 'strandmuschel', 'limostand', 'kuerbisstapel', 'laubhaufen', 'heubank', 'kastanienmann', 'apfelkarren', 'iglu',
-  'eislaterne', 'geschenkestapel', 'zuckerstange', 'eisskulptur', 'bluetenlampe', 'pastellsessel', 'eierkorb', 'veilchenbild', 'fruehlingsteppich',
-  'ventilator', 'muschelspiegel', 'limokrug', 'surfregal', 'hawaiilampe', 'kuerbislampe', 'strickhocker', 'apfelkiste', 'laubgirlande',
-  'kastanienschale', 'winterdorf', 'kaminofen', 'kakaotablett', 'sternlichterkette', 'norwegerteppich', 'veilchenstrauss', 'irisstrauss', 'ranunkelstrauss',
-  'herbststrauss', 'kranz_fruehling', 'kranz_sommer', 'kranz_herbst', 'kranz_winter',
-  // Inselleben 15 „Winterzauber“: Federball, Erinnerungsbaum, Koi-Deko, Kürbisse, Advent, Puzzle, Polaroids, Kostüm-Hüte
-  'federballnetz', 'erinnerungsbaum', 'koifahne', 'koistatue', 'schnitzkuerbis_froh', 'schnitzkuerbis_grusel', 'schnitzkuerbis_herz', 'lebkuchenhaus',
-  'puzzletisch', 'adventskalender', 'nikolausstiefel', 'nussknacker', 'adventsstern', 'weihnachtspyramide',
-  'puzzlebild1', 'puzzlebild2', 'puzzlebild3', 'puzzlebild4', 'puzzlebild5', 'puzzlebild6', 'polaroid1', 'polaroid2', 'polaroid3', 'polaroid4', 'polaroid5', 'polaroid6',
-  'hexenhut', 'kuerbishut', 'geisterhaube', 'fledermausreif']);
+// Modelle, die es (noch) nur im Code gibt – neue Stücke kommen hier hinein, bis der nächste Blender-Lauf sie nachbaut.
+const CODE_ONLY = new Set([]); // seit dem Blender-Lauf zu Inselleben 15 ist wieder alles nachgebaut
 
 test('alle Modell-Pakete aus packs.json gibt es, die neuen Blender-Pakete stehen hinten', () => {
   const packs = JSON.parse(readFileSync(new URL('assets/models/packs.json', R), 'utf8'));
@@ -87,11 +72,21 @@ test('eigene Icons: jede Datei gehört zu einem Gegenstand und ist eingetragen',
   assert.deepEqual(missing, [], 'jeder Gegenstand hat ein eigenes Bild');
 });
 
+test('zusammengesetzte Stücke (Hase, Schneemann, Salon, Fassade, Erinnerungsbaum, Koi) und Zaunstücke sind im Paket', async () => {
+  const names = new Set(roots(glb('place2')));
+  const M14 = await import('../src/models-14.js'), M15 = await import('../src/models-15.js'), E14 = await import('../src/extras14.js'), E15 = await import('../src/extras15.js');
+  for (const n of [...Object.keys(M14.BLEND_14), ...Object.keys(M15.BLEND_15)]) assert.ok(names.has(n), n);
+  for (const kind of ['door', 'shut', 'box']) for (const o of E14.EXT[kind]) if (o[0]) assert.ok(names.has(M14.FACADE_NAME[kind] + o[0]), kind + ' ' + o[0]);
+  for (const v of E15.KOI_IDS) assert.ok(names.has('koi15_' + v), v);
+  for (const kind of new Set(Object.values(D.PLACE).map(p => p.fence).filter(Boolean))) for (let m = 1; m < 16; m++) assert.ok(names.has(`zaun_${kind}_${m}`), `zaun_${kind}_${m}`);
+  for (const kind of new Set(Object.values(D.PLACE).map(p => p.gate).filter(Boolean))) assert.ok(names.has(`tor_${kind}_rahmen`) && names.has(`tor_${kind}_fluegel`), kind);
+});
+
 test('Welt-Stücke aus Blender (world2.glb) passen zu den Namen im Code', () => {
   const names = new Set(roots(glb('world2')));
-  for (const n of ['zone_fair', 'fair_wheel', 'fair_carousel', 'zone_moor', 'zone_bambus', 'zone_reef', 'zone_wreck', 'zone_grotto', 'zone_volcano', 'zone_cave_hoehle',
+  for (const n of ['zone_fair', 'fair_wheel', 'fair_carousel', 'zone_moor', 'zone_bambus', 'zone_reef', 'zone_wreck', 'zone_grotto', 'zone_volcano', 'zone13_cave_hoehle', 'zone13_path_wald', 'zone13_brook', 'zone9_deer',
     'zone_depth_0', 'gate_wald', 'gate_wald_open', 'ride_pony', 'ride_tandem', 'ride_sled', 'wild_igel', 'zone_hive', 'eiernest_nest', 'bambus_clump_0_cut']) assert.ok(names.has(n), n);
-  const pre = ['zone_', 'fair_', 'gate_', 'ride_', 'wild_', 'moor_', 'bambus_', 'graft_', 'move_box', 'fish_bobber', 'eiernest_nest'];
+  const pre = ['zone_', 'zone13_', 'zone9_', 'fair_', 'gate_', 'ride_', 'wild_', 'moor_', 'bambus_', 'graft_', 'move_box', 'fish_bobber', 'eiernest_nest'];
   for (const n of names) assert.ok(pre.some(p => n.startsWith(p)), n);
 });
 

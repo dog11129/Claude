@@ -561,9 +561,9 @@ export function makeAvatar(look) {
   // Figur schaut nach +z: linke Seite = +x, rechte Seite = -x
   const legL = grp(hips, 0.095), legR = grp(hips, -0.095), armL = grp(torso, 0.21, 0.31), armR = grp(torso, -0.21, 0.31);
   mesh(legG, legL); mesh(legG, legR); mesh(armG, armL); mesh(armG, armR);
-  if (l.nails && l.nails !== 'none') { const ng = geo('nail' + l.nails, () => nailParts(l.nails)); mesh(ng, armL).castShadow = false; mesh(ng, armR).castShadow = false; }
-  if (l.wrist && l.wrist !== 'none') mesh(geo('wrist' + l.wrist, () => wristParts(l.wrist)), armL).castShadow = false;
-  if (l.neck && l.neck !== 'none') mesh(geo('neck' + l.neck, () => neckParts(l.neck)), torso).castShadow = false;
+  if (l.nails && l.nails !== 'none') { const ng = bgeo(['av_nail_' + l.nails], l, 'nail' + l.nails, () => nailParts(l.nails)); mesh(ng, armL).castShadow = false; mesh(ng, armR).castShadow = false; }
+  if (l.wrist && l.wrist !== 'none') mesh(bgeo(['av_wrist_' + l.wrist], l, 'wrist' + l.wrist, () => wristParts(l.wrist)), armL).castShadow = false;
+  if (l.neck && l.neck !== 'none') mesh(bgeo(['av_neck_' + l.neck], l, 'neck' + l.neck, () => neckParts(l.neck)), torso).castShadow = false;
   const hand = grp(armR, 0, -0.25), neck = grp(torso, 0, 0.38);
   mesh(bgeo(headNames(l), l, 'head' + [l.skin, l.hairStyle, l.hairColor, l.hat, l.glasses, l.topColor, l.bottomColor], () => headParts(l)), neck, 0, HEAD);
   const eyes = mesh(bgeo(['av_eyes_' + l.eyes], l, 'eyes' + l.eyes, () => eyeParts(l.eyes)), neck, 0, HEAD + EY);
@@ -576,7 +576,7 @@ export function makeAvatar(look) {
   }
   if (BL() && l.hat !== 'none' && !hasModel('av_hat_' + l.hat)) mesh(geo('hat' + [l.hat, l.topColor, l.bottomColor, l.hairColor], () => hatParts(l)), neck, 0, HEAD); // Hut ohne Blender-Modell: aus Code
 
-  if (l.ear && l.ear !== 'none') mesh(geo('ear' + l.ear, () => earParts(l.ear)), neck, 0, HEAD).castShadow = false;
+  if (l.ear && l.ear !== 'none') mesh(bgeo(['av_ear_' + l.ear], l, 'ear' + l.ear, () => earParts(l.ear)), neck, 0, HEAD).castShadow = false;
 
   let held = null, heldMesh = null, level = false, ph = 0, T = Math.random() * 9, blinkAt = 1 + Math.random() * 3;
   const c = { ...REST };
@@ -786,4 +786,4 @@ export function makePet(kind, color) {
 }
 
 // Für den Blender-Export (tools/dump-shapes.mjs): die Bauteil-Listen der Figur
-export const __parts = { headParts, hairParts, hatParts, glassesParts, eyeParts, torsoParts, armParts, legParts, HELD, petParts };
+export const __parts = { headParts, hairParts, hatParts, glassesParts, eyeParts, torsoParts, armParts, legParts, HELD, petParts, nailParts, neckParts, earParts, wristParts };

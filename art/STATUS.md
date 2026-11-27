@@ -4,11 +4,11 @@ Automatisch erzeugt mit `npm run export-models` – nicht von Hand ändern. Anle
 
 | Bereich | Modelle | davon aus Blender | noch Platzhalter |
 |---|---|---|---|
-| place | 133 | 133 | 0 |
-| furniture | 275 | 275 | 0 |
-| items | 216 | 216 | 0 |
-| crops | 141 | 141 | 0 |
-| Icons | 692 | 684 eigene Bilder | 8 gerendert |
+| place | 208 | 208 | 0 |
+| furniture | 390 | 390 | 0 |
+| items | 238 | 238 | 0 |
+| crops | 177 | 177 | 0 |
+| Icons | 915 | 915 eigene Bilder | 0 gerendert |
 
 ## place – noch Platzhalter (0)
 

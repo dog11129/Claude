@@ -661,12 +661,12 @@ export const PLACE = {
   regenbogen:  { name: 'Kleiner Regenbogen', icon: '🌈', lvl: 1, kind: 'deco', solid: 1, glow: 1, star: 8, desc: 'Aus dem Sternchen-Laden' },
   // Inselleben 15 „Winterzauber“: Federball, Erinnerungsbaum, Koi-Teich, Kostümfest, Adventskalender
   federballnetz: { name: 'Federballnetz',    icon: '🏸', buy: 600, lvl: 2, kind: 'deco', solid: 1, desc: 'Ballwechsel zu zweit – oder allein üben' },
-  erinnerungsbaum: { name: 'Erinnerungsbaum', icon: '🌳', lvl: 1, kind: 'deco', solid: 1, desc: 'Wächst mit jedem Tag – und mit euch' },
+  erinnerungsbaum: { name: 'Erinnerungsbaum', icon: '🌳', lvl: 1, kind: 'deco', solid: 1, sell: 0, desc: 'Wächst mit jedem Tag – und mit euch' }, // unverkäuflich
   koifahne:    { name: 'Koi-Fahne',          icon: '🎏', lvl: 1, kind: 'deco', solid: 1, desc: 'Für fünf Koi-Sorten' },
   koistatue:   { name: 'Koi-Statue',         icon: '🐟', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.6, desc: 'Für alle zwölf Koi-Sorten' },
-  schnitzkuerbis_froh: { name: 'Fröhlicher Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, desc: 'Selbst geschnitzt' },
-  schnitzkuerbis_grusel: { name: 'Grusel-Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, desc: 'Selbst geschnitzt' },
-  schnitzkuerbis_herz: { name: 'Herz-Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, desc: 'Selbst geschnitzt' },
+  schnitzkuerbis_froh: { name: 'Fröhlicher Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, sell: 400, desc: 'Selbst geschnitzt' },
+  schnitzkuerbis_grusel: { name: 'Grusel-Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, sell: 400, desc: 'Selbst geschnitzt' },
+  schnitzkuerbis_herz: { name: 'Herz-Kürbis', icon: '🎃', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.5, sell: 400, desc: 'Selbst geschnitzt' },
   lebkuchenhaus: { name: 'Lebkuchenhaus',    icon: '🏠', lvl: 1, kind: 'deco', solid: 1, glow: 1, light: 1.8, desc: 'Aus dem 24. Türchen' },
 };
 // Inselprojekte (Rathaus): erst einen Bauplatz abstecken, dann gemeinsam Spenden sammeln, am nächsten Morgen steht es.
@@ -696,7 +696,7 @@ export const PROJECTS = {
   kapelle:       { name: 'Inselkapelle',        icon: '💒', cost: 48000, lvl: 4 },
 };
 for (const [k, p] of Object.entries(PROJECTS)) PLACE[k] = { name: p.name, icon: p.icon, lvl: p.lvl, kind: 'project', solid: 1, glow: p.glow, sit: p.sit, desc: 'Inselprojekt' };
-for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
+for (const [k, p] of Object.entries(PLACE)) ITEMS[k] = { name: p.name, icon: p.icon, buy: p.buy, lvl: p.lvl, place: k, ...(p.buy || p.kind === 'site' || p.kind === 'project' ? {} : { sell: p.sell ?? 500, cat: 'misc' }), ...(p.garden ? { garden: 1 } : {}) };
 export const MACHINE_CAP = 20;
 
 // Ausbau: cost[i] = Preis für die nächste Stufe, req[i] = benötigtes Insel-Level.

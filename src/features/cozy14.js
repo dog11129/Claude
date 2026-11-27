@@ -20,7 +20,7 @@ export function lock14(s, a, out) {
   const L = s.locks ||= [], me = who(s);
   if (L.length >= LOCK_MAX) { out.msg = '🔒 Die Brücke ist voller Schlösser – mehr passen nicht.'; return false; }
   if (L.some(l => l.day === s.day && l.by === me)) { out.msg = '🔒 Heute hast du schon ein Schloss aufgehängt. Morgen wieder!'; return false; }
-  if (!LOCK_COLORS[a.c]) return false;
+  if (!Number.isInteger(a.c) || !LOCK_COLORS[a.c]) return false;
   if (s.money < LOCK_COST) { out.msg = 'Nicht genug Taler.'; return false; }
   s.money -= LOCK_COST;
   L.push({ c: a.c | 0, t: lockText(a.txt), by: me, day: s.day });
@@ -88,7 +88,7 @@ export function pet14(s, a, out) {
     return true;
   }
   if (a.op === 'name') { const n = String(a.name || '').replace(/[^\p{L}\p{N} \-]/gu, '').trim().slice(0, 12); if (!n) return false; P.name = n; out.msg = `🐇 Ab jetzt heißt er ${n}.`; return true; }
-  if (a.op === 'bow') { if (!RABBIT_BOWS[a.i]) return false; P.bow = a.i | 0; return true; }
+  if (a.op === 'bow') { if (!Number.isInteger(a.i) || !RABBIT_BOWS[a.i]) return false; P.bow = a.i | 0; return true; }
   if (a.op === 'follow') { P.follow = a.on ? me : null; out.msg = a.on ? `🐇 ${rabbitName(s)} hoppelt dir hinterher!` : `🐇 ${rabbitName(s)} bleibt beim Haus.`; return true; }
   return false;
 }
@@ -146,7 +146,7 @@ export function snow14(s, a, out) {
     return true;
   }
   if (a.op === 'deco') {
-    const P = SNOW_PARTS[a.part];
+    const P = Object.hasOwn(SNOW_PARTS, a.part) ? SNOW_PARTS[a.part] : null;
     if (!P || m.lv < SNOW_MAX || m.deco[a.part]) return false;
     if (!S.takeInvX(s, P[0], 1)) { out.msg = `Dafür braucht ihr ${ITEMS[P[0]].icon} ${ITEMS[P[0]].name}.`; return false; }
     m.deco[a.part] = 1;

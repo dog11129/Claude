@@ -25,7 +25,7 @@ export const JEWELS = {
 };
 export const JEWEL_SLOTS = [['neck', '📿 Ketten'], ['ear', '💎 Ohrringe'], ['wrist', '✨ Armbänder']];
 export const jewelKey = id => 'jw_' + id;
-export const jewelOf = (slot, id) => (JEWELS[slot] || []).find(j => j[0] === id) || null;
+export const jewelOf = (slot, id) => (Object.hasOwn(JEWELS, slot) ? JEWELS[slot] : []).find(j => j[0] === id) || null;
 
 // Kostüme: [Hut-id, Name, Preis in Bonbons]
 export const COSTUMES = [['fledermausreif', 'Fledermaus-Haarreif', 4], ['geisterhaube', 'Gespenster-Haube', 5], ['kuerbishut', 'Kürbis-Hut', 5], ['hexenhut', 'Hexenhut', 6]];

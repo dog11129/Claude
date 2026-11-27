@@ -35,7 +35,7 @@ export function terra14(s, a, out) {
     out.snd = 'till';
     return true;
   }
-  if (!TERRA_COST[a.k] || old === a.k) return false;
+  if (!Object.hasOwn(TERRA_COST, a.k) || old === a.k) return false;
   if (old ? !!s.obj[k] : !terraOk(s, a.x, a.z)) { out.msg = 'Hier lässt sich das Gelände nicht formen.'; return false; }
   if (old === 'w' && koiNeedsWater(s)) { out.msg = 'Dann wird es den Koi zu eng – erst einen Fisch abgeben oder den Teich woanders vergrößern.'; return false; }
   if (!old && Object.keys(T).length >= TERRA_MAX) { out.msg = `Mehr als ${TERRA_MAX} Gelände-Kacheln gehen nicht.`; return false; }

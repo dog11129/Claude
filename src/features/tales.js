@@ -50,7 +50,7 @@ export const TALES = {
 };
 // Status: s.tales[id] = { ch: Kapitel 0–4 (4 = fertig), on: angenommen, p: Fortschritt (ev), ok: bereit zum Abschließen }
 export function taleState(s, id) {
-  const T = TALES[id], t = s.tales?.[id] || { ch: 0 };
+  const T = Object.hasOwn(TALES, id) ? TALES[id] : null, t = (T && s.tales?.[id]) || { ch: 0 };
   if (!T || t.ch >= T.ch.length) return { done: true, t };
   const C = T.ch[t.ch], need = TALE_HEARTS[t.ch], heartsOk = S.hearts(s, id) >= need;
   return { T, C, t, need, heartsOk, ready: heartsOk && !t.on, active: !!t.on };

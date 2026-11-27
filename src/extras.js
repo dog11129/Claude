@@ -91,7 +91,7 @@ export function moment(s, k, icon, title, text, out) {
   s.book ||= [];
   if (s.book.some(p => p.k === k)) return false;
   s.book.push({ k, day: s.day, icon, title, text, t: Date.now() });
-  if (s.book.length > 150) s.book.splice(0, s.book.length - 150);
+  while (s.book.length > 150) { const i = s.book.findIndex(p => String(p.k).startsWith('fest:')); s.book.splice(i >= 0 ? i : 0, 1); } // wird es voll, gehen zuerst alte Fest-Einträge – Meilensteine bleiben
   if (out) out.moment = { k, icon, title };
   return true;
 }

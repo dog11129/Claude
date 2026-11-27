@@ -35,6 +35,13 @@ export function resolveFurn15(s, h, R, base, tiles) {
   if (polaSlot(k)) return { ...base, ui: 'pola15', label: '🖼️ Polaroid', tiles };
   return null;
 }
+// Gibt es dieses Stück noch irgendwo? (Taschen, Lagerkiste, Post, aufgestellt, in einem Zimmer)
+export function owns15(s, id) {
+  if ([s.inv, s.box, ...Object.values(s.pinv || {})].some(b => b && b[id] > 0)) return true;
+  if ((s.mail || []).some(m => m && m.item === id)) return true;
+  if (Object.values(s.obj || {}).some(o => o?.k === id)) return true;
+  return [s.home, ...Object.values(s.nhome || {}), ...Object.values(s.xrooms || {})].some(R => R && [R.items, R.rugs, R.walls].some(m => m && typeof m === 'object' && Object.values(m).some(o => o?.k === id)));
+}
 export function migrate15(s) { migrateAdvent(s); migrateKoi(s); migratePuzzle(s); migrateRally(s); migrateTree(s); migratePola(s); }
 export function morning15(s) { morningKoi(s); }
 export function after15(s) { treeSeen(s); }
@@ -45,6 +52,10 @@ export function tick15(s) {
     s.i15 = 1; ch = true;
     note(s, '🌳 Ein Baum für eure Erinnerungen', 'Ihr Lieben,\n\ndieser kleine Setzling ist etwas Besonderes: Er wächst mit jedem Tag auf der Insel – und doppelt so schnell an Tagen, an denen ihr beide da seid. Für alles Schöne, das ihr zusammen erlebt, hängt bald ein Anhänger in seinen Zweigen, und ihr könnt euch kleine Zettel hineinhängen.\n\nSucht ihm einen schönen Platz (🔨 Bauen ➜ Deko)!\n\nMira 🦔', TREE_ID, 1, 'mira');
     note(s, '🧩 Post für gemütliche Abende', 'Ihr Lieben,\n\nich habe euch einen Puzzletisch gebaut: 24 Teile, jede:r legt vier am Tag – und das fertige Bild hängt ihr euch an die Wand. Stellt ihn einfach ins Haus.\n\nNeu auf der Insel sind auch: Koi für eure selbst gegrabenen Teiche (einfach das Wasser antippen), Mühle und Würfelglück am Spieltisch, ein Federballnetz (🔨 Bauen ➜ Deko), die Goldschmiede im Salon der Bummelgasse, Polaroids aus dem 📸 Fotobuch und jeden Tag ein 🥠 Glückskeks im Handy.\n\nViel Freude!\nRosi 🐰', 'puzzletisch', 1);
+  }
+  else for (const [id, what] of [[TREE_ID, 'Euer Erinnerungsbaum'], ['puzzletisch', 'Euer Puzzletisch']]) if (!owns15(s, id)) { // verschenkt oder verloren: kommt zurück
+    ch = true;
+    note(s, `📦 ${what} ist wieder da`, `Ihr Lieben,\n\n${what} war nirgends mehr zu finden – so etwas darf nicht verloren gehen. Hier ist ${id === TREE_ID ? 'er' : 'einer'} wieder. ${id === TREE_ID ? 'Alles, was der Baum schon erlebt hat, ist noch da: Größe, Anhänger und Zettel.' : 'Euer Puzzle geht genau dort weiter, wo ihr aufgehört habt.'}\n\nMira 🦔`, id, 1, 'mira');
   }
   return adventMail(s) || ch;
 }

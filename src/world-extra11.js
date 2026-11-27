@@ -6,7 +6,17 @@ import { PLACE } from './data.js';
 import { STREET, zoneOf } from './newleaf.js';
 import { BRIDGE_W, BRIDGE_HALF, riverX } from './island.js';
 import * as E from './extras14.js';
-import { rabbitParts, snowmanParts, snowPileParts, lockParts, salonParts, doorParts, shutterParts, boxParts, kranzParts } from './models-14.js';
+import { rabbitBowParts, lockParts, kranzParts, BLEND_14, FACADE_NAME, facadeParts } from './models-14.js';
+import { model as asset } from './assets.js';
+
+// Benanntes Stück: Blender-Fassung, wenn es sie gibt, sonst die Grundformen aus models-14.js
+function am(name, shadow = false) {
+  const own = asset(name);
+  if (own) { own.traverse(o => { if (o.isMesh) o.castShadow = shadow && !o.name.includes('__glow'); }); return own; }
+  const [p, g] = BLEND_14[name](), m = M.model(p, g, false);
+  if (shadow) m.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return m;
+}
 
 // ---------- Kacheln mit runden Ecken und Rand (Wege, Wasser) ----------
 // aEdge je Kachel: offen nach Norden (−z), Osten (+x), Süden (+z), Westen (−x). An offenen Ecken wird rund ausgeschnitten.
@@ -159,8 +169,13 @@ function syncSnow(w, s) {
   w.snowSig = sig;
   if (w.snowG) w.scene.remove(w.snowG);
   const g = w.snowG = new THREE.Group();
-  for (const [k, m] of Object.entries(s.snowmen || {})) { const [x, z] = k.split(',').map(Number), o = mesh(snowmanParts(m.lv, m.deco)); o.traverse(q => { if (q.isMesh) q.castShadow = true; }); o.position.set(x, 0, z); g.add(o); }
-  for (const k of s.snowpiles || []) { const [x, z] = k.split(',').map(Number), o = mesh(snowPileParts()); o.position.set(x, 0, z); o.rotation.y = h2(x, z) * 6; g.add(o); }
+  for (const [k, m] of Object.entries(s.snowmen || {})) { // Kugeln je Größe, dazu jedes Schmuckstück einzeln
+    const [x, z] = k.split(',').map(Number), o = new THREE.Group();
+    o.add(am('schneemann14_' + Math.max(1, Math.min(3, m.lv | 0)), true));
+    for (const d of Object.keys(m.deco || {})) if (m.deco[d] && BLEND_14['schneemann14_' + d]) o.add(am('schneemann14_' + d, true));
+    o.position.set(x, 0, z); g.add(o);
+  }
+  for (const k of s.snowpiles || []) { const [x, z] = k.split(',').map(Number), o = am('schneehaufen14'); o.position.set(x, 0, z); o.rotation.y = h2(x, z) * 6; g.add(o); }
   w.scene.add(g);
 }
 
@@ -169,7 +184,7 @@ function updateRabbit(w, s, me, dt) {
   const P = s.pet14, show = !!P?.at && E.rabbitAwake(s) && w.target.x > -150 && w.target.x < 150 && Math.abs(w.target.z) < 150;
   if (w.rabbit && w.rabbitBow !== (P?.bow | 0)) { w.scene.remove(w.rabbit.m); w.rabbit = null; }
   if (!show) { if (w.rabbit) w.rabbit.m.visible = false; E.setRabbitHint(null); return; }
-  if (!w.rabbit) { w.rabbitBow = P.bow | 0; const m = mesh(rabbitParts(E.RABBIT_BOWS[P.bow | 0]?.[1] || 0)); m.traverse(q => { if (q.isMesh) q.castShadow = true; }); w.scene.add(m); w.rabbit = { m, x: P.at[0], z: P.at[1], ry: 0, hop: 0 }; }
+  if (!w.rabbit) { w.rabbitBow = P.bow | 0; const m = am('hase14', true), bow = E.RABBIT_BOWS[P.bow | 0]?.[1] || 0; if (bow) m.add(mesh(rabbitBowParts(bow))); w.scene.add(m); w.rabbit = { m, x: P.at[0], z: P.at[1], ry: 0, hop: 0 }; }
   const R = w.rabbit, t = w.time;
   R.m.visible = true;
   let tx, tz;
@@ -187,7 +202,7 @@ function updateRabbit(w, s, me, dt) {
 // ---------- Salon-Stand in der Bummelgasse ----------
 function syncSalon(w) {
   if (w.salon14) return;
-  const [p, g] = salonParts(), m = w.salon14 = mesh(p, g);
+  const m = w.salon14 = am('salon14');
   m.position.set(STREET.x + E.SALON_AT[0], 0, STREET.z + E.SALON_AT[1] + 0.95);
   w.scene.add(m);
 }
@@ -229,13 +244,14 @@ export function houseExterior(m, ext, level) {
   const opt = (k) => E.EXT[k].find(o => o[0] === ext[k]);
   if (ext.roof && opt('roof')) tintRoof(m, level, opt('roof')[2]);
   const xs = level === 1 ? [-1.4, 1.4] : level === 2 ? [-1.6, 1.6] : [1.6], parts = [];
-  if (ext.door && opt('door')) parts.push(...doorParts(opt('door')[2]));
-  if (ext.shut && opt('shut')) parts.push(...shutterParts(opt('shut')[2], xs));
-  if (ext.box && opt('box')) parts.push(...boxParts(opt('box')[2], xs));
   if (ext.wreath) parts.push(...kranzParts(ext.wreath, 1.2, 1.7, 0.8));
   const g = new THREE.Group();
   g.position.z = m.userData.asset ? 0 : -10.5; // Ersatzmodell aus dem Code liegt anders
-  if (parts.length) { for (const q of parts) if (q.c === 0x000000) q.c = 0x4a3a2a; g.add(mesh(parts)); }
+  for (const [kind, at] of [['door', [0]], ['shut', xs], ['box', xs]]) { // Tür, Läden und Blumenkästen: je Farbe ein Stück (Blender oder Grundformen)
+    const o = ext[kind] && opt(kind);
+    if (o) for (const x of at) { const q = asset(FACADE_NAME[kind] + o[0]) || mesh(facadeParts(kind, o[2])); q.traverse(n => { n.castShadow = false; }); q.position.x = x; g.add(q); }
+  }
+  if (parts.length) g.add(mesh(parts));
   if (ext.nr > 0) g.add(numberPlate(ext.nr));
   m.add(g);
 }

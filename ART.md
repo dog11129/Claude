@@ -83,29 +83,27 @@ Baumkronen → 1.700, Felsen → 650, reife Beete → 1.000) und schreibt die Pa
 bleiben gleich, die Originale liegen als `*_orig.glb` daneben. Zusammen mit den Schatten, die nur noch jedes zweite Bild neu
 berechnet werden, sind es im Schnitt rund 58 % weniger Zeichenaufrufe und 43 % weniger Dreiecke pro Bild.
 
-## Inselleben 13: Zäune, Tore und Feengarten (Blender-Lauf steht noch aus)
+## Inselleben 13–15: alles aus Blender (Lauf vom 27.11.2026)
 
-Die neuen Stücke laufen fürs Erste als Code-Modelle (`src/models-13.js`, Ausnahmeliste `CODE_ONLY` in `test/remaster.test.mjs`).
-`node tools/dump-models.mjs` schreibt sie schon in den Bauplan: je Zaunart 15 Stücke `zaun_<art>_<maske>` (Maske: 1 = Norden,
-2 = Osten, 4 = Süden, 8 = Westen), je Tor `tor_<art>_rahmen` und `tor_<art>_fluegel` (Ursprung des Flügels = Angel), dazu die
-16 neuen Deko-Modelle samt Icons. Nach dem nächsten `remaster.py`-Lauf nimmt das Spiel die Blender-Fassungen von selbst
-(`world.js`, `syncObjects`); dann die 16 Namen aus `CODE_ONLY` streichen. Die Gebiete (`zone13_*`) kommen über
-`python3 tools/capture-world.py` + `PACKS = ['world']` dazu.
+Die Stücke aus „Gartenzeit“, „Lieblingsplätze“ und „Winterzauber“ sind in Blender nachgebaut; `CODE_ONLY` in
+`test/remaster.test.mjs` ist wieder leer. Was dazugehört und wie es entsteht:
 
-## Inselleben 14: Lieblingsplätze (Blender-Lauf steht noch aus)
-
-Auch diese 59 Stücke laufen fürs Erste als Code-Modelle (`src/models-14.js`, in `CODE_ONLY`): Stege, Treppen, Laternen,
-Kuschelplätze, der Saisonkatalog (20 Deko, 20 Möbel), vier Sträuße und vier Kränze. `node tools/dump-models.mjs` nimmt sie
-schon in den Bauplan auf (samt Icons). Nicht im Bauplan, weil sie sich im Spiel zusammensetzen: Hase, Schneemann (je nach
-Kugeln und Schmuck), Liebesschlösser, Salon-Stand, Fassaden-Teile (Tür, Läden, Blumenkästen) und das Gelände (Hügel, Wasser).
-Die sechs Salon-Frisuren kommen über `node tools/dump-shapes.mjs` + `shapes.py` in `characters.glb`.
-
-## Inselleben 15: Winterzauber (Blender-Lauf steht noch aus)
-
-Diese 26 Stücke und vier Kostüm-Hüte laufen fürs Erste als Code-Modelle (`src/models-15.js`, Hüte in `src/avatar.js`, alle in
-`CODE_ONLY`): Federballnetz, Erinnerungsbaum, Koi-Fahne, Koi-Statue, drei geschnitzte Kürbisse, Lebkuchenhaus, Puzzletisch,
-Adventskalender, Nikolausstiefel, Nussknacker, Leuchtstern, Weihnachtspyramide, sechs Puzzlebilder und sechs Polaroids.
-`node tools/dump-models.mjs` nimmt sie in den Bauplan auf. Nicht im Bauplan, weil sie sich im Spiel zusammensetzen: der
-Erinnerungsbaum in seiner Wuchsstufe (`memTreeParts`, je Jahreszeit, mit Anhängern und Zetteln – das Modell im Bauplan ist
-nur die Vorschau), die Koi (`koiParts`, zwölf Farben), der Federball und der Schmuck an den Figuren. Die Bilder auf
-Polaroids und Puzzlebildern sind Texturen aus dem Spiel (`src/world-extra12.js`, `src/motifs15.js`), die Rahmen bleiben Modelle.
+- **Deko, Möbel, Beete** (`place2/furniture2/items2/crops2.glb`): `node tools/dump-models.mjs` ➜ `remaster.py`. Im Bauplan stehen
+  auch je Zaunart 15 Stücke `zaun_<art>_<maske>` (Maske: 1 = Norden, 2 = Osten, 4 = Süden, 8 = Westen) und je Tor
+  `tor_<art>_rahmen` und `tor_<art>_fluegel` (Ursprung des Flügels = Angel). Zaunstücke stehen in langen Reihen und werden
+  deshalb auf höchstens 1.800 Dreiecke ausgedünnt (`NAME_CAP` in `remaster.py`).
+- **Zusammengesetzte Stücke** bekommen einen eigenen Namen (`BLEND_14` in `src/models-14.js`, `BLEND_15` in `src/models-15.js`):
+  `hase14` (die Schleife bleibt aus Grundformen, sie hat die gewählte Farbe), `schneemann14_1…3` (Kugeln) und
+  `schneemann14_nose/eyes/arms/scarf/hat`, `schneehaufen14`, `salon14`, die Fassade je Farbe als EIN Stück
+  (`tuer14_<farbe>`, `laden14_<farbe>`, `kasten14_<farbe>` – das Spiel schiebt Läden und Kästen an die Fenster), der
+  Erinnerungsbaum als `baum15_sockel` + `baum15_<jahreszeit>_<stufe 0–4>` und die Koi als `koi15_<sorte>`.
+  Das Spiel nimmt die Blender-Fassung, wenn es sie gibt, sonst die Grundformen (`am()` in `world-extra11/12.js`).
+- **Bleibt aus Grundformen:** Liebesschlösser (viele kleine, je in eigener Farbe und Lage), Anhänger und Zettel am
+  Erinnerungsbaum (Anzahl wechselt), der Federball, das Gelände (Hügel, Wasser). Die Bilder auf Polaroids und Puzzlebildern
+  sind Texturen aus dem Spiel (`src/world-extra12.js`, `src/motifs15.js`), die Rahmen sind Modelle.
+- **Figuren** (`characters.glb`): `node tools/dump-shapes.mjs` ➜ `shapes.py`. Neu dabei: sechs Salon-Frisuren, vier Kostüm-Hüte,
+  Nagellack (`av_nail_<id>`) und Schmuck (`av_neck_/av_ear_/av_wrist_<id>`, feste Farben ohne Schlüsselfarbe).
+- **Welt** (`world2.glb`): `python3 tools/capture-world.py` ➜ `remaster.py` mit `PACKS = ['world']`. Neu: die Gebiete
+  (`zone13_*`) und ihre Tiere (`zone9_*`).
+- **Icons:** `icons2.py` für alle neuen Dinge; nur die sechs Polaroids und sechs Puzzlebilder bleiben vom Spiel gerendert
+  (ihr Bild ist eine Textur).

@@ -59,6 +59,12 @@ for (const id of [...Object.keys(D.PLACE), 'heissluftballon', 'nachtstand', 'rif
 // Inselleben 13: Zaunstücke für jede Nachbarschaft (Maske 1–15) und Tore als Rahmen + Flügel
 for (const kind of new Set(Object.values(D.PLACE).map(p => p.fence).filter(Boolean))) for (let m = 1; m < 16; m++) add('place', `zaun_${kind}_${m}`, () => P.fencePiece(kind, m));
 for (const kind of new Set(Object.values(D.PLACE).map(p => p.gate).filter(Boolean))) { add('place', `tor_${kind}_rahmen`, () => P.gateFramePiece(kind)); add('place', `tor_${kind}_fluegel`, () => P.gateLeafPiece(kind)); }
+// Inselleben 14/15: Stücke, die das Spiel selbst zusammensetzt (Hase, Schneemann, Salon, Fassade, Erinnerungsbaum, Koi, Federball)
+const M0 = await import('../src/models.js'), M14 = await import('../src/models-14.js'), M15 = await import('../src/models-15.js'), E14 = await import('../src/extras14.js'), E15 = await import('../src/extras15.js');
+const two = r => (Array.isArray(r[0]) ? r : [r, []]);
+for (const [name, fn] of [...Object.entries(M14.BLEND_14), ...Object.entries(M15.BLEND_15)]) add('place', name, () => M0.model(...two(fn()), false));
+for (const kind of ['door', 'shut', 'box']) for (const o of E14.EXT[kind]) if (o[0]) add('place', M14.FACADE_NAME[kind] + o[0], () => M0.model(M14.facadeParts(kind, o[2]), [], false));
+for (const v of E15.KOI_IDS) add('place', 'koi15_' + v, () => M0.model(M15.koiParts(E15.KOI[v][2], E15.KOI[v][3], v), [], false));
 for (const id of Object.keys(FURNITURE)) add('furniture', id, () => F.makeFurniture(id));
 for (const id of IM.ITEM_MODEL_IDS) if (D.ITEMS[id] && !id.startsWith('s_')) add('items', 'item_' + id, () => IM.itemModel(id));
 for (const k of Object.keys(D.CROPS)) if (D.ITEMS['s_' + k]) add('items', 'item_s_' + k, () => IM.itemModel('s_' + k));

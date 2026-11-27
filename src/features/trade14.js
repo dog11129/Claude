@@ -79,7 +79,7 @@ function morningDeliv(s) {
 
 // ---------- Salon ----------
 export function salon14(s, a, out) {
-  const list = SALON[a.kind];
+  const list = Object.hasOwn(SALON, a.kind) ? SALON[a.kind] : null;
   if (!list || !list.some(o => o[0] === a.id)) return false;
   const k = salonKey(a.kind, a.id), W = s.wardrobe ||= {};
   if (W[k]) { out.msg = '💇 Das habt ihr schon – einfach unter „Aussehen“ auswählen.'; return false; }
@@ -106,7 +106,7 @@ export const extOf = s => s.home?.ext || {};
 export function ext14(s, a, out) {
   const E = s.home.ext ||= {};
   if (a.k === 'nr') { const n = Math.max(0, Math.min(99, a.v | 0)); if (E.nr === n) return false; E.nr = n; out.snd = 'click'; return true; }
-  const opt = EXT[a.k]?.find(o => o[0] === a.v);
+  const opt = Object.hasOwn(EXT, a.k) ? EXT[a.k].find(o => o[0] === a.v) : null;
   if (!opt || (E[a.k] || '') === a.v) return false;
   if (a.k === 'wreath') {
     if (a.v && !S.takeInvX(s, a.v, 1)) { out.msg = '🌿 Bindet erst einen Kranz am Blumenbinde-Tisch.'; return false; }

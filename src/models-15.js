@@ -132,3 +132,11 @@ export const FURN_15 = {
   ...Object.fromEntries([1, 2, 3, 4, 5, 6].map(n => ['puzzlebild' + n, frame])),
   ...Object.fromEntries([1, 2, 3, 4, 5, 6].map(n => ['polaroid' + n, () => polaroid(n)])),
 };
+
+// ---------- Zusammengesetzte Stücke mit eigenem Namen: Blender baut sie nach (tools/dump-models.mjs), das Spiel nimmt die
+// Blender-Fassung, wenn es sie gibt (world-extra12.js), sonst diese Grundformen. Die Koi (koi15_<Sorte>) kommen dort dazu.
+export const TREE_SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+export const BLEND_15 = {
+  baum15_sockel: () => treeBaseParts(),
+  ...Object.fromEntries(TREE_SEASONS.flatMap(sea => [0, 1, 2, 3, 4].map(st => [`baum15_${sea}_${st}`, () => memTreeParts(st, sea)]))),
+};

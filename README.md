@@ -51,7 +51,7 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 - **Erinnerungsbaum:** Wächst mit jedem Tag (doppelt an gemeinsamen Tagen) über fünf Größen, zeigt die Jahreszeit, trägt Anhänger für 15 Meilensteine und eure Zettel.
 - **Polaroid-Wand:** Fotos aus dem Fotobuch werden zu kleinen Polaroids fürs Haus – sechs Plätze, mit Bildunterschrift.
 - **Glückskeks:** Jeden Tag ein Spruch und ein paar Taler; der erste Keks legt das Tagesglück der Insel fest (Angler-, Kescher-, Sternchen-, Trinkgeld- oder Herzensglück).
-- Die neuen Stücke sind fürs Erste Code-Modelle; die Blender-Fassungen folgen beim nächsten Blender-Lauf.
+- Alle neuen Stücke sind in Blender nachgebaut – auch Hase, Schneemann, Salon, Fassade, Erinnerungsbaum, Koi, Schmuck und Kostüm-Hüte (siehe `ART.md`).
 
 ### 💞 Neu: Lieblingsplätze (Inselleben 14)
 - **Wege mit runden Ecken:** Vier neue Sorten (Kiesweg, Sandsteinplatten, Kopfsteinpflaster, Blumen-Mosaik) – und alle Wege, auch die alten, bekommen von selbst runde Ecken und einen Rand.
@@ -68,7 +68,6 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 - **Outfits:** Sechs Speicherplätze für Lieblings-Looks, mit einem Tipp gewechselt (Handy oder Spiegel, dort auch „Posieren“).
 - **Salon Schnipp & Glanz** (Bummelgasse): sechs neue Frisuren, sechs Haarfarben und neun Nagellacke.
 - **Blumenbinden:** vier neue Sträuße und vier Kränze für Wand oder Haustür.
-- Die neuen Stücke sind fürs Erste Code-Modelle; die Blender-Fassungen folgen beim nächsten Blender-Lauf.
 
 ### 🌷 Neu: Gartenzeit (Inselleben 13)
 - **Zäune, die sich verbinden:** Holzzaun, weißer Lattenzaun, Rosenzaun, Natursteinmauer, Hecke, Schmiedeeisen-Zaun, Seilzaun und Bambuszaun – einfach Stück für Stück nebeneinander setzen, sie schließen sich von selbst an, auch um die Ecke und als Kreuzung. Im Krämerladen gibt es sie im Zehnerpack, im Baumodus haben sie einen eigenen Reiter. Dazu zwei **Gartentore**, die aufschwingen, wenn jemand kommt, **Trittsteine** und eine **Blauregen-Pergola**.
@@ -76,7 +75,7 @@ Einmal **Meine Inseln → 🌍 Serverwelt → Zur Serverwelt machen**, den Link 
 - **Fleißkärtchen – immer etwas zu tun:** Im Inselhandy liegen fünf kleine Aufgaben, die nie ausgehen. Wer eine einlöst, bekommt Sternchen und Taler, und sofort rückt ein neues Kärtchen nach (einmal am Tag darf man eins tauschen).
 - **Sternchen-Laden mit Feengarten:** Feenlaterne, Pilzhocker, Pilztisch, Schmetterlingsstrauch, kleiner Regenbogen und der **Wunschbrunnen** – einmal am Tag eine Münze hineinwerfen und schauen, was passiert. Dazu Samen-Wundertüte, Zaun-Paket und Glücksklee.
 - **Gebiete neu gebaut:** Kiefernwald, Blütenwiese und Kristallhöhle sind fast doppelt so groß. Der Weg schlängelt sich jetzt hindurch; im Wald fließt ein Bach mit Holzbrücke und es gibt eine Lichtung mit Lagerfeuer, auf der Wiese warten Windmühle, Seerosenteich, Blumenfelder und ein Lattenzaun am Weg, in der Höhle ein großer leuchtender See, Kristallgruppen, eine Lore und Glühwürmchen an der Decke. Mehr Kiefern, Pilze, Beeren, Blumen und Erzadern – und neue **Fundstellen** (Baumstümpfe, Kleefelder, Kristallnester) zum täglichen Durchstöbern.
-- Die neuen Zäune und Feengarten-Sachen sind fürs Erste Code-Modelle; die Blender-Fassungen folgen beim nächsten Blender-Lauf.
+- Zäune, Tore und Feengarten-Sachen sind in Blender nachgebaut (siehe `ART.md`).
 
 ### 🌸 Neu: Blütenzeit (Inselleben 12)
 - **Nachbarn richten sich selbst ein:** Jeder Nachbar hat einen eigenen Geschmack und kauft sich nach und nach Möbel, Tapeten und Böden dazu – und räumt gern mal um. Was neu ist, erzählen sie euch beim Besuch (und in der Inselzeitung). Eure Geschenke und erfüllten Wünsche bleiben natürlich stehen; was sich ein Nachbar selbst ausgesucht hat, bleibt bei ihm.
